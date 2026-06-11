@@ -383,7 +383,7 @@ export default function AICoach() {
   );
 
   return (
-    <div className="flex flex-row h-[calc(100vh-140px)] max-h-[820px] glass rounded-2xl overflow-hidden relative border border-[var(--card-border)]">
+    <div className="flex flex-row h-[calc(100dvh-170px)] md:h-[calc(100vh-140px)] max-h-[820px] glass rounded-2xl overflow-hidden relative border border-[var(--card-border)]">
       
       {/* ── Chat Sidebar (Desktop Only) ── */}
       <div className="hidden md:flex w-72 shrink-0 border-r border-[var(--card-border)] bg-surface/20 flex-col p-4">
@@ -569,9 +569,10 @@ export default function AICoach() {
             <button 
               type="submit" 
               disabled={loading || !inputVal.trim()}
-              className="w-10 h-10 rounded-full bg-[var(--color-acid-green)] text-black flex items-center justify-center shadow-[0_0_12px_rgba(204,255,0,0.3)] disabled:opacity-50 hover:shadow-[0_0_18px_rgba(204,255,0,0.5)] cursor-pointer shrink-0 transition-all active:scale-95 border-none"
+              className="px-5 h-10 rounded-full bg-[var(--color-acid-green)] text-black flex items-center justify-center gap-2 shadow-[0_0_12px_rgba(204,255,0,0.3)] disabled:opacity-50 hover:shadow-[0_0_18px_rgba(204,255,0,0.5)] cursor-pointer shrink-0 transition-all active:scale-95 border-none font-bold text-xs uppercase tracking-wider"
             >
-              <Send className="w-4 h-4 text-black" />
+              <span>Send</span>
+              <Send className="w-3.5 h-3.5 text-black" />
             </button>
           </form>
         </div>
