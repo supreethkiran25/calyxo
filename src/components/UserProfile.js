@@ -3,13 +3,127 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
-import { getUserProfile, saveUserProfile } from '../lib/dbService';
-import { User, Activity, Flame, ShieldAlert, Award, RefreshCw, LogOut, CheckCircle, Scale } from 'lucide-react';
+import { getUserProfile, saveUserProfile, saveEcosystemState } from '../lib/dbService';
+import { useEcosystemStore } from '../store/useEcosystemStore';
+import { User, Activity, Flame, ShieldAlert, Award, RefreshCw, LogOut, CheckCircle, Scale, Trophy, Camera, Sparkles, Share2, Download, Image as ImageIcon, Lock } from 'lucide-react';
 import { signOutUser } from '../lib/dbService';
 
 export default function UserProfile({ onNotification }) {
   const { user, userProfile, setUserProfile, resetStore } = useStore();
   const userId = user?.uid;
+
+  const ecoStore = useEcosystemStore();
+  const [beforeImage, setBeforeImage] = useState(null);
+  const [afterImage, setAfterImage] = useState(null);
+  const [timelineNotes, setTimelineNotes] = useState("");
+  
+  const handlePhotoUpload = (e, target) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (target === 'before') {
+        setBeforeImage(reader.result);
+      } else {
+        setAfterImage(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveTimelineLog = async () => {
+    if (!beforeImage || !afterImage) return;
+    const logEntry = {
+      id: Date.now(),
+      date: new Date().toLocaleDateString(),
+      before: beforeImage,
+      after: afterImage,
+      notes: timelineNotes || "Progress Transformation"
+    };
+    ecoStore.addTimelineLog(logEntry);
+    await saveEcosystemState(userId, useEcosystemStore.getState());
+    setBeforeImage(null);
+    setAfterImage(null);
+    setTimelineNotes("");
+    if (onNotification) onNotification("Added transformation comparison log! 📸");
+  };
+
+  const handleDownloadSocialCard = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 600;
+    canvas.height = 400;
+    const ctx = canvas.getContext('2d');
+    
+    // Background gradient matching Calyxo Neon/Dark theme
+    const gradient = ctx.createLinearGradient(0, 0, 600, 400);
+    gradient.addColorStop(0, '#0e0e11');
+    gradient.addColorStop(1, '#18181f');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 600, 400);
+    
+    // Border accent
+    ctx.strokeStyle = '#b5f23d';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(10, 10, 580, 380);
+    
+    // Title
+    ctx.fillStyle = '#b5f23d';
+    ctx.font = '900 28px sans-serif';
+    ctx.fillText('CALYXO AI COACH', 40, 60);
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.fillText('FITNESS ECOSYSTEM PROFILE STATS', 40, 85);
+    
+    // Athlete details
+    ctx.fillStyle = '#8e8e93';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('ATHLETE NAME', 40, 140);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 20px sans-serif';
+    ctx.fillText(user?.displayName || 'Calyxo Athlete', 40, 165);
+
+    ctx.fillStyle = '#8e8e93';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('FITNESS SCORE', 40, 220);
+    ctx.fillStyle = '#b5f23d';
+    ctx.font = '900 36px sans-serif';
+    ctx.fillText(`${ecoStore.fitnessScore.dailyScore}/100`, 40, 260);
+
+    // Right side stats
+    ctx.fillStyle = '#8e8e93';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('ACTIVE LOG STREAKS', 320, 140);
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText(`🔥 Login Streak: ${ecoStore.streaks.loginStreak} days`, 320, 170);
+    ctx.fillText(`🏋️ Workout Streak: ${ecoStore.streaks.workoutStreak} days`, 320, 195);
+    ctx.fillText(`🍗 Nutrition Streak: ${ecoStore.streaks.nutritionStreak} days`, 320, 220);
+    ctx.fillText(`💧 Hydration Streak: ${ecoStore.streaks.waterStreak} days`, 320, 245);
+
+    // Goal Strategy
+    ctx.fillStyle = '#8e8e93';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('PRIMARY FITNESS TARGET', 40, 310);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 14px sans-serif';
+    const goalText = goal === 'lose' ? 'WEIGHT LOSS (CALORIE DEFICIT)' : goal === 'gains' ? 'MUSCLE GAINS (CALORIE SURPLUS)' : 'WEIGHT MAINTENANCE';
+    ctx.fillText(goalText, 40, 335);
+
+    // Branding logo watermark
+    ctx.fillStyle = '#8e8e93';
+    ctx.font = 'bold 10px sans-serif';
+    ctx.fillText('POWERED BY GEMINI 2.5 FLASH', 320, 335);
+
+    // Trigger download
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${user?.displayName || 'calyxo'}_stats_share.png`;
+    a.click();
+    if (onNotification) onNotification("Social Card downloaded successfully! 🎨");
+  };
 
   const [units, setUnits] = useState('metric');
   const [gender, setGender] = useState('male');
@@ -397,6 +511,160 @@ export default function UserProfile({ onNotification }) {
                 <span className="text-lg font-black text-foreground block mt-1">{metrics.bodyType}</span>
               </div>
             </div>
+          </div>
+
+          {/* Achievements Checklist Badges */}
+          <div className="glass p-6 rounded-2xl border border-card-border shadow-lg">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-5 flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-acid-green animate-pulse" />
+              Calyxo Milestones & Achievements
+            </h3>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {ecoStore.achievements?.map((ach) => (
+                <div 
+                  key={ach.id} 
+                  className={`border rounded-xl p-3 flex items-center gap-3 transition-all ${
+                    ach.unlocked 
+                      ? 'bg-acid-green/5 border-acid-green/35 shadow-[0_0_10px_rgba(181,242,61,0.15)]' 
+                      : 'bg-surface/30 border-card-border opacity-50'
+                  }`}
+                >
+                  <div className="text-2xl shrink-0">
+                    {ach.unlocked ? ach.icon : <Lock className="w-5 h-5 text-muted" />}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      {ach.name}
+                      {ach.unlocked && <span className="w-1.5 h-1.5 rounded-full bg-acid-green shadow-[0_0_6px_#b5f23d]" />}
+                    </h4>
+                    <p className="text-[10px] text-muted mt-0.5 font-medium leading-tight">{ach.description}</p>
+                    {ach.unlocked && ach.unlockedAt && (
+                      <span className="text-[8px] text-muted mt-1 block uppercase font-bold tracking-wider">Unlocked {new Date(ach.unlockedAt).toLocaleDateString()}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Before/After Transformation Timeline */}
+          <div className="glass p-6 rounded-2xl border border-card-border shadow-lg space-y-5">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+              <Camera className="w-4 h-4 text-acid-green" />
+              Before/After Transformation Timeline
+            </h3>
+
+            {/* Photo upload inputs */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Before Uploader */}
+              <div className="relative border border-dashed border-card-border rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:border-acid-green/40 bg-surface/20 min-h-[140px]">
+                {beforeImage ? (
+                  <div className="relative w-full h-full min-h-[120px] rounded-lg overflow-hidden flex items-center justify-center bg-black">
+                    <img src={beforeImage} className="object-contain w-full h-full max-h-28" />
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setBeforeImage(null); }}
+                      className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 hover:text-red-500 transition-colors border-none"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(e, 'before')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                    <Camera className="w-5 h-5 text-muted mb-2" />
+                    <span className="text-[10px] font-bold text-foreground">Before Photo</span>
+                    <span className="text-[8px] text-muted mt-0.5 uppercase tracking-wider font-extrabold">Upload image</span>
+                  </>
+                )}
+              </div>
+
+              {/* After Uploader */}
+              <div className="relative border border-dashed border-card-border rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:border-acid-green/40 bg-surface/20 min-h-[140px]">
+                {afterImage ? (
+                  <div className="relative w-full h-full min-h-[120px] rounded-lg overflow-hidden flex items-center justify-center bg-black">
+                    <img src={afterImage} className="object-contain w-full h-full max-h-28" />
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setAfterImage(null); }}
+                      className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 hover:text-red-500 transition-colors border-none"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(e, 'after')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                    <Camera className="w-5 h-5 text-muted mb-2" />
+                    <span className="text-[10px] font-bold text-foreground">After Photo</span>
+                    <span className="text-[8px] text-muted mt-0.5 uppercase tracking-wider font-extrabold">Upload image</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {beforeImage && afterImage && (
+              <div className="space-y-3 pt-1">
+                <input 
+                  type="text" 
+                  value={timelineNotes}
+                  onChange={(e) => setTimelineNotes(e.target.value)}
+                  placeholder="e.g. Month 3 progress, down 4kg!"
+                  className="w-full bg-[var(--input-bg)] border border-card-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-acid-green"
+                />
+                <button
+                  onClick={handleSaveTimelineLog}
+                  className="w-full bg-acid-green text-black font-extrabold text-[10px] uppercase tracking-wider py-2.5 rounded-xl hover:shadow-[0_0_12px_rgba(204,255,0,0.5)] cursor-pointer border-none"
+                >
+                  Save Timeline Log
+                </button>
+              </div>
+            )}
+
+            {/* List logged pairs */}
+            {ecoStore.timelineLogs && ecoStore.timelineLogs.length > 0 && (
+              <div className="space-y-3 pt-3 border-t border-card-border">
+                <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Logged Transformations:</span>
+                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                  {ecoStore.timelineLogs.map((log) => (
+                    <div key={log.id} className="bg-surface/50 border border-card-border p-3 rounded-xl space-y-2">
+                      <div className="flex justify-between items-center text-[10px] text-muted font-bold">
+                        <span>Date: {log.date}</span>
+                        <span className="text-acid-green">{log.notes}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="relative rounded-lg overflow-hidden border border-card-border bg-black aspect-video flex items-center justify-center max-h-24">
+                          <img src={log.before} className="object-contain w-full h-full" />
+                          <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[7px] font-bold px-1 py-0.5 rounded">BEFORE</div>
+                        </div>
+                        <div className="relative rounded-lg overflow-hidden border border-card-border bg-black aspect-video flex items-center justify-center max-h-24">
+                          <img src={log.after} className="object-contain w-full h-full" />
+                          <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[7px] font-bold px-1 py-0.5 rounded">AFTER</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Social Share Card Canvas Downloader */}
+          <div className="glass p-6 rounded-2xl border border-card-border shadow-lg flex flex-col justify-between items-start">
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                <Share2 className="w-4 h-4 text-acid-green" />
+                Athlete Social Sharing Card
+              </h3>
+              <p className="text-muted text-[10.5px] font-medium leading-relaxed">Generate a high-resolution, visually stylized sharing card containing your Calyxo Fitness Score, active streaks, and biometric achievements to download and share on social platforms.</p>
+            </div>
+            
+            <button
+              onClick={handleDownloadSocialCard}
+              className="mt-4 bg-acid-green text-black font-extrabold text-[10px] uppercase tracking-wider py-2.5 px-5 rounded-xl hover:shadow-[0_0_12px_rgba(181,242,61,0.5)] transition-all cursor-pointer border-none flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Download Sharing Card
+            </button>
           </div>
 
         </div>

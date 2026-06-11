@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { getWorkoutLogs, addWorkoutLog } from '../lib/dbService';
-import { Plus, Dumbbell, Clock, Edit3, X, Check, Search } from 'lucide-react';
+import { getWorkoutLogs, addWorkoutLog, saveEcosystemState } from '../lib/dbService';
+import { useEcosystemStore } from '../store/useEcosystemStore';
+import { Plus, Dumbbell, Clock, Edit3, X, Check, Search, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const LOCAL_EXERCISES = [
@@ -112,6 +113,7 @@ const INITIAL_WORKOUT_SPLITS = [
 export default function WorkoutLogger({ onNotification }) {
   const { user, workoutLogs, setWorkoutLogs } = useStore();
   const userId = user?.uid;
+  const ecoStore = useEcosystemStore();
 
   // Autocomplete / wger API Search states
   const [exQuery, setExQuery] = useState('');
@@ -388,6 +390,122 @@ export default function WorkoutLogger({ onNotification }) {
               {loading ? "Logging..." : "Approve & Log Workout"}
             </motion.button>
           </form>
+        </section>
+
+        {/* Arena Challenges */}
+        <section className="glass rounded-2xl p-6">
+          <h2 className="text-sm font-extrabold text-foreground uppercase tracking-widest mb-1 flex items-center gap-1.5">
+            <Trophy className="w-5 h-5 text-acid-green" />
+            Arena Challenges
+          </h2>
+          <p className="text-muted text-[10px] uppercase font-bold tracking-wider mb-4">Join active targets and track your physical conditioning progress</p>
+
+          <div className="space-y-4">
+            {ecoStore.activeChallenges?.map((challenge) => {
+              const hasStarted = challenge.progress > 0 || challenge.completed;
+              const percent = Math.min(100, Math.round((challenge.progress / challenge.targetVal) * 100));
+              
+              return (
+                <div key={challenge.id} className="bg-surface/50 border border-card-border p-4 rounded-xl space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-xs font-bold text-foreground">{challenge.name}</h4>
+                      <p className="text-[10px] text-muted font-medium mt-0.5">{challenge.target}</p>
+                    </div>
+                    {challenge.completed ? (
+                      <span className="text-[9px] font-bold text-acid-green bg-acid-green/10 border border-acid-green/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                        Completed 🎉
+                      </span>
+                    ) : !hasStarted ? (
+                      <button
+                        onClick={async () => {
+                          ecoStore.updateChallengeProgress(challenge.id, 1);
+                          await saveEcosystemState(userId, useEcosystemStore.getState());
+                          if (onNotification) onNotification(`Joined Challenge: ${challenge.name}! 🚀`);
+                        }}
+                        className="text-[9px] font-extrabold text-black bg-acid-green hover:shadow-[0_0_8px_rgba(204,255,0,0.4)] px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer border-none"
+                      >
+                        Join
+                      </button>
+                    ) : (
+                      <span className="text-[10px] font-bold text-acid-green">
+                        {percent}%
+                      </span>
+                    )}
+                  </div>
+
+                  {hasStarted && (
+                    <div className="space-y-2">
+                      {/* Progress bar */}
+                      <div className="w-full bg-[var(--input-bg)] rounded-full h-1.5 overflow-hidden border border-card-border">
+                        <div 
+                          className="bg-acid-green h-full rounded-full transition-all duration-500" 
+                          style={{ width: `${percent}%` }}
+                        ></div>
+                      </div>
+
+                      <div className="flex justify-between items-center text-[10px] text-muted">
+                        <span>Progress: <strong className="text-foreground">{challenge.progress}</strong> / {challenge.targetVal} {challenge.unit}</span>
+                        
+                        {!challenge.completed && (
+                          <div className="flex items-center gap-1.5">
+                            <input 
+                              type="number"
+                              placeholder="+ amount"
+                              id={`input-${challenge.id}`}
+                              className="w-16 bg-[var(--input-bg)] border border-card-border rounded px-1.5 py-0.5 text-center text-xs text-foreground focus:outline-none focus:border-acid-green"
+                              onKeyDown={async (e) => {
+                                if (e.key === 'Enter') {
+                                  const val = Number(e.target.value);
+                                  if (val > 0) {
+                                    ecoStore.updateChallengeProgress(challenge.id, val);
+                                    await saveEcosystemState(userId, useEcosystemStore.getState());
+                                    
+                                    const nextState = useEcosystemStore.getState();
+                                    const updated = nextState.activeChallenges.find(c => c.id === challenge.id);
+                                    if (updated?.completed) {
+                                      ecoStore.unlockAchievement('first_workout');
+                                      if (onNotification) onNotification(`Challenge Completed: ${challenge.name}! 🏆`);
+                                    } else {
+                                      if (onNotification) onNotification(`Logged progress: +${val} to ${challenge.name}`);
+                                    }
+                                    e.target.value = '';
+                                  }
+                                }
+                              }}
+                            />
+                            <button
+                              onClick={async () => {
+                                const inputEl = document.getElementById(`input-${challenge.id}`);
+                                const val = Number(inputEl?.value);
+                                if (val > 0) {
+                                  ecoStore.updateChallengeProgress(challenge.id, val);
+                                  await saveEcosystemState(userId, useEcosystemStore.getState());
+                                  
+                                  const nextState = useEcosystemStore.getState();
+                                  const updated = nextState.activeChallenges.find(c => c.id === challenge.id);
+                                  if (updated?.completed) {
+                                    ecoStore.unlockAchievement('first_workout');
+                                    if (onNotification) onNotification(`Challenge Completed: ${challenge.name}! 🏆`);
+                                  } else {
+                                    if (onNotification) onNotification(`Logged progress: +${val} to ${challenge.name}`);
+                                  }
+                                  if (inputEl) inputEl.value = '';
+                                }
+                              }}
+                              className="bg-surface border border-card-border hover:border-acid-green text-foreground px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer"
+                            >
+                              Add
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </section>
       </div>
 

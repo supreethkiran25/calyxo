@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home as HomeIcon, BookOpen, BarChart2, User, Plus, LogOut, Bot, Sparkles, X } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import { subscribeToAuth, signOutUser } from '../lib/dbService';
+import { subscribeToAuth, signOutUser, getEcosystemState } from '../lib/dbService';
+import { useEcosystemStore } from '../store/useEcosystemStore';
 
 // Component imports
 import Logo from '../components/Logo';
@@ -46,8 +47,18 @@ export default function Home() {
 
   useEffect(() => {
     initializeTheme();
-    const unsubscribe = subscribeToAuth((currentUser) => {
+    const unsubscribe = subscribeToAuth(async (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        try {
+          const ecoState = await getEcosystemState(currentUser.uid);
+          if (ecoState) {
+            useEcosystemStore.getState().syncEcosystemState(ecoState);
+          }
+        } catch (e) {
+          console.error("Ecosystem load error", e);
+        }
+      }
       const timer = setTimeout(() => setLoading(false), 1800);
       return () => clearTimeout(timer);
     });
@@ -58,6 +69,7 @@ export default function Home() {
     if (window.confirm("Sign out of Calyxo?")) {
       await signOutUser();
       resetStore();
+      useEcosystemStore.getState().resetEcosystemStore();
       showNotification("Signed out successfully.");
     }
   };

@@ -38,7 +38,7 @@ function findFewShotExamples(queryText, logs) {
 
 export async function POST(req) {
   try {
-    const { query, context, trainingLogs } = await req.json();
+    const { query, context, trainingLogs, personality, memory } = await req.json();
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
@@ -66,15 +66,37 @@ Configure the API key in \`.env.local\` to activate live Gemini coaching.`
     // Dynamic RAG matched logs extraction
     const matchedExamples = findFewShotExamples(query, trainingLogs);
 
+    let personalityPrompt = `You speak in a modern, encouraging, and direct tone (frequently utilizing clean formatting, markdown headings, bullet points, and highlighting key terms).`;
+    if (personality === 'friendly') {
+      personalityPrompt = `You speak in a warm, empathetic, supportive, and friendly tone. Check on user fatigue, encourage them gently, and use soft, caring formatting.`;
+    } else if (personality === 'scientific') {
+      personalityPrompt = `You speak in a highly analytical, precise, and scientific tone. Cite or reference biomechanical principles, cellular hypertrophy, metabolic chains, and exact study metrics where helpful.`;
+    } else if (personality === 'military') {
+      personalityPrompt = `You speak in a high-intensity, drill-sergeant, military tone. Command action, emphasize discipline and consistency, accept zero excuses, and push the user to execute daily.`;
+    } else if (personality === 'gym_bro') {
+      personalityPrompt = `You speak in a gym-bro, hype tone. Frequently use fitness slang like "bro", "beast mode", "gains", "crush it", "lightweight", and keep the motivation at maximum levels.`;
+    } else if (personality === 'nutritionist') {
+      personalityPrompt = `You speak in a professional dietitian / nutritionist tone. Emphasize caloric balance, macro splits, micronutrient absorption, gut health, and clean food swaps.`;
+    }
+
+    let memoryPrompt = "";
+    if (memory) {
+      memoryPrompt = `\n- User Historical Memory logs:
+  * Login Streak: ${memory.loginStreak || 1} days
+  * Active Workout Streak: ${memory.workoutStreak || 0} days
+  * Nutrition Tracking Streak: ${memory.nutritionStreak || 0} days
+  * Water Compliance Streak: ${memory.waterStreak || 0} days`;
+    }
+
     // Compile system prompt from user context details
     let systemPrompt = `You are Calyxo, a smart, encouraging, and highly knowledgeable AI fitness & nutrition coach.
-You speak in a modern, encouraging, and direct tone (frequently utilizing clean formatting, markdown headings, bullet points, and highlighting key terms).
+${personalityPrompt}
 Here is the user's current physical biometrics and daily activity context:
 - Biometrics: ${context.biometrics}
 - Calculated BMI: ${context.bmi}
 - Daily Targets: ${context.targets}
 - Today's Consumed Nutrition: ${context.consumed}
-- Today's Water Intake: ${context.water}
+- Today's Water Intake: ${context.water}${memoryPrompt}
 - Today's Logged Foods:
 ${context.foodListStr || 'No foods logged yet today.'}
 - Today's Logged Workouts:

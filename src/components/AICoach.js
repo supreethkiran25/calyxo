@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { Bot, User, Send, Sparkles, ThumbsUp, ThumbsDown, Plus, Trash2, Menu, X, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { addTrainingLog, getPositiveTrainingLogs, getChatSessions, saveChatSession, deleteChatSession } from '../lib/dbService';
+import { addTrainingLog, getPositiveTrainingLogs, getChatSessions, saveChatSession, deleteChatSession, saveEcosystemState } from '../lib/dbService';
+import { useEcosystemStore } from '../store/useEcosystemStore';
 
 const WELCOME_MESSAGE = {
   id: 'welcome',
@@ -17,6 +18,13 @@ export default function AICoach() {
   const { user, foodLogs, workoutLogs, waterIntake, userProfile } = useStore();
   const userId = user?.uid;
 
+  const ecoStore = useEcosystemStore();
+  const [activeSubTab, setActiveSubTab] = useState('chat'); // 'chat' or 'plans'
+  const [selectedGoal, setSelectedGoal] = useState('fat_loss');
+  const [generatingPlan, setGeneratingPlan] = useState(false);
+  const [groceryList, setGroceryList] = useState(null);
+  const [generatingGrocery, setGeneratingGrocery] = useState(false);
+
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [messages, setMessages] = useState([WELCOME_MESSAGE]);
@@ -26,6 +34,46 @@ export default function AICoach() {
   const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile drawer state
 
   const messagesEndRef = useRef(null);
+
+  const handleGeneratePlan = async () => {
+    setGeneratingPlan(true);
+    try {
+      const res = await fetch('/api/gemini/program', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ goal: selectedGoal, userProfile })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        ecoStore.setCoachingPlan(data);
+        await saveEcosystemState(userId, useEcosystemStore.getState());
+      }
+    } catch (e) {
+      console.error("Plan generate error", e);
+    } finally {
+      setGeneratingPlan(false);
+    }
+  };
+
+  const handleGenerateGrocery = async () => {
+    if (!ecoStore.coachingPlan) return;
+    setGeneratingGrocery(true);
+    try {
+      const res = await fetch('/api/gemini/grocery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mealPlan: ecoStore.coachingPlan.mealPlan, preferences: userProfile })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGroceryList(data.categories);
+      }
+    } catch (e) {
+      console.error("Grocery list generate error", e);
+    } finally {
+      setGeneratingGrocery(false);
+    }
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -172,7 +220,9 @@ export default function AICoach() {
         body: JSON.stringify({
           query: userMessageText,
           context,
-          trainingLogs: positiveLogs
+          trainingLogs: positiveLogs,
+          personality: ecoStore.personality,
+          memory: ecoStore.streaks
         })
       });
 
@@ -382,6 +432,182 @@ export default function AICoach() {
     </>
   );
 
+  const renderPlansGenerator = () => {
+    const activePlan = ecoStore.coachingPlan;
+    
+    return (
+      <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-5 select-text">
+        <div className="max-w-4xl mx-auto space-y-5">
+          {/* Card: Plan Configurator */}
+          <div className="glass p-5 rounded-2xl border border-[var(--card-border)] space-y-4">
+            <div>
+              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">AI Goal-Based Program Generator</h3>
+              <p className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">Configure your coaching program targets</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Target Fitness Goal</label>
+                <select 
+                  value={selectedGoal} 
+                  onChange={(e) => setSelectedGoal(e.target.value)}
+                  className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-[var(--color-acid-green)] cursor-pointer"
+                >
+                  <option value="fat_loss">Fat Loss</option>
+                  <option value="muscle_gain">Muscle Gain</option>
+                  <option value="recomposition">Body Recomposition</option>
+                  <option value="marathon">Marathon Training</option>
+                  <option value="strength">Strength Training</option>
+                  <option value="fitness">General Fitness</option>
+                  <option value="wedding">Wedding Prep</option>
+                  <option value="sports">Sports Conditioning</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] text-muted font-bold uppercase tracking-wider">AI Coach Personality</label>
+                <select 
+                  value={ecoStore.personality} 
+                  onChange={async (e) => {
+                    ecoStore.setPersonality(e.target.value);
+                    await saveEcosystemState(userId, useEcosystemStore.getState());
+                  }}
+                  className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-[var(--color-acid-green)] cursor-pointer"
+                >
+                  <option value="motivational">Motivational Coach</option>
+                  <option value="friendly">Friendly Coach</option>
+                  <option value="scientific">Scientific Coach</option>
+                  <option value="military">Military Coach</option>
+                  <option value="gym_bro">Gym Bro</option>
+                  <option value="nutritionist">Nutritionist Specialist</option>
+                </select>
+              </div>
+            </div>
+
+            <button 
+              onClick={handleGeneratePlan}
+              disabled={generatingPlan}
+              className="w-full btn-primary py-2.5 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider cursor-pointer active:scale-98 transition-all disabled:opacity-50"
+            >
+              {generatingPlan ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
+                  Architecting Plan...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 text-black" />
+                  Generate AI Program Plan
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Render Active Plan */}
+          {activePlan ? (
+            <div className="space-y-5 animate-fadeIn">
+              {/* Daily Meal Schedule Card */}
+              <div className="glass p-5 rounded-2xl border border-[var(--card-border)] space-y-4">
+                <div className="flex justify-between items-center pb-2 border-b border-[var(--card-border)]">
+                  <div>
+                    <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">AI Diet plan - Weekly Guide</h4>
+                    <span className="text-[9px] text-muted font-bold uppercase tracking-widest mt-1 block">Goal Target: {activePlan.goal}</span>
+                  </div>
+                  <span className="text-xs font-bold text-[var(--color-acid-green)]">Water: {activePlan.waterTarget}ml</span>
+                </div>
+
+                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
+                  {activePlan.mealPlan?.map((day, idx) => (
+                    <div key={idx} className="space-y-2.5">
+                      <div className="text-[10px] font-bold text-[var(--color-acid-green)] uppercase tracking-wider">{day.dayName} Meal Plan</div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                        {day.meals?.map((meal, mIdx) => (
+                          <div key={mIdx} className="bg-surface/50 border border-[var(--card-border)] p-3 rounded-xl space-y-1">
+                            <span className="text-[8px] text-muted uppercase font-bold tracking-wider">{meal.category}</span>
+                            <div className="text-xs font-bold text-foreground truncate">{meal.name}</div>
+                            <span className="text-[9px] text-muted font-medium block">{meal.calories} kcal | P: {meal.protein}g | C: {meal.carbs}g | F: {meal.fat}g</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Weekly Workout Routine Card */}
+              <div className="glass p-5 rounded-2xl border border-[var(--card-border)] space-y-4">
+                <div className="pb-2 border-b border-[var(--card-border)]">
+                  <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">AI Workout Schedule</h4>
+                  <span className="text-[9px] text-muted font-bold uppercase tracking-widest mt-1 block">Recovery guidelines: {activePlan.recoveryTarget}</span>
+                </div>
+
+                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
+                  {activePlan.workoutPlan?.map((day, idx) => (
+                    <div key={idx} className="space-y-2">
+                      <div className="text-[10px] font-bold text-[var(--color-acid-green)] uppercase tracking-wider">{day.dayName} - {day.workout?.type || "Rest"}</div>
+                      <div className="bg-surface/50 border border-[var(--card-border)] p-3 rounded-xl space-y-2">
+                        <p className="text-[10px] text-muted italic font-medium">{day.workout?.desc}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {day.workout?.exercises?.map((ex, eIdx) => (
+                            <div key={eIdx} className="flex justify-between items-center text-xs font-bold py-1 border-b border-dashed border-[var(--card-border)] last:border-0">
+                              <span className="text-foreground">{ex.name}</span>
+                              <span className="text-muted">{ex.details}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Shopping List Card */}
+              <div className="glass p-5 rounded-2xl border border-[var(--card-border)] space-y-4">
+                <div className="flex justify-between items-center pb-2 border-b border-[var(--card-border)]">
+                  <div>
+                    <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">Smart Grocery Checklist</h4>
+                    <span className="text-[9px] text-muted font-bold uppercase tracking-widest mt-1 block">Generate items from AI Meal schedule</span>
+                  </div>
+                  <button 
+                    onClick={handleGenerateGrocery}
+                    disabled={generatingGrocery}
+                    className="py-1 px-3 rounded-lg border border-[var(--card-border)] bg-surface text-[10px] font-bold text-foreground hover:border-[var(--color-acid-green)] transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {generatingGrocery ? "Compiling..." : "Generate List"}
+                  </button>
+                </div>
+
+                {groceryList && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {groceryList.map((cat, idx) => (
+                      <div key={idx} className="space-y-1.5">
+                        <div className="text-[10px] font-bold text-[var(--color-acid-green)] uppercase tracking-wider">{cat.name}</div>
+                        <div className="bg-surface/40 border border-[var(--card-border)] p-3 rounded-xl space-y-1">
+                          {cat.items?.map((item, iIdx) => (
+                            <label key={iIdx} className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer py-0.5">
+                              <input type="checkbox" className="rounded border-[var(--card-border)] text-[var(--color-acid-green)] focus:ring-[var(--color-acid-green)] bg-transparent" />
+                              <span>{item}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-10 bg-surface/25 border border-dashed border-[var(--card-border)] rounded-2xl">
+              <Sparkles className="w-8 h-8 text-muted mx-auto mb-2 opacity-50 animate-pulse" />
+              <p className="text-xs text-muted font-bold uppercase tracking-wider">No active program setup</p>
+              <p className="text-[10px] text-muted font-medium mt-1">Configure targets above to generate your first AI program</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-row h-[calc(100dvh-170px)] md:h-[calc(100vh-140px)] max-h-[820px] glass rounded-2xl overflow-hidden relative border border-[var(--card-border)]">
       
@@ -442,7 +668,7 @@ export default function AICoach() {
               <Bot className="w-5 h-5 text-[var(--color-acid-green)]" />
               <div className="absolute w-2.5 h-2.5 bg-[var(--color-acid-green)] border-2 border-[var(--card-bg)] rounded-full bottom-0 right-0 animate-pulse"></div>
             </div>
-            <div>
+            <div className="hidden sm:block">
               <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider">
                 Calyxo Coach
                 <Sparkles className="w-3.5 h-3.5 text-[var(--color-acid-green)] fill-[var(--color-acid-green)]/10" />
@@ -453,129 +679,154 @@ export default function AICoach() {
             </div>
           </div>
           
-          <button 
-            onClick={handleNewChat}
-            className="md:hidden py-1 px-2.5 rounded-lg border border-[var(--card-border)] bg-surface text-[9px] font-bold text-foreground hover:border-[var(--color-acid-green)] transition-all cursor-pointer"
-          >
-            New Chat
-          </button>
+          {/* Sub-tab Selectors and New Chat button */}
+          <div className="flex items-center gap-2.5">
+            <div className="bg-surface border border-[var(--card-border)] p-1 rounded-xl flex gap-0.5">
+              {['chat', 'plans'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveSubTab(tab)}
+                  className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                    activeSubTab === tab
+                      ? 'bg-[var(--color-acid-green)] text-black'
+                      : 'text-muted hover:text-foreground'
+                  }`}
+                >
+                  {tab === 'chat' ? 'Chat' : 'AI Plan'}
+                </button>
+              ))}
+            </div>
+            
+            <button 
+              onClick={handleNewChat}
+              className="py-1 px-2.5 rounded-lg border border-[var(--card-border)] bg-surface text-[9px] font-bold text-foreground hover:border-[var(--color-acid-green)] transition-all cursor-pointer shrink-0"
+            >
+              New Chat
+            </button>
+          </div>
         </div>
 
-        {/* Chat Messages Panel */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-4">
-          <div className="max-w-4xl mx-auto space-y-4">
-            {messages.map((msg) => {
-              const isBot = msg.role === 'assistant';
-              return (
-                <div key={msg.id} className={`flex gap-3 max-w-[88%] md:max-w-[78%] ${isBot ? 'mr-auto' : 'ml-auto flex-row-reverse'}`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ${
-                    isBot 
-                      ? 'bg-[var(--color-acid-green)]/10 border-[var(--color-acid-green)]/20 text-[var(--color-acid-green)]' 
-                      : 'bg-surface border-[var(--card-border)] text-foreground'
-                  }`}>
-                    {isBot ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
-                  </div>
-
-                  <div className={`p-4 rounded-2xl text-xs flex flex-col space-y-1 shadow-sm border ${
-                    isBot 
-                      ? 'bg-surface/50 border-[var(--card-border)] text-foreground rounded-tl-none' 
-                      : 'bg-[var(--color-acid-green)]/10 text-foreground border-[var(--color-acid-green)]/20 rounded-tr-none font-bold'
-                  }`}>
-                    <div className="whitespace-pre-wrap select-text">
-                      {isBot ? formatMessageText(msg.text) : msg.text}
-                    </div>
-
-                    {isBot && msg.id !== 'welcome' && (
-                      <div className="flex gap-2 mt-3.5 justify-end items-center border-t border-[var(--card-border)] pt-2">
-                        <span className="text-[8.5px] text-muted mr-auto uppercase tracking-wider font-bold">Feedback:</span>
-                        <button 
-                          onClick={() => handleRateResponse(msg.id, 1)}
-                          className={`p-1 rounded cursor-pointer transition-all hover:bg-black/5 dark:hover:bg-white/5 ${msg.rating === 1 ? 'text-[var(--color-acid-green)] bg-[var(--color-acid-green)]/10 border border-[var(--color-acid-green)]/20' : 'text-muted border border-transparent'}`}
-                          title="Helpful (Thumbs Up)"
-                        >
-                          <ThumbsUp className="w-3.5 h-3.5" />
-                        </button>
-                        <button 
-                          onClick={() => handleRateResponse(msg.id, -1)}
-                          className={`p-1 rounded cursor-pointer transition-all hover:bg-black/5 dark:hover:bg-white/5 ${msg.rating === -1 ? 'text-red-500 bg-red-500/10 border border-red-500/20' : 'text-muted border border-transparent'}`}
-                          title="Not Helpful (Thumbs Down)"
-                        >
-                          <ThumbsDown className="w-3.5 h-3.5" />
-                        </button>
+        {activeSubTab === 'chat' ? (
+          <>
+            {/* Chat Messages Panel */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-4">
+              <div className="max-w-4xl mx-auto space-y-4">
+                {messages.map((msg) => {
+                  const isBot = msg.role === 'assistant';
+                  return (
+                    <div key={msg.id} className={`flex gap-3 max-w-[88%] md:max-w-[78%] ${isBot ? 'mr-auto' : 'ml-auto flex-row-reverse'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ${
+                        isBot 
+                          ? 'bg-[var(--color-acid-green)]/10 border-[var(--color-acid-green)]/20 text-[var(--color-acid-green)]' 
+                          : 'bg-surface border-[var(--card-border)] text-foreground'
+                      }`}>
+                        {isBot ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
                       </div>
-                    )}
 
-                    <span className="text-[8px] mt-2 block text-right font-medium opacity-50 text-muted">
-                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+                      <div className={`p-4 rounded-2xl text-xs flex flex-col space-y-1 shadow-sm border ${
+                        isBot 
+                          ? 'bg-surface/50 border-[var(--card-border)] text-foreground rounded-tl-none' 
+                          : 'bg-[var(--color-acid-green)]/10 text-foreground border-[var(--color-acid-green)]/20 rounded-tr-none font-bold'
+                      }`}>
+                        <div className="whitespace-pre-wrap select-text">
+                          {isBot ? formatMessageText(msg.text) : msg.text}
+                        </div>
+
+                        {isBot && msg.id !== 'welcome' && (
+                          <div className="flex gap-2 mt-3.5 justify-end items-center border-t border-[var(--card-border)] pt-2">
+                            <span className="text-[8.5px] text-muted mr-auto uppercase tracking-wider font-bold">Feedback:</span>
+                            <button 
+                              onClick={() => handleRateResponse(msg.id, 1)}
+                              className={`p-1 rounded cursor-pointer transition-all hover:bg-black/5 dark:hover:bg-white/5 ${msg.rating === 1 ? 'text-[var(--color-acid-green)] bg-[var(--color-acid-green)]/10 border border-[var(--color-acid-green)]/20' : 'text-muted border border-transparent'}`}
+                              title="Helpful (Thumbs Up)"
+                            >
+                              <ThumbsUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button 
+                              onClick={() => handleRateResponse(msg.id, -1)}
+                              className={`p-1 rounded cursor-pointer transition-all hover:bg-black/5 dark:hover:bg-white/5 ${msg.rating === -1 ? 'text-red-500 bg-red-500/10 border border-red-500/20' : 'text-muted border border-transparent'}`}
+                              title="Not Helpful (Thumbs Down)"
+                            >
+                              <ThumbsDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+
+                        <span className="text-[8px] mt-2 block text-right font-medium opacity-50 text-muted">
+                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {loading && (
+                  <div className="flex gap-3 mr-auto max-w-[80%]">
+                    <div className="w-8 h-8 rounded-full bg-[var(--color-acid-green)]/10 border border-[var(--color-acid-green)]/20 text-[var(--color-acid-green)] flex items-center justify-center animate-pulse">
+                      <Bot className="w-4 h-4" />
+                    </div>
+                    <div className="p-4 rounded-2xl bg-surface border border-[var(--card-border)] rounded-tl-none flex items-center gap-1.5 shadow-sm">
+                      <span className="w-1.5 h-1.5 bg-[var(--color-acid-green)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                      <span className="w-1.5 h-1.5 bg-[var(--color-acid-green)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                      <span className="w-1.5 h-1.5 bg-[var(--color-acid-green)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
 
-            {loading && (
-              <div className="flex gap-3 mr-auto max-w-[80%]">
-                <div className="w-8 h-8 rounded-full bg-[var(--color-acid-green)]/10 border border-[var(--color-acid-green)]/20 text-[var(--color-acid-green)] flex items-center justify-center animate-pulse">
-                  <Bot className="w-4 h-4" />
-                </div>
-                <div className="p-4 rounded-2xl bg-surface border border-[var(--card-border)] rounded-tl-none flex items-center gap-1.5 shadow-sm">
-                  <span className="w-1.5 h-1.5 bg-[var(--color-acid-green)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                  <span className="w-1.5 h-1.5 bg-[var(--color-acid-green)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                  <span className="w-1.5 h-1.5 bg-[var(--color-acid-green)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+            {/* Suggestion Chips */}
+            {messages.length === 1 && !loading && (
+              <div className="px-5 py-2.5 flex gap-2 overflow-x-auto border-t border-[var(--card-border)] bg-surface/5 scrollbar-none shrink-0">
+                <div className="max-w-4xl mx-auto flex gap-2 w-full">
+                  <button 
+                    onClick={() => handleSuggestionClick("Suggest a workout form tip for Squats")}
+                    className="px-3.5 py-2 rounded-full border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--color-acid-green)]/5 text-[10px] text-muted hover:text-[var(--color-acid-green)] font-bold whitespace-nowrap cursor-pointer transition-all bg-[var(--card-bg)]"
+                  >
+                    🏋️ Squat Form Tips
+                  </button>
+                  <button 
+                    onClick={() => handleSuggestionClick("Give me a recipe alternative to Chicken Biryani matching my goals")}
+                    className="px-3.5 py-2 rounded-full border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--color-acid-green)]/5 text-[10px] text-muted hover:text-[var(--color-acid-green)] font-bold whitespace-nowrap cursor-pointer transition-all bg-[var(--card-bg)]"
+                  >
+                    🍳 Biryani Alternative
+                  </button>
+                  <button 
+                    onClick={() => handleSuggestionClick("How can I adjust my macros for faster lean gains?")}
+                    className="px-3.5 py-2 rounded-full border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--color-acid-green)]/5 text-[10px] text-muted hover:text-[var(--color-acid-green)] font-bold whitespace-nowrap cursor-pointer transition-all bg-[var(--card-bg)]"
+                  >
+                    ⚡ Lean Gains Macros
+                  </button>
                 </div>
               </div>
             )}
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
 
-        {/* Suggestion Chips */}
-        {messages.length === 1 && !loading && (
-          <div className="px-5 py-2.5 flex gap-2 overflow-x-auto border-t border-[var(--card-border)] bg-surface/5 scrollbar-none shrink-0">
-            <div className="max-w-4xl mx-auto flex gap-2 w-full">
-              <button 
-                onClick={() => handleSuggestionClick("Suggest a workout form tip for Squats")}
-                className="px-3.5 py-2 rounded-full border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--color-acid-green)]/5 text-[10px] text-muted hover:text-[var(--color-acid-green)] font-bold whitespace-nowrap cursor-pointer transition-all bg-[var(--card-bg)]"
-              >
-                🏋️ Squat Form Tips
-              </button>
-              <button 
-                onClick={() => handleSuggestionClick("Give me a recipe alternative to Chicken Biryani matching my goals")}
-                className="px-3.5 py-2 rounded-full border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--color-acid-green)]/5 text-[10px] text-muted hover:text-[var(--color-acid-green)] font-bold whitespace-nowrap cursor-pointer transition-all bg-[var(--card-bg)]"
-              >
-                🍳 Biryani Alternative
-              </button>
-              <button 
-                onClick={() => handleSuggestionClick("How can I adjust my macros for faster lean gains?")}
-                className="px-3.5 py-2 rounded-full border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--color-acid-green)]/5 text-[10px] text-muted hover:text-[var(--color-acid-green)] font-bold whitespace-nowrap cursor-pointer transition-all bg-[var(--card-bg)]"
-              >
-                ⚡ Lean Gains Macros
-              </button>
+            {/* Input Bar */}
+            <div className="p-4 border-t border-[var(--card-border)] bg-surface/5 shrink-0 z-10">
+              <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex gap-3">
+                <input 
+                  type="text" 
+                  value={inputVal}
+                  onChange={(e) => setInputVal(e.target.value)}
+                  placeholder="Ask coach Calyxo about nutrition or workouts..."
+                  className="flex-1 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-full px-5 py-3 text-xs text-[var(--foreground)] focus:outline-none focus:border-[var(--color-acid-green)] shadow-inner"
+                  disabled={loading}
+                />
+                <button 
+                  type="submit" 
+                  disabled={loading || !inputVal.trim()}
+                  className="px-5 h-10 rounded-full bg-[var(--color-acid-green)] text-black flex items-center justify-center gap-2 shadow-[0_0_12px_rgba(204,255,0,0.3)] disabled:opacity-50 hover:shadow-[0_0_18px_rgba(204,255,0,0.5)] cursor-pointer shrink-0 transition-all active:scale-95 border-none font-bold text-xs uppercase tracking-wider"
+                >
+                  <span>Send</span>
+                  <Send className="w-3.5 h-3.5 text-black" />
+                </button>
+              </form>
             </div>
-          </div>
+          </>
+        ) : (
+          renderPlansGenerator()
         )}
-
-        {/* Input Bar */}
-        <div className="p-4 border-t border-[var(--card-border)] bg-surface/5 shrink-0 z-10">
-          <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex gap-3">
-            <input 
-              type="text" 
-              value={inputVal}
-              onChange={(e) => setInputVal(e.target.value)}
-              placeholder="Ask coach Calyxo about nutrition or workouts..."
-              className="flex-1 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-full px-5 py-3 text-xs text-[var(--foreground)] focus:outline-none focus:border-[var(--color-acid-green)] shadow-inner"
-              disabled={loading}
-            />
-            <button 
-              type="submit" 
-              disabled={loading || !inputVal.trim()}
-              className="px-5 h-10 rounded-full bg-[var(--color-acid-green)] text-black flex items-center justify-center gap-2 shadow-[0_0_12px_rgba(204,255,0,0.3)] disabled:opacity-50 hover:shadow-[0_0_18px_rgba(204,255,0,0.5)] cursor-pointer shrink-0 transition-all active:scale-95 border-none font-bold text-xs uppercase tracking-wider"
-            >
-              <span>Send</span>
-              <Send className="w-3.5 h-3.5 text-black" />
-            </button>
-          </form>
-        </div>
 
       </div>
     </div>

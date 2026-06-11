@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { addFoodLog, deleteFoodLog, getFoodLogs } from '../lib/dbService';
-import { Search, Plus, Trash2, ShieldAlert, Sparkles, BookOpen, Edit3, X, Check } from 'lucide-react';
+import { addFoodLog, deleteFoodLog, getFoodLogs, saveEcosystemState } from '../lib/dbService';
+import { useEcosystemStore } from '../store/useEcosystemStore';
+import { Search, Plus, Trash2, ShieldAlert, Sparkles, BookOpen, Edit3, X, Check, Camera, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const LOCAL_FOODS_DB = [
@@ -91,6 +92,87 @@ const INITIAL_WEEKLY_PLANNER = [
 export default function FoodTracker({ onNotification }) {
   const { user, foodLogs, setFoodLogs, userProfile } = useStore();
   const userId = user?.uid;
+
+  const ecoStore = useEcosystemStore();
+  const [mealPhoto, setMealPhoto] = useState(null);
+  const [scanningPhoto, setScanningPhoto] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  const [activePlanDay, setActivePlanDay] = useState(0);
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setMealPhoto({
+        base64: reader.result.split(',')[1],
+        mimeType: file.type,
+        preview: reader.result
+      });
+      setScanResult(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleScanMeal = async () => {
+    if (!mealPhoto) return;
+    setScanningPhoto(true);
+    try {
+      const res = await fetch('/api/gemini/vision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: mealPhoto.base64,
+          mimeType: mealPhoto.mimeType,
+          userGoal: userProfile?.goal
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setScanResult(data);
+        ecoStore.addMealScan({
+          ...data,
+          date: new Date().toDateString(),
+          image: mealPhoto.preview
+        });
+      }
+    } catch (e) {
+      console.error("Scan error", e);
+    } finally {
+      setScanningPhoto(false);
+    }
+  };
+
+  const handleLogScanResult = async () => {
+    if (!scanResult) return;
+    const logItem = {
+      name: scanResult.foodName,
+      calories: scanResult.calories,
+      protein: scanResult.protein,
+      carbs: scanResult.carbs,
+      fat: scanResult.fat,
+      fiber: scanResult.fiber || 0,
+      sugar: scanResult.sugar || 0,
+      sodium: 0,
+      portionWeight: 100
+    };
+    const saved = await addFoodLog(userId, logItem);
+    setFoodLogs([saved, ...foodLogs]);
+    
+    ecoStore.unlockAchievement('first_meal');
+    const today = new Date().toDateString();
+    if (ecoStore.streaks.lastCheckIn !== today) {
+      ecoStore.updateStreaks({
+        nutritionStreak: ecoStore.streaks.nutritionStreak + 1,
+        lastCheckIn: today
+      });
+    }
+
+    setMealPhoto(null);
+    setScanResult(null);
+    if (onNotification) onNotification(`Logged Photo: ${logItem.name} (+${logItem.calories} kcal) 📸`);
+  };
 
   // Search autocomplete states
   const [queryVal, setQueryVal] = useState('');
@@ -620,6 +702,119 @@ export default function FoodTracker({ onNotification }) {
             </div>
           </motion.section>
         )}
+
+        {/* AI Meal Photo Scanner */}
+        <section className="glass rounded-2xl p-6 relative">
+          <h2 className="text-sm font-extrabold text-foreground uppercase tracking-widest mb-1 flex items-center gap-1.5">
+            <Camera className="w-4 h-4 text-acid-green" />
+            AI Meal Photo Scanner
+          </h2>
+          <p className="text-muted text-[10px] uppercase font-bold tracking-wider mb-4">Upload a photo to estimate nutrition metrics using vision AI</p>
+
+          <div className="space-y-4">
+            {!mealPhoto ? (
+              <div className="border border-dashed border-card-border rounded-xl p-8 flex flex-col items-center justify-center hover:border-acid-green/50 transition-colors relative cursor-pointer group bg-surface/20">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <div className="w-12 h-12 rounded-full bg-acid-green/10 flex items-center justify-center text-acid-green mb-3 group-hover:scale-110 transition-transform">
+                  <Camera className="w-6 h-6" />
+                </div>
+                <p className="text-xs font-bold text-foreground">Click to upload meal photo</p>
+                <p className="text-[10px] text-muted mt-1 uppercase font-bold tracking-wider">Supports PNG, JPG, WEBP</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="relative rounded-xl overflow-hidden border border-card-border aspect-video max-h-56 bg-black flex items-center justify-center">
+                  <img src={mealPhoto.preview} alt="Meal preview" className="object-contain w-full h-full max-h-56" />
+                  
+                  {scanningPhoto && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center text-acid-green space-y-2">
+                      <div className="w-8 h-8 border-2 border-acid-green border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-xs font-bold uppercase tracking-wider animate-pulse">Analyzing Meal Macros...</p>
+                    </div>
+                  )}
+                </div>
+
+                {!scanResult && !scanningPhoto && (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setMealPhoto(null)}
+                      className="flex-1 text-xs font-semibold px-4 py-2 border border-card-border rounded-xl hover:bg-surface text-foreground cursor-pointer transition-colors"
+                    >
+                      Clear
+                    </button>
+                    <button
+                      onClick={handleScanMeal}
+                      className="flex-1 bg-acid-green text-black font-bold text-xs py-2 px-4 rounded-xl hover:shadow-[0_0_12px_rgba(204,255,0,0.5)] cursor-pointer border-none flex items-center justify-center gap-1.5"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Scan Meal
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {scanResult && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-surface/50 border border-acid-green/20 rounded-xl p-4 space-y-3"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[9px] text-acid-green font-bold uppercase tracking-wider">Vision AI Detection</span>
+                    <h4 className="text-xs font-bold text-foreground mt-0.5">{scanResult.foodName}</h4>
+                  </div>
+                  <span className="text-xs font-bold text-acid-green">{scanResult.calories} kcal</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                  <div className="bg-surface border border-card-border py-1.5 rounded-lg">
+                    <div className="text-[8px] text-acid-green font-bold uppercase">Protein</div>
+                    <div className="font-bold text-foreground mt-0.5">{scanResult.protein}g</div>
+                  </div>
+                  <div className="bg-surface border border-card-border py-1.5 rounded-lg">
+                    <div className="text-[8px] text-orange font-bold uppercase">Carbs</div>
+                    <div className="font-bold text-foreground mt-0.5">{scanResult.carbs}g</div>
+                  </div>
+                  <div className="bg-surface border border-card-border py-1.5 rounded-lg">
+                    <div className="text-[8px] text-red-500 font-bold uppercase">Fats</div>
+                    <div className="font-bold text-foreground mt-0.5">{scanResult.fat}g</div>
+                  </div>
+                </div>
+
+                {scanResult.reasoning && (
+                  <p className="text-[10px] text-muted leading-relaxed italic border-t border-card-border/50 pt-2">
+                    {scanResult.reasoning}
+                  </p>
+                )}
+
+                <div className="flex gap-3 pt-1">
+                  <button
+                    onClick={() => {
+                      setMealPhoto(null);
+                      setScanResult(null);
+                    }}
+                    className="flex-1 text-[10px] font-bold uppercase tracking-wider py-2 border border-card-border rounded-xl hover:bg-surface text-foreground cursor-pointer transition-colors"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    onClick={handleLogScanResult}
+                    className="flex-1 bg-acid-green text-black font-bold text-[10px] uppercase tracking-wider py-2 px-4 rounded-xl hover:shadow-[0_0_12px_rgba(204,255,0,0.5)] cursor-pointer border-none"
+                  >
+                    Log to Diary
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </div>
+        </section>
       </div>
 
       {/* Right Column: Timeline & Weekly Planner */}
@@ -740,6 +935,69 @@ export default function FoodTracker({ onNotification }) {
             ))}
           </div>
         </section>
+
+        {/* AI Generated Weekly Planner */}
+        {ecoStore.coachingPlan ? (
+          <section className="glass rounded-2xl p-6 border border-acid-green/20">
+            <h2 className="text-sm font-extrabold text-foreground uppercase tracking-widest mb-1 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-acid-green" />
+              AI Generated Weekly Planner
+            </h2>
+            <p className="text-muted text-[10px] uppercase font-bold tracking-wider mb-4">Based on your dynamic program targets & coaching memory</p>
+
+            <div className="flex gap-2 overflow-x-auto pb-3 border-b border-card-border mb-4 scrollbar-none">
+              {ecoStore.coachingPlan.mealPlan?.map((day, idx) => (
+                <button 
+                  key={idx}
+                  onClick={() => {
+                    setActivePlanDay(idx);
+                  }}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer transition-colors border ${
+                    activePlanDay === idx 
+                      ? 'bg-acid-green text-black border-acid-green shadow-md shadow-acid-green/10' 
+                      : 'bg-surface border-card-border text-muted hover:text-foreground'
+                  }`}
+                >
+                  {day.dayName.substring(0, 3)}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-4">
+              {ecoStore.coachingPlan.mealPlan?.[activePlanDay]?.meals?.map((meal, idx) => (
+                <div key={idx} className="border-b border-card-border last:border-b-0 pb-3 last:pb-0 flex justify-between items-start">
+                  <div className="flex-1 pr-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] text-acid-green font-bold uppercase">{meal.category}</span>
+                      <h4 className="text-xs font-bold text-foreground">{meal.name}</h4>
+                    </div>
+                    <span className="text-[9px] text-muted font-bold mt-1 block">
+                      {meal.calories} kcal | P: {meal.protein}g | C: {meal.carbs}g | F: {meal.fat}g
+                    </span>
+                  </div>
+                  
+                  <button 
+                    onClick={() => handleLogSuggestedMeal(meal)}
+                    className="w-7 h-7 rounded-full bg-acid-green/10 border border-acid-green/20 hover:bg-acid-green hover:text-black flex items-center justify-center cursor-pointer transition-colors text-acid-green font-bold text-xs"
+                    title="Log to Diary"
+                  >
+                    +
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <section className="glass rounded-2xl p-6 border border-dashed border-card-border">
+            <h2 className="text-sm font-extrabold text-foreground uppercase tracking-widest mb-1 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-muted" />
+              AI Generated Weekly Planner
+            </h2>
+            <p className="text-muted text-[10.5px] font-medium leading-relaxed mt-2">
+              No active AI Diet Plan generated. Visit the <span className="text-acid-green font-bold">AI Coach</span> tab to customize your program and compile your tailored weekly meals.
+            </p>
+          </section>
+        )}
       </div>
     </div>
   );

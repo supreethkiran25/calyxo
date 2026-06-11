@@ -513,3 +513,83 @@ export const deleteChatSession = async (userId, sessionId) => {
     console.error("Firestore deleteChatSession error", err);
   }
 };
+
+/* ==========================================================================
+   CALYXO ECOSYSTEM STATE & SERVICES
+   ========================================================================== */
+
+export const getEcosystemState = async (userId) => {
+  if (isMockFirebase || !userId) {
+    const saved = localStorage.getItem("calyxo_ecosystem_db_state");
+    try {
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+  try {
+    const docRef = doc(db, "users_ecosystem", userId);
+    const snap = await getDoc(docRef);
+    return snap.exists() ? snap.data() : null;
+  } catch (err) {
+    console.error("Firestore getEcosystemState error:", err);
+    return null;
+  }
+};
+
+export const saveEcosystemState = async (userId, state) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem("calyxo_ecosystem_db_state", JSON.stringify(state));
+  }
+  if (isMockFirebase || !userId) return;
+  try {
+    await setDoc(doc(db, "users_ecosystem", userId), state);
+  } catch (err) {
+    console.error("Firestore saveEcosystemState error:", err);
+  }
+};
+
+export const getMealScanLogs = async (userId) => {
+  if (isMockFirebase || !userId) {
+    const saved = localStorage.getItem("calyxo_meal_scans");
+    try {
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  try {
+    const q = query(
+      collection(db, "meal_scans"),
+      where("userId", "==", userId),
+      orderBy("timestamp", "desc")
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    console.error("Firestore getMealScanLogs error:", err);
+    return [];
+  }
+};
+
+export const addMealScanLog = async (userId, scanItem) => {
+  const item = { ...scanItem, userId, timestamp: Date.now() };
+  let local = [];
+  const saved = localStorage.getItem("calyxo_meal_scans");
+  if (saved) {
+    try {
+      local = JSON.parse(saved);
+    } catch (e) {}
+  }
+  local.unshift(item);
+  localStorage.setItem("calyxo_meal_scans", JSON.stringify(local));
+
+  if (isMockFirebase || !userId) return item;
+  try {
+    const docRef = await addDoc(collection(db, "meal_scans"), item);
+    return { id: docRef.id, ...item };
+  } catch (err) {
+    console.error("Firestore addMealScanLog error:", err);
+    return item;
+  }
+};
