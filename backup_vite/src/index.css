@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --color-neon-green: #39ff14;
+  --color-emerald-green: #00e676;
+  --color-obsidian-black: #0a0b0d;
+  --color-dark-carbon: #121417;
+  --color-accent-blue: #007aff;
+  --color-accent-yellow: #f1c40f;
+  --color-accent-pink: #e91e63;
+}
+
+/* Base custom definitions and styling overrides */
+body {
+  background-color: #000000;
+  color: #f5f6f8;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom scrollbar matching neon style */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #39ff14;
+}
+
+/* Glassmorphism utility classes */
+.glass {
+  background: rgba(10, 11, 13, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-premium {
+  background: rgba(10, 11, 13, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(57, 255, 20, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Water hydration animations */
+@keyframes waterPulse {
+  0% { opacity: 0.95; transform: scaleY(1); }
+  50% { opacity: 0.8; transform: scaleY(1.02); }
+  100% { opacity: 0.95; transform: scaleY(1); }
+}
+
+.animate-water {
+  animation: waterPulse 4s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+/* Custom visual pulse animations */
+@keyframes pulseGlow {
+  0% { transform: scale(1); box-shadow: 0 0 15px rgba(57, 255, 20, 0.2); }
+  50% { transform: scale(1.03); box-shadow: 0 0 25px rgba(57, 255, 20, 0.4); }
+  100% { transform: scale(1); box-shadow: 0 0 15px rgba(57, 255, 20, 0.2); }
+}
+
+.pulse-neon {
+  animation: pulseGlow 3s ease-in-out infinite;
+}

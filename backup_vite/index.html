@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="Calyxo — Premium AI Diet & Workout Concierge with real-time tracking, open-source nutrition, and custom fitness logging." />
+    <link rel="manifest" href="/manifest.json" />
+    <title>Calyxo — AI Diet & Workout Tracker</title>
+    
+    <!-- Typography from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-black text-gray-200">
+    <div id="root">
+      <!-- High-Quality Animated Launch Screen before React renders -->
+      <div id="splash-screen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #000000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; font-family: 'Inter', sans-serif; color: #f5f6f8;">
+        <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 100px; height: 100px; margin-bottom: 24px;">
+          <!-- Neon pulsing ring -->
+          <div style="position: absolute; width: 80px; height: 80px; border: 3px solid #39ff14; border-radius: 50%; box-shadow: 0 0 20px #39ff14, inset 0 0 10px #39ff14; animation: splashPulse 2s ease-in-out infinite;"></div>
+          <!-- Internal dot -->
+          <div style="width: 12px; height: 12px; background-color: #39ff14; border-radius: 50%; box-shadow: 0 0 12px #39ff14;"></div>
+        </div>
+        <h1 style="font-family: 'Outfit', sans-serif; font-size: 2.2rem; font-weight: 800; letter-spacing: 0.1em; color: #ffffff; margin: 0 0 8px 0; text-transform: uppercase;">Calyxo</h1>
+        <p style="color: #8f9cae; font-size: 0.85rem; letter-spacing: 0.05em; margin: 0 0 32px 0;">AI DIET & WORKOUT CONCIERGE</p>
+        <div style="width: 140px; height: 3px; background-color: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; position: relative;">
+          <div style="position: absolute; height: 100%; width: 50%; background-color: #39ff14; border-radius: 3px; box-shadow: 0 0 8px #39ff14; animation: splashBar 2s cubic-bezier(0.25, 0.8, 0.25, 1) infinite;"></div>
+        </div>
+      </div>
+      <style>
+        @keyframes splashPulse {
+          0% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 15px #39ff14, inset 0 0 8px #39ff14; }
+          50% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 30px #39ff14, inset 0 0 15px #39ff14; }
+          100% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 15px #39ff14, inset 0 0 8px #39ff14; }
+        }
+        @keyframes splashBar {
+          0% { left: -50%; }
+          100% { left: 100%; }
+        }
+      </style>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
