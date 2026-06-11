@@ -20,7 +20,7 @@ export default function ThemeToggle() {
       title="Toggle Light/Dark Theme"
     >
       {theme === 'dark' ? (
-        <Sun className="w-4 h-4" style={{ color: '#b5f23d' }} />
+        <Sun className="w-4 h-4" style={{ color: 'var(--accent)' }} />
       ) : (
         <Moon className="w-4 h-4" style={{ color: 'var(--foreground)' }} />
       )}

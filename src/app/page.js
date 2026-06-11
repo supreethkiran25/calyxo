@@ -270,7 +270,7 @@ export default function Home() {
             
             <button
               onClick={handleLogout}
-              className="p-2.5 rounded-xl bg-[var(--surface)] border border-[var(--card-border)] text-[var(--text-muted)] hover:text-red-500 hover:border-red-500/30 transition-all cursor-pointer"
+              className="p-2.5 rounded-xl bg-[var(--surface)] border border-[var(--card-border)] text-[var(--text-muted)] hover:text-destructive hover:border-destructive/30 transition-all cursor-pointer"
               title="Sign Out"
             >
               <LogOut className="w-4 h-4" />
@@ -306,10 +306,10 @@ export default function Home() {
         {/* Mobile FAB Button */}
         <button
           onClick={() => setAddMenuOpen(true)}
-          className="md:hidden fixed bottom-20 right-5 z-40 w-12 h-12 rounded-full bg-[var(--color-acid-green)] text-black flex items-center justify-center shadow-lg shadow-[var(--color-acid-green)]/35 cursor-pointer active:scale-90 transition-transform"
+          className="md:hidden fixed bottom-20 right-5 z-40 w-12 h-12 rounded-full bg-[var(--color-acid-green)] text-accent-foreground flex items-center justify-center shadow-lg shadow-[var(--color-acid-green)]/35 cursor-pointer active:scale-90 transition-transform"
           style={{ bottom: '80px' }}
         >
-          <Plus className="w-6 h-6 text-black" />
+          <Plus className="w-6 h-6 text-accent-foreground" />
         </button>
 
         {/* Dashboard Greeting (Only on dashboard tab) */}

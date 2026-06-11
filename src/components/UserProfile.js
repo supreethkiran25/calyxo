@@ -341,7 +341,7 @@ export default function UserProfile({ onNotification }) {
           {userProfile?.photoURL && (
             <button 
               onClick={handleRemovePhoto}
-              className="text-[8px] text-red-500 font-bold uppercase tracking-wider mt-2.5 hover:underline bg-none border-none cursor-pointer"
+              className="text-[8px] text-destructive font-bold uppercase tracking-wider mt-2.5 hover:underline bg-none border-none cursor-pointer"
             >
               Remove photo
             </button>

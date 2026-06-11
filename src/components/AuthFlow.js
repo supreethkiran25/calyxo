@@ -98,7 +98,7 @@ export default function AuthFlow() {
           <motion.div 
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 rounded-xl bg-red-950/20 border border-red-500/30 text-red-400 text-xs font-semibold leading-relaxed flex items-start gap-2"
+            className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-semibold leading-relaxed flex items-start gap-2"
           >
             <Shield className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{error}</span>
@@ -115,7 +115,7 @@ export default function AuthFlow() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full bg-white/5 dark:bg-white/5 border border-card-border rounded-xl pl-12 pr-4 py-3 text-sm text-foreground focus:outline-none focus:border-acid-green transition-colors"
+                className="w-full bg-[var(--input)] border border-card-border rounded-xl pl-12 pr-4 py-3 text-sm text-foreground focus:outline-none focus:border-acid-green transition-colors"
                 required 
                 disabled={loading}
               />
@@ -131,7 +131,7 @@ export default function AuthFlow() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-white/5 dark:bg-white/5 border border-card-border rounded-xl pl-12 pr-12 py-3 text-sm text-foreground focus:outline-none focus:border-acid-green transition-colors"
+                className="w-full bg-[var(--input)] border border-card-border rounded-xl pl-12 pr-12 py-3 text-sm text-foreground focus:outline-none focus:border-acid-green transition-colors"
                 required 
                 disabled={loading}
               />
@@ -151,7 +151,7 @@ export default function AuthFlow() {
                 type="checkbox" 
                 checked={rememberMe} 
                 onChange={(e) => setRememberMe(e.target.checked)} 
-                className="w-4 h-4 rounded bg-white/5 border border-card-border accent-acid-green focus:ring-0 cursor-pointer"
+                className="w-4 h-4 rounded bg-[var(--input)] border border-card-border accent-acid-green focus:ring-0 cursor-pointer"
               />
               <span>Remember Me</span>
             </label>
@@ -180,7 +180,7 @@ export default function AuthFlow() {
             whileTap={{ scale: 0.97 }}
             onClick={() => handleOAuth('google')}
             disabled={loading}
-            className="flex items-center justify-center gap-2 bg-white/5 border border-card-border hover:bg-white/10 text-foreground text-xs font-bold py-3 px-4 rounded-xl cursor-pointer transition-colors"
+            className="flex items-center justify-center gap-2 bg-[var(--input)] border border-card-border hover:bg-[var(--surface)] text-foreground text-xs font-bold py-3 px-4 rounded-xl cursor-pointer transition-colors"
           >
             {/* Google Icon SVG */}
             <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -196,7 +196,7 @@ export default function AuthFlow() {
             whileTap={{ scale: 0.97 }}
             onClick={() => handleOAuth('apple')}
             disabled={loading}
-            className="flex items-center justify-center gap-2 bg-white/5 border border-card-border hover:bg-white/10 text-foreground text-xs font-bold py-3 px-4 rounded-xl cursor-pointer transition-colors"
+            className="flex items-center justify-center gap-2 bg-[var(--input)] border border-card-border hover:bg-[var(--surface)] text-foreground text-xs font-bold py-3 px-4 rounded-xl cursor-pointer transition-colors"
           >
             {/* Apple Icon SVG */}
             <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">

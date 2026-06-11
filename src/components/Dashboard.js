@@ -408,7 +408,7 @@ export default function Dashboard({ onNotification }) {
                   ))}
                   <button 
                     onClick={handleResetWater}
-                    className="w-full py-2 bg-surface border border-card-border rounded-xl text-[10px] uppercase font-bold text-muted hover:border-red-500 hover:bg-red-500/5 transition-all cursor-pointer col-span-2"
+                    className="w-full py-2 bg-surface border border-card-border rounded-xl text-[10px] uppercase font-bold text-muted hover:border-destructive hover:bg-destructive/5 transition-all cursor-pointer col-span-2"
                   >
                     Reset
                   </button>

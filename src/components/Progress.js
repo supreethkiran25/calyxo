@@ -270,7 +270,7 @@ export default function Progress({ onNotification }) {
                       <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${
                         Number(trend) <= 0 
                           ? 'bg-[var(--color-acid-green)]/15 text-[var(--color-acid-green)] border-[var(--color-acid-green)]/20' 
-                          : 'bg-red-500/15 text-red-500 border-red-500/20'
+                          : 'bg-destructive/15 text-destructive border-destructive/20'
                       }`}>
                         {Number(trend) > 0 ? '+' : ''}{trend} {units === 'imperial' ? 'lbs' : 'kg'}
                       </span>

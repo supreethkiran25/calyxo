@@ -601,7 +601,7 @@ export default function FoodTracker({ onNotification }) {
                           </div>
                           <div className="flex items-center gap-3">
                             <span className="text-xs font-bold text-acid-green">+{item.calories} kcal</span>
-                            <button onClick={() => handleDeleteMeal(item.id || item.timestamp)} className="text-muted hover:text-red-500 cursor-pointer p-1">
+                            <button onClick={() => handleDeleteMeal(item.id || item.timestamp)} className="text-muted hover:text-destructive cursor-pointer p-1">
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
