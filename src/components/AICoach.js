@@ -14,8 +14,8 @@ const WELCOME_MESSAGE = {
   timestamp: Date.now()
 };
 
-export default function AICoach() {
-  const { user, foodLogs, workoutLogs, waterIntake, userProfile } = useStore();
+export default function AICoach({ onNotification }) {
+  const { user, foodLogs, workoutLogs, waterIntake, userProfile, updateUserProfile } = useStore();
   const userId = user?.uid;
 
   const ecoStore = useEcosystemStore();
@@ -682,17 +682,21 @@ export default function AICoach() {
           {/* Sub-tab Selectors and New Chat button */}
           <div className="flex items-center gap-2.5">
             <div className="bg-surface border border-[var(--card-border)] p-1 rounded-xl flex gap-0.5">
-              {['chat', 'plans'].map(tab => (
+              {[
+                { id: 'chat', label: 'Chat' },
+                { id: 'plans', label: 'AI Plans' },
+                { id: 'accountability', label: 'Accountability' }
+              ].map(tab => (
                 <button
-                  key={tab}
-                  onClick={() => setActiveSubTab(tab)}
+                  key={tab.id}
+                  onClick={() => setActiveSubTab(tab.id)}
                   className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                    activeSubTab === tab
+                    activeSubTab === tab.id
                       ? 'bg-[var(--color-acid-green)] text-accent-foreground'
                       : 'text-muted hover:text-foreground'
                   }`}
                 >
-                  {tab === 'chat' ? 'Chat' : 'AI Plan'}
+                  {tab.label}
                 </button>
               ))}
             </div>
@@ -824,8 +828,62 @@ export default function AICoach() {
               </form>
             </div>
           </>
-        ) : (
+        ) : activeSubTab === 'plans' ? (
           renderPlansGenerator()
+        ) : (
+          <div className="flex-1 overflow-y-auto p-5 space-y-6">
+            <div className="max-w-4xl mx-auto space-y-5">
+              <div className="glass p-5 rounded-2xl border border-[var(--card-border)] space-y-4">
+                <div>
+                  <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">AI Accountability Settings</h3>
+                  <p className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">Configure your coach&apos;s motivation and response parameters</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Coach Personality</label>
+                    <select 
+                      value={ecoStore.personality}
+                      onChange={async (e) => {
+                        ecoStore.setPersonality(e.target.value);
+                        await saveEcosystemState(userId, useEcosystemStore.getState());
+                        if (onNotification) onNotification(`Coach personality updated to: ${e.target.value}`);
+                      }}
+                      className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl px-3 py-2.5 text-xs text-foreground focus:outline-none focus:border-[var(--color-acid-green)] cursor-pointer"
+                    >
+                      <option value="motivational">Motivational Coach</option>
+                      <option value="gym_bro">Gym Bro (Encouraging / Bold)</option>
+                      <option value="scientific">Scientific Architect</option>
+                      <option value="strict">Strict / Disciplined</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Accountability Reminders</label>
+                    <select 
+                      value={userProfile?.reminderFrequency || 'daily'}
+                      onChange={async (e) => {
+                        const updated = { ...userProfile, reminderFrequency: e.target.value };
+                        updateUserProfile(updated);
+                        await saveUserProfile(userId, updated);
+                        if (onNotification) onNotification(`Reminder frequency set to ${e.target.value}`);
+                      }}
+                      className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl px-3 py-2.5 text-xs text-foreground focus:outline-none focus:border-[var(--color-acid-green)] cursor-pointer"
+                    >
+                      <option value="none">None</option>
+                      <option value="daily">Daily Checks</option>
+                      <option value="weekly">Weekly Checklist</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="bg-surface border border-card-border p-4 rounded-xl space-y-2.5">
+                  <span className="text-[10px] font-black text-acid-green uppercase tracking-wider block">Model Guidelines</span>
+                  <p className="text-xs text-foreground/80 leading-relaxed font-medium">Your accountability partner analyzes logged meals, daily water metrics, and active workouts automatically to adjust conversations and keep you focused on targets.</p>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
       </div>

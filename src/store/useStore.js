@@ -11,13 +11,35 @@ export const useStore = create((set, get) => ({
   weightLogs: [],
   waterIntake: 0,
   userProfile: {
+    onboarded: false,
+    firstName: '',
+    lastName: '',
+    nickname: '',
     gender: 'male',
-    age: 25,
+    dob: '',
     weight: 70, // in kg
     height: 175, // in cm
+    goalWeight: 70, // in kg
     activity: 1.55,
     goal: 'lose',
-    units: 'metric'
+    units: 'metric',
+    experience: 'beginner',
+    // Dietary
+    dietPreferences: [],
+    allergies: '',
+    medicalRestrictions: '',
+    foodDislikes: '',
+    favoriteFoods: '',
+    // Coach Settings
+    coachPersonality: 'motivational',
+    responseLength: 'short',
+    coachingStyle: 'supportive',
+    motivationLevel: 'gentle',
+    reminderFrequency: 'daily',
+    // Notifications
+    notifications: { workout: true, meal: true, hydration: true, checkins: true, challenges: true, achievements: true },
+    analyticsTracking: true,
+    photoURL: ''
   },
 
   // Auth Actions
@@ -92,13 +114,32 @@ export const useStore = create((set, get) => ({
     weightLogs: [],
     waterIntake: 0,
     userProfile: {
+      onboarded: false,
+      firstName: '',
+      lastName: '',
+      nickname: '',
       gender: 'male',
-      age: 25,
+      dob: '',
       weight: 70,
       height: 175,
+      goalWeight: 70,
       activity: 1.55,
       goal: 'lose',
-      units: 'metric'
+      units: 'metric',
+      experience: 'beginner',
+      dietPreferences: [],
+      allergies: '',
+      medicalRestrictions: '',
+      foodDislikes: '',
+      favoriteFoods: '',
+      coachPersonality: 'motivational',
+      responseLength: 'short',
+      coachingStyle: 'supportive',
+      motivationLevel: 'gentle',
+      reminderFrequency: 'daily',
+      notifications: { workout: true, meal: true, hydration: true, checkins: true, challenges: true, achievements: true },
+      analyticsTracking: true,
+      photoURL: ''
     }
   })
 }));

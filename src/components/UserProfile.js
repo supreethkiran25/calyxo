@@ -1,674 +1,861 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
-import { getUserProfile, saveUserProfile, saveEcosystemState } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
-import { User, Activity, Flame, ShieldAlert, Award, RefreshCw, LogOut, CheckCircle, Scale, Trophy, Camera, Sparkles, Share2, Download, Image as ImageIcon, Lock } from 'lucide-react';
-import { signOutUser } from '../lib/dbService';
+import { 
+  saveUserProfile, 
+  signOutUser,
+  updateUserEmail, 
+  updateUserPassword, 
+  updateUserAuthProfile, 
+  deleteUserAccount, 
+  exportAccountData, 
+  clearChatHistory, 
+  clearAIMemory 
+} from '../lib/dbService';
+import { 
+  User, Mail, Lock, ShieldAlert, Award, RefreshCw, LogOut, CheckCircle, 
+  Settings, Heart, Sparkles, Bell, Database, Trash2, Download, Eye, EyeOff 
+} from 'lucide-react';
 
 export default function UserProfile({ onNotification }) {
-  const { user, userProfile, setUserProfile, resetStore } = useStore();
+  const { user, userProfile, updateUserProfile, resetStore } = useStore();
   const userId = user?.uid;
-
   const ecoStore = useEcosystemStore();
-  const [beforeImage, setBeforeImage] = useState(null);
-  const [afterImage, setAfterImage] = useState(null);
-  const [timelineNotes, setTimelineNotes] = useState("");
-  
-  const handlePhotoUpload = (e, target) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (target === 'before') {
-        setBeforeImage(reader.result);
-      } else {
-        setAfterImage(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
 
-  const handleSaveTimelineLog = async () => {
-    if (!beforeImage || !afterImage) return;
-    const logEntry = {
-      id: Date.now(),
-      date: new Date().toLocaleDateString(),
-      before: beforeImage,
-      after: afterImage,
-      notes: timelineNotes || "Progress Transformation"
-    };
-    ecoStore.addTimelineLog(logEntry);
-    await saveEcosystemState(userId, useEcosystemStore.getState());
-    setBeforeImage(null);
-    setAfterImage(null);
-    setTimelineNotes("");
-    if (onNotification) onNotification("Added transformation comparison log! 📸");
-  };
+  const [activePanel, setActivePanel] = useState('overview');
 
-  const handleDownloadSocialCard = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 600;
-    canvas.height = 400;
-    const ctx = canvas.getContext('2d');
-    
-    // Background gradient matching Calyxo Neon/Dark theme
-    const gradient = ctx.createLinearGradient(0, 0, 600, 400);
-    gradient.addColorStop(0, '#0e0e11');
-    gradient.addColorStop(1, '#18181f');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 600, 400);
-    
-    // Border accent
-    ctx.strokeStyle = '#b5f23d';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(10, 10, 580, 380);
-    
-    // Title
-    ctx.fillStyle = '#b5f23d';
-    ctx.font = '900 28px sans-serif';
-    ctx.fillText('CALYXO AI COACH', 40, 60);
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 16px sans-serif';
-    ctx.fillText('FITNESS ECOSYSTEM PROFILE STATS', 40, 85);
-    
-    // Athlete details
-    ctx.fillStyle = '#8e8e93';
-    ctx.font = 'bold 12px sans-serif';
-    ctx.fillText('ATHLETE NAME', 40, 140);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '900 20px sans-serif';
-    ctx.fillText(user?.displayName || 'Calyxo Athlete', 40, 165);
-
-    ctx.fillStyle = '#8e8e93';
-    ctx.font = 'bold 12px sans-serif';
-    ctx.fillText('FITNESS SCORE', 40, 220);
-    ctx.fillStyle = '#b5f23d';
-    ctx.font = '900 36px sans-serif';
-    ctx.fillText(`${ecoStore.fitnessScore.dailyScore}/100`, 40, 260);
-
-    // Right side stats
-    ctx.fillStyle = '#8e8e93';
-    ctx.font = 'bold 12px sans-serif';
-    ctx.fillText('ACTIVE LOG STREAKS', 320, 140);
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 14px sans-serif';
-    ctx.fillText(`🔥 Login Streak: ${ecoStore.streaks.loginStreak} days`, 320, 170);
-    ctx.fillText(`🏋️ Workout Streak: ${ecoStore.streaks.workoutStreak} days`, 320, 195);
-    ctx.fillText(`🍗 Nutrition Streak: ${ecoStore.streaks.nutritionStreak} days`, 320, 220);
-    ctx.fillText(`💧 Hydration Streak: ${ecoStore.streaks.waterStreak} days`, 320, 245);
-
-    // Goal Strategy
-    ctx.fillStyle = '#8e8e93';
-    ctx.font = 'bold 12px sans-serif';
-    ctx.fillText('PRIMARY FITNESS TARGET', 40, 310);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 14px sans-serif';
-    const goalText = goal === 'lose' ? 'WEIGHT LOSS (CALORIE DEFICIT)' : goal === 'gains' ? 'MUSCLE GAINS (CALORIE SURPLUS)' : 'WEIGHT MAINTENANCE';
-    ctx.fillText(goalText, 40, 335);
-
-    // Branding logo watermark
-    ctx.fillStyle = '#8e8e93';
-    ctx.font = 'bold 10px sans-serif';
-    ctx.fillText('POWERED BY GEMINI 2.5 FLASH', 320, 335);
-
-    // Trigger download
-    const url = canvas.toDataURL('image/png');
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${user?.displayName || 'calyxo'}_stats_share.png`;
-    a.click();
-    if (onNotification) onNotification("Social Card downloaded successfully! 🎨");
-  };
-
-  const [units, setUnits] = useState('metric');
+  // Input states
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [dob, setDob] = useState('');
   const [gender, setGender] = useState('male');
-  const [age, setAge] = useState(25);
+  const [units, setUnits] = useState('metric');
   const [weight, setWeight] = useState(70);
   const [height, setHeight] = useState(175);
+  const [goalWeight, setGoalWeight] = useState(70);
   const [activity, setActivity] = useState(1.55);
   const [goal, setGoal] = useState('lose');
-  const [saving, setSaving] = useState(false);
+  const [experience, setExperience] = useState('beginner');
 
-  const [metrics, setMetrics] = useState({
-    bmi: 22.8, bmr: 1653, tdee: 2562, calorieGoal: 2062,
-    bodyType: 'Mesomorph', bmiStatus: 'Normal Weight',
-    macros: { protein: 140, carbs: 210, fat: 57 }
+  // Dietary preferences
+  const [dietPreferences, setDietPreferences] = useState([]);
+  const [allergies, setAllergies] = useState('');
+  const [medicalRestrictions, setMedicalRestrictions] = useState('');
+  const [foodDislikes, setFoodDislikes] = useState('');
+  const [favoriteFoods, setFavoriteFoods] = useState('');
+
+  // AI settings
+  const [coachPersonality, setCoachPersonality] = useState('motivational');
+  const [responseLength, setResponseLength] = useState('short');
+  const [coachingStyle, setCoachingStyle] = useState('supportive');
+  const [motivationLevel, setMotivationLevel] = useState('gentle');
+  const [reminderFrequency, setReminderFrequency] = useState('daily');
+
+  // Notification settings
+  const [notifications, setNotifications] = useState({
+    workout: true, meal: true, hydration: true, checkins: true, challenges: true, achievements: true
   });
+  
+  // Privacy
+  const [analyticsTracking, setAnalyticsTracking] = useState(true);
+
+  // Password / Email Forms
+  const [emailInput, setEmailInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  // States
+  const [saving, setSaving] = useState(false);
+  const [photoLoading, setPhotoLoading] = useState(false);
 
   useEffect(() => {
     if (userProfile) {
+      setFirstName(userProfile.firstName || '');
+      setLastName(userProfile.lastName || '');
+      setNickname(userProfile.nickname || '');
+      setDob(userProfile.dob || '');
       setGender(userProfile.gender || 'male');
-      setAge(userProfile.age || 25);
+      setUnits(userProfile.units || 'metric');
+      setWeight(userProfile.weight || 70);
+      setHeight(userProfile.height || 175);
+      setGoalWeight(userProfile.goalWeight || 70);
       setActivity(userProfile.activity || 1.55);
       setGoal(userProfile.goal || 'lose');
-      setUnits(userProfile.units || 'metric');
-      const isImp = userProfile.units === 'imperial';
-      setWeight(isImp ? Number((userProfile.weight * 2.20462).toFixed(1)) : userProfile.weight);
-      setHeight(isImp ? Number((userProfile.height / 2.54).toFixed(1)) : userProfile.height);
+      setExperience(userProfile.experience || 'beginner');
+      
+      setDietPreferences(userProfile.dietPreferences || []);
+      setAllergies(userProfile.allergies || '');
+      setMedicalRestrictions(userProfile.medicalRestrictions || '');
+      setFoodDislikes(userProfile.foodDislikes || '');
+      setFavoriteFoods(userProfile.favoriteFoods || '');
+
+      setCoachPersonality(userProfile.coachPersonality || 'motivational');
+      setResponseLength(userProfile.responseLength || 'short');
+      setCoachingStyle(userProfile.coachingStyle || 'supportive');
+      setMotivationLevel(userProfile.motivationLevel || 'gentle');
+      setReminderFrequency(userProfile.reminderFrequency || 'daily');
+
+      setNotifications(userProfile.notifications || {
+        workout: true, meal: true, hydration: true, checkins: true, challenges: true, achievements: true
+      });
+      setAnalyticsTracking(userProfile.analyticsTracking !== false);
+      setEmailInput(user?.email || '');
     }
-  }, [userProfile]);
-
-  useEffect(() => {
-    recalculateMetrics();
-  }, [units, gender, age, weight, height, activity, goal]);
-
-  const recalculateMetrics = () => {
-    const rawW = Number(weight) || 70;
-    const rawH = Number(height) || 175;
-    const isImp = units === 'imperial';
-    const wkg = isImp ? rawW / 2.20462 : rawW;
-    const hcm = isImp ? rawH * 2.54 : rawH;
-    const hm = hcm / 100;
-    const bmi = hm > 0 ? wkg / (hm * hm) : 22.0;
-
-    let bmiStatus = "Normal Weight";
-    let bmiColor = "text-acid-green";
-    if (bmi < 18.5) {
-      bmiStatus = "Underweight";
-      bmiColor = "text-blue";
-    } else if (bmi >= 25 && bmi < 30) {
-      bmiStatus = "Overweight";
-      bmiColor = "text-orange";
-    } else if (bmi >= 30) {
-      bmiStatus = "Obese";
-      bmiColor = "text-red";
-    }
-
-    const bodyType = bmi < 18.5 ? "Ectomorph" : bmi < 25 ? (bmi < 21 ? "Ectomorph" : "Mesomorph") : "Endomorph";
-    let bmr = gender === 'male' ? (10 * wkg) + (6.25 * hcm) - (5 * age) + 5 : (10 * wkg) + (6.25 * hcm) - (5 * age) - 161;
-    const tdee = bmr * activity;
-    let calGoal = goal === 'lose' ? tdee - 500 : goal === 'gains' ? tdee + 350 : tdee;
-    calGoal = Math.max(calGoal, gender === 'male' ? 1500 : 1200);
-    const protein = Math.min(Math.max(Math.round(wkg * 2.0), 80), 220);
-    const fat = Math.round((calGoal * 0.25) / 9);
-    const carbs = Math.round((calGoal - (protein * 4) - (fat * 9)) / 4);
-
-    setMetrics({
-      bmi: Number(bmi.toFixed(1)),
-      bmr: Math.round(bmr),
-      tdee: Math.round(tdee),
-      calorieGoal: Math.round(calGoal),
-      bodyType,
-      bmiStatus,
-      bmiColor,
-      macros: { protein, carbs, fat }
-    });
-  };
-
-  const handleProfileSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    const isImp = units === 'imperial';
-    const rawW = Number(weight) || 70;
-    const rawH = Number(height) || 175;
-    const wkg = isImp ? rawW / 2.20462 : rawW;
-    const hcm = isImp ? rawH * 2.54 : rawH;
-    const profile = {
-      gender,
-      age: Number(age),
-      weight: parseFloat(wkg.toFixed(1)),
-      height: parseFloat(hcm.toFixed(1)),
-      activity: Number(activity),
-      goal,
-      units
-    };
-    await saveUserProfile(userId, profile);
-    setUserProfile(profile);
-    setSaving(false);
-    if (onNotification) onNotification("Profile updated successfully! ⚡");
-  };
+  }, [userProfile, user]);
 
   const handleLogout = async () => {
     if (window.confirm("Sign out of Calyxo?")) {
       await signOutUser();
       resetStore();
+      ecoStore.resetEcosystemStore();
       if (onNotification) onNotification("Signed out successfully.");
     }
   };
 
-  const inputStyle = {
-    width: '100%',
-    padding: '12px 14px',
-    borderRadius: '12px',
-    background: 'var(--input-bg)',
-    border: '1px solid var(--card-border)',
-    color: 'var(--foreground)',
-    fontSize: '14px',
-    outline: 'none',
-    transition: 'border-color 0.2s'
+  // Recalculate BMI status
+  const hMeter = height / 100;
+  const bmi = hMeter > 0 ? (weight / (hMeter * hMeter)).toFixed(1) : '22.0';
+  let bmiStatus = "Normal Weight";
+  if (bmi < 18.5) bmiStatus = "Underweight";
+  else if (bmi >= 25 && bmi < 30) bmiStatus = "Overweight";
+  else if (bmi >= 30) bmiStatus = "Obese";
+
+  // Calculate Profile Completion %
+  const calculateCompleteness = () => {
+    const fields = [firstName, lastName, nickname, dob, allergies, foodDislikes, favoriteFoods];
+    const filled = fields.filter(x => x && x.toString().trim().length > 0).length;
+    const dietFilled = dietPreferences.length > 0 ? 1 : 0;
+    const photoFilled = userProfile?.photoURL ? 1 : 0;
+    return Math.round(((filled + dietFilled + photoFilled) / 9) * 100);
   };
 
-  return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-6">
-      <div className="flex flex-col md:flex-row gap-6 items-start">
+  const profileCompleteness = calculateCompleteness();
+
+  const handleSaveAllDetails = async (e) => {
+    if (e) e.preventDefault();
+    setSaving(true);
+    
+    const birthDate = new Date(dob || '2001-01-01');
+    const today = new Date();
+    let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      calculatedAge--;
+    }
+    const age = calculatedAge > 0 ? calculatedAge : 25;
+
+    const updatedProfile = {
+      ...userProfile,
+      firstName,
+      lastName,
+      nickname,
+      dob,
+      age,
+      gender,
+      units,
+      weight: Number(weight),
+      height: Number(height),
+      goalWeight: Number(goalWeight),
+      activity: Number(activity),
+      goal,
+      experience,
+      dietPreferences,
+      allergies,
+      medicalRestrictions,
+      foodDislikes,
+      favoriteFoods,
+      coachPersonality,
+      responseLength,
+      coachingStyle,
+      motivationLevel,
+      reminderFrequency,
+      notifications,
+      analyticsTracking,
+      photoURL: userProfile?.photoURL || ''
+    };
+
+    updateUserProfile(updatedProfile);
+    await saveUserProfile(userId, updatedProfile);
+    setSaving(false);
+    if (onNotification) onNotification("Settings saved successfully! 💾");
+  };
+
+  const handleUpdateEmail = async () => {
+    try {
+      await updateUserEmail(emailInput);
+      if (onNotification) onNotification("Email updated successfully.");
+    } catch (e) {
+      if (onNotification) onNotification(`Error updating email: ${e.message}`);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (passwordInput.length < 6) {
+      if (onNotification) onNotification("Password must be at least 6 characters.");
+      return;
+    }
+    try {
+      await updateUserPassword(passwordInput);
+      setPasswordInput('');
+      if (onNotification) onNotification("Password updated successfully.");
+    } catch (e) {
+      if (onNotification) onNotification(`Error updating password: ${e.message}`);
+    }
+  };
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setPhotoLoading(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = async () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 150;
+        canvas.height = 150;
+        const ctx = canvas.getContext('2d');
+        const size = Math.min(img.width, img.height);
+        const sx = (img.width - size) / 2;
+        const sy = (img.height - size) / 2;
+        ctx.drawImage(img, sx, sy, size, size, 0, 0, 150, 150);
         
-        {/* Left Form Panel */}
-        <div className="w-full md:w-5/12 glass p-6 rounded-2xl border border-card-border shadow-lg">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2.5 rounded-xl bg-acid-green/10 border border-acid-green/20">
-              <User className="w-5 h-5 text-acid-green" />
-            </div>
-            <div>
-              <h2 className="text-md font-bold text-foreground uppercase tracking-wider">Profile Settings</h2>
-              <p className="text-[10px] text-muted font-bold uppercase tracking-widest mt-0.5">Biometrics & Goals</p>
-            </div>
-          </div>
+        const base64 = canvas.toDataURL('image/jpeg', 0.75);
+        
+        // Save
+        updateUserProfile({ photoURL: base64 });
+        await updateUserAuthProfile(nickname || user?.displayName || 'Calyxo Athlete', base64);
+        await saveUserProfile(userId, { ...userProfile, photoURL: base64 });
+        setPhotoLoading(false);
+        if (onNotification) onNotification("Profile photo updated! 📸");
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
 
-          <form onSubmit={handleProfileSubmit} className="space-y-5">
-            {/* Unit System */}
-            <div>
-              <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-2">Unit System</label>
-              <div className="flex gap-2">
-                {['metric', 'imperial'].map(u => (
-                  <button
-                    key={u}
-                    type="button"
-                    onClick={() => {
-                      // Convert units on the fly to avoid confusion
-                      const isToImperial = u === 'imperial';
-                      if (isToImperial && units === 'metric') {
-                        setWeight(Number((weight * 2.20462).toFixed(1)));
-                        setHeight(Number((height / 2.54).toFixed(1)));
-                      } else if (!isToImperial && units === 'imperial') {
-                        setWeight(Number((weight / 2.20462).toFixed(1)));
-                        setHeight(Number((height * 2.54).toFixed(1)));
-                      }
-                      setUnits(u);
-                    }}
-                    className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                      units === u 
-                        ? 'bg-acid-green text-accent-foreground border-acid-green shadow-md shadow-acid-green/10' 
-                        : 'bg-surface text-muted border-card-border hover:border-acid-green/40'
-                    }`}
-                  >
-                    {u.charAt(0).toUpperCase() + u.slice(1)} ({u === 'metric' ? 'kg, cm' : 'lbs, in'})
-                  </button>
-                ))}
-              </div>
-            </div>
+  const handleRemovePhoto = async () => {
+    setPhotoLoading(true);
+    updateUserProfile({ photoURL: '' });
+    await updateUserAuthProfile(nickname || user?.displayName || 'Calyxo Athlete', '');
+    await saveUserProfile(userId, { ...userProfile, photoURL: '' });
+    setPhotoLoading(false);
+    if (onNotification) onNotification("Profile photo removed.");
+  };
 
-            {/* Inputs Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1.5">Gender</label>
-                <select value={gender} onChange={(e) => setGender(e.target.value)} style={inputStyle} className="cursor-pointer">
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
-              </div>
+  const handleExportData = async () => {
+    await exportAccountData(userId);
+    if (onNotification) onNotification("Data export initiated! 📦");
+  };
 
-              <div>
-                <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1.5">Age (years)</label>
-                <input type="number" value={age} onChange={(e) => setAge(Number(e.target.value))} min="10" max="100" style={inputStyle} />
-              </div>
+  const handleDeleteAccount = async () => {
+    const confirm1 = window.confirm("WARNING: Are you absolutely sure you want to delete your Calyxo account? All logged weights, nutrition details, streaks, and program history will be permanently deleted.");
+    if (!confirm1) return;
+    const confirm2 = window.prompt("Type DELETE to confirm your action:");
+    if (confirm2 !== "DELETE") {
+      if (onNotification) onNotification("Account deletion aborted.");
+      return;
+    }
+    
+    try {
+      await deleteUserAccount(userId);
+      resetStore();
+      ecoStore.resetEcosystemStore();
+      if (onNotification) onNotification("Account deleted successfully.");
+    } catch (e) {
+      if (onNotification) onNotification(`Error deleting account: ${e.message}`);
+    }
+  };
 
-              <div>
-                <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1.5">Weight ({units === 'imperial' ? 'lbs' : 'kg'})</label>
-                <input type="number" step="0.1" value={weight} onChange={(e) => setWeight(parseFloat(e.target.value) || 0)} style={inputStyle} />
-              </div>
+  const handleClearHistory = async () => {
+    if (window.confirm("Clear all nutrition and workout logs? Your streaks and biometric targets will remain.")) {
+      await clearChatHistory(userId);
+      if (onNotification) onNotification("Account logs history cleared.");
+    }
+  };
 
-              <div>
-                <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1.5">Height ({units === 'imperial' ? 'in' : 'cm'})</label>
-                <input type="number" step="0.1" value={height} onChange={(e) => setHeight(parseFloat(e.target.value) || 0)} style={inputStyle} />
-              </div>
-            </div>
+  const handleClearMemory = async () => {
+    if (window.confirm("Reset AI memories & current plan setup?")) {
+      await clearAIMemory(userId);
+      ecoStore.setCoachingPlan(null);
+      ecoStore.setPredictions(null);
+      if (onNotification) onNotification("AI Coach model memory cleared.");
+    }
+  };
 
-            {/* Activity Level */}
-            <div>
-              <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1.5">Activity Level</label>
-              <select value={activity} onChange={(e) => setActivity(Number(e.target.value))} style={inputStyle} className="cursor-pointer">
-                <option value="1.2">Sedentary (Little/no exercise)</option>
-                <option value="1.375">Lightly Active (Exercise 1-3×/week)</option>
-                <option value="1.55">Moderately Active (Exercise 3-5×/week)</option>
-                <option value="1.725">Very Active (Exercise 6-7×/week)</option>
-              </select>
-            </div>
+  const toggleDietPreference = (pref) => {
+    setDietPreferences(prev => 
+      prev.includes(pref) ? prev.filter(p => p !== pref) : [...prev, pref]
+    );
+  };
 
-            {/* Goal */}
-            <div>
-              <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1.5">Primary Fitness Goal</label>
-              <select value={goal} onChange={(e) => setGoal(e.target.value)} style={inputStyle} className="cursor-pointer">
-                <option value="lose">Weight Loss (Calorie Deficit)</option>
-                <option value="maintain">Weight Maintenance</option>
-                <option value="gains">Muscle Gains (Calorie Surplus)</option>
-              </select>
-            </div>
+  const getInitials = () => {
+    if (nickname) return nickname.substring(0, 2).toUpperCase();
+    if (user?.displayName) return user.displayName.substring(0, 2).toUpperCase();
+    if (user?.email) return user.email.substring(0, 2).toUpperCase();
+    return "CX";
+  };
 
-            {/* Save Button */}
-            <button
-              type="submit"
-              disabled={saving}
-              className="w-full btn-primary py-3.5 flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-wider shadow-lg active:scale-[0.98] transition-transform cursor-pointer"
-            >
-              {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-              {saving ? "Saving Changes..." : "Save Biometrics"}
-            </button>
-          </form>
+  const menuItems = [
+    { id: 'overview', label: 'Overview', icon: User },
+    { id: 'account', label: 'Account settings', icon: Settings },
+    { id: 'personal', label: 'Personal Information', icon: Award },
+    { id: 'diet', label: 'Health Preferences', icon: Heart },
+    { id: 'coach', label: 'AI Coach Settings', icon: Sparkles },
+    { id: 'notifications', label: 'Notification Settings', icon: Bell },
+    { id: 'privacy', label: 'Privacy & Data', icon: Database }
+  ];
 
-          {/* Account Details & Sign Out */}
-          <div className="mt-8 pt-6 border-t border-card-border">
-            <h4 className="text-[10px] font-bold text-muted uppercase tracking-wider mb-3">Logged In As</h4>
-            <div className="bg-surface p-3.5 rounded-xl border border-card-border flex items-center justify-between mb-4">
-              <div className="overflow-hidden mr-2">
-                <p className="text-xs font-bold text-foreground truncate">{user?.displayName || "Calyxo Athlete"}</p>
-                <p className="text-[10px] text-muted truncate mt-0.5">{user?.email}</p>
-              </div>
-              <div className="w-2.5 h-2.5 bg-acid-green rounded-full shadow-[0_0_8px_#b5f23d]" />
-            </div>
+  const inputClass = "w-full bg-[var(--input)] text-foreground border border-card-border px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-acid-green text-xs shadow-inner";
+  const labelClass = "text-[9px] text-muted font-bold uppercase tracking-wider block mb-1";
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+      
+      {/* Sidebar Navigation (Col 1) */}
+      <div className="glass p-5 rounded-2xl border border-card-border space-y-5 lg:col-span-1">
+        <div className="flex flex-col items-center text-center pb-4 border-b border-card-border">
+          
+          {/* Profile Photo Uploader */}
+          <div className="relative w-20 h-20 rounded-full border border-card-border bg-surface flex items-center justify-center text-lg overflow-hidden group shadow-lg">
+            {photoLoading ? (
+              <RefreshCw className="w-5 h-5 animate-spin text-muted" />
+            ) : userProfile?.photoURL ? (
+              <img src={userProfile.photoURL} className="object-cover w-full h-full" />
+            ) : (
+              <span className="text-lg font-black text-muted">{getInitials()}</span>
+            )}
             
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 py-3 border border-destructive/30 hover:border-destructive bg-destructive/5 hover:bg-destructive/10 text-destructive text-xs font-bold rounded-xl transition-all cursor-pointer"
-            >
-              <LogOut className="w-4 h-4" />
-              Sign Out from Device
-            </button>
+            <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-[8px] font-bold text-white uppercase tracking-wider">
+              <span>Upload</span>
+              <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+            </label>
           </div>
+          
+          <h3 className="text-xs font-black text-foreground mt-3 uppercase tracking-wider truncate max-w-full">{nickname || "Athlete"}</h3>
+          <p className="text-[9px] text-muted font-medium truncate max-w-full mt-0.5">{user?.email}</p>
+
+          {userProfile?.photoURL && (
+            <button 
+              onClick={handleRemovePhoto}
+              className="text-[8px] text-red-500 font-bold uppercase tracking-wider mt-2.5 hover:underline bg-none border-none cursor-pointer"
+            >
+              Remove photo
+            </button>
+          )}
         </div>
 
-        {/* Right Health Report Panel */}
-        <div className="w-full md:w-7/12 space-y-6">
-          
-          {/* Main Target Card */}
-          <div className="glass p-6 rounded-2xl border border-card-border shadow-lg relative overflow-hidden">
-            <div className="absolute right-0 top-0 w-32 h-32 bg-acid-green/5 rounded-full blur-2xl pointer-events-none" />
-            
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">Recommended Intake</span>
-                <h3 className="text-2xl font-black text-foreground mt-1 uppercase tracking-wider">Target Calories</h3>
-              </div>
-              <div className="px-3.5 py-1.5 rounded-xl bg-acid-green/10 border border-acid-green/20 text-acid-green text-xs font-extrabold uppercase tracking-wide">
-                Active Setup
-              </div>
-            </div>
+        {/* Panel selector items */}
+        <nav className="flex flex-col gap-1">
+          {menuItems.map(item => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActivePanel(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer border ${
+                  activePanel === item.id 
+                    ? 'bg-acid-green text-accent-foreground border-acid-green' 
+                    : 'text-muted border-transparent hover:bg-surface hover:text-foreground'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
 
-            <div className="flex flex-col sm:flex-row items-center gap-8 py-2">
-              {/* Radial Target */}
-              <div className="relative w-40 h-40 shrink-0">
-                <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="var(--card-border)" strokeWidth="8" />
-                  <motion.circle
-                    cx="50" cy="50" r="42" fill="none"
-                    stroke="#b5f23d" strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeDasharray="264"
-                    initial={{ strokeDashoffset: 264 }}
-                    animate={{ strokeDashoffset: 264 - (264 * 0.75) }} // Fill 75% for decoration
-                    transition={{ duration: 1.2, ease: "easeOut" }}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-2xl font-black text-foreground">{metrics.calorieGoal.toLocaleString()}</span>
-                  <span className="text-[9px] font-bold text-muted uppercase tracking-widest mt-0.5">kcal / day</span>
-                </div>
-              </div>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 py-3 mt-4 border border-destructive/20 hover:border-destructive bg-destructive/5 hover:bg-destructive/10 text-destructive text-[10px] uppercase font-bold tracking-wider rounded-xl transition-all cursor-pointer"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          Sign Out
+        </button>
+      </div>
 
-              {/* Targets Summary */}
-              <div className="flex-1 w-full space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-surface p-3 rounded-xl border border-card-border">
-                    <span className="text-[9px] font-bold text-muted uppercase tracking-wider block">BMR</span>
-                    <span className="text-sm font-bold text-foreground block mt-1">{metrics.bmr.toLocaleString()} kcal</span>
-                    <span className="text-[8px] text-muted block mt-0.5">Basal metabolic energy</span>
+      {/* Main Content Area (Col 2-4) */}
+      <div className="lg:col-span-3 space-y-6">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activePanel}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.15 }}
+          >
+            {/* Overview Panel */}
+            {activePanel === 'overview' && (
+              <div className="space-y-6">
+                <div className="glass p-6 rounded-2xl border border-card-border shadow-md">
+                  <h2 className="text-sm font-black text-foreground uppercase tracking-widest mb-4">Profile Completeness</h2>
+                  <div className="space-y-2 max-w-sm">
+                    <div className="w-full bg-surface border border-card-border h-2 rounded-full overflow-hidden">
+                      <div className="bg-acid-green h-full rounded-full transition-all duration-300" style={{ width: `${profileCompleteness}%` }} />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-muted font-bold">
+                      <span>COMPLETED</span>
+                      <span>{profileCompleteness}%</span>
+                    </div>
                   </div>
-                  <div className="bg-surface p-3 rounded-xl border border-card-border">
-                    <span className="text-[9px] font-bold text-muted uppercase tracking-wider block">TDEE</span>
-                    <span className="text-sm font-bold text-foreground block mt-1">{metrics.tdee.toLocaleString()} kcal</span>
-                    <span className="text-[8px] text-muted block mt-0.5">Total daily usage</span>
-                  </div>
+                  {profileCompleteness < 100 && (
+                    <p className="text-[10px] text-muted font-medium mt-3">Fill out your Health Preferences, AI Coach Settings, and upload a profile photo to reach 100% completion!</p>
+                  )}
                 </div>
 
-                <div className="bg-acid-green/10 border border-acid-green/20 rounded-xl p-3.5 flex items-start gap-3">
-                  <Award className="w-5 h-5 text-acid-green shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-[10px] font-black text-acid-green uppercase tracking-wider block">Goal Strategy</span>
-                    <p className="text-xs text-foreground/80 mt-1 font-medium">
-                      {goal === 'lose' 
-                        ? `Set to a moderate deficit of 500 kcal below TDEE to foster fat loss while preserving lean skeletal muscle.` 
-                        : goal === 'gains'
-                          ? `Set to a lean gains surplus of 350 kcal above TDEE to fuel training output and cellular muscle hypertrophy.`
-                          : `Set to maintenance. Keep calorie levels close to BMR + active output to preserve current body structure.`
-                      }
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Macro Targets Distribution */}
-          <div className="glass p-6 rounded-2xl border border-card-border shadow-lg">
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-5 flex items-center gap-2">
-              <Flame className="w-4 h-4 text-orange" />
-              Calculated Macro Distribution Targets
-            </h3>
-            
-            <div className="space-y-4">
-              {/* Protein */}
-              <div>
-                <div className="flex justify-between items-center text-xs font-bold mb-1.5">
-                  <span className="text-foreground">🍖 Protein (Muscle Synthesis)</span>
-                  <span className="text-acid-green">{metrics.macros.protein}g / {metrics.macros.protein * 4} kcal</span>
-                </div>
-                <div className="h-2.5 bg-surface border border-card-border rounded-full overflow-hidden">
-                  <div className="h-full bg-acid-green rounded-full" style={{ width: '30%' }} />
-                </div>
-              </div>
-
-              {/* Carbs */}
-              <div>
-                <div className="flex justify-between items-center text-xs font-bold mb-1.5">
-                  <span className="text-foreground">⚡ Carbohydrates (Athletic Energy)</span>
-                  <span className="text-orange">{metrics.macros.carbs}g / {metrics.macros.carbs * 4} kcal</span>
-                </div>
-                <div className="h-2.5 bg-surface border border-card-border rounded-full overflow-hidden">
-                  <div className="h-full bg-orange rounded-full" style={{ width: '45%' }} />
-                </div>
-              </div>
-
-              {/* Fats */}
-              <div>
-                <div className="flex justify-between items-center text-xs font-bold mb-1.5">
-                  <span className="text-foreground">🥑 Fats (Hormone Health)</span>
-                  <span className="text-red-400">{metrics.macros.fat}g / {metrics.macros.fat * 9} kcal</span>
-                </div>
-                <div className="h-2.5 bg-surface border border-card-border rounded-full overflow-hidden">
-                  <div className="h-full bg-red-400 rounded-full" style={{ width: '25%' }} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Body Profile Analytics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* BMI Card */}
-            <div className="glass p-5 rounded-2xl border border-card-border shadow-md flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-surface border border-card-border flex items-center justify-center">
-                <Scale className="w-6 h-6 text-muted" />
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">Body Mass Index (BMI)</span>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-lg font-black text-foreground">{metrics.bmi}</span>
-                  <span className={`text-xs font-extrabold ${metrics.bmiColor}`}>{metrics.bmiStatus}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Somatotype Card */}
-            <div className="glass p-5 rounded-2xl border border-card-border shadow-md flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-surface border border-card-border flex items-center justify-center">
-                <Activity className="w-6 h-6 text-muted" />
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">Estimated Somatotype</span>
-                <span className="text-lg font-black text-foreground block mt-1">{metrics.bodyType}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Achievements Checklist Badges */}
-          <div className="glass p-6 rounded-2xl border border-card-border shadow-lg">
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-5 flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-acid-green animate-pulse" />
-              Calyxo Milestones & Achievements
-            </h3>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {ecoStore.achievements?.map((ach) => (
-                <div 
-                  key={ach.id} 
-                  className={`border rounded-xl p-3 flex items-center gap-3 transition-all ${
-                    ach.unlocked 
-                      ? 'bg-acid-green/5 border-acid-green/35 shadow-[0_0_10px_rgba(181,242,61,0.15)]' 
-                      : 'bg-surface/30 border-card-border opacity-50'
-                  }`}
-                >
-                  <div className="text-2xl shrink-0">
-                    {ach.unlocked ? ach.icon : <Lock className="w-5 h-5 text-muted" />}
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                      {ach.name}
-                      {ach.unlocked && <span className="w-1.5 h-1.5 rounded-full bg-acid-green shadow-[0_0_6px_#b5f23d]" />}
-                    </h4>
-                    <p className="text-[10px] text-muted mt-0.5 font-medium leading-tight">{ach.description}</p>
-                    {ach.unlocked && ach.unlockedAt && (
-                      <span className="text-[8px] text-muted mt-1 block uppercase font-bold tracking-wider">Unlocked {new Date(ach.unlockedAt).toLocaleDateString()}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Before/After Transformation Timeline */}
-          <div className="glass p-6 rounded-2xl border border-card-border shadow-lg space-y-5">
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
-              <Camera className="w-4 h-4 text-acid-green" />
-              Before/After Transformation Timeline
-            </h3>
-
-            {/* Photo upload inputs */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* Before Uploader */}
-              <div className="relative border border-dashed border-card-border rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:border-acid-green/40 bg-surface/20 min-h-[140px]">
-                {beforeImage ? (
-                  <div className="relative w-full h-full min-h-[120px] rounded-lg overflow-hidden flex items-center justify-center bg-black">
-                    <img src={beforeImage} className="object-contain w-full h-full max-h-28" />
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setBeforeImage(null); }}
-                      className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 hover:text-red-500 transition-colors border-none"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(e, 'before')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                    <Camera className="w-5 h-5 text-muted mb-2" />
-                    <span className="text-[10px] font-bold text-foreground">Before Photo</span>
-                    <span className="text-[8px] text-muted mt-0.5 uppercase tracking-wider font-extrabold">Upload image</span>
-                  </>
-                )}
-              </div>
-
-              {/* After Uploader */}
-              <div className="relative border border-dashed border-card-border rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:border-acid-green/40 bg-surface/20 min-h-[140px]">
-                {afterImage ? (
-                  <div className="relative w-full h-full min-h-[120px] rounded-lg overflow-hidden flex items-center justify-center bg-black">
-                    <img src={afterImage} className="object-contain w-full h-full max-h-28" />
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setAfterImage(null); }}
-                      className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 hover:text-red-500 transition-colors border-none"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(e, 'after')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                    <Camera className="w-5 h-5 text-muted mb-2" />
-                    <span className="text-[10px] font-bold text-foreground">After Photo</span>
-                    <span className="text-[8px] text-muted mt-0.5 uppercase tracking-wider font-extrabold">Upload image</span>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {beforeImage && afterImage && (
-              <div className="space-y-3 pt-1">
-                <input 
-                  type="text" 
-                  value={timelineNotes}
-                  onChange={(e) => setTimelineNotes(e.target.value)}
-                  placeholder="e.g. Month 3 progress, down 4kg!"
-                  className="w-full bg-[var(--input-bg)] border border-card-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-acid-green"
-                />
-                <button
-                  onClick={handleSaveTimelineLog}
-                  className="w-full bg-acid-green text-accent-foreground font-extrabold text-[10px] uppercase tracking-wider py-2.5 rounded-xl hover:shadow-[0_0_12px_rgba(204,255,0,0.2)] cursor-pointer border-none"
-                >
-                  Save Timeline Log
-                </button>
-              </div>
-            )}
-
-            {/* List logged pairs */}
-            {ecoStore.timelineLogs && ecoStore.timelineLogs.length > 0 && (
-              <div className="space-y-3 pt-3 border-t border-card-border">
-                <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Logged Transformations:</span>
-                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                  {ecoStore.timelineLogs.map((log) => (
-                    <div key={log.id} className="bg-surface/50 border border-card-border p-3 rounded-xl space-y-2">
-                      <div className="flex justify-between items-center text-[10px] text-muted font-bold">
-                        <span>Date: {log.date}</span>
-                        <span className="text-acid-green">{log.notes}</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="relative rounded-lg overflow-hidden border border-card-border bg-black aspect-video flex items-center justify-center max-h-24">
-                          <img src={log.before} className="object-contain w-full h-full" />
-                          <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[7px] font-bold px-1 py-0.5 rounded">BEFORE</div>
-                        </div>
-                        <div className="relative rounded-lg overflow-hidden border border-card-border bg-black aspect-video flex items-center justify-center max-h-24">
-                          <img src={log.after} className="object-contain w-full h-full" />
-                          <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[7px] font-bold px-1 py-0.5 rounded">AFTER</div>
-                        </div>
-                      </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { label: 'Current Weight', val: `${weight} ${units === 'metric' ? 'kg' : 'lbs'}` },
+                    { label: 'Goal Weight', val: `${goalWeight} ${units === 'metric' ? 'kg' : 'lbs'}` },
+                    { label: 'Body Mass Index', val: bmi, sub: bmiStatus },
+                    { label: 'Fitness Score', val: `${ecoStore.fitnessScore?.dailyScore || 70}/100` }
+                  ].map((item, idx) => (
+                    <div key={idx} className="glass p-5 rounded-2xl border border-card-border shadow-md flex flex-col justify-between h-24">
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">{item.label}</span>
+                      <span className="text-md font-black text-foreground mt-2 block">{item.val}</span>
+                      {item.sub && <span className="text-[8.5px] text-muted block mt-1">{item.sub}</span>}
                     </div>
                   ))}
                 </div>
+
+                <div className="glass p-6 rounded-2xl border border-card-border shadow-md">
+                  <h2 className="text-sm font-black text-foreground uppercase tracking-widest mb-4">Milestones Summaries</h2>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className="bg-surface border border-card-border p-4 rounded-xl shadow-inner">
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Achievements</span>
+                      <span className="text-xl font-black text-foreground mt-2 block">🏆 {ecoStore.achievements?.filter(x => x.unlocked).length} Unlocked</span>
+                    </div>
+                    <div className="bg-surface border border-card-border p-4 rounded-xl shadow-inner">
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Active Streaks</span>
+                      <span className="text-xl font-black text-foreground mt-2 block">🔥 {ecoStore.streaks?.loginStreak} Days</span>
+                    </div>
+                    <div className="bg-surface border border-card-border p-4 rounded-xl shadow-inner">
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Challenges Join</span>
+                      <span className="text-xl font-black text-foreground mt-2 block">🚀 {ecoStore.activeChallenges?.filter(x => x.progress > 0).length} Active</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
-          </div>
 
-          {/* Social Share Card Canvas Downloader */}
-          <div className="glass p-6 rounded-2xl border border-card-border shadow-lg flex flex-col justify-between items-start">
-            <div className="space-y-1">
-              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
-                <Share2 className="w-4 h-4 text-acid-green" />
-                Athlete Social Sharing Card
-              </h3>
-              <p className="text-muted text-[10.5px] font-medium leading-relaxed">Generate a high-resolution, visually stylized sharing card containing your Calyxo Fitness Score, active streaks, and biometric achievements to download and share on social platforms.</p>
-            </div>
-            
-            <button
-              onClick={handleDownloadSocialCard}
-              className="mt-4 bg-acid-green text-accent-foreground font-extrabold text-[10px] uppercase tracking-wider py-2.5 px-5 rounded-xl hover:shadow-[0_0_12px_rgba(181,242,61,0.2)] transition-all cursor-pointer border-none flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Download Sharing Card
-            </button>
-          </div>
+            {/* Account Settings Panel */}
+            {activePanel === 'account' && (
+              <div className="glass p-6 rounded-2xl border border-card-border shadow-md space-y-6">
+                <div>
+                  <h2 className="text-sm font-black text-foreground uppercase tracking-widest mb-1">Account settings</h2>
+                  <p className="text-[10px] text-muted font-medium">Manage credentials and authentication details</p>
+                </div>
 
-        </div>
+                {/* Update Email */}
+                <div className="space-y-2.5 pt-4 border-t border-card-border">
+                  <h4 className="text-xs font-bold text-foreground">Update Email Address</h4>
+                  <div className="flex gap-2">
+                    <div className="flex-1 relative flex items-center">
+                      <Mail className="absolute left-3.5 w-4 h-4 text-muted" />
+                      <input 
+                        type="email" 
+                        value={emailInput} 
+                        onChange={(e) => setEmailInput(e.target.value)} 
+                        className="w-full bg-[var(--input)] text-foreground border border-card-border pl-10 pr-4 py-2.5 rounded-xl focus:outline-none focus:border-acid-green text-xs shadow-inner"
+                      />
+                    </div>
+                    <button 
+                      onClick={handleUpdateEmail}
+                      className="bg-surface hover:bg-card-border border border-card-border hover:border-acid-green px-4 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer"
+                    >
+                      Update
+                    </button>
+                  </div>
+                </div>
 
+                {/* Update Password */}
+                <div className="space-y-2.5 pt-4 border-t border-card-border">
+                  <h4 className="text-xs font-bold text-foreground">Update Password</h4>
+                  <div className="flex gap-2">
+                    <div className="flex-1 relative flex items-center">
+                      <Lock className="absolute left-3.5 w-4 h-4 text-muted" />
+                      <input 
+                        type={showPassword ? 'text' : 'password'} 
+                        placeholder="Choose a strong password (6+ chars)"
+                        value={passwordInput} 
+                        onChange={(e) => setPasswordInput(e.target.value)} 
+                        className="w-full bg-[var(--input)] text-foreground border border-card-border pl-10 pr-10 py-2.5 rounded-xl focus:outline-none focus:border-acid-green text-xs shadow-inner"
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 text-muted hover:text-foreground cursor-pointer bg-none border-none p-0"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <button 
+                      onClick={handleUpdatePassword}
+                      className="bg-surface hover:bg-card-border border border-card-border hover:border-acid-green px-4 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer"
+                    >
+                      Update
+                    </button>
+                  </div>
+                </div>
+
+                {/* Data Operations */}
+                <div className="space-y-3 pt-6 border-t border-card-border">
+                  <h4 className="text-xs font-bold text-foreground">Account Operations</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <button
+                      onClick={handleExportData}
+                      className="flex items-center justify-center gap-2 p-3 bg-surface hover:bg-card-border border border-card-border text-foreground hover:border-acid-green text-xs font-bold rounded-xl transition-all cursor-pointer"
+                    >
+                      <Download className="w-4 h-4 text-acid-green" />
+                      Export Account Data (JSON)
+                    </button>
+
+                    <button
+                      onClick={handleDeleteAccount}
+                      className="flex items-center justify-center gap-2 p-3 bg-destructive/5 hover:bg-destructive/10 border border-destructive/20 hover:border-destructive text-destructive text-xs font-bold rounded-xl transition-all cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete Account & Purge Data
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Personal Info Panel */}
+            {activePanel === 'personal' && (
+              <div className="glass p-6 rounded-2xl border border-card-border shadow-md space-y-5">
+                <div>
+                  <h2 className="text-sm font-black text-foreground uppercase tracking-widest mb-1">Personal Information</h2>
+                  <p className="text-[10px] text-muted font-medium">Update measurements, biometrics, and experience level</p>
+                </div>
+
+                <form onSubmit={handleSaveAllDetails} className="space-y-4 pt-4 border-t border-card-border">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>First Name</label>
+                      <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Last Name</label>
+                      <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClass} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Nickname</label>
+                      <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Date of Birth</label>
+                      <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} className={inputClass} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className={labelClass}>Gender</label>
+                      <select value={gender} onChange={(e) => setGender(e.target.value)} className={inputClass}>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Units</label>
+                      <select value={units} onChange={(e) => setUnits(e.target.value)} className={inputClass}>
+                        <option value="metric">Metric (kg, cm)</option>
+                        <option value="imperial">Imperial (lbs, in)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Experience</label>
+                      <select value={experience} onChange={(e) => setExperience(e.target.value)} className={inputClass}>
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className={labelClass}>Weight ({units === 'imperial' ? 'lbs' : 'kg'})</label>
+                      <input type="number" step="0.1" value={weight} onChange={(e) => setWeight(parseFloat(e.target.value) || 0)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Height ({units === 'imperial' ? 'in' : 'cm'})</label>
+                      <input type="number" step="0.1" value={height} onChange={(e) => setHeight(parseFloat(e.target.value) || 0)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Goal Weight ({units === 'imperial' ? 'lbs' : 'kg'})</label>
+                      <input type="number" step="0.1" value={goalWeight} onChange={(e) => setGoalWeight(parseFloat(e.target.value) || 0)} className={inputClass} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Activity Level</label>
+                      <select value={activity} onChange={(e) => setActivity(Number(e.target.value))} className={inputClass}>
+                        <option value="1.2">Sedentary (No exercise)</option>
+                        <option value="1.375">Lightly Active (1-3×/wk)</option>
+                        <option value="1.55">Moderately Active (3-5×/wk)</option>
+                        <option value="1.725">Very Active (6-7×/wk)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Fitness Target</label>
+                      <select value={goal} onChange={(e) => setGoal(e.target.value)} className={inputClass}>
+                        <option value="lose">Weight Loss (Calorie Deficit)</option>
+                        <option value="maintain">Weight Maintenance</option>
+                        <option value="gains">Muscle Gains (Calorie Surplus)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="w-full btn-primary py-3 rounded-xl flex items-center justify-center gap-1.5 font-bold text-xs uppercase tracking-wider cursor-pointer border-none"
+                  >
+                    {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                    Save Details
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Health & Diet Panel */}
+            {activePanel === 'diet' && (
+              <div className="glass p-6 rounded-2xl border border-card-border shadow-md space-y-5">
+                <div>
+                  <h2 className="text-sm font-black text-foreground uppercase tracking-widest mb-1">Health & Diet Preferences</h2>
+                  <p className="text-[10px] text-muted font-medium">Configure preferences used in AI nutrition recommendations</p>
+                </div>
+
+                <form onSubmit={handleSaveAllDetails} className="space-y-4 pt-4 border-t border-card-border">
+                  <div className="flex flex-col space-y-1.5">
+                    <label className={labelClass}>Dietary Preferences</label>
+                    <div className="flex flex-wrap gap-2">
+                      {['Vegetarian', 'Vegan', 'Keto', 'High Protein', 'Low Carb'].map(pref => {
+                        const active = dietPreferences.includes(pref);
+                        return (
+                          <button
+                            key={pref}
+                            type="button"
+                            onClick={() => toggleDietPreference(pref)}
+                            className={`px-3 py-2 border font-bold text-[10px] uppercase tracking-wider rounded-xl transition-colors cursor-pointer ${
+                              active 
+                                ? 'bg-acid-green/10 border-acid-green text-acid-green' 
+                                : 'bg-surface border-card-border text-muted hover:text-foreground'
+                            }`}
+                          >
+                            {pref}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Allergies</label>
+                      <input type="text" value={allergies} onChange={(e) => setAllergies(e.target.value)} placeholder="e.g. peanuts, seafood" className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Medical Restrictions</label>
+                      <input type="text" value={medicalRestrictions} onChange={(e) => setMedicalRestrictions(e.target.value)} placeholder="e.g. low salt, diabetic" className={inputClass} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Food Dislikes</label>
+                      <input type="text" value={foodDislikes} onChange={(e) => setFoodDislikes(e.target.value)} placeholder="e.g. eggs, onions" className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Favorite Foods</label>
+                      <input type="text" value={favoriteFoods} onChange={(e) => setFavoriteFoods(e.target.value)} placeholder="e.g. protein shakes, broccoli" className={inputClass} />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="w-full btn-primary py-3 rounded-xl flex items-center justify-center gap-1.5 font-bold text-xs uppercase tracking-wider cursor-pointer border-none"
+                  >
+                    {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                    Save Health Preferences
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* AI Coach Settings Panel */}
+            {activePanel === 'coach' && (
+              <div className="glass p-6 rounded-2xl border border-card-border shadow-md space-y-5">
+                <div>
+                  <h2 className="text-sm font-black text-foreground uppercase tracking-widest mb-1">AI Coach Settings</h2>
+                  <p className="text-[10px] text-muted font-medium">Fine-tune the tone and response layout of Calyxo AI</p>
+                </div>
+
+                <form onSubmit={handleSaveAllDetails} className="space-y-4 pt-4 border-t border-card-border">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Coach Personality</label>
+                      <select value={coachPersonality} onChange={(e) => setCoachPersonality(e.target.value)} className={inputClass}>
+                        <option value="motivational">Motivational Coach</option>
+                        <option value="gym_bro">Gym Bro (Encouraging / Bold)</option>
+                        <option value="scientific">Scientific Architect</option>
+                        <option value="strict">Strict / Disciplined</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Coaching Style</label>
+                      <select value={coachingStyle} onChange={(e) => setCoachingStyle(e.target.value)} className={inputClass}>
+                        <option value="supportive">Supportive & Empathetic</option>
+                        <option value="direct">Direct & Straightforward</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className={labelClass}>Response Length</label>
+                      <select value={responseLength} onChange={(e) => setResponseLength(e.target.value)} className={inputClass}>
+                        <option value="short">Short & Concise</option>
+                        <option value="detailed">Detailed & Analytical</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Motivation Level</label>
+                      <select value={motivationLevel} onChange={(e) => setMotivationLevel(e.target.value)} className={inputClass}>
+                        <option value="gentle">Gentle Guidance</option>
+                        <option value="extreme">Extreme Accountability</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Reminders Frequency</label>
+                      <select value={reminderFrequency} onChange={(e) => setReminderFrequency(e.target.value)} className={inputClass}>
+                        <option value="none">None</option>
+                        <option value="daily">Daily Check-ins</option>
+                        <option value="weekly">Weekly Summaries</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="w-full btn-primary py-3 rounded-xl flex items-center justify-center gap-1.5 font-bold text-xs uppercase tracking-wider cursor-pointer border-none"
+                  >
+                    {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                    Save Coach Parameters
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Notifications Panel */}
+            {activePanel === 'notifications' && (
+              <div className="glass p-6 rounded-2xl border border-card-border shadow-md space-y-5">
+                <div>
+                  <h2 className="text-sm font-black text-foreground uppercase tracking-widest mb-1">Notification Settings</h2>
+                  <p className="text-[10px] text-muted font-medium">Control notifications sent to your active devices</p>
+                </div>
+
+                <form onSubmit={handleSaveAllDetails} className="space-y-4 pt-4 border-t border-card-border">
+                  <div className="space-y-3.5">
+                    {[
+                      { key: 'workout', label: 'Workout Reminders', desc: 'Alerts when scheduled program targets are missing' },
+                      { key: 'meal', label: 'Meal Reminders', desc: 'Logs reminders for morning, lunch, and dinner logs' },
+                      { key: 'hydration', label: 'Hydration Reminders', desc: 'Periodic hydration prompts to log water ml' },
+                      { key: 'checkins', label: 'AI Coach Check-ins', desc: 'Periodic checking suggestions from coach Calyxo' },
+                      { key: 'challenges', label: 'Challenge Reminders', desc: 'Updates on joined active fitness challenges' },
+                      { key: 'achievements', label: 'Achievement Notifications', desc: 'Prompt notifications when milestone badges unlock' },
+                    ].map(item => (
+                      <label key={item.key} className="flex justify-between items-center bg-surface border border-card-border p-3.5 rounded-xl cursor-pointer">
+                        <div className="pr-4">
+                          <span className="text-xs font-bold text-foreground block">{item.label}</span>
+                          <span className="text-[9.5px] text-muted block mt-0.5">{item.desc}</span>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={notifications[item.key]}
+                          onChange={(e) => setNotifications({ ...notifications, [item.key]: e.target.checked })}
+                          className="w-4 h-4 rounded border-card-border text-acid-green focus:ring-0 cursor-pointer accent-acid-green"
+                        />
+                      </label>
+                    ))}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="w-full btn-primary py-3 rounded-xl flex items-center justify-center gap-1.5 font-bold text-xs uppercase tracking-wider cursor-pointer border-none"
+                  >
+                    {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                    Save Notification Settings
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Privacy & Data Panel */}
+            {activePanel === 'privacy' && (
+              <div className="glass p-6 rounded-2xl border border-card-border shadow-md space-y-5">
+                <div>
+                  <h2 className="text-sm font-black text-foreground uppercase tracking-widest mb-1">Privacy & Data Settings</h2>
+                  <p className="text-[10px] text-muted font-medium">Control data storage, history logs, and analytics tracking</p>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-card-border">
+                  {/* Analytics Toggle */}
+                  <label className="flex justify-between items-center bg-surface border border-card-border p-3.5 rounded-xl cursor-pointer">
+                    <div className="pr-4">
+                      <span className="text-xs font-bold text-foreground block">Allow Analytics Tracking</span>
+                      <span className="text-[9.5px] text-muted block mt-0.5">We use anonymous telemetry logs to improve platform responsive styling.</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={analyticsTracking}
+                      onChange={(e) => setAnalyticsTracking(e.target.checked)}
+                      className="w-4 h-4 rounded border-card-border text-acid-green focus:ring-0 cursor-pointer accent-acid-green"
+                    />
+                  </label>
+
+                  <div className="space-y-3.5 mt-6 border-t border-card-border pt-4">
+                    <h4 className="text-xs font-bold text-foreground">Purge operations</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <button
+                        onClick={handleClearHistory}
+                        className="py-3 px-4 border border-destructive/20 hover:border-destructive text-destructive bg-destructive/5 hover:bg-destructive/10 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Clear Logs History
+                      </button>
+
+                      <button
+                        onClick={handleClearMemory}
+                        className="py-3 px-4 border border-destructive/20 hover:border-destructive text-destructive bg-destructive/5 hover:bg-destructive/10 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <Database className="w-4 h-4" />
+                        Clear AI Coach Memory
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

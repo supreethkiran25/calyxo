@@ -2,9 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home as HomeIcon, BookOpen, BarChart2, User, Plus, LogOut, Bot, Sparkles, X } from 'lucide-react';
+import { Home as HomeIcon, BookOpen, BarChart2, User, Plus, LogOut, Bot, Sparkles, X, TrendingUp } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import { subscribeToAuth, signOutUser, getEcosystemState } from '../lib/dbService';
+import { 
+  subscribeToAuth, 
+  signOutUser, 
+  getEcosystemState, 
+  getUserProfile, 
+  saveUserProfile,
+  getFoodLogs, 
+  getWorkoutLogs, 
+  getWeightLogs, 
+  getWaterIntake 
+} from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 
 // Component imports
@@ -17,12 +27,15 @@ import FoodTracker from '../components/FoodTracker';
 import WorkoutLogger from '../components/WorkoutLogger';
 import AICoach from '../components/AICoach';
 import UserProfile from '../components/UserProfile';
+import Progress from '../components/Progress';
+import OnboardingFlow from '../components/OnboardingFlow';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Home', icon: HomeIcon },
-  { id: 'nutrition', label: 'Diary', icon: BookOpen },
-  { id: 'workout', label: 'Stats', icon: BarChart2 },
   { id: 'coach', label: 'AI Coach', icon: Bot },
+  { id: 'nutrition', label: 'Nutrition', icon: BookOpen },
+  { id: 'workout', label: 'Workouts', icon: BarChart2 },
+  { id: 'progress', label: 'Progress', icon: TrendingUp },
   { id: 'profile', label: 'Profile', icon: User },
 ];
 
@@ -33,7 +46,13 @@ export default function Home() {
     activeTab,
     setActiveTab,
     initializeTheme,
-    resetStore
+    resetStore,
+    userProfile,
+    setUserProfile,
+    setFoodLogs,
+    setWorkoutLogs,
+    setWeightLogs,
+    setWaterIntake
   } = useStore();
 
   const [loading, setLoading] = useState(true);
@@ -51,19 +70,50 @@ export default function Home() {
       setUser(currentUser);
       if (currentUser) {
         try {
+          // Sync Ecosystem State
           const ecoState = await getEcosystemState(currentUser.uid);
           if (ecoState) {
             useEcosystemStore.getState().syncEcosystemState(ecoState);
           }
+
+          // Fetch User Profile
+          const profile = await getUserProfile(currentUser.uid);
+          if (profile) {
+            // Check if user has biometrics but is not marked onboarded yet
+            if (profile.onboarded === undefined || profile.onboarded === null) {
+              if (profile.weight && profile.height && profile.firstName) {
+                profile.onboarded = true;
+                await saveUserProfile(currentUser.uid, profile);
+              } else {
+                profile.onboarded = false;
+              }
+            }
+            setUserProfile(profile);
+
+            // Fetch other logs if already onboarded
+            if (profile.onboarded) {
+              const food = await getFoodLogs(currentUser.uid);
+              if (food) setFoodLogs(food);
+
+              const workouts = await getWorkoutLogs(currentUser.uid);
+              if (workouts) setWorkoutLogs(workouts);
+
+              const weights = await getWeightLogs(currentUser.uid);
+              if (weights) setWeightLogs(weights);
+
+              const water = await getWaterIntake(currentUser.uid);
+              if (water !== undefined && water !== null) setWaterIntake(water);
+            }
+          }
         } catch (e) {
-          console.error("Ecosystem load error", e);
+          console.error("Auth sync profile/logs error", e);
         }
       }
       const timer = setTimeout(() => setLoading(false), 1800);
       return () => clearTimeout(timer);
     });
     return () => unsubscribe();
-  }, [setUser, initializeTheme]);
+  }, [setUser, initializeTheme, setUserProfile, setFoodLogs, setWorkoutLogs, setWeightLogs, setWaterIntake]);
 
   const handleLogout = async () => {
     if (window.confirm("Sign out of Calyxo?")) {
@@ -76,6 +126,9 @@ export default function Home() {
 
   if (loading) return <LaunchScreen isLoading={loading} />;
   if (!user) return <AuthFlow />;
+  if (!userProfile?.onboarded) {
+    return <OnboardingFlow onComplete={() => showNotification("Welcome to Calyxo! Let's smash your goals.")} />;
+  }
 
   const firstName = user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'User';
 
@@ -285,36 +338,47 @@ export default function Home() {
               className="h-full"
             >
               {activeTab === 'dashboard' && <Dashboard onNotification={showNotification} />}
+              {activeTab === 'coach' && <AICoach />}
               {activeTab === 'nutrition' && <FoodTracker onNotification={showNotification} />}
               {activeTab === 'workout' && <WorkoutLogger onNotification={showNotification} />}
-              {activeTab === 'coach' && <AICoach />}
+              {activeTab === 'progress' && <Progress onNotification={showNotification} />}
               {activeTab === 'profile' && <UserProfile onNotification={showNotification} />}
             </motion.div>
           </AnimatePresence>
         </main>
 
         {/* Mobile Bottom Navigation Bar (Hidden on Desktop) */}
-        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--nav-bg)] border-t border-[var(--nav-border)] backdrop-blur-lg px-2 py-3 flex justify-around items-center md:hidden h-16">
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--nav-bg)] border-t border-[var(--nav-border)] backdrop-blur-lg px-1 py-2 flex justify-around items-center md:hidden h-16">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
+
+            const getMobileLabel = (navItem) => {
+              if (navItem.id === 'dashboard') return 'Home';
+              if (navItem.id === 'coach') return 'Coach';
+              if (navItem.id === 'nutrition') return 'Food';
+              if (navItem.id === 'workout') return 'Workouts';
+              if (navItem.id === 'progress') return 'Trends';
+              if (navItem.id === 'profile') return 'Profile';
+              return navItem.label;
+            };
 
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`flex flex-col items-center gap-1 px-3 py-1 bg-none border-none cursor-pointer relative transition-colors ${
+                className={`flex flex-col items-center gap-0.5 px-1.5 py-1 bg-none border-none cursor-pointer relative transition-colors ${
                   isActive ? 'text-[var(--color-acid-green)]' : 'text-[var(--text-muted)]'
                 }`}
               >
-                <Icon className="w-5 h-5" />
-                <span className="text-[9px] font-bold tracking-wide">
-                  {item.label === 'AI Coach' ? 'Coach' : item.label}
+                <Icon className="w-4.5 h-4.5 mb-0.5" />
+                <span className="text-[8.5px] font-bold tracking-tight">
+                  {getMobileLabel(item)}
                 </span>
                 {isActive && (
                   <motion.span
                     layoutId="nav-dot-active"
-                    className="absolute -bottom-1.5 w-1 h-1 bg-[var(--color-acid-green)] rounded-full"
+                    className="absolute -bottom-1 w-1 h-1 bg-[var(--color-acid-green)] rounded-full"
                   />
                 )}
               </button>

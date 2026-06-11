@@ -9,7 +9,11 @@ import {
   signInWithPopup,
   setPersistence,
   browserLocalPersistence,
-  browserSessionPersistence
+  browserSessionPersistence,
+  updateEmail,
+  updatePassword,
+  updateProfile,
+  deleteUser
 } from "firebase/auth";
 import { 
   collection, 
@@ -591,5 +595,140 @@ export const addMealScanLog = async (userId, scanItem) => {
   } catch (err) {
     console.error("Firestore addMealScanLog error:", err);
     return item;
+  }
+};
+
+export const updateUserEmail = async (newEmail) => {
+  if (isMockFirebase) {
+    const mockUserRaw = localStorage.getItem("calyxo_mock_user");
+    if (mockUserRaw) {
+      const mockUser = JSON.parse(mockUserRaw);
+      mockUser.email = newEmail;
+      localStorage.setItem("calyxo_mock_user", JSON.stringify(mockUser));
+    }
+    return;
+  }
+  if (auth.currentUser) {
+    await updateEmail(auth.currentUser, newEmail);
+  }
+};
+
+export const updateUserPassword = async (newPassword) => {
+  if (isMockFirebase) return;
+  if (auth.currentUser) {
+    await updatePassword(auth.currentUser, newPassword);
+  }
+};
+
+export const updateUserAuthProfile = async (displayName, photoURL) => {
+  if (isMockFirebase) {
+    const mockUserRaw = localStorage.getItem("calyxo_mock_user");
+    if (mockUserRaw) {
+      const mockUser = JSON.parse(mockUserRaw);
+      mockUser.displayName = displayName;
+      mockUser.photoURL = photoURL;
+      localStorage.setItem("calyxo_mock_user", JSON.stringify(mockUser));
+    }
+    return;
+  }
+  if (auth.currentUser) {
+    await updateProfile(auth.currentUser, { displayName, photoURL });
+  }
+};
+
+export const deleteUserAccount = async (userId) => {
+  if (!isMockFirebase && userId) {
+    try {
+      await deleteDoc(doc(db, "users_metrics", `${userId}_profile`));
+      await deleteDoc(doc(db, "users_metrics", `${userId}_water`));
+      await deleteDoc(doc(db, "users_ecosystem", userId));
+      
+      const foodSnap = await getDocs(query(collection(db, "food_logs"), where("userId", "==", userId)));
+      foodSnap.forEach(async (d) => {
+        await deleteDoc(doc(db, "food_logs", d.id));
+      });
+      const workoutSnap = await getDocs(query(collection(db, "workout_logs"), where("userId", "==", userId)));
+      workoutSnap.forEach(async (d) => {
+        await deleteDoc(doc(db, "workout_logs", d.id));
+      });
+      const weightSnap = await getDocs(query(collection(db, "weight_logs"), where("userId", "==", userId)));
+      weightSnap.forEach(async (d) => {
+        await deleteDoc(doc(db, "weight_logs", d.id));
+      });
+      const chatSnap = await getDocs(query(collection(db, "chat_sessions"), where("userId", "==", userId)));
+      chatSnap.forEach(async (d) => {
+        await deleteDoc(doc(db, "chat_sessions", d.id));
+      });
+      const scansSnap = await getDocs(query(collection(db, "meal_scans"), where("userId", "==", userId)));
+      scansSnap.forEach(async (d) => {
+        await deleteDoc(doc(db, "meal_scans", d.id));
+      });
+    } catch (e) {
+      console.error("Purging Firestore collections error", e);
+    }
+  }
+
+  localStorage.removeItem("calyxo_mock_user");
+  localStorage.removeItem(LOCAL_STATE_KEY);
+  localStorage.removeItem("calyxo_ecosystem_db_state");
+  localStorage.removeItem("calyxo_chat_sessions");
+  localStorage.removeItem("calyxo_meal_scans");
+  localStorage.removeItem("calyxo_training_logs");
+  localStorage.removeItem("calyxo_ecosystem_state");
+
+  if (!isMockFirebase && auth.currentUser) {
+    await deleteUser(auth.currentUser);
+  }
+};
+
+export const exportAccountData = async (userId) => {
+  const profile = await getUserProfile(userId);
+  const foodLogs = await getFoodLogs(userId);
+  const workoutLogs = await getWorkoutLogs(userId);
+  const weightLogs = await getWeightLogs(userId);
+  const waterIntake = await getWaterIntake(userId);
+  const ecosystem = await getEcosystemState(userId);
+  const chatSessions = await getChatSessions(userId);
+  
+  const payload = {
+    exportDate: new Date().toISOString(),
+    userId: userId || "mock-user-id",
+    profile,
+    waterIntakeToday: waterIntake,
+    foodLogs,
+    workoutLogs,
+    weightLogs,
+    ecosystem,
+    chatSessions
+  };
+
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+  const downloadAnchor = document.createElement('a');
+  downloadAnchor.setAttribute("href", dataStr);
+  downloadAnchor.setAttribute("download", `calyxo_account_export_${userId || 'mock'}.json`);
+  document.body.appendChild(downloadAnchor);
+  downloadAnchor.click();
+  downloadAnchor.remove();
+};
+
+export const clearChatHistory = async (userId) => {
+  localStorage.removeItem("calyxo_chat_sessions");
+  if (isMockFirebase || !userId) return;
+  try {
+    const chatSnap = await getDocs(query(collection(db, "chat_sessions"), where("userId", "==", userId)));
+    chatSnap.forEach(async (d) => {
+      await deleteDoc(doc(db, "chat_sessions", d.id));
+    });
+  } catch (e) {
+    console.error("Clear chat history error", e);
+  }
+};
+
+export const clearAIMemory = async (userId) => {
+  const ecoState = await getEcosystemState(userId);
+  if (ecoState) {
+    ecoState.coachingPlan = null;
+    ecoState.predictions = null;
+    await saveEcosystemState(userId, ecoState);
   }
 };
