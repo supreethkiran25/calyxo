@@ -1,46 +1,113 @@
 @import "tailwindcss";
 
 @theme {
-  --color-obsidian: #0d0d0d;
-  --color-surface: #1a1a1a;
-  --color-card: #1e1e1e;
-  --color-card-light: #242424;
-  --color-acid-green: #b5f23d;
-  --color-acid-green-dim: #a0d934;
-  --color-orange: #f57c38;
-  --color-blue: #4fc3f7;
-  --color-red: #ef5350;
-  --color-muted: #6b7280;
-  --color-border: #2a2a2a;
-  --color-border-light: #333333;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+
+  /* Calyxo brand color mappings */
+  --color-obsidian: var(--background);
+  --color-surface: var(--secondary);
+  --color-acid-green: var(--accent);
+  --color-acid-green-dim: var(--accent-dim);
+  --color-orange: var(--orange-theme);
+  --color-blue: var(--blue-theme);
+  --color-red: var(--destructive);
+  --color-border-light: var(--border);
 }
 
 :root {
+  /* Semantic WCAG variables (Light Mode) */
   --background: #f9fafb;
   --foreground: #111827;
-  --card-bg: #ffffff;
-  --card-border: rgba(0, 0, 0, 0.06);
-  --text-muted: #6b7280;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --primary: #b5f23d;
+  --primary-foreground: #000000;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #111827;
+  --muted: #f3f4f6;
+  --muted-foreground: #4b5563; /* Accessible gray text contrast */
+  --accent: #4c7a00; /* High contrast dark green text/buttons */
+  --accent-dim: #3d6600;
+  --accent-foreground: #ffffff;
+  --border: #e5e7eb;
+  --input: #ffffff;
+  --input-foreground: #111827;
+  --success: #059669;
+  --warning: #d97706;
+  --destructive: #dc2626;
+
+  /* Brand overrides for Light Mode */
+  --orange-theme: #d05c1d;
+  --blue-theme: #0277bd;
+  --primary-bg: #4c7a00;
+  --primary-fg: #ffffff;
+  --glow-shadow: none;
+  --accent-glow: rgba(76, 122, 0, 0.15);
+
+  /* Backward compatibility links */
+  --card-bg: var(--card);
+  --card-border: var(--border);
+  --text-muted: var(--muted-foreground);
   --nav-bg: rgba(255, 255, 255, 0.85);
-  --nav-border: rgba(0, 0, 0, 0.05);
-  --surface: #f3f4f6;
-  --input-bg: #f9fafb;
-  --accent: #7dc832;
+  --nav-border: var(--border);
+  --surface: var(--secondary);
+  --input-bg: var(--input);
   --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
 }
 
 :root.dark,
 [data-theme='dark'] {
+  /* Semantic WCAG variables (Dark Mode) */
   --background: #080808;
   --foreground: #f3f4f6;
-  --card-bg: #121212;
-  --card-border: #1e1e1e;
-  --text-muted: #8c96a3;
+  --card: #121212;
+  --card-foreground: #f3f4f6;
+  --primary: #b5f23d;
+  --primary-foreground: #000000;
+  --secondary: #181818;
+  --secondary-foreground: #f3f4f6;
+  --muted: #1c1c1e;
+  --muted-foreground: #9ca3af; /* Legible contrast for dark mode muted text */
+  --accent: #b5f23d; /* Signature bright neon green */
+  --accent-dim: #a0d934;
+  --accent-foreground: #000000;
+  --border: #1e1e1e;
+  --input: #1c1c1e;
+  --input-foreground: #f3f4f6;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --destructive: #ef5350;
+
+  /* Brand overrides for Dark Mode */
+  --orange-theme: #f57c38;
+  --blue-theme: #4fc3f7;
+  --primary-bg: #b5f23d;
+  --primary-fg: #000000;
+  --glow-shadow: 0 0 20px rgba(181, 242, 61, 0.4);
+  --accent-glow: rgba(181, 242, 61, 0.2);
+
+  /* Backward compatibility links */
+  --card-bg: var(--card);
+  --card-border: var(--border);
+  --text-muted: var(--muted-foreground);
   --nav-bg: rgba(18, 18, 18, 0.85);
-  --nav-border: #1e1e1e;
-  --surface: #181818;
-  --input-bg: #1c1c1e;
-  --accent: #b5f23d;
+  --nav-border: var(--border);
+  --surface: var(--secondary);
+  --input-bg: var(--input);
   --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
 }
 
@@ -151,13 +218,13 @@ input:focus, select:focus, textarea:focus {
 
 /* Green text glow */
 .text-glow-green {
-  text-shadow: 0 0 20px rgba(181, 242, 61, 0.4);
+  text-shadow: var(--glow-shadow);
 }
 
 /* Button base */
 .btn-primary {
-  background: var(--color-acid-green);
-  color: #000;
+  background: var(--primary-bg);
+  color: var(--primary-fg);
   font-weight: 700;
   border-radius: 12px;
   border: none;
@@ -167,8 +234,8 @@ input:focus, select:focus, textarea:focus {
 }
 
 .btn-primary:hover {
-  background: var(--color-acid-green-dim);
-  box-shadow: 0 4px 20px rgba(181, 242, 61, 0.3);
+  background: var(--accent-dim);
+  box-shadow: 0 4px 20px rgba(181, 242, 61, 0.15);
 }
 
 .btn-ghost {

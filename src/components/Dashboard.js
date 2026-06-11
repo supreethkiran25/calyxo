@@ -47,7 +47,7 @@ function CalorieRing({ consumed, burned, goal }) {
           {/* Consumed (green) */}
           <circle
             cx="100" cy="100" r={r} fill="none"
-            stroke="#b5f23d" strokeWidth="12"
+            stroke="var(--accent)" strokeWidth="12"
             strokeDasharray={circ}
             strokeDashoffset={consumedOffset}
             strokeLinecap="round"
@@ -56,7 +56,7 @@ function CalorieRing({ consumed, burned, goal }) {
           {/* Burned (orange) overlay starting from consumed */}
           <circle
             cx="100" cy="100" r={r} fill="none"
-            stroke="#f57c38" strokeWidth="12"
+            stroke="var(--orange-theme)" strokeWidth="12"
             strokeDasharray={circ}
             strokeDashoffset={circ - burnPct * circ}
             strokeLinecap="round"
@@ -354,7 +354,7 @@ export default function Dashboard({ onNotification }) {
                   <circle cx="50" cy="50" r="40" fill="none" stroke="var(--card-border)" strokeWidth="8" />
                   <circle 
                     cx="50" cy="50" r="40" fill="none" 
-                    stroke="#b5f23d" strokeWidth="8" 
+                    stroke="var(--accent)" strokeWidth="8" 
                     strokeDasharray={2 * Math.PI * 40}
                     strokeDashoffset={2 * Math.PI * 40 - (ecoStore.fitnessScore.dailyScore / 100) * (2 * Math.PI * 40)}
                     strokeLinecap="round"
@@ -419,11 +419,11 @@ export default function Dashboard({ onNotification }) {
                 <button
                   onClick={handleGenerateForecast}
                   disabled={loadingForecast}
-                  className="bg-acid-green text-black font-extrabold text-[10px] uppercase tracking-wider px-4 py-2 rounded-xl hover:shadow-[0_0_12px_rgba(204,255,0,0.5)] transition-all cursor-pointer border-none flex items-center gap-1.5 mx-auto"
+                  className="bg-acid-green text-accent-foreground font-extrabold text-[10px] uppercase tracking-wider px-4 py-2 rounded-xl hover:shadow-[0_0_12px_rgba(204,255,0,0.2)] transition-all cursor-pointer border-none flex items-center gap-1.5 mx-auto"
                 >
                   {loadingForecast ? (
                     <>
-                      <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
+                      <span className="w-3.5 h-3.5 border-2 border-accent-foreground border-t-transparent rounded-full animate-spin"></span>
                       Forecasting...
                     </>
                   ) : (
@@ -490,9 +490,9 @@ export default function Dashboard({ onNotification }) {
                 Open Diary
               </button>
             </div>
-            <MacroBar label="Protein" current={totalProt} total={metrics.macros.protein} color="#b5f23d" />
-            <MacroBar label="Carbs" current={totalCarb} total={metrics.macros.carbs} color="#f57c38" />
-            <MacroBar label="Fats" current={totalFat} total={metrics.macros.fat} color="#ef5350" />
+            <MacroBar label="Protein" current={totalProt} total={metrics.macros.protein} color="var(--accent)" />
+            <MacroBar label="Carbs" current={totalCarb} total={metrics.macros.carbs} color="var(--orange-theme)" />
+            <MacroBar label="Fats" current={totalFat} total={metrics.macros.fat} color="var(--destructive)" />
           </div>
         </div>
 
@@ -517,7 +517,7 @@ export default function Dashboard({ onNotification }) {
                   transition={{ duration: 0.8, ease: 'easeOut' }}
                   className="absolute bottom-0 left-0 right-0 rounded-b-xl animate-water"
                   style={{
-                    background: 'linear-gradient(to top, #0288d1, #4fc3f7)',
+                    background: 'linear-gradient(to top, var(--blue-theme), var(--color-blue))',
                   }}
                 />
                 <div className="absolute inset-0 flex items-center justify-center text-center font-black text-xs text-foreground drop-shadow-sm select-none">
@@ -527,7 +527,7 @@ export default function Dashboard({ onNotification }) {
 
               <div className="flex-1 space-y-4">
                 <div>
-                  <div className="text-3xl font-black text-[#0288d1] leading-none">
+                  <div className="text-3xl font-black text-[var(--blue-theme)] leading-none">
                     {waterIntake.toLocaleString()}
                     <span className="text-xs text-muted font-bold ml-1.5">ml</span>
                   </div>
@@ -539,7 +539,7 @@ export default function Dashboard({ onNotification }) {
                     <button
                       key={ml}
                       onClick={() => handleAddWater(ml)}
-                      className="w-full py-2.5 bg-surface border border-card-border rounded-xl text-xs font-bold text-foreground hover:border-[#4fc3f7] hover:bg-[#4fc3f7]/5 transition-all cursor-pointer"
+                      className="w-full py-2.5 bg-surface border border-card-border rounded-xl text-xs font-bold text-foreground hover:border-[var(--blue-theme)] hover:bg-[var(--blue-theme)]/5 transition-all cursor-pointer"
                     >
                       +{ml}ml
                     </button>
@@ -623,7 +623,7 @@ export default function Dashboard({ onNotification }) {
                 <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${
                   Number(trend) <= 0 
                     ? 'bg-[var(--color-acid-green)]/15 text-[var(--color-acid-green)] border-[var(--color-acid-green)]/20' 
-                    : 'bg-red-500/15 text-red-500 border-red-500/20'
+                    : 'bg-red/15 text-red border-red/20'
                 }`}>
                   {Number(trend) > 0 ? '+' : ''}{trend} {units === 'imperial' ? 'lbs' : 'kg'}
                 </span>
@@ -663,9 +663,9 @@ export default function Dashboard({ onNotification }) {
               return (
                 <div className="bg-surface rounded-xl p-3.5 border border-card-border overflow-hidden mt-3 shadow-inner">
                   <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[60px]">
-                    <path d={d} fill="none" stroke="#b5f23d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d={d} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                     {pts.map((p, i) => (
-                      <circle key={i} cx={p.x} cy={p.y} r="3.5" fill="#b5f23d" className="shadow-lg" />
+                      <circle key={i} cx={p.x} cy={p.y} r="3.5" fill="var(--accent)" className="shadow-lg" />
                     ))}
                   </svg>
                   <div className="flex justify-between mt-2.5 text-[9px] text-muted font-bold">

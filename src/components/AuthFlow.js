@@ -161,7 +161,7 @@ export default function AuthFlow() {
             whileTap={{ scale: 0.98 }}
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-acid-green to-emerald-500 text-black font-bold text-sm py-3.5 rounded-xl mt-6 cursor-pointer hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] active:scale-[0.98] transition-all disabled:opacity-50"
+            className="w-full bg-gradient-to-r from-acid-green to-emerald-500 text-accent-foreground font-bold text-sm py-3.5 rounded-xl mt-6 cursor-pointer hover:shadow-[0_0_20px_rgba(57,255,20,0.2)] active:scale-[0.98] transition-all disabled:opacity-50"
           >
             {loading ? "Authenticating..." : (isSignUp ? "Sign Up" : "Sign In")}
           </motion.button>

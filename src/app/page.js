@@ -94,17 +94,17 @@ export default function Home() {
               left: '50%',
               zIndex: 100,
               background: 'var(--card-bg)',
-              border: '1px solid var(--color-acid-green)',
+              border: '1px solid var(--accent)',
               borderRadius: '24px',
               padding: '12px 24px',
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-              boxShadow: '0 10px 30px rgba(181,242,61,0.2)',
+              boxShadow: '0 10px 30px var(--accent-glow)',
               whiteSpace: 'nowrap'
             }}
           >
-            <span style={{ width: '8px', height: '8px', background: '#b5f23d', borderRadius: '50%', flexShrink: 0 }} />
+            <span style={{ width: '8px', height: '8px', background: 'var(--accent)', borderRadius: '50%', flexShrink: 0 }} />
             <span className="text-xs font-bold text-[var(--foreground)]">{toast}</span>
           </motion.div>
         )}

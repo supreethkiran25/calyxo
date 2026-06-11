@@ -420,7 +420,7 @@ export default function AICoach() {
                 </div>
                 <button
                   onClick={(e) => handleDeleteSession(e, s.id)}
-                  className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 hover:text-red-500 transition-opacity cursor-pointer shrink-0"
+                  className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 hover:text-destructive transition-opacity cursor-pointer shrink-0"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -491,12 +491,12 @@ export default function AICoach() {
             >
               {generatingPlan ? (
                 <>
-                  <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
+                  <span className="w-4 h-4 border-2 border-accent-foreground border-t-transparent rounded-full animate-spin"></span>
                   Architecting Plan...
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4 text-black" />
+                  <Sparkles className="w-4 h-4 text-accent-foreground" />
                   Generate AI Program Plan
                 </>
               )}
@@ -688,7 +688,7 @@ export default function AICoach() {
                   onClick={() => setActiveSubTab(tab)}
                   className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                     activeSubTab === tab
-                      ? 'bg-[var(--color-acid-green)] text-black'
+                      ? 'bg-[var(--color-acid-green)] text-accent-foreground'
                       : 'text-muted hover:text-foreground'
                   }`}
                 >
@@ -744,7 +744,7 @@ export default function AICoach() {
                             </button>
                             <button 
                               onClick={() => handleRateResponse(msg.id, -1)}
-                              className={`p-1 rounded cursor-pointer transition-all hover:bg-black/5 dark:hover:bg-white/5 ${msg.rating === -1 ? 'text-red-500 bg-red-500/10 border border-red-500/20' : 'text-muted border border-transparent'}`}
+                              className={`p-1 rounded cursor-pointer transition-all hover:bg-black/5 dark:hover:bg-white/5 ${msg.rating === -1 ? 'text-[var(--color-destructive)] bg-[var(--color-destructive)]/10 border border-[var(--color-destructive)]/20' : 'text-muted border border-transparent'}`}
                               title="Not Helpful (Thumbs Down)"
                             >
                               <ThumbsDown className="w-3.5 h-3.5" />
@@ -816,10 +816,10 @@ export default function AICoach() {
                 <button 
                   type="submit" 
                   disabled={loading || !inputVal.trim()}
-                  className="px-5 h-10 rounded-full bg-[var(--color-acid-green)] text-black flex items-center justify-center gap-2 shadow-[0_0_12px_rgba(204,255,0,0.3)] disabled:opacity-50 hover:shadow-[0_0_18px_rgba(204,255,0,0.5)] cursor-pointer shrink-0 transition-all active:scale-95 border-none font-bold text-xs uppercase tracking-wider"
+                  className="px-5 h-10 rounded-full bg-[var(--color-acid-green)] text-accent-foreground flex items-center justify-center gap-2 shadow-md disabled:opacity-50 hover:shadow-lg cursor-pointer shrink-0 transition-all active:scale-95 border-none font-bold text-xs uppercase tracking-wider"
                 >
                   <span>Send</span>
-                  <Send className="w-3.5 h-3.5 text-black" />
+                  <Send className="w-3.5 h-3.5 text-accent-foreground" />
                 </button>
               </form>
             </div>

@@ -627,7 +627,7 @@ export default function FoodTracker({ onNotification }) {
                 </button>
                 <button 
                   type="submit" 
-                  className="bg-acid-green text-black font-bold text-xs py-2 px-4 rounded-xl hover:shadow-[0_0_12px_rgba(204,255,0,0.5)] cursor-pointer border-none"
+                  className="bg-acid-green text-accent-foreground font-bold text-xs py-2 px-4 rounded-xl hover:shadow-[0_0_12px_rgba(204,255,0,0.2)] cursor-pointer border-none"
                 >
                   Save & Log Item
                 </button>
@@ -661,7 +661,7 @@ export default function FoodTracker({ onNotification }) {
                   <div className="bg-surface border border-card-border py-2 rounded-lg"><div className="text-[8px] text-muted">Calories</div><div className="font-bold text-foreground">{analysedFood.calories}</div></div>
                   <div className="bg-surface border border-card-border py-2 rounded-lg"><div className="text-[8px] text-acid-green">Protein</div><div className="font-bold text-foreground">{analysedFood.protein}g</div></div>
                   <div className="bg-surface border border-card-border py-2 rounded-lg"><div className="text-[8px] text-orange">Carbs</div><div className="font-bold text-foreground">{analysedFood.carbs}g</div></div>
-                  <div className="bg-surface border border-card-border py-2 rounded-lg"><div className="text-[8px] text-red-500">Fats</div><div className="font-bold text-foreground">{analysedFood.fat}g</div></div>
+                  <div className="bg-surface border border-card-border py-2 rounded-lg"><div className="text-[8px] text-red">Fats</div><div className="font-bold text-foreground">{analysedFood.fat}g</div></div>
                 </div>
               </div>
 
@@ -694,7 +694,7 @@ export default function FoodTracker({ onNotification }) {
                 </div>
                 <button 
                   onClick={logFoodItem}
-                  className="bg-acid-green text-black font-bold text-xs py-2.5 px-4 rounded-xl cursor-pointer hover:shadow-[0_0_12px_rgba(181,242,61,0.4)] transition-all h-[36px] flex items-center justify-center border-none"
+                  className="bg-acid-green text-accent-foreground font-bold text-xs py-2.5 px-4 rounded-xl cursor-pointer hover:shadow-[0_0_12px_rgba(181,242,61,0.2)] transition-all h-[36px] flex items-center justify-center border-none"
                 >
                   Log Meal
                 </button>
@@ -749,7 +749,7 @@ export default function FoodTracker({ onNotification }) {
                     </button>
                     <button
                       onClick={handleScanMeal}
-                      className="flex-1 bg-acid-green text-black font-bold text-xs py-2 px-4 rounded-xl hover:shadow-[0_0_12px_rgba(204,255,0,0.5)] cursor-pointer border-none flex items-center justify-center gap-1.5"
+                      className="flex-1 bg-acid-green text-accent-foreground font-bold text-xs py-2 px-4 rounded-xl hover:shadow-[0_0_12px_rgba(204,255,0,0.2)] cursor-pointer border-none flex items-center justify-center gap-1.5"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
                       Scan Meal
@@ -783,7 +783,7 @@ export default function FoodTracker({ onNotification }) {
                     <div className="font-bold text-foreground mt-0.5">{scanResult.carbs}g</div>
                   </div>
                   <div className="bg-surface border border-card-border py-1.5 rounded-lg">
-                    <div className="text-[8px] text-red-500 font-bold uppercase">Fats</div>
+                    <div className="text-[8px] text-red font-bold uppercase">Fats</div>
                     <div className="font-bold text-foreground mt-0.5">{scanResult.fat}g</div>
                   </div>
                 </div>
@@ -806,7 +806,7 @@ export default function FoodTracker({ onNotification }) {
                   </button>
                   <button
                     onClick={handleLogScanResult}
-                    className="flex-1 bg-acid-green text-black font-bold text-[10px] uppercase tracking-wider py-2 px-4 rounded-xl hover:shadow-[0_0_12px_rgba(204,255,0,0.5)] cursor-pointer border-none"
+                    className="flex-1 bg-acid-green text-accent-foreground font-bold text-[10px] uppercase tracking-wider py-2 px-4 rounded-xl hover:shadow-[0_0_12px_rgba(204,255,0,0.2)] cursor-pointer border-none"
                   >
                     Log to Diary
                   </button>
@@ -865,7 +865,7 @@ export default function FoodTracker({ onNotification }) {
                 }}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer transition-colors border ${
                   activeDay === idx 
-                    ? 'bg-acid-green text-black border-acid-green shadow-md shadow-acid-green/10' 
+                    ? 'bg-acid-green text-accent-foreground border-acid-green shadow-md shadow-acid-green/10' 
                     : 'bg-surface border-card-border text-muted hover:text-foreground'
                 }`}
               >
@@ -900,7 +900,7 @@ export default function FoodTracker({ onNotification }) {
                     </div>
                     <div className="flex justify-end gap-2 pt-1">
                       <button onClick={() => setEditingMealIndex(null)} className="text-[10px] text-muted py-1 px-3 bg-surface border border-card-border rounded-lg flex items-center gap-1 cursor-pointer"><X className="w-3 h-3" /> Cancel</button>
-                      <button onClick={() => handleSaveMealEdit(idx)} className="text-[10px] text-black bg-acid-green py-1 px-3 rounded-lg font-bold flex items-center gap-1 cursor-pointer border-none"><Check className="w-3 h-3" /> Save</button>
+                      <button onClick={() => handleSaveMealEdit(idx)} className="text-[10px] text-accent-foreground bg-acid-green py-1 px-3 rounded-lg font-bold flex items-center gap-1 cursor-pointer border-none"><Check className="w-3 h-3" /> Save</button>
                     </div>
                   </div>
                 ) : (
@@ -925,7 +925,7 @@ export default function FoodTracker({ onNotification }) {
                     
                     <button 
                       onClick={() => handleLogSuggestedMeal(meal)}
-                      className="w-7 h-7 rounded-full bg-acid-green/10 border border-acid-green/20 hover:bg-acid-green hover:text-black flex items-center justify-center cursor-pointer transition-colors text-acid-green font-bold text-xs"
+                      className="w-7 h-7 rounded-full bg-acid-green/10 border border-acid-green/20 hover:bg-acid-green hover:text-accent-foreground flex items-center justify-center cursor-pointer transition-colors text-acid-green font-bold text-xs"
                     >
                       +
                     </button>
@@ -954,7 +954,7 @@ export default function FoodTracker({ onNotification }) {
                   }}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer transition-colors border ${
                     activePlanDay === idx 
-                      ? 'bg-acid-green text-black border-acid-green shadow-md shadow-acid-green/10' 
+                      ? 'bg-acid-green text-accent-foreground border-acid-green shadow-md shadow-acid-green/10' 
                       : 'bg-surface border-card-border text-muted hover:text-foreground'
                   }`}
                 >
@@ -978,7 +978,7 @@ export default function FoodTracker({ onNotification }) {
                   
                   <button 
                     onClick={() => handleLogSuggestedMeal(meal)}
-                    className="w-7 h-7 rounded-full bg-acid-green/10 border border-acid-green/20 hover:bg-acid-green hover:text-black flex items-center justify-center cursor-pointer transition-colors text-acid-green font-bold text-xs"
+                    className="w-7 h-7 rounded-full bg-acid-green/10 border border-acid-green/20 hover:bg-acid-green hover:text-accent-foreground flex items-center justify-center cursor-pointer transition-colors text-acid-green font-bold text-xs"
                     title="Log to Diary"
                   >
                     +

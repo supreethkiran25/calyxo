@@ -170,13 +170,13 @@ export default function UserProfile({ onNotification }) {
     let bmiColor = "text-acid-green";
     if (bmi < 18.5) {
       bmiStatus = "Underweight";
-      bmiColor = "text-blue-400";
+      bmiColor = "text-blue";
     } else if (bmi >= 25 && bmi < 30) {
       bmiStatus = "Overweight";
       bmiColor = "text-orange";
     } else if (bmi >= 30) {
       bmiStatus = "Obese";
-      bmiColor = "text-red-500";
+      bmiColor = "text-red";
     }
 
     const bodyType = bmi < 18.5 ? "Ectomorph" : bmi < 25 ? (bmi < 21 ? "Ectomorph" : "Mesomorph") : "Endomorph";
@@ -282,7 +282,7 @@ export default function UserProfile({ onNotification }) {
                     }}
                     className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                       units === u 
-                        ? 'bg-acid-green text-black border-acid-green shadow-md shadow-acid-green/10' 
+                        ? 'bg-acid-green text-accent-foreground border-acid-green shadow-md shadow-acid-green/10' 
                         : 'bg-surface text-muted border-card-border hover:border-acid-green/40'
                     }`}
                   >
@@ -363,7 +363,7 @@ export default function UserProfile({ onNotification }) {
             
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 py-3 border border-red-500/30 hover:border-red-500 bg-red-500/5 hover:bg-red-500/10 text-red-500 text-xs font-bold rounded-xl transition-all cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 py-3 border border-destructive/30 hover:border-destructive bg-destructive/5 hover:bg-destructive/10 text-destructive text-xs font-bold rounded-xl transition-all cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
               Sign Out from Device
@@ -613,7 +613,7 @@ export default function UserProfile({ onNotification }) {
                 />
                 <button
                   onClick={handleSaveTimelineLog}
-                  className="w-full bg-acid-green text-black font-extrabold text-[10px] uppercase tracking-wider py-2.5 rounded-xl hover:shadow-[0_0_12px_rgba(204,255,0,0.5)] cursor-pointer border-none"
+                  className="w-full bg-acid-green text-accent-foreground font-extrabold text-[10px] uppercase tracking-wider py-2.5 rounded-xl hover:shadow-[0_0_12px_rgba(204,255,0,0.2)] cursor-pointer border-none"
                 >
                   Save Timeline Log
                 </button>
@@ -660,7 +660,7 @@ export default function UserProfile({ onNotification }) {
             
             <button
               onClick={handleDownloadSocialCard}
-              className="mt-4 bg-acid-green text-black font-extrabold text-[10px] uppercase tracking-wider py-2.5 px-5 rounded-xl hover:shadow-[0_0_12px_rgba(181,242,61,0.5)] transition-all cursor-pointer border-none flex items-center gap-2"
+              className="mt-4 bg-acid-green text-accent-foreground font-extrabold text-[10px] uppercase tracking-wider py-2.5 px-5 rounded-xl hover:shadow-[0_0_12px_rgba(181,242,61,0.2)] transition-all cursor-pointer border-none flex items-center gap-2"
             >
               <Download className="w-4 h-4" />
               Download Sharing Card

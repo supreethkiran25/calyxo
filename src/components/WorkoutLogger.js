@@ -309,7 +309,7 @@ export default function WorkoutLogger({ onNotification }) {
                         <div 
                           key={idx}
                           onClick={() => selectExercise(item)}
-                          className="px-4 py-2.5 border-b border-card-border last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-acid-green hover:text-black transition-colors"
+                          className="px-4 py-2.5 border-b border-card-border last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-acid-green hover:text-accent-foreground transition-colors"
                         >
                           <span className="text-xs font-semibold">{item.name}</span>
                           <span className="text-[9px] opacity-75">{item.category}</span>
@@ -385,7 +385,7 @@ export default function WorkoutLogger({ onNotification }) {
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={loading || !exName}
-              className="w-full bg-foreground text-[var(--background)] font-bold text-xs py-3 rounded-xl cursor-pointer hover:bg-acid-green hover:text-black hover:shadow-[0_0_12px_rgba(204,255,0,0.3)] transition-all disabled:opacity-50 border-none"
+              className="w-full bg-foreground text-[var(--background)] font-bold text-xs py-3 rounded-xl cursor-pointer hover:bg-acid-green hover:text-accent-foreground hover:shadow-[0_0_12px_rgba(204,255,0,0.15)] transition-all disabled:opacity-50 border-none"
             >
               {loading ? "Logging..." : "Approve & Log Workout"}
             </motion.button>
@@ -423,7 +423,7 @@ export default function WorkoutLogger({ onNotification }) {
                           await saveEcosystemState(userId, useEcosystemStore.getState());
                           if (onNotification) onNotification(`Joined Challenge: ${challenge.name}! 🚀`);
                         }}
-                        className="text-[9px] font-extrabold text-black bg-acid-green hover:shadow-[0_0_8px_rgba(204,255,0,0.4)] px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer border-none"
+                        className="text-[9px] font-extrabold text-accent-foreground bg-acid-green hover:shadow-[0_0_8px_rgba(204,255,0,0.2)] px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer border-none"
                       >
                         Join
                       </button>
@@ -551,7 +551,7 @@ export default function WorkoutLogger({ onNotification }) {
                 }}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer transition-colors border ${
                   activeDay === idx 
-                    ? 'bg-acid-green text-black border-acid-green shadow-md shadow-acid-green/10' 
+                    ? 'bg-acid-green text-accent-foreground border-acid-green shadow-md shadow-acid-green/10' 
                     : 'bg-surface border-card-border text-muted hover:text-foreground'
                 }`}
               >
@@ -615,7 +615,7 @@ export default function WorkoutLogger({ onNotification }) {
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-card-border">
                   <button onClick={() => setEditingSplit(false)} className="text-[10px] text-muted py-1.5 px-3 bg-surface border border-card-border rounded-lg flex items-center gap-1 cursor-pointer"><X className="w-3.5 h-3.5" /> Cancel</button>
-                  <button onClick={handleSaveSplitEdit} className="text-[10px] text-black bg-acid-green py-1.5 px-4 rounded-lg font-bold flex items-center gap-1 cursor-pointer border-none"><Check className="w-3.5 h-3.5" /> Save</button>
+                  <button onClick={handleSaveSplitEdit} className="text-[10px] text-accent-foreground bg-acid-green py-1.5 px-4 rounded-lg font-bold flex items-center gap-1 cursor-pointer border-none"><Check className="w-3.5 h-3.5" /> Save</button>
                 </div>
               </div>
             ) : (
