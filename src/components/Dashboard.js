@@ -115,16 +115,14 @@ function SectionHeader({ title, onSeeAll }) {
 }
 
 export default function Dashboard({ onNotification }) {
-  const { 
-    user, 
-    foodLogs, 
-    workoutLogs, 
-    waterIntake, 
-    userProfile, 
-    setWaterIntake, 
-    setUserProfile,
-    setActiveTab 
-  } = useStore();
+  const user = useStore(state => state.user);
+  const foodLogs = useStore(state => state.foodLogs);
+  const workoutLogs = useStore(state => state.workoutLogs);
+  const waterIntake = useStore(state => state.waterIntake);
+  const userProfile = useStore(state => state.userProfile);
+  const setWaterIntake = useStore(state => state.setWaterIntake);
+  const setUserProfile = useStore(state => state.setUserProfile);
+  const setActiveTab = useStore(state => state.setActiveTab);
   
   const userId = user?.uid;
   const ecoStore = useEcosystemStore();

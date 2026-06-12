@@ -91,9 +91,21 @@ Do not write markdown quotes or wraps. Return pure JSON.`;
 
     const data = await response.json();
     const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    const cleanJson = textResponse.replace(/```json/g, "").replace(/```/g, "").trim();
-    const parsed = JSON.parse(cleanJson);
     
+    const extractJSON = (text) => {
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        const start = text.indexOf('{');
+        const end = text.lastIndexOf('}');
+        if (start !== -1 && end !== -1 && end > start) {
+          return JSON.parse(text.substring(start, end + 1));
+        }
+        throw e;
+      }
+    };
+
+    const parsed = extractJSON(textResponse);
     return NextResponse.json(parsed);
 
   } catch (err) {

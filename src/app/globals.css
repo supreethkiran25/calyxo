@@ -29,6 +29,9 @@
   --color-blue: var(--blue-theme);
   --color-red: var(--destructive);
   --color-border-light: var(--border);
+  --color-card-border: var(--card-border);
+  --color-card-bg: var(--card-bg);
+  --color-text-muted: var(--text-muted);
 }
 
 :root {
@@ -116,6 +119,11 @@
 
 * {
   box-sizing: border-box;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-acid-green);
+  outline-offset: 2px;
 }
 
 html {

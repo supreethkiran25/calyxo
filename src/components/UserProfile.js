@@ -21,7 +21,10 @@ import {
 } from 'lucide-react';
 
 export default function UserProfile({ onNotification }) {
-  const { user, userProfile, updateUserProfile, resetStore } = useStore();
+  const user = useStore(state => state.user);
+  const userProfile = useStore(state => state.userProfile);
+  const updateUserProfile = useStore(state => state.updateUserProfile);
+  const resetStore = useStore(state => state.resetStore);
   const userId = user?.uid;
   const ecoStore = useEcosystemStore();
 
@@ -180,6 +183,8 @@ export default function UserProfile({ onNotification }) {
 
     updateUserProfile(updatedProfile);
     await saveUserProfile(userId, updatedProfile);
+    ecoStore.setPersonality(coachPersonality);
+    await saveEcosystemState(userId, useEcosystemStore.getState());
     setSaving(false);
     if (onNotification) onNotification("Settings saved successfully! 💾");
   };

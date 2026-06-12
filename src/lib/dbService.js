@@ -732,3 +732,25 @@ export const clearAIMemory = async (userId) => {
     await saveEcosystemState(userId, ecoState);
   }
 };
+
+export const fetchWithRetry = async (url, options = {}, retries = 3, delay = 1000) => {
+  try {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      if (retries > 0 && (response.status === 429 || response.status >= 500)) {
+        console.warn(`Transient API error ${response.status}. Retrying in ${delay}ms... (${retries} attempts left)`);
+        await new Promise(res => setTimeout(res, delay));
+        return fetchWithRetry(url, options, retries - 1, delay * 1.5);
+      }
+      throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+    }
+    return response;
+  } catch (error) {
+    if (retries > 0) {
+      console.warn(`Network/API fetch failed: ${error.message}. Retrying in ${delay}ms... (${retries} attempts left)`);
+      await new Promise(res => setTimeout(res, delay));
+      return fetchWithRetry(url, options, retries - 1, delay * 1.5);
+    }
+    throw error;
+  }
+};

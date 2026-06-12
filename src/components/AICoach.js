@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { Bot, User, Send, Sparkles, ThumbsUp, ThumbsDown, Plus, Trash2, Menu, X, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { addTrainingLog, getPositiveTrainingLogs, getChatSessions, saveChatSession, deleteChatSession, saveEcosystemState } from '../lib/dbService';
+import { addTrainingLog, getPositiveTrainingLogs, getChatSessions, saveChatSession, deleteChatSession, saveEcosystemState, fetchWithRetry } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 
 const WELCOME_MESSAGE = {
@@ -15,7 +15,12 @@ const WELCOME_MESSAGE = {
 };
 
 export default function AICoach({ onNotification }) {
-  const { user, foodLogs, workoutLogs, waterIntake, userProfile, updateUserProfile } = useStore();
+  const user = useStore(state => state.user);
+  const foodLogs = useStore(state => state.foodLogs);
+  const workoutLogs = useStore(state => state.workoutLogs);
+  const waterIntake = useStore(state => state.waterIntake);
+  const userProfile = useStore(state => state.userProfile);
+  const updateUserProfile = useStore(state => state.updateUserProfile);
   const userId = user?.uid;
 
   const ecoStore = useEcosystemStore();
@@ -38,7 +43,7 @@ export default function AICoach({ onNotification }) {
   const handleGeneratePlan = async () => {
     setGeneratingPlan(true);
     try {
-      const res = await fetch('/api/gemini/program', {
+      const res = await fetchWithRetry('/api/gemini/program', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ goal: selectedGoal, userProfile })
@@ -59,7 +64,7 @@ export default function AICoach({ onNotification }) {
     if (!ecoStore.coachingPlan) return;
     setGeneratingGrocery(true);
     try {
-      const res = await fetch('/api/gemini/grocery', {
+      const res = await fetchWithRetry('/api/gemini/grocery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mealPlan: ecoStore.coachingPlan.mealPlan, preferences: userProfile })
@@ -212,7 +217,7 @@ export default function AICoach({ onNotification }) {
     try {
       const positiveLogs = await getPositiveTrainingLogs(userId);
 
-      const response = await fetch('/api/gemini', {
+      const response = await fetchWithRetry('/api/gemini', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

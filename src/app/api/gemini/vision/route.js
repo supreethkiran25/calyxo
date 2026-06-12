@@ -2,7 +2,19 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req) {
   try {
-    const { imageBase64, mimeType, userGoal } = await req.json();
+    const body = await req.json();
+    let imageBase64 = body.imageBase64;
+    let mimeType = body.mimeType;
+    const userGoal = body.userGoal;
+
+    if (body.image && body.image.startsWith('data:')) {
+      const match = body.image.match(/^data:([^;]+);base64,(.+)$/);
+      if (match) {
+        mimeType = match[1];
+        imageBase64 = match[2];
+      }
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
@@ -71,9 +83,20 @@ Do not return any markdown wraps or comments. Return pure JSON.`;
     const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
     // Parse JSON safely
-    const cleanJson = textResponse.replace(/```json/g, "").replace(/```/g, "").trim();
-    const parsed = JSON.parse(cleanJson);
-    
+    const extractJSON = (text) => {
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        const start = text.indexOf('{');
+        const end = text.lastIndexOf('}');
+        if (start !== -1 && end !== -1 && end > start) {
+          return JSON.parse(text.substring(start, end + 1));
+        }
+        throw e;
+      }
+    };
+
+    const parsed = extractJSON(textResponse);
     return NextResponse.json(parsed);
 
   } catch (err) {

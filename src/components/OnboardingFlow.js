@@ -210,14 +210,13 @@ export default function OnboardingFlow({ onComplete }) {
     border: '1px solid var(--border)',
     borderRadius: '24px',
     boxShadow: 'var(--card-shadow)',
-    padding: '32px'
   };
 
   const inputStyle = "w-full bg-[var(--input)] text-foreground border border-card-border px-4 py-3 rounded-xl focus:outline-none focus:border-acid-green text-sm";
 
   return (
-    <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-6 text-[var(--foreground)]">
-      <div style={containerStyle} className="w-full relative overflow-hidden">
+    <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-4 md:p-6 text-[var(--foreground)]">
+      <div style={containerStyle} className="w-full p-6 md:p-8 relative overflow-hidden">
         
         {/* Onboarding Header */}
         {stepIdx < STEPS.length - 1 && (

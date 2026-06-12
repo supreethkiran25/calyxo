@@ -17,18 +17,39 @@ import {
 } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 
+import dynamic from 'next/dynamic';
+
 // Component imports
 import Logo from '../components/Logo';
 import ThemeToggle from '../components/ThemeToggle';
 import LaunchScreen from '../components/LaunchScreen';
 import AuthFlow from '../components/AuthFlow';
-import Dashboard from '../components/Dashboard';
-import FoodTracker from '../components/FoodTracker';
-import WorkoutLogger from '../components/WorkoutLogger';
-import AICoach from '../components/AICoach';
-import UserProfile from '../components/UserProfile';
-import Progress from '../components/Progress';
 import OnboardingFlow from '../components/OnboardingFlow';
+
+// Reusable loader skeleton for lazy-loaded tabs
+function TabSkeleton() {
+  return (
+    <div className="space-y-6 w-full animate-pulse p-4">
+      <div className="flex gap-4">
+        <div className="skeleton h-10 w-36" />
+        <div className="skeleton h-10 w-28" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="skeleton h-48 rounded-2xl" />
+        <div className="skeleton h-48 rounded-2xl" />
+        <div className="skeleton h-48 rounded-2xl" />
+      </div>
+      <div className="skeleton h-64 rounded-2xl" />
+    </div>
+  );
+}
+
+const Dashboard = dynamic(() => import('../components/Dashboard'), { loading: () => <TabSkeleton /> });
+const FoodTracker = dynamic(() => import('../components/FoodTracker'), { loading: () => <TabSkeleton /> });
+const WorkoutLogger = dynamic(() => import('../components/WorkoutLogger'), { loading: () => <TabSkeleton /> });
+const AICoach = dynamic(() => import('../components/AICoach'), { loading: () => <TabSkeleton /> });
+const UserProfile = dynamic(() => import('../components/UserProfile'), { loading: () => <TabSkeleton /> });
+const Progress = dynamic(() => import('../components/Progress'), { loading: () => <TabSkeleton /> });
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Home', icon: HomeIcon },

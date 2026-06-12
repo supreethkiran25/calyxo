@@ -4,11 +4,15 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
-import { addWeightLog, saveEcosystemState } from '../lib/dbService';
+import { addWeightLog, saveEcosystemState, fetchWithRetry } from '../lib/dbService';
 import { Trophy, Activity, Lock, Camera, Sparkles, Share2, Download, Image as ImageIcon, TrendingUp, RefreshCw, Award } from 'lucide-react';
 
 export default function Progress({ onNotification }) {
-  const { user, weightLogs, addWeightLog: storeAddWeightLog, userProfile, foodLogs } = useStore();
+  const user = useStore(state => state.user);
+  const weightLogs = useStore(state => state.weightLogs);
+  const storeAddWeightLog = useStore(state => state.addWeightLog);
+  const userProfile = useStore(state => state.userProfile);
+  const foodLogs = useStore(state => state.foodLogs);
   const ecoStore = useEcosystemStore();
   const userId = user?.uid;
   const units = userProfile?.units || 'metric';
@@ -117,7 +121,7 @@ export default function Progress({ onNotification }) {
     setLoadingForecast(true);
     try {
       const activeDeficit = metrics.tdee - metrics.calorieGoal;
-      const res = await fetch('/api/gemini/predict', {
+      const res = await fetchWithRetry('/api/gemini/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

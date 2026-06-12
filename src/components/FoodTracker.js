@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { getFoodLogs, addFoodLog, deleteFoodLog, saveEcosystemState } from '../lib/dbService';
+import { getFoodLogs, addFoodLog, deleteFoodLog, saveEcosystemState, fetchWithRetry } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { Plus, Search, BookOpen, Trash2, Camera, Sparkles, Check, X, ShieldAlert, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -81,7 +81,10 @@ const INITIAL_DIET_PLANNER = [
 ];
 
 export default function FoodTracker({ onNotification }) {
-  const { user, foodLogs, setFoodLogs, userProfile } = useStore();
+  const user = useStore(state => state.user);
+  const foodLogs = useStore(state => state.foodLogs);
+  const setFoodLogs = useStore(state => state.setFoodLogs);
+  const userProfile = useStore(state => state.userProfile);
   const userId = user?.uid;
   const ecoStore = useEcosystemStore();
 
@@ -268,14 +271,14 @@ export default function FoodTracker({ onNotification }) {
     if (!mealPhoto) return;
     setScanning(true);
     try {
-      const response = await fetch('/api/gemini/vision', {
+      const response = await fetchWithRetry('/api/gemini/vision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: mealPhoto })
+        body: JSON.stringify({ image: mealPhoto, userGoal: userProfile?.goal })
       });
       if (response.ok) {
         const data = await response.json();
-        setScanResult(data.scan);
+        setScanResult(data.scan || data);
       }
     } catch (e) {
       console.error("Meal scan error", e);
@@ -342,7 +345,7 @@ export default function FoodTracker({ onNotification }) {
     if (!ecoStore.coachingPlan) return;
     setGeneratingGrocery(true);
     try {
-      const res = await fetch('/api/gemini/grocery', {
+      const res = await fetchWithRetry('/api/gemini/grocery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ program: ecoStore.coachingPlan })

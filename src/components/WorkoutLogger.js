@@ -111,7 +111,9 @@ const INITIAL_WORKOUT_SPLITS = [
 ];
 
 export default function WorkoutLogger({ onNotification }) {
-  const { user, workoutLogs, setWorkoutLogs } = useStore();
+  const user = useStore(state => state.user);
+  const workoutLogs = useStore(state => state.workoutLogs);
+  const setWorkoutLogs = useStore(state => state.setWorkoutLogs);
   const userId = user?.uid;
   const ecoStore = useEcosystemStore();
 
