@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { getFoodLogs, addFoodLog, deleteFoodLog, saveEcosystemState, fetchWithRetry } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
+import { INDIAN_FOODS } from '../lib/indianFoods';
 import { Plus, Search, BookOpen, Trash2, Camera, Sparkles, Check, X, ShieldAlert, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -110,6 +111,7 @@ export default function FoodTracker({ onNotification }) {
   // Log portion state
   const [analysedFood, setAnalysedFood] = useState(null);
   const [portion, setPortion] = useState(100);
+  const [parsedPortion, setParsedPortion] = useState(null);
 
   // Meal Photo Scanner
   const [mealPhoto, setMealPhoto] = useState(null);
@@ -162,26 +164,55 @@ export default function FoodTracker({ onNotification }) {
   const handleSearch = async (val) => {
     if (val.trim().length < 2) {
       setSearchResults([]);
+      setParsedPortion(null);
       return;
     }
-    // Search local catalog first
-    const locals = FOODS_CATALOG.filter(x => x.name.toLowerCase().includes(val.toLowerCase()));
+
+    // 1. Portion/Weight parsing (e.g. "dosa 200g", "roti 50g")
+    let parsedWeight = null;
+    let cleanQuery = val;
+    const weightRegex = /\b(\d+(?:\.\d+)?)\s*(?:g|grams?)\b/i;
+    const match = cleanQuery.match(weightRegex);
+    if (match) {
+      parsedWeight = parseFloat(match[1]);
+      cleanQuery = cleanQuery.replace(weightRegex, "").replace(/\s+/g, " ").trim();
+    }
+    setParsedPortion(parsedWeight);
+
+    // 2. Search local Indian foods first using cleaned query
+    const normalizedQuery = cleanQuery.toLowerCase();
+    const indianMatches = INDIAN_FOODS.filter(item => {
+      const nameMatch = item.name.toLowerCase().includes(normalizedQuery);
+      const categoryMatch = item.category.toLowerCase().includes(normalizedQuery);
+      const aliasMatch = item.aliases.some(alias => alias.toLowerCase().includes(normalizedQuery));
+      return nameMatch || categoryMatch || aliasMatch;
+    });
+
+    // Search existing catalog
+    const catalogMatches = FOODS_CATALOG.filter(x => x.name.toLowerCase().includes(normalizedQuery));
     
-    // Attempt search wger / openfoodfacts fallback proxy
+    // Combine and mark items from local database
+    const localResults = [...indianMatches, ...catalogMatches].map(item => ({
+      ...item,
+      isLocal: true
+    }));
+
+    // 3. Attempt search OpenFoodFacts fallback proxy with cleaned query
     let apiResults = [];
     try {
-      const response = await fetch(`/api/food?q=${encodeURIComponent(val)}`);
+      const response = await fetch(`/api/food?q=${encodeURIComponent(cleanQuery)}`);
       if (response.ok) {
         const data = await response.json();
-        if (data.results && data.results.length > 0) {
-          apiResults = data.results.map(r => ({
-            name: r.product_name || r.name,
-            calories: Math.round(r.calories || r.nutriments?.["energy-kcal_100g"] || 0),
-            protein: r.protein || r.nutriments?.proteins_100g || 0,
-            carbs: r.carbs || r.nutriments?.carbohydrates_100g || 0,
-            fat: r.fat || r.nutriments?.fat_100g || 0,
-            fiber: r.fiber || r.nutriments?.fiber_100g || 0,
-            sugar: r.sugar || r.nutriments?.sugars_100g || 0,
+        const rawProducts = data.products || data.results || [];
+        if (rawProducts.length > 0) {
+          apiResults = rawProducts.map(r => ({
+            name: r.product_name || r.name || r.product_name_en || "Unknown Food",
+            calories: Math.round(r.calories || r.nutriments?.["energy-kcal_100g"] || r.nutriments?.energy_100g || 0),
+            protein: Number(r.protein || r.nutriments?.proteins_100g || 0),
+            carbs: Number(r.carbs || r.nutriments?.carbohydrates_100g || 0),
+            fat: Number(r.fat || r.nutriments?.fat_100g || 0),
+            fiber: Number(r.fiber || r.nutriments?.fiber_100g || 0),
+            sugar: Number(r.sugar || r.nutriments?.sugars_100g || 0),
             sodium: Math.round(r.sodium || (r.nutriments?.sodium_100g * 1000) || 0)
           }));
         }
@@ -190,15 +221,95 @@ export default function FoodTracker({ onNotification }) {
       console.warn("OpenFoodFacts search failure, defaulting to local index", err);
     }
     
-    setSearchResults([...locals, ...apiResults].slice(0, 8));
+    // 4. Merge results seamlessly (local first) and limit to 10
+    const merged = [...localResults, ...apiResults];
+    
+    // Deduplicate items with identical names
+    const seenNames = new Set();
+    const uniqueMerged = [];
+    for (const item of merged) {
+      const key = item.name.toLowerCase().trim();
+      if (!seenNames.has(key)) {
+        seenNames.add(key);
+        uniqueMerged.push(item);
+      }
+    }
+
+    setSearchResults(uniqueMerged.slice(0, 10));
     setShowDropdown(true);
   };
 
   const selectFood = (food) => {
     setAnalysedFood(food);
-    setPortion(100);
+    if (parsedPortion) {
+      setPortion(parsedPortion);
+    } else {
+      setPortion(100);
+    }
     setQueryVal('');
     setShowDropdown(false);
+  };
+
+  const quickLogFood = async (e, food) => {
+    e.stopPropagation();
+    const activePortion = parsedPortion || 100;
+    const ratio = activePortion / 100;
+    const logItem = {
+      name: food.name,
+      calories: Math.round(food.calories * ratio),
+      protein: Number((food.protein * ratio).toFixed(1)),
+      carbs: Number((food.carbs * ratio).toFixed(1)),
+      fat: Number((food.fat * ratio).toFixed(1)),
+      fiber: Number(((food.fiber || 0) * ratio).toFixed(1)),
+      sugar: Number(((food.sugar || 0) * ratio).toFixed(1)),
+      portionWeight: activePortion
+    };
+
+    const saved = await addFoodLog(userId, logItem);
+    setFoodLogs([saved, ...foodLogs]);
+    setQueryVal('');
+    setShowDropdown(false);
+    if (onNotification) onNotification(`Logged ${activePortion}g ${logItem.name} 🍽️`);
+  };
+
+  const calculateMacrosRatings = (food) => {
+    if (!food) return null;
+    const calories = food.calories || 0;
+    const protein = food.protein || 0;
+    const carbs = food.carbs || 0;
+    const fat = food.fat || 0;
+    const fiber = food.fiber || 0;
+    const sugar = food.sugar || 0;
+    const sodium = food.sodium || 0;
+
+    // Weight Loss Score (0 - 100)
+    let wlScore = 100 - (calories / 4) + (protein * 2.5) + (fiber * 4) - (sugar * 1.5) - (fat * 1);
+    wlScore = Math.max(10, Math.min(99, Math.round(wlScore)));
+
+    // Muscle Gain Score (0 - 100)
+    let mgScore = (protein * 5) + (calories / 6);
+    mgScore = Math.max(10, Math.min(99, Math.round(mgScore)));
+
+    // High Protein Rating
+    let proteinRating = "Low Protein";
+    if (protein >= 15) proteinRating = "High Protein";
+    else if (protein >= 8) proteinRating = "Moderate Protein";
+
+    // High Carb Rating
+    let carbRating = "Low Carb";
+    if (carbs >= 35) carbRating = "High Carb";
+    else if (carbs >= 15) carbRating = "Moderate Carb";
+
+    // Healthy Choice Indicator
+    const isHealthyChoice = calories < 300 && sugar < 10 && sodium < 400 && (protein > 2 || fiber > 1.5);
+
+    return {
+      weightLossScore: wlScore,
+      muscleGainScore: mgScore,
+      proteinRating,
+      carbRating,
+      isHealthyChoice
+    };
   };
 
   const logFoodItem = async () => {
@@ -406,7 +517,9 @@ export default function FoodTracker({ onNotification }) {
   };
 
   const compat = calculateCompatibility(analysedFood);
+  const scores = calculateMacrosRatings(analysedFood);
   const inputStyle = "w-full bg-[var(--input)] border border-card-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner";
+  const inputClass = inputStyle;
 
   return (
     <div className="space-y-6">
@@ -483,10 +596,32 @@ export default function FoodTracker({ onNotification }) {
                             <div 
                               key={idx}
                               onClick={() => selectFood(item)}
-                              className="px-5 py-3.5 border-b border-card-border last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-acid-green/10 transition-colors"
+                              className="px-5 py-3.5 border-b border-card-border last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-acid-green/10 transition-colors group"
                             >
-                              <span className="text-xs font-semibold">{item.name}</span>
-                              <span className="text-[10px] opacity-75 text-acid-green font-bold">{item.calories} kcal / 100g</span>
+                              <div className="flex flex-col">
+                                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5 flex-wrap">
+                                  {item.name}
+                                  {item.isLocal && (
+                                    <span className="text-[8px] bg-acid-green/10 text-acid-green border border-acid-green/20 px-1.5 py-0.5 rounded uppercase font-extrabold tracking-wide">
+                                      {item.category || "Local"}
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="text-[10px] text-muted font-bold mt-0.5">
+                                  P: {item.protein}g · C: {item.carbs}g · F: {item.fat}g · Fi: {item.fiber || 0}g
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-[10px] opacity-75 text-acid-green font-bold whitespace-nowrap">{item.calories} kcal/100g</span>
+                                <button
+                                  onClick={(e) => quickLogFood(e, item)}
+                                  className="bg-acid-green text-accent-foreground rounded-lg px-2 py-1.5 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer border-none shadow-sm hover:scale-105 active:scale-95 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                                  title={`Quick log ${parsedPortion || 100}g`}
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  <span>{parsedPortion || 100}g</span>
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </motion.div>
@@ -548,52 +683,167 @@ export default function FoodTracker({ onNotification }) {
                 )}
 
                 {/* Selected Food details & portions log */}
-                {analysedFood && (
-                  <motion.section 
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="glass border-acid-green/20 border rounded-2xl p-6 space-y-5"
-                  >
-                    <div className="flex flex-col items-center justify-center p-4 border-b border-card-border">
-                      <div className="w-20 h-20 rounded-full border-2 border-acid-green flex flex-col items-center justify-center shadow-lg">
-                        <span className="text-xl font-black text-foreground">{compat.score}%</span>
-                        <span className="text-[8px] text-muted font-bold uppercase tracking-wider">Score</span>
-                      </div>
-                      <h3 className="text-xs font-bold text-foreground mt-3 text-center">{analysedFood.name}</h3>
-                      <span className="text-[9px] font-bold text-acid-green px-2.5 py-0.5 rounded-full border border-acid-green/30 bg-acid-green/5 mt-2 uppercase tracking-wide">
-                        {compat.rating}
-                      </span>
-                    </div>
+                {analysedFood && (() => {
+                  const ratio = portion / 100;
+                  const scaledCals = Math.round(analysedFood.calories * ratio);
+                  const scaledProt = Number((analysedFood.protein * ratio).toFixed(1));
+                  const scaledCarbs = Number((analysedFood.carbs * ratio).toFixed(1));
+                  const scaledFat = Number((analysedFood.fat * ratio).toFixed(1));
+                  const scaledFiber = Number(((analysedFood.fiber || 0) * ratio).toFixed(1));
+                  const scaledSugar = Number(((analysedFood.sugar || 0) * ratio).toFixed(1));
+                  const scaledSodium = Math.round((analysedFood.sodium || 0) * ratio);
 
-                    <div className="space-y-4">
-                      <div>
-                        <span className="text-[9px] text-muted uppercase font-bold tracking-wider mb-2 block">Nutrition (per 100g)</span>
-                        <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                          <div className="bg-surface border border-card-border py-2 rounded-lg"><div className="text-[8px] text-muted">Calories</div><div className="font-bold text-foreground">{analysedFood.calories}</div></div>
-                          <div className="bg-surface border border-card-border py-2 rounded-lg"><div className="text-[8px] text-acid-green">Protein</div><div className="font-bold text-foreground">{analysedFood.protein}g</div></div>
-                          <div className="bg-surface border border-card-border py-2 rounded-lg"><div className="text-[8px] text-orange">Carbs</div><div className="font-bold text-foreground">{analysedFood.carbs}g</div></div>
-                          <div className="bg-surface border border-card-border py-2 rounded-lg"><div className="text-[8px] text-red">Fats</div><div className="font-bold text-foreground">{analysedFood.fat}g</div></div>
+                  return (
+                    <motion.section 
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="glass border-acid-green/20 border rounded-2xl p-6 space-y-5"
+                    >
+                      <div className="flex flex-col items-center justify-center p-4 border-b border-card-border">
+                        <div className="w-20 h-20 rounded-full border-2 border-acid-green flex flex-col items-center justify-center shadow-lg">
+                          <span className="text-xl font-black text-foreground">{compat.score}%</span>
+                          <span className="text-[8px] text-muted font-bold uppercase tracking-wider">Score</span>
                         </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <span className="text-[9px] text-muted uppercase font-bold tracking-wider flex items-center gap-1">
-                          <ShieldAlert className="w-3.5 h-3.5 text-acid-green" />
-                          Calyxo Suitability Analysis
+                        <h3 className="text-xs font-bold text-foreground mt-3 text-center">{portion}g {analysedFood.name}</h3>
+                        <span className="text-[9px] font-bold text-acid-green px-2.5 py-0.5 rounded-full border border-acid-green/30 bg-acid-green/5 mt-2 uppercase tracking-wide">
+                          {compat.rating}
                         </span>
-                        <p className="text-foreground text-xs leading-relaxed font-medium">{compat.reason}</p>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row gap-3 sm:items-end pt-3">
-                        <div className="flex flex-col space-y-1 flex-1">
-                          <label className="text-[9px] text-muted uppercase font-bold tracking-wider">Portion (g)</label>
-                          <input type="number" value={portion} onChange={(e) => setPortion(Number(e.target.value))} className={inputClass} />
+                      <div className="space-y-4">
+                        <div>
+                          <span className="text-[9px] text-muted uppercase font-bold tracking-wider mb-2 block">Nutrition (scaled to {portion}g)</span>
+                          <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                            <div className="bg-surface border border-card-border py-2 rounded-lg">
+                              <div className="text-[8px] text-muted font-bold">Calories</div>
+                              <div className="font-bold text-foreground mt-0.5">{scaledCals} kcal</div>
+                            </div>
+                            <div className="bg-surface border border-card-border py-2 rounded-lg">
+                              <div className="text-[8px] text-acid-green font-bold">Protein</div>
+                              <div className="font-bold text-foreground mt-0.5">{scaledProt}g</div>
+                            </div>
+                            <div className="bg-surface border border-card-border py-2 rounded-lg">
+                              <div className="text-[8px] text-orange font-bold">Carbs</div>
+                              <div className="font-bold text-foreground mt-0.5">{scaledCarbs}g</div>
+                            </div>
+                            <div className="bg-surface border border-card-border py-2 rounded-lg">
+                              <div className="text-[8px] text-red font-bold">Fats</div>
+                              <div className="font-bold text-foreground mt-0.5">{scaledFat}g</div>
+                            </div>
+                          </div>
                         </div>
-                        <button onClick={logFoodItem} className="bg-acid-green text-accent-foreground font-bold text-xs py-2.5 px-4 rounded-xl cursor-pointer h-10 sm:h-[36px] flex items-center justify-center border-none shadow-sm">Log Meal</button>
+
+                        {/* Extra Nutrition details: Fiber, Sugar, Sodium */}
+                        <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                          <div className="bg-surface border border-card-border py-1.5 rounded-lg">
+                            <div className="text-[8px] text-muted font-bold">Fiber</div>
+                            <div className="font-bold text-foreground mt-0.5">{scaledFiber}g</div>
+                          </div>
+                          <div className="bg-surface border border-card-border py-1.5 rounded-lg">
+                            <div className="text-[8px] text-muted font-bold">Sugar</div>
+                            <div className="font-bold text-foreground mt-0.5">{scaledSugar}g</div>
+                          </div>
+                          <div className="bg-surface border border-card-border py-1.5 rounded-lg">
+                            <div className="text-[8px] text-muted font-bold">Sodium</div>
+                            <div className="font-bold text-foreground mt-0.5">{scaledSodium}mg</div>
+                          </div>
+                        </div>
+
+                        {/* Portion presets selector */}
+                        <div className="space-y-1.5">
+                          <span className="text-[9px] text-muted uppercase font-bold tracking-wider block">Portion Presets</span>
+                          <div className="flex flex-wrap gap-1">
+                            {[50, 100, 150, 200, 250].map((preset) => (
+                              <button
+                                key={preset}
+                                type="button"
+                                onClick={() => setPortion(preset)}
+                                className={`px-2.5 py-1 rounded-lg text-[9px] font-bold tracking-wide transition-all cursor-pointer border ${
+                                  portion === preset
+                                    ? 'bg-acid-green text-accent-foreground border-acid-green shadow-sm'
+                                    : 'bg-surface border-card-border text-muted hover:text-foreground'
+                                }`}
+                              >
+                                {preset}g
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const custom = prompt("Enter custom portion weight (g):", portion);
+                                if (custom && !isNaN(custom)) {
+                                  setPortion(Number(custom));
+                                }
+                              }}
+                              className={`px-2.5 py-1 rounded-lg text-[9px] font-bold tracking-wide transition-all cursor-pointer border ${
+                                ![50, 100, 150, 200, 250].includes(portion)
+                                  ? 'bg-acid-green text-accent-foreground border-acid-green shadow-sm'
+                                  : 'bg-surface border-card-border text-muted hover:text-foreground'
+                              }`}
+                            >
+                              Custom
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Suitability Analysis details */}
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-muted uppercase font-bold tracking-wider flex items-center gap-1">
+                            <ShieldAlert className="w-3.5 h-3.5 text-acid-green" />
+                            Calyxo Suitability Analysis
+                          </span>
+                          <p className="text-foreground text-xs leading-relaxed font-medium">{compat.reason}</p>
+                        </div>
+
+                        {/* Compatibility Score details badge section */}
+                        {scores && (
+                          <div className="border-t border-card-border pt-4 space-y-3">
+                            <span className="text-[9px] text-muted uppercase font-bold tracking-wider block">Calyxo Compatibility Metrics</span>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="bg-surface/50 border border-card-border p-2.5 rounded-xl flex items-center justify-between">
+                                <span className="text-[10px] text-muted font-bold">Weight Loss Score</span>
+                                <span className="text-xs font-black text-acid-green">{scores.weightLossScore}/100</span>
+                              </div>
+                              <div className="bg-surface/50 border border-card-border p-2.5 rounded-xl flex items-center justify-between">
+                                <span className="text-[10px] text-muted font-bold">Muscle Gain Score</span>
+                                <span className="text-xs font-black text-acid-green">{scores.muscleGainScore}/100</span>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                scores.proteinRating === "High Protein" 
+                                  ? "bg-acid-green/10 text-acid-green border border-acid-green/30" 
+                                  : "bg-surface text-muted border border-card-border"
+                              }`}>
+                                {scores.proteinRating}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                scores.carbRating === "High Carb" 
+                                  ? "bg-orange/10 text-orange border border-orange/30" 
+                                  : "bg-surface text-muted border border-card-border"
+                              }`}>
+                                {scores.carbRating}
+                              </span>
+                              {scores.isHealthyChoice && (
+                                <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                  Healthy Choice
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex flex-col sm:flex-row gap-3 sm:items-end pt-3">
+                          <div className="flex flex-col space-y-1 flex-1">
+                            <label className="text-[9px] text-muted uppercase font-bold tracking-wider">Portion (g)</label>
+                            <input type="number" value={portion} onChange={(e) => setPortion(Number(e.target.value))} className={inputClass} />
+                          </div>
+                          <button onClick={logFoodItem} className="bg-acid-green text-accent-foreground font-bold text-xs py-2.5 px-4 rounded-xl cursor-pointer h-10 sm:h-[36px] flex items-center justify-center border-none shadow-sm">Log Meal</button>
+                        </div>
                       </div>
-                    </div>
-                  </motion.section>
-                )}
+                    </motion.section>
+                  );
+                })()}
               </div>
 
               {/* Right Column: Logged Intake Timeline list */}

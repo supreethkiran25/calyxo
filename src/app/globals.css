@@ -334,3 +334,85 @@ input:focus, select:focus, textarea:focus {
   -webkit-backdrop-filter: blur(24px);
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
+
+/* Custom Background Animations */
+@keyframes floatAnimation {
+  0% { transform: translateY(0px) rotate(0deg) scale(1); }
+  50% { transform: translateY(-40px) rotate(180deg) scale(1.05); }
+  100% { transform: translateY(0px) rotate(360deg) scale(1); }
+}
+
+@keyframes floatDelayedAnimation {
+  0% { transform: translateY(0px) rotate(0deg) scale(1.05); }
+  50% { transform: translateY(35px) rotate(-180deg) scale(0.95); }
+  100% { transform: translateY(0px) rotate(-360deg) scale(1.05); }
+}
+
+@keyframes pulseDelayedAnimation {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.5; }
+}
+
+.animate-float {
+  animation: floatAnimation 20s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: floatDelayedAnimation 25s ease-in-out infinite;
+}
+
+.animate-pulse-delayed {
+  animation: pulseDelayedAnimation 12s ease-in-out infinite;
+}
+
+/* Accessibility Options */
+/* 1. Large Text Mode */
+.accessibility-large-text {
+  font-size: 112% !important;
+}
+.accessibility-large-text .text-xs, 
+.accessibility-large-text .text-\[10px\],
+.accessibility-large-text .text-\[9px\],
+.accessibility-large-text .text-\[8px\],
+.accessibility-large-text .section-label {
+  font-size: 13px !important;
+}
+
+/* 2. High Contrast Mode */
+.accessibility-high-contrast {
+  --background: #000000 !important;
+  --foreground: #ffffff !important;
+  --card: #000000 !important;
+  --border: #ffffff !important;
+  --card-border: #ffffff !important;
+  --muted-foreground: #ffffff !important;
+}
+.accessibility-high-contrast.light,
+.accessibility-high-contrast[data-theme='light'] {
+  --background: #ffffff !important;
+  --foreground: #000000 !important;
+  --card: #ffffff !important;
+  --border: #000000 !important;
+  --card-border: #000000 !important;
+  --muted-foreground: #000000 !important;
+}
+.accessibility-high-contrast *,
+.accessibility-high-contrast button,
+.accessibility-high-contrast input,
+.accessibility-high-contrast select,
+.accessibility-high-contrast textarea,
+.accessibility-high-contrast .glass {
+  border-color: var(--border) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* 3. Dyslexia Friendly Typography override */
+.accessibility-dyslexic-font {
+  font-family: 'Comic Sans MS', 'OpenDyslexic', 'Chalkboard SE', cursive, sans-serif !important;
+}
+.accessibility-dyslexic-font * {
+  font-family: 'Comic Sans MS', 'OpenDyslexic', 'Chalkboard SE', cursive, sans-serif !important;
+  letter-spacing: 0.05em !important;
+  word-spacing: 0.1em !important;
+}

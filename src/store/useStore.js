@@ -38,10 +38,41 @@ export const useStore = create((set, get) => ({
     coachingStyle: 'supportive',
     motivationLevel: 'gentle',
     reminderFrequency: 'daily',
+    aiMemoryEnabled: true,
     // Notifications
-    notifications: { workout: true, meal: true, hydration: true, checkins: true, challenges: true, achievements: true },
+    notifications: { 
+      workout: true, 
+      meal: true, 
+      hydration: true, 
+      checkins: true, 
+      challenges: true, 
+      achievements: true,
+      weeklyReports: true,
+      monthlyReports: true
+    },
+    notificationFrequency: 'daily',
     analyticsTracking: true,
-    photoURL: ''
+    photoURL: '',
+    // Health Targets
+    dailyCalories: 2000,
+    waterTarget: 2500,
+    proteinTarget: 120,
+    // Privacy
+    aiDataUsage: true,
+    personalizedRecommendations: true,
+    performanceTracking: true,
+    marketingCommunications: false,
+    appearance: {
+      bgEffectsEnabled: false,
+      bgStyle: 'minimal',
+      animationIntensity: 'medium',
+      performanceMode: 'auto',
+      reduceMotion: false,
+      themeMode: 'system',
+      largeTextMode: false,
+      highContrastMode: false,
+      dyslexiaFont: false
+    }
   },
 
   // Auth Actions
@@ -136,14 +167,47 @@ export const useStore = create((set, get) => ({
       medicalRestrictions: '',
       foodDislikes: '',
       favoriteFoods: '',
+      // Coach Settings
       coachPersonality: 'motivational',
       responseLength: 'short',
       coachingStyle: 'supportive',
       motivationLevel: 'gentle',
       reminderFrequency: 'daily',
-      notifications: { workout: true, meal: true, hydration: true, checkins: true, challenges: true, achievements: true },
+      aiMemoryEnabled: true,
+      // Notifications
+      notifications: { 
+        workout: true, 
+        meal: true, 
+        hydration: true, 
+        checkins: true, 
+        challenges: true, 
+        achievements: true,
+        weeklyReports: true,
+        monthlyReports: true
+      },
+      notificationFrequency: 'daily',
       analyticsTracking: true,
-      photoURL: ''
+      photoURL: '',
+      // Health Targets
+      dailyCalories: 2000,
+      waterTarget: 2500,
+      proteinTarget: 120,
+      // Privacy
+      aiDataUsage: true,
+      personalizedRecommendations: true,
+      performanceTracking: true,
+      marketingCommunications: false,
+      appearance: {
+        bgEffectsEnabled: false,
+        bgStyle: 'minimal',
+        animationIntensity: 'medium',
+        performanceMode: 'auto',
+        reduceMotion: false,
+        themeMode: 'system',
+        largeTextMode: false,
+        highContrastMode: false,
+        dyslexiaFont: false
+      }
     }
   })
 }));

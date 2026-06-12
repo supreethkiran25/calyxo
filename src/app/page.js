@@ -25,6 +25,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import LaunchScreen from '../components/LaunchScreen';
 import AuthFlow from '../components/AuthFlow';
 import OnboardingFlow from '../components/OnboardingFlow';
+import BackgroundEffects from '../components/BackgroundEffects';
 
 // Reusable loader skeleton for lazy-loaded tabs
 function TabSkeleton() {
@@ -155,6 +156,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-row relative select-none bg-[var(--background)] text-[var(--foreground)]">
+      {/* Immersive Optional Background Effects */}
+      <BackgroundEffects activeTab={activeTab} />
+
       {/* Toast Notification */}
       <AnimatePresence>
         {toast && (
