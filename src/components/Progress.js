@@ -351,7 +351,7 @@ export default function Progress({ onNotification }) {
                                   className="w-3.5 bg-gradient-to-t from-acid-green to-emerald-400 rounded-t-sm relative group cursor-pointer hover:opacity-80 transition-opacity" 
                                   style={{ height: `${pct}%` }}
                                 >
-                                  <div className="absolute bottom-[calc(100%+4px)] left-1/2 transform -translate-x-1/2 bg-black text-white text-[8px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-lg border border-card-border">
+                                  <div className="absolute bottom-[calc(100%+4px)] left-1/2 transform -translate-x-1/2 bg-[var(--card)] text-foreground text-[8px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-lg border border-card-border">
                                     {cals} kcal
                                   </div>
                                 </div>

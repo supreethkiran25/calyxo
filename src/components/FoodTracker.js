@@ -115,6 +115,7 @@ export default function FoodTracker({ onNotification }) {
   const [mealPhoto, setMealPhoto] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
+  const [scanError, setScanError] = useState(null);
 
   // Weekly planner
   const [activeDay, setActiveDay] = useState(0);
@@ -263,6 +264,7 @@ export default function FoodTracker({ onNotification }) {
     reader.onloadend = () => {
       setMealPhoto(reader.result);
       setScanResult(null);
+      setScanError(null);
     };
     reader.readAsDataURL(file);
   };
@@ -270,6 +272,7 @@ export default function FoodTracker({ onNotification }) {
   const handleScanMeal = async () => {
     if (!mealPhoto) return;
     setScanning(true);
+    setScanError(null);
     try {
       const response = await fetchWithRetry('/api/gemini/vision', {
         method: 'POST',
@@ -279,9 +282,12 @@ export default function FoodTracker({ onNotification }) {
       if (response.ok) {
         const data = await response.json();
         setScanResult(data.scan || data);
+      } else {
+        throw new Error(`Server returned code ${response.status}`);
       }
     } catch (e) {
       console.error("Meal scan error", e);
+      setScanError("Vision detection failed due to network or rate limits. Please try again or log manually.");
       if (onNotification) onNotification("API network failure. Please verify endpoints.");
     } finally {
       setScanning(false);
@@ -406,13 +412,13 @@ export default function FoodTracker({ onNotification }) {
     <div className="space-y-6">
       
       {/* Sub navigation Tabs */}
-      <div className="flex items-center justify-between border-b border-card-border pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-card-border pb-4 gap-4">
         <div>
           <h1 className="text-xl font-black text-foreground uppercase tracking-wider">Nutrition Center</h1>
           <p className="text-xs text-muted font-medium mt-0.5">Track diets, logs, scanning and grocery compilation lists</p>
         </div>
 
-        <div className="bg-surface border border-card-border p-1 rounded-xl flex gap-0.5 shrink-0 overflow-x-auto max-w-[50%] scrollbar-none">
+        <div className="bg-surface border border-card-border p-1 rounded-xl flex gap-0.5 overflow-x-auto w-full sm:w-auto sm:max-w-[65%] shrink-0 scrollbar-none">
           {[
             { id: 'diary', label: 'Food Diary' },
             { id: 'planner', label: 'Meal Planner' },
@@ -422,7 +428,7 @@ export default function FoodTracker({ onNotification }) {
             <button
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id)}
-              className={`px-3.5 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex-1 sm:flex-none text-center ${
                 activeSubTab === tab.id
                   ? 'bg-acid-green text-accent-foreground shadow-sm'
                   : 'text-muted hover:text-foreground'
@@ -578,12 +584,12 @@ export default function FoodTracker({ onNotification }) {
                         <p className="text-foreground text-xs leading-relaxed font-medium">{compat.reason}</p>
                       </div>
 
-                      <div className="flex gap-3 items-end pt-3">
+                      <div className="flex flex-col sm:flex-row gap-3 sm:items-end pt-3">
                         <div className="flex flex-col space-y-1 flex-1">
                           <label className="text-[9px] text-muted uppercase font-bold tracking-wider">Portion (g)</label>
                           <input type="number" value={portion} onChange={(e) => setPortion(Number(e.target.value))} className={inputClass} />
                         </div>
-                        <button onClick={logFoodItem} className="bg-acid-green text-accent-foreground font-bold text-xs py-2.5 px-4 rounded-xl cursor-pointer h-[36px] flex items-center justify-center border-none shadow-sm">Log Meal</button>
+                        <button onClick={logFoodItem} className="bg-acid-green text-accent-foreground font-bold text-xs py-2.5 px-4 rounded-xl cursor-pointer h-10 sm:h-[36px] flex items-center justify-center border-none shadow-sm">Log Meal</button>
                       </div>
                     </div>
                   </motion.section>
@@ -762,7 +768,7 @@ export default function FoodTracker({ onNotification }) {
                   {mealPhoto ? (
                     <>
                       <img src={mealPhoto} className="object-cover w-full h-full" />
-                      <button onClick={() => { setMealPhoto(null); setScanResult(null); }} className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1.5 text-[8px] font-bold uppercase tracking-wider cursor-pointer">Clear</button>
+                      <button onClick={() => { setMealPhoto(null); setScanResult(null); setScanError(null); }} className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1.5 text-[8px] font-bold uppercase tracking-wider cursor-pointer">Clear</button>
                     </>
                   ) : (
                     <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer">
@@ -773,6 +779,18 @@ export default function FoodTracker({ onNotification }) {
                     </label>
                   )}
                 </div>
+
+                {scanError && !scanResult && (
+                  <div className="bg-destructive/10 border border-destructive/20 text-destructive text-xs p-4 rounded-xl flex flex-col gap-2">
+                    <p className="font-medium">{scanError}</p>
+                    <button
+                      onClick={handleScanMeal}
+                      className="self-start text-[10px] uppercase font-bold tracking-wider underline cursor-pointer hover:text-foreground text-destructive"
+                    >
+                      Retry Scan
+                    </button>
+                  </div>
+                )}
 
                 {mealPhoto && !scanResult && (
                   <button

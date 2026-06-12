@@ -15,6 +15,8 @@ export const useStore = create((set, get) => ({
     firstName: '',
     lastName: '',
     nickname: '',
+    username: '',
+    age: 25,
     gender: 'male',
     dob: '',
     weight: 70, // in kg
@@ -118,6 +120,8 @@ export const useStore = create((set, get) => ({
       firstName: '',
       lastName: '',
       nickname: '',
+      username: '',
+      age: 25,
       gender: 'male',
       dob: '',
       weight: 70,

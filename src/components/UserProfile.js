@@ -28,12 +28,14 @@ export default function UserProfile({ onNotification }) {
   const userId = user?.uid;
   const ecoStore = useEcosystemStore();
 
-  const [activePanel, setActivePanel] = useState('overview');
+  const [activePanel, setActivePanel] = useState('profile');
 
   // Input states
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [nickname, setNickname] = useState('');
+  const [username, setUsername] = useState('');
+  const [ageInput, setAgeInput] = useState(25);
   const [dob, setDob] = useState('');
   const [gender, setGender] = useState('male');
   const [units, setUnits] = useState('metric');
@@ -80,6 +82,8 @@ export default function UserProfile({ onNotification }) {
       setFirstName(userProfile.firstName || '');
       setLastName(userProfile.lastName || '');
       setNickname(userProfile.nickname || '');
+      setUsername(userProfile.username || userProfile.nickname || '');
+      setAgeInput(userProfile.age || 25);
       setDob(userProfile.dob || '');
       setGender(userProfile.gender || 'male');
       setUnits(userProfile.units || 'metric');
@@ -142,20 +146,24 @@ export default function UserProfile({ onNotification }) {
     if (e) e.preventDefault();
     setSaving(true);
     
-    const birthDate = new Date(dob || '2001-01-01');
-    const today = new Date();
-    let calculatedAge = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      calculatedAge--;
+    let age = Number(ageInput);
+    if (!age || age <= 0) {
+      const birthDate = new Date(dob || '2001-01-01');
+      const today = new Date();
+      let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        calculatedAge--;
+      }
+      age = calculatedAge > 0 ? calculatedAge : 25;
     }
-    const age = calculatedAge > 0 ? calculatedAge : 25;
 
     const updatedProfile = {
       ...userProfile,
       firstName,
       lastName,
-      nickname,
+      nickname: username || nickname,
+      username: username || nickname,
       dob,
       age,
       gender,
@@ -306,12 +314,10 @@ export default function UserProfile({ onNotification }) {
   };
 
   const menuItems = [
-    { id: 'overview', label: 'Overview', icon: User },
-    { id: 'account', label: 'Account settings', icon: Settings },
-    { id: 'personal', label: 'Personal Information', icon: Award },
-    { id: 'diet', label: 'Health Preferences', icon: Heart },
-    { id: 'coach', label: 'AI Coach Settings', icon: Sparkles },
-    { id: 'notifications', label: 'Notification Settings', icon: Bell },
+    { id: 'account', label: 'Account Settings', icon: Settings },
+    { id: 'profile', label: 'Profile Settings', icon: User },
+    { id: 'health', label: 'Health Preferences', icon: Heart },
+    { id: 'ai', label: 'AI Preferences', icon: Sparkles },
     { id: 'privacy', label: 'Privacy & Data', icon: Database }
   ];
 
@@ -341,7 +347,7 @@ export default function UserProfile({ onNotification }) {
             </label>
           </div>
           
-          <h3 className="text-xs font-black text-foreground mt-3 uppercase tracking-wider truncate max-w-full">{nickname || "Athlete"}</h3>
+          <h3 className="text-xs font-black text-foreground mt-3 uppercase tracking-wider truncate max-w-full">{username || nickname || "Athlete"}</h3>
           <p className="text-[9px] text-muted font-medium truncate max-w-full mt-0.5">{user?.email}</p>
 
           {userProfile?.photoURL && (
@@ -394,67 +400,40 @@ export default function UserProfile({ onNotification }) {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.15 }}
           >
-            {/* Overview Panel */}
-            {activePanel === 'overview' && (
-              <div className="space-y-6">
-                <div className="glass p-6 rounded-2xl border border-card-border shadow-md">
-                  <h2 className="text-sm font-black text-foreground uppercase tracking-widest mb-4">Profile Completeness</h2>
-                  <div className="space-y-2 max-w-sm">
-                    <div className="w-full bg-surface border border-card-border h-2 rounded-full overflow-hidden">
-                      <div className="bg-acid-green h-full rounded-full transition-all duration-300" style={{ width: `${profileCompleteness}%` }} />
-                    </div>
-                    <div className="flex justify-between text-[10px] text-muted font-bold">
-                      <span>COMPLETED</span>
-                      <span>{profileCompleteness}%</span>
-                    </div>
-                  </div>
-                  {profileCompleteness < 100 && (
-                    <p className="text-[10px] text-muted font-medium mt-3">Fill out your Health Preferences, AI Coach Settings, and upload a profile photo to reach 100% completion!</p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[
-                    { label: 'Current Weight', val: `${weight} ${units === 'metric' ? 'kg' : 'lbs'}` },
-                    { label: 'Goal Weight', val: `${goalWeight} ${units === 'metric' ? 'kg' : 'lbs'}` },
-                    { label: 'Body Mass Index', val: bmi, sub: bmiStatus },
-                    { label: 'Fitness Score', val: `${ecoStore.fitnessScore?.dailyScore || 70}/100` }
-                  ].map((item, idx) => (
-                    <div key={idx} className="glass p-5 rounded-2xl border border-card-border shadow-md flex flex-col justify-between h-24">
-                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">{item.label}</span>
-                      <span className="text-md font-black text-foreground mt-2 block">{item.val}</span>
-                      {item.sub && <span className="text-[8.5px] text-muted block mt-1">{item.sub}</span>}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="glass p-6 rounded-2xl border border-card-border shadow-md">
-                  <h2 className="text-sm font-black text-foreground uppercase tracking-widest mb-4">Milestones Summaries</h2>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div className="bg-surface border border-card-border p-4 rounded-xl shadow-inner">
-                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Achievements</span>
-                      <span className="text-xl font-black text-foreground mt-2 block">🏆 {ecoStore.achievements?.filter(x => x.unlocked).length} Unlocked</span>
-                    </div>
-                    <div className="bg-surface border border-card-border p-4 rounded-xl shadow-inner">
-                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Active Streaks</span>
-                      <span className="text-xl font-black text-foreground mt-2 block">🔥 {ecoStore.streaks?.loginStreak} Days</span>
-                    </div>
-                    <div className="bg-surface border border-card-border p-4 rounded-xl shadow-inner">
-                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Challenges Join</span>
-                      <span className="text-xl font-black text-foreground mt-2 block">🚀 {ecoStore.activeChallenges?.filter(x => x.progress > 0).length} Active</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Account Settings Panel */}
             {activePanel === 'account' && (
               <div className="glass p-6 rounded-2xl border border-card-border shadow-md space-y-6">
                 <div>
                   <h2 className="text-sm font-black text-foreground uppercase tracking-widest mb-1">Account settings</h2>
-                  <p className="text-[10px] text-muted font-medium">Manage credentials and authentication details</p>
+                  <p className="text-[10px] text-muted font-medium">Manage credentials, identity and security credentials</p>
                 </div>
+
+                {/* Edit Name & Username */}
+                <form onSubmit={handleSaveAllDetails} className="space-y-4 pt-4 border-t border-card-border">
+                  <h4 className="text-xs font-bold text-foreground">Personal Identity Settings</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>First Name</label>
+                      <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Last Name</label>
+                      <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClass} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Username</label>
+                    <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Choose unique username" className={inputClass} />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="w-full btn-primary py-2.5 rounded-xl flex items-center justify-center gap-1.5 font-bold text-xs uppercase tracking-wider cursor-pointer border-none"
+                  >
+                    {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                    Save Account details
+                  </button>
+                </form>
 
                 {/* Update Email */}
                 <div className="space-y-2.5 pt-4 border-t border-card-border">
@@ -508,139 +487,152 @@ export default function UserProfile({ onNotification }) {
                   </div>
                 </div>
 
-                {/* Data Operations */}
+                {/* Account Operations (Delete) */}
                 <div className="space-y-3 pt-6 border-t border-card-border">
                   <h4 className="text-xs font-bold text-foreground">Account Operations</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <button
-                      onClick={handleExportData}
-                      className="flex items-center justify-center gap-2 p-3 bg-surface hover:bg-card-border border border-card-border text-foreground hover:border-acid-green text-xs font-bold rounded-xl transition-all cursor-pointer"
-                    >
-                      <Download className="w-4 h-4 text-acid-green" />
-                      Export Account Data (JSON)
-                    </button>
-
-                    <button
-                      onClick={handleDeleteAccount}
-                      className="flex items-center justify-center gap-2 p-3 bg-destructive/5 hover:bg-destructive/10 border border-destructive/20 hover:border-destructive text-destructive text-xs font-bold rounded-xl transition-all cursor-pointer"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Delete Account & Purge Data
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleDeleteAccount}
+                    className="w-full flex items-center justify-center gap-2 p-3 bg-destructive/5 hover:bg-destructive/10 border border-destructive/20 hover:border-destructive text-destructive text-xs font-bold rounded-xl transition-all cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete Account & Purge Data
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* Personal Info Panel */}
-            {activePanel === 'personal' && (
-              <div className="glass p-6 rounded-2xl border border-card-border shadow-md space-y-5">
-                <div>
-                  <h2 className="text-sm font-black text-foreground uppercase tracking-widest mb-1">Personal Information</h2>
-                  <p className="text-[10px] text-muted font-medium">Update measurements, biometrics, and experience level</p>
+            {/* Profile Settings Panel */}
+            {activePanel === 'profile' && (
+              <div className="space-y-6">
+                {/* Profile completeness progress */}
+                <div className="glass p-6 rounded-2xl border border-card-border shadow-md">
+                  <h2 className="text-sm font-black text-foreground uppercase tracking-widest mb-4">Profile Completeness</h2>
+                  <div className="space-y-2 max-w-sm">
+                    <div className="w-full bg-surface border border-card-border h-2 rounded-full overflow-hidden">
+                      <div className="bg-acid-green h-full rounded-full transition-all duration-300" style={{ width: `${profileCompleteness}%` }} />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-muted font-bold">
+                      <span>COMPLETED</span>
+                      <span>{profileCompleteness}%</span>
+                    </div>
+                  </div>
+                  {profileCompleteness < 100 && (
+                    <p className="text-[10px] text-muted font-medium mt-3">Fill out your Health Preferences, AI Coach Settings, and upload a profile photo to reach 100% completion!</p>
+                  )}
                 </div>
 
-                <form onSubmit={handleSaveAllDetails} className="space-y-4 pt-4 border-t border-card-border">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelClass}>First Name</label>
-                      <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClass} />
+                {/* Metric Summary Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { label: 'Current Weight', val: `${weight} ${units === 'metric' ? 'kg' : 'lbs'}` },
+                    { label: 'Goal Weight', val: `${goalWeight} ${units === 'metric' ? 'kg' : 'lbs'}` },
+                    { label: 'Body Mass Index', val: bmi, sub: bmiStatus },
+                    { label: 'Fitness Score', val: `${ecoStore.fitnessScore?.dailyScore || 70}/100` }
+                  ].map((item, idx) => (
+                    <div key={idx} className="glass p-5 rounded-2xl border border-card-border shadow-md flex flex-col justify-between h-24">
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">{item.label}</span>
+                      <span className="text-md font-black text-foreground mt-2 block">{item.val}</span>
+                      {item.sub && <span className="text-[8.5px] text-muted block mt-1">{item.sub}</span>}
                     </div>
-                    <div>
-                      <label className={labelClass}>Last Name</label>
-                      <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClass} />
-                    </div>
+                  ))}
+                </div>
+
+                {/* Profile Form Details */}
+                <div className="glass p-6 rounded-2xl border border-card-border shadow-md space-y-5">
+                  <div>
+                    <h2 className="text-sm font-black text-foreground uppercase tracking-widest mb-1">Biometric Settings</h2>
+                    <p className="text-[10px] text-muted font-medium">Update calculations, physical metrics and experience level</p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelClass}>Nickname</label>
-                      <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} className={inputClass} />
+                  <form onSubmit={handleSaveAllDetails} className="space-y-4 pt-4 border-t border-card-border">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className={labelClass}>Age (Years)</label>
+                        <input type="number" value={ageInput} onChange={(e) => setAgeInput(parseInt(e.target.value) || 0)} className={inputClass} required />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Gender</label>
+                        <select value={gender} onChange={(e) => setGender(e.target.value)} className={inputClass}>
+                          <option value="male">Male</option>
+                          <option value="female">Female</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelClass}>Units</label>
+                        <select value={units} onChange={(e) => setUnits(e.target.value)} className={inputClass}>
+                          <option value="metric">Metric (kg, cm)</option>
+                          <option value="imperial">Imperial (lbs, in)</option>
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <label className={labelClass}>Date of Birth</label>
-                      <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} className={inputClass} />
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <label className={labelClass}>Gender</label>
-                      <select value={gender} onChange={(e) => setGender(e.target.value)} className={inputClass}>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                      </select>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className={labelClass}>Weight ({units === 'imperial' ? 'lbs' : 'kg'})</label>
+                        <input type="number" step="0.1" value={weight} onChange={(e) => setWeight(parseFloat(e.target.value) || 0)} className={inputClass} required />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Height ({units === 'imperial' ? 'in' : 'cm'})</label>
+                        <input type="number" step="0.1" value={height} onChange={(e) => setHeight(parseFloat(e.target.value) || 0)} className={inputClass} required />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Goal Weight ({units === 'imperial' ? 'lbs' : 'kg'})</label>
+                        <input type="number" step="0.1" value={goalWeight} onChange={(e) => setGoalWeight(parseFloat(e.target.value) || 0)} className={inputClass} required />
+                      </div>
                     </div>
-                    <div>
-                      <label className={labelClass}>Units</label>
-                      <select value={units} onChange={(e) => setUnits(e.target.value)} className={inputClass}>
-                        <option value="metric">Metric (kg, cm)</option>
-                        <option value="imperial">Imperial (lbs, in)</option>
-                      </select>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className={labelClass}>Date of Birth</label>
+                        <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} className={inputClass} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Activity Level</label>
+                        <select value={activity} onChange={(e) => setActivity(Number(e.target.value))} className={inputClass}>
+                          <option value="1.2">Sedentary (No exercise)</option>
+                          <option value="1.375">Lightly Active (1-3×/wk)</option>
+                          <option value="1.55">Moderately Active (3-5×/wk)</option>
+                          <option value="1.725">Very Active (6-7×/wk)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelClass}>Fitness Target</label>
+                        <select value={goal} onChange={(e) => setGoal(e.target.value)} className={inputClass}>
+                          <option value="lose">Weight Loss (Calorie Deficit)</option>
+                          <option value="maintain">Weight Maintenance</option>
+                          <option value="gains">Muscle Gains (Calorie Surplus)</option>
+                        </select>
+                      </div>
                     </div>
+
                     <div>
-                      <label className={labelClass}>Experience</label>
+                      <label className={labelClass}>Experience Level</label>
                       <select value={experience} onChange={(e) => setExperience(e.target.value)} className={inputClass}>
                         <option value="beginner">Beginner</option>
                         <option value="intermediate">Intermediate</option>
                         <option value="advanced">Advanced</option>
                       </select>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <label className={labelClass}>Weight ({units === 'imperial' ? 'lbs' : 'kg'})</label>
-                      <input type="number" step="0.1" value={weight} onChange={(e) => setWeight(parseFloat(e.target.value) || 0)} className={inputClass} />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Height ({units === 'imperial' ? 'in' : 'cm'})</label>
-                      <input type="number" step="0.1" value={height} onChange={(e) => setHeight(parseFloat(e.target.value) || 0)} className={inputClass} />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Goal Weight ({units === 'imperial' ? 'lbs' : 'kg'})</label>
-                      <input type="number" step="0.1" value={goalWeight} onChange={(e) => setGoalWeight(parseFloat(e.target.value) || 0)} className={inputClass} />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelClass}>Activity Level</label>
-                      <select value={activity} onChange={(e) => setActivity(Number(e.target.value))} className={inputClass}>
-                        <option value="1.2">Sedentary (No exercise)</option>
-                        <option value="1.375">Lightly Active (1-3×/wk)</option>
-                        <option value="1.55">Moderately Active (3-5×/wk)</option>
-                        <option value="1.725">Very Active (6-7×/wk)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className={labelClass}>Fitness Target</label>
-                      <select value={goal} onChange={(e) => setGoal(e.target.value)} className={inputClass}>
-                        <option value="lose">Weight Loss (Calorie Deficit)</option>
-                        <option value="maintain">Weight Maintenance</option>
-                        <option value="gains">Muscle Gains (Calorie Surplus)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="w-full btn-primary py-3 rounded-xl flex items-center justify-center gap-1.5 font-bold text-xs uppercase tracking-wider cursor-pointer border-none"
-                  >
-                    {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                    Save Details
-                  </button>
-                </form>
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="w-full btn-primary py-3 rounded-xl flex items-center justify-center gap-1.5 font-bold text-xs uppercase tracking-wider cursor-pointer border-none"
+                    >
+                      {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                      Save Profile Details
+                    </button>
+                  </form>
+                </div>
               </div>
             )}
 
             {/* Health & Diet Panel */}
-            {activePanel === 'diet' && (
+            {activePanel === 'health' && (
               <div className="glass p-6 rounded-2xl border border-card-border shadow-md space-y-5">
                 <div>
                   <h2 className="text-sm font-black text-foreground uppercase tracking-widest mb-1">Health & Diet Preferences</h2>
-                  <p className="text-[10px] text-muted font-medium">Configure preferences used in AI nutrition recommendations</p>
+                  <p className="text-[10px] text-muted font-medium">Configure dietary bounds used in AI nutritional recommendations</p>
                 </div>
 
                 <form onSubmit={handleSaveAllDetails} className="space-y-4 pt-4 border-t border-card-border">
@@ -673,7 +665,7 @@ export default function UserProfile({ onNotification }) {
                       <input type="text" value={allergies} onChange={(e) => setAllergies(e.target.value)} placeholder="e.g. peanuts, seafood" className={inputClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>Medical Restrictions</label>
+                      <label className={labelClass}>Food Restrictions / Medical</label>
                       <input type="text" value={medicalRestrictions} onChange={(e) => setMedicalRestrictions(e.target.value)} placeholder="e.g. low salt, diabetic" className={inputClass} />
                     </div>
                   </div>
@@ -701,16 +693,16 @@ export default function UserProfile({ onNotification }) {
               </div>
             )}
 
-            {/* AI Coach Settings Panel */}
-            {activePanel === 'coach' && (
-              <div className="glass p-6 rounded-2xl border border-card-border shadow-md space-y-5">
+            {/* AI Settings Panel */}
+            {activePanel === 'ai' && (
+              <div className="glass p-6 rounded-2xl border border-card-border shadow-md space-y-6">
                 <div>
                   <h2 className="text-sm font-black text-foreground uppercase tracking-widest mb-1">AI Coach Settings</h2>
-                  <p className="text-[10px] text-muted font-medium">Fine-tune the tone and response layout of Calyxo AI</p>
+                  <p className="text-[10px] text-muted font-medium">Configure personality style, message layouts and hydration checkins</p>
                 </div>
 
-                <form onSubmit={handleSaveAllDetails} className="space-y-4 pt-4 border-t border-card-border">
-                  <div className="grid grid-cols-2 gap-4">
+                <form onSubmit={handleSaveAllDetails} className="space-y-6 pt-4 border-t border-card-border">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className={labelClass}>Coach Personality</label>
                       <select value={coachPersonality} onChange={(e) => setCoachPersonality(e.target.value)} className={inputClass}>
@@ -730,9 +722,9 @@ export default function UserProfile({ onNotification }) {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className={labelClass}>Response Length</label>
+                      <label className={labelClass}>Response Style</label>
                       <select value={responseLength} onChange={(e) => setResponseLength(e.target.value)} className={inputClass}>
                         <option value="short">Short & Concise</option>
                         <option value="detailed">Detailed & Analytical</option>
@@ -757,49 +749,32 @@ export default function UserProfile({ onNotification }) {
                     </div>
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="w-full btn-primary py-3 rounded-xl flex items-center justify-center gap-1.5 font-bold text-xs uppercase tracking-wider cursor-pointer border-none"
-                  >
-                    {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                    Save Coach Parameters
-                  </button>
-                </form>
-              </div>
-            )}
-
-            {/* Notifications Panel */}
-            {activePanel === 'notifications' && (
-              <div className="glass p-6 rounded-2xl border border-card-border shadow-md space-y-5">
-                <div>
-                  <h2 className="text-sm font-black text-foreground uppercase tracking-widest mb-1">Notification Settings</h2>
-                  <p className="text-[10px] text-muted font-medium">Control notifications sent to your active devices</p>
-                </div>
-
-                <form onSubmit={handleSaveAllDetails} className="space-y-4 pt-4 border-t border-card-border">
-                  <div className="space-y-3.5">
-                    {[
-                      { key: 'workout', label: 'Workout Reminders', desc: 'Alerts when scheduled program targets are missing' },
-                      { key: 'meal', label: 'Meal Reminders', desc: 'Logs reminders for morning, lunch, and dinner logs' },
-                      { key: 'hydration', label: 'Hydration Reminders', desc: 'Periodic hydration prompts to log water ml' },
-                      { key: 'checkins', label: 'AI Coach Check-ins', desc: 'Periodic checking suggestions from coach Calyxo' },
-                      { key: 'challenges', label: 'Challenge Reminders', desc: 'Updates on joined active fitness challenges' },
-                      { key: 'achievements', label: 'Achievement Notifications', desc: 'Prompt notifications when milestone badges unlock' },
-                    ].map(item => (
-                      <label key={item.key} className="flex justify-between items-center bg-surface border border-card-border p-3.5 rounded-xl cursor-pointer">
-                        <div className="pr-4">
-                          <span className="text-xs font-bold text-foreground block">{item.label}</span>
-                          <span className="text-[9.5px] text-muted block mt-0.5">{item.desc}</span>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={notifications[item.key]}
-                          onChange={(e) => setNotifications({ ...notifications, [item.key]: e.target.checked })}
-                          className="w-4 h-4 rounded border-card-border text-acid-green focus:ring-0 cursor-pointer accent-acid-green"
-                        />
-                      </label>
-                    ))}
+                  {/* Notification settings inline */}
+                  <div className="space-y-3 pt-4 border-t border-card-border">
+                    <h4 className="text-xs font-bold text-foreground">Embedded Notification Prompts</h4>
+                    <div className="space-y-2">
+                      {[
+                        { key: 'workout', label: 'Workout Reminders', desc: 'Alerts when scheduled targets are missing' },
+                        { key: 'meal', label: 'Meal Reminders', desc: 'Logs reminders for morning, lunch, and dinner logs' },
+                        { key: 'hydration', label: 'Hydration Alerts', desc: 'Periodic hydration prompts to log water ml' },
+                        { key: 'checkins', label: 'AI Coach Check-ins', desc: 'Periodic checkin suggestions from coach Calyxo' },
+                        { key: 'challenges', label: 'Challenge Reminders', desc: 'Updates on joined active fitness challenges' },
+                        { key: 'achievements', label: 'Achievement Notifications', desc: 'Prompt notifications when badges unlock' },
+                      ].map(item => (
+                        <label key={item.key} className="flex justify-between items-center bg-surface border border-card-border p-3 rounded-xl cursor-pointer">
+                          <div className="pr-4">
+                            <span className="text-xs font-bold text-foreground block">{item.label}</span>
+                            <span className="text-[9.5px] text-muted block mt-0.5">{item.desc}</span>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={notifications[item.key]}
+                            onChange={(e) => setNotifications({ ...notifications, [item.key]: e.target.checked })}
+                            className="w-4 h-4 rounded border-card-border text-acid-green focus:ring-0 cursor-pointer accent-acid-green"
+                          />
+                        </label>
+                      ))}
+                    </div>
                   </div>
 
                   <button
@@ -808,7 +783,7 @@ export default function UserProfile({ onNotification }) {
                     className="w-full btn-primary py-3 rounded-xl flex items-center justify-center gap-1.5 font-bold text-xs uppercase tracking-wider cursor-pointer border-none"
                   >
                     {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                    Save Notification Settings
+                    Save Coach Parameters & Notifications
                   </button>
                 </form>
               </div>
@@ -838,8 +813,16 @@ export default function UserProfile({ onNotification }) {
                   </label>
 
                   <div className="space-y-3.5 mt-6 border-t border-card-border pt-4">
-                    <h4 className="text-xs font-bold text-foreground">Purge operations</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <h4 className="text-xs font-bold text-foreground">Operations & Exports</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <button
+                        onClick={handleExportData}
+                        className="py-3 px-4 bg-surface hover:bg-card-border border border-card-border hover:border-acid-green text-foreground text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <Download className="w-4 h-4 text-acid-green" />
+                        Export Data (JSON)
+                      </button>
+
                       <button
                         onClick={handleClearHistory}
                         className="py-3 px-4 border border-destructive/20 hover:border-destructive text-destructive bg-destructive/5 hover:bg-destructive/10 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
@@ -853,7 +836,7 @@ export default function UserProfile({ onNotification }) {
                         className="py-3 px-4 border border-destructive/20 hover:border-destructive text-destructive bg-destructive/5 hover:bg-destructive/10 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
                       >
                         <Database className="w-4 h-4" />
-                        Clear AI Coach Memory
+                        Clear AI Memory
                       </button>
                     </div>
                   </div>

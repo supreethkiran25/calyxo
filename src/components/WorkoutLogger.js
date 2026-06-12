@@ -267,13 +267,13 @@ export default function WorkoutLogger({ onNotification }) {
     <div className="space-y-6">
       
       {/* Sub tabs nav */}
-      <div className="flex items-center justify-between border-b border-card-border pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-card-border pb-4 gap-4">
         <div>
           <h1 className="text-xl font-black text-foreground uppercase tracking-wider">Workouts Log</h1>
           <p className="text-xs text-muted font-medium mt-0.5">Register weight sets, reps, and track active fitness targets</p>
         </div>
 
-        <div className="bg-surface border border-card-border p-1 rounded-xl flex gap-0.5 shrink-0">
+        <div className="bg-surface border border-card-border p-1 rounded-xl flex gap-0.5 w-full sm:w-auto shrink-0">
           {[
             { id: 'logger', label: 'Workout Logger' },
             { id: 'challenges', label: 'Arena Challenges' }
@@ -281,7 +281,7 @@ export default function WorkoutLogger({ onNotification }) {
             <button
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id)}
-              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex-1 sm:flex-none text-center ${
                 activeSubTab === tab.id
                   ? 'bg-acid-green text-accent-foreground shadow-sm'
                   : 'text-muted hover:text-foreground'

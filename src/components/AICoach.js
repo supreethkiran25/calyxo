@@ -659,7 +659,7 @@ export default function AICoach({ onNotification }) {
       <div className="flex-1 flex flex-col h-full bg-transparent relative min-w-0">
         
         {/* Chat Header */}
-        <div className="flex justify-between items-center px-5 py-4 border-b border-[var(--card-border)] bg-surface/5 relative shrink-0">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-4 py-3 sm:px-5 sm:py-4 gap-3 border-b border-[var(--card-border)] bg-surface/5 relative shrink-0">
           <div className="flex items-center gap-3">
             {/* Toggle History Button (Mobile Only) */}
             <button 
@@ -669,24 +669,24 @@ export default function AICoach({ onNotification }) {
               <Menu className="w-4 h-4" />
             </button>
 
-            <div className="w-9 h-9 rounded-full bg-[var(--color-acid-green)]/10 border border-[var(--color-acid-green)]/20 flex items-center justify-center relative">
-              <Bot className="w-5 h-5 text-[var(--color-acid-green)]" />
-              <div className="absolute w-2.5 h-2.5 bg-[var(--color-acid-green)] border-2 border-[var(--card-bg)] rounded-full bottom-0 right-0 animate-pulse"></div>
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[var(--color-acid-green)]/10 border border-[var(--color-acid-green)]/20 flex items-center justify-center relative shrink-0">
+              <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--color-acid-green)]" />
+              <div className="absolute w-2 h-2 sm:w-2.5 sm:h-2.5 bg-[var(--color-acid-green)] border-2 border-[var(--card-bg)] rounded-full bottom-0 right-0 animate-pulse"></div>
             </div>
-            <div className="hidden sm:block">
+            <div>
               <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider">
                 Calyxo Coach
                 <Sparkles className="w-3.5 h-3.5 text-[var(--color-acid-green)] fill-[var(--color-acid-green)]/10" />
               </h3>
-              <span className="text-[9px] text-muted font-bold tracking-widest uppercase">
+              <span className="text-[8px] sm:text-[9px] text-muted font-bold tracking-widest uppercase block mt-0.5">
                 Embedded AI Concierge
               </span>
             </div>
           </div>
           
           {/* Sub-tab Selectors and New Chat button */}
-          <div className="flex items-center gap-2.5">
-            <div className="bg-surface border border-[var(--card-border)] p-1 rounded-xl flex gap-0.5">
+          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+            <div className="bg-surface border border-[var(--card-border)] p-0.5 rounded-lg flex gap-0.5 flex-1 sm:flex-none">
               {[
                 { id: 'chat', label: 'Chat' },
                 { id: 'plans', label: 'AI Plans' },
@@ -695,9 +695,9 @@ export default function AICoach({ onNotification }) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveSubTab(tab.id)}
-                  className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                  className={`px-2 py-1 rounded-md text-[8.5px] font-black uppercase tracking-wider transition-all cursor-pointer flex-1 text-center whitespace-nowrap ${
                     activeSubTab === tab.id
-                      ? 'bg-[var(--color-acid-green)] text-accent-foreground'
+                      ? 'bg-[var(--color-acid-green)] text-accent-foreground shadow-sm'
                       : 'text-muted hover:text-foreground'
                   }`}
                 >
@@ -708,7 +708,7 @@ export default function AICoach({ onNotification }) {
             
             <button 
               onClick={handleNewChat}
-              className="py-1 px-2.5 rounded-lg border border-[var(--card-border)] bg-surface text-[9px] font-bold text-foreground hover:border-[var(--color-acid-green)] transition-all cursor-pointer shrink-0"
+              className="py-1 px-2.5 rounded-lg border border-[var(--card-border)] bg-surface text-[8.5px] font-bold text-foreground hover:border-[var(--color-acid-green)] transition-all cursor-pointer shrink-0"
             >
               New Chat
             </button>
@@ -723,7 +723,7 @@ export default function AICoach({ onNotification }) {
                 {messages.map((msg) => {
                   const isBot = msg.role === 'assistant';
                   return (
-                    <div key={msg.id} className={`flex gap-3 max-w-[88%] md:max-w-[78%] ${isBot ? 'mr-auto' : 'ml-auto flex-row-reverse'}`}>
+                    <div key={msg.id} className={`flex gap-2.5 sm:gap-3 max-w-[92%] sm:max-w-[85%] md:max-w-[78%] ${isBot ? 'mr-auto' : 'ml-auto flex-row-reverse'}`}>
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ${
                         isBot 
                           ? 'bg-[var(--color-acid-green)]/10 border-[var(--color-acid-green)]/20 text-[var(--color-acid-green)]' 
@@ -732,12 +732,12 @@ export default function AICoach({ onNotification }) {
                         {isBot ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
                       </div>
 
-                      <div className={`p-4 rounded-2xl text-xs flex flex-col space-y-1 shadow-sm border ${
+                      <div className={`p-3.5 sm:p-4 rounded-2xl text-xs flex flex-col space-y-1 shadow-sm border min-w-0 break-words w-full ${
                         isBot 
                           ? 'bg-surface/50 border-[var(--card-border)] text-foreground rounded-tl-none' 
                           : 'bg-[var(--color-acid-green)]/10 text-foreground border-[var(--color-acid-green)]/20 rounded-tr-none font-bold'
                       }`}>
-                        <div className="whitespace-pre-wrap select-text">
+                        <div className="whitespace-pre-wrap select-text break-words w-full">
                           {isBot ? formatMessageText(msg.text) : msg.text}
                         </div>
 
@@ -785,53 +785,53 @@ export default function AICoach({ onNotification }) {
               </div>
             </div>
 
-            {/* Suggestion Chips */}
-            {messages.length === 1 && !loading && (
-              <div className="px-5 py-2.5 flex gap-2 overflow-x-auto border-t border-[var(--card-border)] bg-surface/5 scrollbar-none shrink-0">
-                <div className="max-w-4xl mx-auto flex gap-2 w-full">
-                  <button 
-                    onClick={() => handleSuggestionClick("Suggest a workout form tip for Squats")}
-                    className="px-3.5 py-2 rounded-full border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--color-acid-green)]/5 text-[10px] text-muted hover:text-[var(--color-acid-green)] font-bold whitespace-nowrap cursor-pointer transition-all bg-[var(--card-bg)]"
-                  >
-                    🏋️ Squat Form Tips
-                  </button>
-                  <button 
-                    onClick={() => handleSuggestionClick("Give me a recipe alternative to Chicken Biryani matching my goals")}
-                    className="px-3.5 py-2 rounded-full border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--color-acid-green)]/5 text-[10px] text-muted hover:text-[var(--color-acid-green)] font-bold whitespace-nowrap cursor-pointer transition-all bg-[var(--card-bg)]"
-                  >
-                    🍳 Biryani Alternative
-                  </button>
-                  <button 
-                    onClick={() => handleSuggestionClick("How can I adjust my macros for faster lean gains?")}
-                    className="px-3.5 py-2 rounded-full border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--color-acid-green)]/5 text-[10px] text-muted hover:text-[var(--color-acid-green)] font-bold whitespace-nowrap cursor-pointer transition-all bg-[var(--card-bg)]"
-                  >
-                    ⚡ Lean Gains Macros
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Input Bar */}
-            <div className="p-4 border-t border-[var(--card-border)] bg-surface/5 shrink-0 z-10">
-              <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex gap-3">
-                <input 
-                  type="text" 
-                  value={inputVal}
-                  onChange={(e) => setInputVal(e.target.value)}
-                  placeholder="Ask coach Calyxo about nutrition or workouts..."
-                  className="flex-1 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-full px-5 py-3 text-xs text-[var(--foreground)] focus:outline-none focus:border-[var(--color-acid-green)] shadow-inner"
-                  disabled={loading}
-                />
-                <button 
-                  type="submit" 
-                  disabled={loading || !inputVal.trim()}
-                  className="px-5 h-10 rounded-full bg-[var(--color-acid-green)] text-accent-foreground flex items-center justify-center gap-2 shadow-md disabled:opacity-50 hover:shadow-lg cursor-pointer shrink-0 transition-all active:scale-95 border-none font-bold text-xs uppercase tracking-wider"
-                >
-                  <span>Send</span>
-                  <Send className="w-3.5 h-3.5 text-accent-foreground" />
-                </button>
-              </form>
-            </div>
+             {/* Suggestion Chips */}
+             {messages.length === 1 && !loading && (
+               <div className="px-4 py-2.5 flex gap-2 overflow-x-auto border-t border-[var(--card-border)] bg-surface/5 scrollbar-none shrink-0 w-full">
+                 <div className="flex gap-2 max-w-4xl mx-auto">
+                   <button 
+                     onClick={() => handleSuggestionClick("Suggest a workout form tip for Squats")}
+                     className="px-3 py-1.5 rounded-full border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--color-acid-green)]/5 text-[9px] sm:text-[10px] text-muted hover:text-[var(--color-acid-green)] font-bold whitespace-nowrap cursor-pointer transition-all bg-[var(--card-bg)]"
+                   >
+                     🏋️ Squat Form Tips
+                   </button>
+                   <button 
+                     onClick={() => handleSuggestionClick("Give me a recipe alternative to Chicken Biryani matching my goals")}
+                     className="px-3 py-1.5 rounded-full border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--color-acid-green)]/5 text-[9px] sm:text-[10px] text-muted hover:text-[var(--color-acid-green)] font-bold whitespace-nowrap cursor-pointer transition-all bg-[var(--card-bg)]"
+                   >
+                     🍳 Biryani Alternative
+                   </button>
+                   <button 
+                     onClick={() => handleSuggestionClick("How can I adjust my macros for faster lean gains?")}
+                     className="px-3 py-1.5 rounded-full border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--color-acid-green)]/5 text-[9px] sm:text-[10px] text-muted hover:text-[var(--color-acid-green)] font-bold whitespace-nowrap cursor-pointer transition-all bg-[var(--card-bg)]"
+                   >
+                     ⚡ Lean Gains Macros
+                   </button>
+                 </div>
+               </div>
+             )}
+ 
+             {/* Input Bar */}
+             <div className="p-4 border-t border-[var(--card-border)] bg-surface/5 shrink-0 z-10">
+               <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex gap-2.5 sm:gap-3">
+                 <input 
+                   type="text" 
+                   value={inputVal}
+                   onChange={(e) => setInputVal(e.target.value)}
+                   placeholder="Ask coach Calyxo..."
+                   className="flex-1 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-full px-4 sm:px-5 py-3 text-xs text-[var(--foreground)] focus:outline-none focus:border-[var(--color-acid-green)] shadow-inner"
+                   disabled={loading}
+                 />
+                 <button 
+                   type="submit" 
+                   disabled={loading || !inputVal.trim()}
+                   className="px-4 sm:px-5 h-10 rounded-full bg-[var(--color-acid-green)] text-accent-foreground flex items-center justify-center gap-1.5 shadow-md disabled:opacity-50 hover:shadow-lg cursor-pointer shrink-0 transition-all active:scale-95 border-none font-bold text-xs uppercase tracking-wider"
+                 >
+                   <span className="hidden sm:inline">Send</span>
+                   <Send className="w-3.5 h-3.5 text-accent-foreground" />
+                 </button>
+               </form>
+             </div>
           </>
         ) : activeSubTab === 'plans' ? (
           renderPlansGenerator()

@@ -52,7 +52,7 @@ const UserProfile = dynamic(() => import('../components/UserProfile'), { loading
 const Progress = dynamic(() => import('../components/Progress'), { loading: () => <TabSkeleton /> });
 
 const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Home', icon: HomeIcon },
+  { id: 'dashboard', label: 'Dashboard', icon: HomeIcon },
   { id: 'coach', label: 'AI Coach', icon: Bot },
   { id: 'nutrition', label: 'Nutrition', icon: BookOpen },
   { id: 'workout', label: 'Workouts', icon: BarChart2 },
@@ -375,7 +375,7 @@ export default function Home() {
             const isActive = activeTab === item.id;
 
             const getMobileLabel = (navItem) => {
-              if (navItem.id === 'dashboard') return 'Home';
+              if (navItem.id === 'dashboard') return 'Dashboard';
               if (navItem.id === 'coach') return 'Coach';
               if (navItem.id === 'nutrition') return 'Food';
               if (navItem.id === 'workout') return 'Workouts';
