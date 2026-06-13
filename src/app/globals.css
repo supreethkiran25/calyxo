@@ -1,0 +1,418 @@
+@import "tailwindcss";
+
+/* Tailwind v4 class-based dark mode toggle support */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+
+  /* Calyxo brand color mappings */
+  --color-obsidian: var(--background);
+  --color-surface: var(--secondary);
+  --color-acid-green: var(--accent);
+  --color-acid-green-dim: var(--accent-dim);
+  --color-orange: var(--orange-theme);
+  --color-blue: var(--blue-theme);
+  --color-red: var(--destructive);
+  --color-border-light: var(--border);
+  --color-card-border: var(--card-border);
+  --color-card-bg: var(--card-bg);
+  --color-text-muted: var(--text-muted);
+}
+
+:root {
+  /* Semantic WCAG variables (Light Mode) */
+  --background: #f9fafb;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --primary: #b5f23d;
+  --primary-foreground: #000000;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #111827;
+  --muted: #f3f4f6;
+  --muted-foreground: #4b5563; /* Accessible gray text contrast */
+  --accent: #4c7a00; /* High contrast dark green text/buttons */
+  --accent-dim: #3d6600;
+  --accent-foreground: #ffffff;
+  --border: #e5e7eb;
+  --input: #ffffff;
+  --input-foreground: #111827;
+  --success: #059669;
+  --warning: #d97706;
+  --destructive: #dc2626;
+
+  /* Brand overrides for Light Mode */
+  --orange-theme: #d05c1d;
+  --blue-theme: #0277bd;
+  --primary-bg: #4c7a00;
+  --primary-fg: #ffffff;
+  --glow-shadow: none;
+  --accent-glow: rgba(76, 122, 0, 0.15);
+
+  /* Backward compatibility links */
+  --card-bg: var(--card);
+  --card-border: var(--border);
+  --text-muted: var(--muted-foreground);
+  --nav-bg: rgba(255, 255, 255, 0.85);
+  --nav-border: var(--border);
+  --surface: var(--secondary);
+  --input-bg: var(--input);
+  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+}
+
+:root.dark,
+[data-theme='dark'] {
+  /* Semantic WCAG variables (Dark Mode) */
+  --background: #080808;
+  --foreground: #f3f4f6;
+  --card: #121212;
+  --card-foreground: #f3f4f6;
+  --primary: #b5f23d;
+  --primary-foreground: #000000;
+  --secondary: #181818;
+  --secondary-foreground: #f3f4f6;
+  --muted: #1c1c1e;
+  --muted-foreground: #9ca3af; /* Legible contrast for dark mode muted text */
+  --accent: #b5f23d; /* Signature bright neon green */
+  --accent-dim: #a0d934;
+  --accent-foreground: #000000;
+  --border: #1e1e1e;
+  --input: #1c1c1e;
+  --input-foreground: #f3f4f6;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --destructive: #ef5350;
+
+  /* Brand overrides for Dark Mode */
+  --orange-theme: #f57c38;
+  --blue-theme: #4fc3f7;
+  --primary-bg: #b5f23d;
+  --primary-fg: #000000;
+  --glow-shadow: 0 0 20px rgba(181, 242, 61, 0.4);
+  --accent-glow: rgba(181, 242, 61, 0.2);
+
+  /* Backward compatibility links */
+  --card-bg: var(--card);
+  --card-border: var(--border);
+  --text-muted: var(--muted-foreground);
+  --nav-bg: rgba(18, 18, 18, 0.85);
+  --nav-border: var(--border);
+  --surface: var(--secondary);
+  --input-bg: var(--input);
+  --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-acid-green);
+  outline-offset: 2px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-acid-green); }
+
+/* Card styles */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+}
+
+.card-sm {
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+}
+
+/* Glass panel styling */
+.glass {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Glass nav */
+.glass-nav {
+  background: var(--nav-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--nav-border);
+}
+
+/* Input styles */
+input, select, textarea {
+  background: var(--input-bg);
+  color: var(--foreground);
+  border: 1px solid var(--card-border);
+  outline: none;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--color-acid-green);
+}
+
+/* Macro bar animations */
+@keyframes fillBar {
+  from { width: 0%; }
+  to { width: var(--fill-width); }
+}
+
+/* Progress ring */
+@keyframes ringFill {
+  from { stroke-dashoffset: var(--dash-total); }
+  to { stroke-dashoffset: var(--dash-offset); }
+}
+
+/* Pulse */
+@keyframes softPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.pulse-dot {
+  animation: softPulse 2s ease-in-out infinite;
+}
+
+/* Water animation */
+@keyframes waterRise {
+  0% { transform: scaleY(1); }
+  50% { transform: scaleY(1.015); }
+  100% { transform: scaleY(1); }
+}
+
+.animate-water {
+  animation: waterRise 3s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+/* Green text glow */
+.text-glow-green {
+  text-shadow: var(--glow-shadow);
+}
+
+/* Button base */
+.btn-primary {
+  background: var(--primary-bg);
+  color: var(--primary-fg);
+  font-weight: 700;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.btn-primary:hover {
+  background: var(--accent-dim);
+  box-shadow: 0 4px 20px rgba(181, 242, 61, 0.15);
+}
+
+.btn-ghost {
+  background: var(--surface);
+  color: var(--foreground);
+  font-weight: 600;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-ghost:hover {
+  border-color: var(--color-acid-green);
+  color: var(--color-acid-green);
+}
+
+/* Active nav indicator */
+.nav-active-indicator {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background: var(--color-acid-green);
+  border-radius: 50%;
+}
+
+/* Shimmer loading skeleton */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--card-border) 25%, var(--card-bg) 50%, var(--card-border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* Section label */
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Value large */
+.value-xl {
+  font-size: 36px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* Macro progress bar */
+.macro-bar-track {
+  width: 100%;
+  height: 6px;
+  background: var(--card-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.macro-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Global text utility override for text-muted to ensure high contrast in all themes */
+.text-muted {
+  color: var(--muted-foreground) !important;
+}
+
+/* Premium glass card styling for authentication overlays */
+.glass-premium {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Custom Background Animations */
+@keyframes floatAnimation {
+  0% { transform: translateY(0px) rotate(0deg) scale(1); }
+  50% { transform: translateY(-40px) rotate(180deg) scale(1.05); }
+  100% { transform: translateY(0px) rotate(360deg) scale(1); }
+}
+
+@keyframes floatDelayedAnimation {
+  0% { transform: translateY(0px) rotate(0deg) scale(1.05); }
+  50% { transform: translateY(35px) rotate(-180deg) scale(0.95); }
+  100% { transform: translateY(0px) rotate(-360deg) scale(1.05); }
+}
+
+@keyframes pulseDelayedAnimation {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.5; }
+}
+
+.animate-float {
+  animation: floatAnimation 20s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: floatDelayedAnimation 25s ease-in-out infinite;
+}
+
+.animate-pulse-delayed {
+  animation: pulseDelayedAnimation 12s ease-in-out infinite;
+}
+
+/* Accessibility Options */
+/* 1. Large Text Mode */
+.accessibility-large-text {
+  font-size: 112% !important;
+}
+.accessibility-large-text .text-xs, 
+.accessibility-large-text .text-\[10px\],
+.accessibility-large-text .text-\[9px\],
+.accessibility-large-text .text-\[8px\],
+.accessibility-large-text .section-label {
+  font-size: 13px !important;
+}
+
+/* 2. High Contrast Mode */
+.accessibility-high-contrast {
+  --background: #000000 !important;
+  --foreground: #ffffff !important;
+  --card: #000000 !important;
+  --border: #ffffff !important;
+  --card-border: #ffffff !important;
+  --muted-foreground: #ffffff !important;
+}
+.accessibility-high-contrast.light,
+.accessibility-high-contrast[data-theme='light'] {
+  --background: #ffffff !important;
+  --foreground: #000000 !important;
+  --card: #ffffff !important;
+  --border: #000000 !important;
+  --card-border: #000000 !important;
+  --muted-foreground: #000000 !important;
+}
+.accessibility-high-contrast *,
+.accessibility-high-contrast button,
+.accessibility-high-contrast input,
+.accessibility-high-contrast select,
+.accessibility-high-contrast textarea,
+.accessibility-high-contrast .glass {
+  border-color: var(--border) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* 3. Dyslexia Friendly Typography override */
+.accessibility-dyslexic-font {
+  font-family: 'Comic Sans MS', 'OpenDyslexic', 'Chalkboard SE', cursive, sans-serif !important;
+}
+.accessibility-dyslexic-font * {
+  font-family: 'Comic Sans MS', 'OpenDyslexic', 'Chalkboard SE', cursive, sans-serif !important;
+  letter-spacing: 0.05em !important;
+  word-spacing: 0.1em !important;
+}

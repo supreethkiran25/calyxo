@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Check if user has trainer role
+    function isTrainer() {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/users_metrics/$(request.auth.uid + '_profile')).data.role == 'trainer';
+    }
+
+    // Check if user has dietitian role
+    function isDietitian() {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/users_metrics/$(request.auth.uid + '_profile')).data.role == 'dietitian';
+    }
+
+    // Check if user has admin role
+    function isAdmin() {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/users_metrics/$(request.auth.uid + '_profile')).data.role == 'admin';
+    }
+
+    // Profile Rules
+    match /users_metrics/{profileId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (profileId == request.auth.uid + '_profile' || isAdmin());
+    }
+
+    // Client connection tables
+    match /trainer_clients/{docId} {
+      allow read, write: if request.auth != null && (isTrainer() || isAdmin());
+    }
+
+    match /dietitian_clients/{docId} {
+      allow read, write: if request.auth != null && (isDietitian() || isAdmin());
+    }
+
+    // Assignments
+    match /assigned_workouts/{docId} {
+      allow read: if request.auth != null && (resource.data.clientId == request.auth.uid || isTrainer() || isAdmin());
+      allow write: if request.auth != null && (isTrainer() || isAdmin());
+    }
+
+    match /assigned_meal_plans/{docId} {
+      allow read: if request.auth != null && (resource.data.clientId == request.auth.uid || isDietitian() || isAdmin());
+      allow write: if request.auth != null && (isDietitian() || isAdmin());
+    }
+
+    // Client invitations
+    match /client_invitations/{docId} {
+      allow read, write: if request.auth != null && (isTrainer() || isDietitian() || isAdmin());
+    }
+
+    // Catch-all
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
