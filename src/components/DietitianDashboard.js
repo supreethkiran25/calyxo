@@ -191,7 +191,7 @@ export default function DietitianDashboard({ initialTab = 'overview', onNotifica
               <span className="text-[9px] text-muted font-bold block mt-0.5">Control dietary clients and macros guidelines</span>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-surface/50 border border-card-border p-4 rounded-2xl">
                 <span className="text-[9px] text-muted font-black">Active Nutrition Clients</span>
                 <span className="value-xl text-acid-green block mt-2">{rbac.dietitianClients.filter(c => c.status === 'Active').length}</span>

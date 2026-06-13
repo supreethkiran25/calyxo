@@ -186,7 +186,7 @@ export default function TrainerDashboard({ initialTab = 'overview', onNotificati
               <span className="text-[9px] text-muted font-bold block mt-0.5">Manage athletic roster & coaching assignments</span>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-surface/50 border border-card-border p-4 rounded-2xl">
                 <span className="text-[9px] text-muted font-black uppercase">Active Clients</span>
                 <span className="value-xl text-acid-green block mt-2">{rbac.trainerClients.filter(c => c.status === 'Active').length}</span>

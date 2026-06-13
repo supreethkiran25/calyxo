@@ -910,7 +910,7 @@ export default function UserProfile({ onNotification }) {
                   </h4>
                   <p className="text-[9.5px] text-[var(--text-muted)] font-semibold mt-1">Switch your account role instantly to test user view, trainer tools, dietitian dashboards, or admin tables.</p>
                   
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {['user', 'trainer', 'dietitian', 'admin'].map((r) => {
                       const isActive = userProfile?.role === r || (r === 'user' && !userProfile?.role);
                       return (
@@ -924,7 +924,7 @@ export default function UserProfile({ onNotification }) {
                               if (onNotification) onNotification(`Account role updated to ${r.toUpperCase()}! 🛡️`);
                             }
                           }}
-                          className={`flex-1 py-3 px-3 border rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                          className={`w-full py-3 px-3 border rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                             isActive
                               ? 'bg-acid-green text-accent-foreground border-acid-green'
                               : 'bg-surface border-card-border text-muted hover:border-acid-green/45'
