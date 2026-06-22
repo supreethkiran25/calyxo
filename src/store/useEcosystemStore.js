@@ -1,18 +1,12 @@
 import { create } from 'zustand';
+import { getSecureItem, setSecureItem } from '../lib/dbService';
 
 const LOCAL_ECOSYSTEM_KEY = "calyxo_ecosystem_state";
 
 const getLocalEcosystemState = () => {
-  if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem(LOCAL_ECOSYSTEM_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error("Ecosystem state parse error", e);
-      }
-    }
-  }
+  const saved = getSecureItem(LOCAL_ECOSYSTEM_KEY);
+  if (saved) return saved;
+
   return {
     streaks: { loginStreak: 1, workoutStreak: 0, nutritionStreak: 0, waterStreak: 0, lastCheckIn: new Date().toDateString() },
     achievements: [
@@ -35,14 +29,16 @@ const getLocalEcosystemState = () => {
       { id: 'running_50k', name: '50K Running Challenge', target: 'Run 50km total distance', progress: 0, targetVal: 50, completed: false, unit: 'km' }
     ],
     personality: 'motivational',
-    mealScans: []
+    mealScans: [],
+    measurementLogs: [],
+    xp: 0,
+    level: 1,
+    clientAssignments: {}
   };
 };
 
 const saveLocalEcosystemState = (state) => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(LOCAL_ECOSYSTEM_KEY, JSON.stringify(state));
-  }
+  setSecureItem(LOCAL_ECOSYSTEM_KEY, state);
 };
 
 export const useEcosystemStore = create((set, get) => ({
@@ -66,14 +62,49 @@ export const useEcosystemStore = create((set, get) => ({
 
   // Unlock Achievements
   unlockAchievement: (id) => set((state) => {
-    const next = state.achievements.map(a => 
-      a.id === id && !a.unlocked 
-        ? { ...a, unlocked: true, unlockedAt: Date.now() } 
-        : a
-    );
-    const nextState = { ...state, achievements: next };
+    let xpGranted = 0;
+    const next = state.achievements.map(a => {
+      if (a.id === id && !a.unlocked) {
+        xpGranted = 200;
+        return { ...a, unlocked: true, unlockedAt: Date.now() };
+      }
+      return a;
+    });
+
+    let nextXP = state.xp || 0;
+    let nextLevel = state.level || 1;
+    if (xpGranted > 0) {
+      nextXP += xpGranted;
+      while (nextXP >= nextLevel * 1000) {
+        nextXP -= nextLevel * 1000;
+        nextLevel += 1;
+      }
+    }
+
+    const nextState = { ...state, achievements: next, xp: nextXP, level: nextLevel };
     saveLocalEcosystemState(nextState);
-    return { achievements: next };
+    return { achievements: next, xp: nextXP, level: nextLevel };
+  }),
+
+  // Add XP directly (for food logs, workouts, water target)
+  addXP: (amount) => set((state) => {
+    let nextXP = (state.xp || 0) + amount;
+    let nextLevel = state.level || 1;
+    while (nextXP >= nextLevel * 1000) {
+      nextXP -= nextLevel * 1000;
+      nextLevel += 1;
+    }
+    const nextState = { ...state, xp: nextXP, level: nextLevel };
+    saveLocalEcosystemState(nextState);
+    return { xp: nextXP, level: nextLevel };
+  }),
+
+  // Add body measurement log
+  addMeasurementLog: (log) => set((state) => {
+    const next = [log, ...(state.measurementLogs || [])];
+    const nextState = { ...state, measurementLogs: next };
+    saveLocalEcosystemState(nextState);
+    return { measurementLogs: next };
   }),
 
   // Save generated active coaching plan

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useStore } from '../store/useStore';
 
 export default function BackgroundEffects({ activeTab }) {
@@ -34,7 +34,10 @@ export default function BackgroundEffects({ activeTab }) {
 
     // Detect system reduced motion preferences
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setSystemReducedMotion(motionQuery.matches);
+    const matches = motionQuery.matches;
+    setTimeout(() => {
+      setSystemReducedMotion(matches);
+    }, 0);
     const motionListener = (e) => setSystemReducedMotion(e.matches);
     motionQuery.addEventListener('change', motionListener);
 
@@ -84,7 +87,7 @@ export default function BackgroundEffects({ activeTab }) {
     !systemReducedMotion;
 
   // Determine particle/animation speed multipliers based on settings
-  const getSpeedMultiplier = () => {
+  const getSpeedMultiplier = useCallback(() => {
     if (!shouldAnimate) return 0;
     switch (animationIntensity) {
       case 'low': return 0.35;
@@ -92,7 +95,7 @@ export default function BackgroundEffects({ activeTab }) {
       case 'medium':
       default: return 0.85;
     }
-  };
+  }, [shouldAnimate, animationIntensity]);
 
   // 3. Canvas animation loops for Particles and 3D Mesh
   useEffect(() => {
@@ -256,7 +259,7 @@ export default function BackgroundEffects({ activeTab }) {
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationId);
     };
-  }, [bgEffectsEnabled, bgStyle, isMobile, theme, animationIntensity, performanceMode, reduceMotion, systemReducedMotion]);
+  }, [bgEffectsEnabled, bgStyle, isMobile, theme, animationIntensity, performanceMode, reduceMotion, systemReducedMotion, getSpeedMultiplier]);
 
   // If effects are disabled, completely remove components
   if (!bgEffectsEnabled || bgStyle === 'minimal') {

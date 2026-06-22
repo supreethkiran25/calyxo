@@ -30,6 +30,46 @@ export default function Progress({ onNotification }) {
   // Predictions State
   const [loadingForecast, setLoadingForecast] = useState(false);
 
+  // Body Measurements Logging Form
+  const [chestInput, setChestInput] = useState('');
+  const [waistInput, setWaistInput] = useState('');
+  const [hipsInput, setHipsInput] = useState('');
+  const [bicepsInput, setBicepsInput] = useState('');
+  const [thighsInput, setThighsInput] = useState('');
+  const [neckInput, setNeckInput] = useState('');
+
+  const handleLogMeasurements = async (e) => {
+    e.preventDefault();
+    if (!chestInput.trim() && !waistInput.trim() && !hipsInput.trim() && !bicepsInput.trim() && !thighsInput.trim() && !neckInput.trim()) {
+      return;
+    }
+    const logEntry = {
+      id: Date.now(),
+      date: new Date().toLocaleDateString([], { month: 'short', day: 'numeric' }),
+      timestamp: Date.now(),
+      chest: chestInput.trim() ? Number(chestInput) : null,
+      waist: waistInput.trim() ? Number(waistInput) : null,
+      hips: hipsInput.trim() ? Number(hipsInput) : null,
+      biceps: bicepsInput.trim() ? Number(bicepsInput) : null,
+      thighs: thighsInput.trim() ? Number(thighsInput) : null,
+      neck: neckInput.trim() ? Number(neckInput) : null,
+      unit: units === 'imperial' ? 'in' : 'cm'
+    };
+
+    ecoStore.addMeasurementLog(logEntry);
+    await saveEcosystemState(userId, useEcosystemStore.getState());
+    
+    // Clear inputs
+    setChestInput('');
+    setWaistInput('');
+    setHipsInput('');
+    setBicepsInput('');
+    setThighsInput('');
+    setNeckInput('');
+    
+    if (onNotification) onNotification("Logged body measurements! 📏");
+  };
+
   // Compute stats trend
   let trend = null;
   if (weightLogs && weightLogs.length >= 2) {
@@ -226,22 +266,25 @@ export default function Progress({ onNotification }) {
   return (
     <div className="space-y-6 pb-24">
       {/* Sub tabs Menu */}
-      <div className="flex items-center justify-between border-b border-card-border pb-4">
-        <div>
-          <h1 className="text-xl font-black text-foreground uppercase tracking-wider">Progress Hub</h1>
-          <p className="text-xs text-muted font-medium mt-0.5">Understand your trajectory, predictions, and unlocks</p>
+      <div className="flex flex-col gap-3 border-b border-card-border pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-xl font-black text-foreground uppercase tracking-wider leading-tight">Progress Hub</h1>
+            <p className="text-[10px] sm:text-xs text-muted font-medium mt-0.5 hidden sm:block">Understand your trajectory, predictions, and unlocks</p>
+          </div>
         </div>
 
-        <div className="bg-surface border border-card-border p-1 rounded-xl flex gap-0.5 shrink-0">
+        <div className="bg-surface border border-card-border p-1 rounded-xl flex gap-0.5 overflow-x-auto scrollbar-none">
           {[
             { id: 'analytics', label: 'Analytics' },
+            { id: 'measurements', label: 'Body' },
             { id: 'predictions', label: 'Predictions' },
             { id: 'achievements', label: 'Achievements' }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id)}
-              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer shrink-0 flex-1 text-center ${
                 activeSubTab === tab.id
                   ? 'bg-acid-green text-accent-foreground shadow-sm'
                   : 'text-muted hover:text-foreground'
@@ -391,7 +434,7 @@ export default function Progress({ onNotification }) {
                       <div className="relative border border-dashed border-card-border rounded-xl h-28 flex flex-col items-center justify-center bg-surface/50 overflow-hidden cursor-pointer">
                         {beforeImage ? (
                           <>
-                            <img src={beforeImage} className="object-cover w-full h-full" />
+                            <img src={beforeImage} className="object-cover w-full h-full" alt="Before transformation comparison preview" />
                             <button onClick={() => setBeforeImage(null)} className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 text-[8px] font-bold">Clear</button>
                           </>
                         ) : (
@@ -410,7 +453,7 @@ export default function Progress({ onNotification }) {
                       <div className="relative border border-dashed border-card-border rounded-xl h-28 flex flex-col items-center justify-center bg-surface/50 overflow-hidden cursor-pointer">
                         {afterImage ? (
                           <>
-                            <img src={afterImage} className="object-cover w-full h-full" />
+                            <img src={afterImage} className="object-cover w-full h-full" alt="After transformation comparison preview" />
                             <button onClick={() => setAfterImage(null)} className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 text-[8px] font-bold">Clear</button>
                           </>
                         ) : (
@@ -455,11 +498,11 @@ export default function Progress({ onNotification }) {
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                               <div className="relative rounded-lg overflow-hidden border border-card-border bg-black aspect-video flex items-center justify-center max-h-24">
-                                <img src={log.before} className="object-contain w-full h-full" />
+                                <img src={log.before} className="object-contain w-full h-full" alt={`Before photo logged on ${log.date}`} />
                                 <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[7px] font-bold px-1 py-0.5 rounded">BEFORE</div>
                               </div>
                               <div className="relative rounded-lg overflow-hidden border border-card-border bg-black aspect-video flex items-center justify-center max-h-24">
-                                <img src={log.after} className="object-contain w-full h-full" />
+                                <img src={log.after} className="object-contain w-full h-full" alt={`After photo logged on ${log.date}`} />
                                 <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[7px] font-bold px-1 py-0.5 rounded">AFTER</div>
                               </div>
                             </div>
@@ -488,6 +531,182 @@ export default function Progress({ onNotification }) {
                     Download Sharing Card
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeSubTab === 'measurements' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              
+              {/* Left Column: Form */}
+              <form onSubmit={handleLogMeasurements} className="glass p-6 rounded-2xl border border-card-border shadow-md space-y-4 lg:col-span-1">
+                <h3 className="text-sm font-extrabold text-foreground uppercase tracking-widest flex items-center gap-2">
+                  📏 Log Body Measurements
+                </h3>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Chest ({units === 'imperial' ? 'in' : 'cm'})</label>
+                    <input 
+                      type="number" step="0.1" min="1" max="300"
+                      value={chestInput}
+                      onChange={(e) => setChestInput(e.target.value)}
+                      placeholder="e.g. 95"
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Waist ({units === 'imperial' ? 'in' : 'cm'})</label>
+                    <input 
+                      type="number" step="0.1" min="1" max="300"
+                      value={waistInput}
+                      onChange={(e) => setWaistInput(e.target.value)}
+                      placeholder="e.g. 80"
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Hips ({units === 'imperial' ? 'in' : 'cm'})</label>
+                    <input 
+                      type="number" step="0.1" min="1" max="300"
+                      value={hipsInput}
+                      onChange={(e) => setHipsInput(e.target.value)}
+                      placeholder="e.g. 98"
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Biceps ({units === 'imperial' ? 'in' : 'cm'})</label>
+                    <input 
+                      type="number" step="0.1" min="1" max="300"
+                      value={bicepsInput}
+                      onChange={(e) => setBicepsInput(e.target.value)}
+                      placeholder="e.g. 35"
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Thighs ({units === 'imperial' ? 'in' : 'cm'})</label>
+                    <input 
+                      type="number" step="0.1" min="1" max="300"
+                      value={thighsInput}
+                      onChange={(e) => setThighsInput(e.target.value)}
+                      placeholder="e.g. 55"
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Neck ({units === 'imperial' ? 'in' : 'cm'})</label>
+                    <input 
+                      type="number" step="0.1" min="1" max="300"
+                      value={neckInput}
+                      onChange={(e) => setNeckInput(e.target.value)}
+                      placeholder="e.g. 38"
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+                
+                <button
+                  type="submit"
+                  className="w-full btn-primary py-2.5 rounded-xl cursor-pointer border-none font-bold text-xs uppercase tracking-wider shadow-md mt-2"
+                >
+                  Log Measurements
+                </button>
+              </form>
+              
+              {/* Right Column: Charts & History (Spans 2 columns) */}
+              <div className="lg:col-span-2 space-y-6">
+                
+                {/* Visual Sparklines / Multi-chart */}
+                <div className="glass p-6 rounded-2xl border border-card-border shadow-md">
+                  <h3 className="text-sm font-extrabold text-foreground uppercase tracking-widest mb-4">
+                    📈 Body Dimension Trends
+                  </h3>
+                  
+                  {ecoStore.measurementLogs && ecoStore.measurementLogs.length >= 2 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {['chest', 'waist', 'hips', 'biceps', 'thighs', 'neck'].map((part) => {
+                        const logsWithPart = ecoStore.measurementLogs.filter(l => l[part] !== null).reverse();
+                        if (logsWithPart.length < 2) {
+                          return (
+                            <div key={part} className="bg-surface rounded-xl p-4 border border-card-border text-center text-xs text-muted flex flex-col justify-center min-h-[110px]">
+                              <span className="text-[10px] text-foreground font-black uppercase tracking-wider mb-1">{part}</span>
+                              Need at least 2 logs to show trend.
+                            </div>
+                          );
+                        }
+                        const vals = logsWithPart.map(l => Number(l[part]));
+                        const min = Math.min(...vals) - 1;
+                        const max = Math.max(...vals) + 1;
+                        const range = max - min || 5;
+                        const W = 200, H = 50;
+                        const spacing = W / (logsWithPart.length - 1);
+                        const pts = logsWithPart.map((l, i) => ({
+                          x: i * spacing,
+                          y: H - ((Number(l[part]) - min) / range) * H
+                        }));
+                        const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+                        const currentVal = vals[vals.length - 1];
+                        const diff = (currentVal - vals[0]).toFixed(1);
+                        
+                        return (
+                          <div key={part} className="bg-surface rounded-xl p-4 border border-card-border space-y-2 shadow-inner">
+                            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider">
+                              <span className="text-foreground">{part}</span>
+                              <span className={Number(diff) === 0 ? 'text-muted' : Number(diff) < 0 ? 'text-acid-green' : 'text-orange'}>
+                                {currentVal} {logsWithPart[0].unit} ({Number(diff) > 0 ? '+' : ''}{diff})
+                              </span>
+                            </div>
+                            <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[50px]">
+                              <path d={d} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              {pts.map((p, i) => (
+                                <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="var(--accent)" />
+                              ))}
+                            </svg>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="bg-surface rounded-xl p-8 border border-card-border text-center text-xs text-muted">
+                      Log measurements over multiple days to see dimension trends.
+                    </div>
+                  )}
+                </div>
+                
+                {/* Measurement Logs List */}
+                <div className="glass p-6 rounded-2xl border border-card-border shadow-md">
+                  <h3 className="text-sm font-extrabold text-foreground uppercase tracking-widest mb-4">
+                    📋 Measurement History
+                  </h3>
+                  
+                  {ecoStore.measurementLogs && ecoStore.measurementLogs.length > 0 ? (
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                      {ecoStore.measurementLogs.map((log) => (
+                        <div key={log.id} className="bg-surface/50 border border-card-border p-3.5 rounded-xl text-xs font-semibold space-y-2 shadow-inner">
+                          <div className="flex justify-between items-center text-[10px] text-muted font-black uppercase">
+                            <span>Date: {log.date}</span>
+                            <span className="text-acid-green">Unit: {log.unit}</span>
+                          </div>
+                          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-foreground font-black">
+                            {['chest', 'waist', 'hips', 'biceps', 'thighs', 'neck'].map((part) => (
+                              <div key={part} className="bg-black/20 p-2 rounded-lg border border-card-border/50">
+                                <span className="text-[8px] text-muted block uppercase tracking-wider mb-0.5">{part}</span>
+                                {log[part] !== null ? `${log[part]}` : '—'}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-surface rounded-xl p-8 border border-card-border text-center text-xs text-muted">
+                      No measurements logged yet. Start recording your body dimensions above!
+                    </div>
+                  )}
+                </div>
+                
               </div>
             </div>
           )}

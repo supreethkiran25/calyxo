@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { getFoodLogs, addFoodLog, deleteFoodLog, saveEcosystemState, fetchWithRetry } from '../lib/dbService';
+import { getFoodLogs, addFoodLog, deleteFoodLog, saveEcosystemState, fetchWithRetry, saveUserProfile } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { INDIAN_FOODS } from '../lib/indianFoods';
-import { Plus, Search, BookOpen, Trash2, Camera, Sparkles, Check, X, ShieldAlert, ShoppingBag } from 'lucide-react';
+import { Plus, Search, BookOpen, Trash2, Camera, Sparkles, Check, X, ShieldAlert, ShoppingBag, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Mock DB suited recipes fallback
@@ -85,6 +85,8 @@ export default function FoodTracker({ onNotification }) {
   const user = useStore(state => state.user);
   const foodLogs = useStore(state => state.foodLogs);
   const setFoodLogs = useStore(state => state.setFoodLogs);
+  const addFoodLogStore = useStore(state => state.addFoodLog);
+  const deleteFoodLogStore = useStore(state => state.deleteFoodLog);
   const userProfile = useStore(state => state.userProfile);
   const userId = user?.uid;
   const ecoStore = useEcosystemStore();
@@ -107,6 +109,49 @@ export default function FoodTracker({ onNotification }) {
   const [cfFiber, setCfFiber] = useState('');
   const [cfSugar, setCfSugar] = useState('');
   const [cfSodium, setCfSodium] = useState('');
+
+  const updateUserProfile = useStore(state => state.updateUserProfile);
+
+  const toggleFavorite = async (e, food) => {
+    e.stopPropagation();
+    const favorites = userProfile.favoriteFoods || [];
+    const isFav = favorites.some(x => x.name.toLowerCase() === food.name.toLowerCase());
+    let nextFavorites = [];
+    if (isFav) {
+      nextFavorites = favorites.filter(x => x.name.toLowerCase() !== food.name.toLowerCase());
+    } else {
+      nextFavorites = [...favorites, {
+        name: food.name,
+        calories: food.calories,
+        protein: food.protein,
+        carbs: food.carbs,
+        fat: food.fat,
+        fiber: food.fiber || 0,
+        sugar: food.sugar || 0,
+        sodium: food.sodium || 0
+      }];
+    }
+    const updated = { ...userProfile, favoriteFoods: nextFavorites };
+    updateUserProfile(updated);
+    if (userId) {
+      await saveUserProfile(userId, updated);
+    }
+    if (onNotification) onNotification(isFav ? `Removed ${food.name} from favorites` : `Added ${food.name} to favorites ⭐`);
+  };
+
+  const recentFoods = React.useMemo(() => {
+    const seen = new Set();
+    const recents = [];
+    for (const log of [...foodLogs]) {
+      const key = log.name.toLowerCase().trim();
+      if (!seen.has(key)) {
+        seen.add(key);
+        recents.push(log);
+        if (recents.length >= 6) break;
+      }
+    }
+    return recents;
+  }, [foodLogs]);
 
   // Log portion state
   const [analysedFood, setAnalysedFood] = useState(null);
@@ -152,14 +197,6 @@ export default function FoodTracker({ onNotification }) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // Debounce search catalog
-  useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      handleSearch(queryVal);
-    }, 250);
-    return () => clearTimeout(delayDebounce);
-  }, [queryVal]);
 
   const handleSearch = async (val) => {
     if (val.trim().length < 2) {
@@ -239,6 +276,14 @@ export default function FoodTracker({ onNotification }) {
     setShowDropdown(true);
   };
 
+  // Debounce search catalog
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      handleSearch(queryVal);
+    }, 250);
+    return () => clearTimeout(delayDebounce);
+  }, [queryVal]);
+
   const selectFood = (food) => {
     setAnalysedFood(food);
     if (parsedPortion) {
@@ -252,7 +297,11 @@ export default function FoodTracker({ onNotification }) {
 
   const quickLogFood = async (e, food) => {
     e.stopPropagation();
-    const activePortion = parsedPortion || 100;
+    if (isNaN(activePortion) || activePortion <= 0 || activePortion > 5000) {
+      if (onNotification) onNotification("Portion weight must be between 1 and 5000g.");
+      return;
+    }
+
     const ratio = activePortion / 100;
     const logItem = {
       name: food.name,
@@ -266,7 +315,7 @@ export default function FoodTracker({ onNotification }) {
     };
 
     const saved = await addFoodLog(userId, logItem);
-    setFoodLogs([saved, ...foodLogs]);
+    addFoodLogStore(saved);
     setQueryVal('');
     setShowDropdown(false);
     if (onNotification) onNotification(`Logged ${activePortion}g ${logItem.name} 🍽️`);
@@ -314,6 +363,10 @@ export default function FoodTracker({ onNotification }) {
 
   const logFoodItem = async () => {
     if (!analysedFood) return;
+    if (isNaN(portion) || portion <= 0 || portion > 5000) {
+      if (onNotification) onNotification("Portion weight must be between 1 and 5000g.");
+      return;
+    }
     const ratio = portion / 100;
     const logItem = {
       name: analysedFood.name,
@@ -327,26 +380,54 @@ export default function FoodTracker({ onNotification }) {
     };
 
     const saved = await addFoodLog(userId, logItem);
-    setFoodLogs([saved, ...foodLogs]);
+    addFoodLogStore(saved);
     setAnalysedFood(null);
     if (onNotification) onNotification(`Logged ${logItem.name} to diary 🍽️`);
   };
 
   const handleCustomFoodSubmit = async (e) => {
     e.preventDefault();
+    
+    // Bounds Validations
+    if (!cfName.trim() || cfName.length > 50) {
+      if (onNotification) onNotification("Food name must be between 1 and 50 characters.");
+      return;
+    }
+    const cals = Number(cfCals);
+    const prot = Number(cfProt);
+    const carb = Number(cfCarb);
+    const fat = Number(cfFat);
+    const fiber = cfFiber ? Number(cfFiber) : 0;
+    const sugar = cfSugar ? Number(cfSugar) : 0;
+    const sodium = cfSodium ? Number(cfSodium) : 0;
+
+    if (isNaN(cals) || cals < 1 || cals > 10000) {
+      if (onNotification) onNotification("Calories must be between 1 and 10,000 kcal.");
+      return;
+    }
+    if (isNaN(prot) || prot < 0 || prot > 500 || isNaN(carb) || carb < 0 || carb > 1000 || isNaN(fat) || fat < 0 || fat > 500) {
+      if (onNotification) onNotification("Macros (Protein/Carbs/Fat) are out of valid range.");
+      return;
+    }
+    if (isNaN(fiber) || fiber < 0 || fiber > 200 || isNaN(sugar) || sugar < 0 || sugar > 500 || isNaN(sodium) || sodium < 0 || sodium > 20000) {
+      if (onNotification) onNotification("Micros (Fiber/Sugar/Sodium) are out of valid range.");
+      return;
+    }
+
     const logItem = {
-      name: cfName,
-      calories: Number(cfCals),
-      protein: Number(cfProt),
-      carbs: Number(cfCarb),
-      fat: Number(cfFat),
-      fiber: cfFiber ? Number(cfFiber) : 0,
-      sugar: cfSugar ? Number(cfSugar) : 0,
+      name: cfName.trim(),
+      calories: cals,
+      protein: prot,
+      carbs: carb,
+      fat: fat,
+      fiber,
+      sugar,
+      sodium,
       portionWeight: 100
     };
 
     const saved = await addFoodLog(userId, logItem);
-    setFoodLogs([saved, ...foodLogs]);
+    addFoodLogStore(saved);
     
     // Clear forms
     setCfName('');
@@ -364,7 +445,7 @@ export default function FoodTracker({ onNotification }) {
 
   const handleDeleteMeal = async (logId) => {
     await deleteFoodLog(userId, logId);
-    setFoodLogs(foodLogs.filter(x => x.id !== logId && x.timestamp !== logId));
+    deleteFoodLogStore(logId);
     if (onNotification) onNotification("Diary meal deleted.");
   };
 
@@ -417,7 +498,7 @@ export default function FoodTracker({ onNotification }) {
       portionWeight: 100
     };
     const saved = await addFoodLog(userId, logItem);
-    setFoodLogs([saved, ...foodLogs]);
+    addFoodLogStore(saved);
     setMealPhoto(null);
     setScanResult(null);
     if (onNotification) onNotification(`Scanned meal logged: ${logItem.name}! 📸`);
@@ -433,7 +514,7 @@ export default function FoodTracker({ onNotification }) {
       portionWeight: 100
     };
     const saved = await addFoodLog(userId, logItem);
-    setFoodLogs([saved, ...foodLogs]);
+    addFoodLogStore(saved);
     if (onNotification) onNotification(`Logged suggestion: ${meal.name}`);
   };
 
@@ -525,10 +606,13 @@ export default function FoodTracker({ onNotification }) {
     <div className="space-y-6">
       
       {/* Sub navigation Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-card-border pb-4 gap-4">
-        <div>
-          <h1 className="text-xl font-black text-foreground uppercase tracking-wider">Nutrition Center</h1>
-          <p className="text-xs text-muted font-medium mt-0.5">Track diets, logs, scanning and grocery compilation lists</p>
+      <div className="flex flex-col gap-3 border-b border-card-border pb-3">
+        {/* Title row: compact on mobile */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-xl font-black text-foreground uppercase tracking-wider leading-tight">Nutrition Center</h1>
+            <p className="text-[10px] sm:text-xs text-muted font-medium mt-0.5 hidden sm:block">Track diets, logs, scanning and grocery compilation lists</p>
+          </div>
         </div>
 
         <div className="bg-surface border border-card-border p-1 rounded-xl flex gap-0.5 overflow-x-auto w-full sm:w-auto sm:max-w-[65%] shrink-0 scrollbar-none">
@@ -574,13 +658,14 @@ export default function FoodTracker({ onNotification }) {
 
                   <div ref={dropdownRef} className="relative">
                     <div className="relative flex items-center">
-                      <Search className="absolute left-4 w-4 h-4 text-muted" />
+                      <Search className="absolute left-4 w-5 h-5 text-muted" />
                       <input 
                         type="text"
                         value={queryVal}
                         onChange={(e) => setQueryVal(e.target.value)}
                         placeholder="Search oats, chicken breast, paneer..."
-                        className="w-full bg-[var(--input-bg)] border border-card-border focus:border-acid-green rounded-full pl-12 pr-5 py-3 text-xs text-foreground focus:outline-none shadow-inner"
+                        className="w-full bg-[var(--input-bg)] border border-card-border focus:border-acid-green rounded-2xl pl-12 pr-5 py-3.5 text-sm text-foreground focus:outline-none shadow-inner"
+                        autoComplete="off"
                       />
                     </div>
 
@@ -613,12 +698,28 @@ export default function FoodTracker({ onNotification }) {
                               </div>
                               <div className="flex items-center gap-3">
                                 <span className="text-[10px] opacity-75 text-acid-green font-bold whitespace-nowrap">{item.calories} kcal/100g</span>
+                                
+                                <button
+                                  type="button"
+                                  onClick={(e) => toggleFavorite(e, item)}
+                                  className="p-1 rounded-lg text-muted hover:text-yellow-500 cursor-pointer transition-colors"
+                                  title="Toggle Favorite"
+                                >
+                                  <Star 
+                                    className={`w-3.5 h-3.5 ${
+                                      (userProfile.favoriteFoods || []).some(x => x.name.toLowerCase() === item.name.toLowerCase()) 
+                                        ? 'text-yellow-500 fill-current' 
+                                        : 'text-muted'
+                                    }`} 
+                                  />
+                                </button>
+
                                 <button
                                   onClick={(e) => quickLogFood(e, item)}
                                   className="bg-acid-green text-accent-foreground rounded-lg px-2 py-1.5 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer border-none shadow-sm hover:scale-105 active:scale-95 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                                   title={`Quick log ${parsedPortion || 100}g`}
                                 >
-                                  <Plus className="w-3 h-3" />
+                                  <Plus className="w-3.5 h-3.5" />
                                   <span>{parsedPortion || 100}g</span>
                                 </button>
                               </div>
@@ -639,6 +740,52 @@ export default function FoodTracker({ onNotification }) {
                     </button>
                   </div>
                 </section>
+
+                {/* Favorites & Recents Panel */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  <div className="bg-surface/30 border border-card-border p-4 rounded-2xl space-y-2.5">
+                    <span className="text-[10px] text-muted font-bold uppercase tracking-wider block flex items-center gap-1">
+                      <Star className="w-3 h-3 text-yellow-500 fill-current" />
+                      Favorites ({(userProfile.favoriteFoods || []).length})
+                    </span>
+                    {userProfile.favoriteFoods && userProfile.favoriteFoods.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {userProfile.favoriteFoods.map((fav, i) => (
+                          <button
+                            key={i}
+                            onClick={() => selectFood(fav)}
+                            className="bg-[var(--card-bg)] border border-card-border hover:border-acid-green/45 text-foreground text-[10px] font-semibold py-1.5 px-3 rounded-full flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                          >
+                            <span>{fav.name}</span>
+                            <span className="text-[9.5px] text-acid-green font-bold">{fav.calories} kcal</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-[9.5px] text-muted font-semibold block italic">No favorites starred yet. Search and click Star to save!</span>
+                    )}
+                  </div>
+
+                  <div className="bg-surface/30 border border-card-border p-4 rounded-2xl space-y-2.5">
+                    <span className="text-[10px] text-muted font-bold uppercase tracking-wider block">📅 Recently Logged</span>
+                    {recentFoods.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {recentFoods.map((rec, i) => (
+                          <button
+                            key={i}
+                            onClick={() => selectFood(rec)}
+                            className="bg-[var(--card-bg)] border border-card-border hover:border-acid-green/45 text-foreground text-[10px] font-semibold py-1.5 px-3 rounded-full flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                          >
+                            <span>{rec.name}</span>
+                            <span className="text-[9.5px] text-acid-green font-bold">{rec.calories} kcal</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-[9.5px] text-muted font-semibold block italic">Log foods to populate your recently logged panel.</span>
+                    )}
+                  </div>
+                </div>
 
                 {/* Custom Food Form */}
                 {showCustomFood && (
@@ -771,8 +918,13 @@ export default function FoodTracker({ onNotification }) {
                               type="button"
                               onClick={() => {
                                 const custom = prompt("Enter custom portion weight (g):", portion);
-                                if (custom && !isNaN(custom)) {
-                                  setPortion(Number(custom));
+                                if (custom) {
+                                  const val = Number(custom);
+                                  if (isNaN(val) || val <= 0 || val > 5000) {
+                                    if (onNotification) onNotification("Portion weight must be between 1 and 5000g.");
+                                  } else {
+                                    setPortion(val);
+                                  }
                                 }
                               }}
                               className={`px-2.5 py-1 rounded-lg text-[9px] font-bold tracking-wide transition-all cursor-pointer border ${
@@ -1017,7 +1169,7 @@ export default function FoodTracker({ onNotification }) {
                 <div className="border border-dashed border-card-border rounded-xl p-6 flex flex-col items-center justify-center bg-surface/50 h-56 relative overflow-hidden">
                   {mealPhoto ? (
                     <>
-                      <img src={mealPhoto} className="object-cover w-full h-full" />
+                      <img src={mealPhoto} className="object-cover w-full h-full" alt="Scanned meal photo preview" />
                       <button onClick={() => { setMealPhoto(null); setScanResult(null); setScanError(null); }} className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1.5 text-[8px] font-bold uppercase tracking-wider cursor-pointer">Clear</button>
                     </>
                   ) : (

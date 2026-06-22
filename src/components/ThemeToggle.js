@@ -19,7 +19,7 @@ export default function ThemeToggle() {
       aria-label="Toggle Color Theme"
       title="Toggle Light/Dark Theme"
     >
-      {theme === 'dark' ? (
+      {(theme === 'dark' || theme === 'obsidian') ? (
         <Sun className="w-4 h-4" style={{ color: 'var(--accent)' }} />
       ) : (
         <Moon className="w-4 h-4" style={{ color: 'var(--foreground)' }} />

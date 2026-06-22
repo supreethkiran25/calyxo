@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { getWaterIntake, saveWaterIntake, getUserProfile } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { Flame, Droplets, Activity, Dumbbell, Utensils, Star, Sparkles, ChevronRight, Award } from 'lucide-react';
+import ThreeHealthCore from './ThreeHealthCore';
 
 // ── Calorie donut ring ──────────────────────────────────────────
 function CalorieRing({ consumed, burned, goal }) {
@@ -121,6 +122,7 @@ export default function Dashboard({ onNotification }) {
   const waterIntake = useStore(state => state.waterIntake);
   const userProfile = useStore(state => state.userProfile);
   const setWaterIntake = useStore(state => state.setWaterIntake);
+  const addWaterIntakeStore = useStore(state => state.addWaterIntake);
   const setUserProfile = useStore(state => state.setUserProfile);
   const setActiveTab = useStore(state => state.setActiveTab);
   
@@ -134,6 +136,7 @@ export default function Dashboard({ onNotification }) {
   const [height, setHeight] = useState(175);
   const [activity, setActivity] = useState(1.55);
   const [goal, setGoal] = useState('lose');
+  const [showAllBiometrics, setShowAllBiometrics] = useState(false);
 
   const [metrics, setMetrics] = useState({
     bmi: 22.8, bmr: 1653, tdee: 2562, calorieGoal: 2062,
@@ -161,11 +164,7 @@ export default function Dashboard({ onNotification }) {
     load();
   }, [userId, setUserProfile, setWaterIntake]);
 
-  useEffect(() => { 
-    recalculateMetrics(); 
-  }, [units, gender, age, weight, height, activity, goal]);
-
-  const recalculateMetrics = () => {
+  const recalculateMetrics = useCallback(() => {
     const rawW = Number(weight) || 70;
     const rawH = Number(height) || 175;
     const hm = rawH / 100;
@@ -194,11 +193,17 @@ export default function Dashboard({ onNotification }) {
       bmiStatus, 
       macros: { protein, carbs, fat } 
     });
-  };
+  }, [gender, age, weight, height, activity, goal]);
+
+  useEffect(() => { 
+    setTimeout(() => {
+      recalculateMetrics(); 
+    }, 0);
+  }, [recalculateMetrics]);
 
   const handleAddWater = async (amount) => {
-    const next = Math.min(waterIntake + amount, 5000);
-    setWaterIntake(next);
+    addWaterIntakeStore(amount);
+    const next = useStore.getState().waterIntake;
     await saveWaterIntake(userId, next);
     if (onNotification) onNotification(`+${amount}ml water logged 💧`);
   };
@@ -242,6 +247,35 @@ export default function Dashboard({ onNotification }) {
   return (
     <div className="space-y-6 w-full select-text pb-20">
       
+      {/* Welcome Greeting Header with Level & XP */}
+      <div className="flex flex-col gap-3 border-b border-card-border pb-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-black text-foreground uppercase tracking-wider leading-tight">
+              Welcome back, {userProfile.nickname || user?.displayName || 'Athlete'}!
+            </h1>
+            <p className="text-xs text-muted font-medium mt-0.5 hidden sm:block">Your personalized health operating system is running optimally.</p>
+          </div>
+          {/* Compact XP badge */}
+          <div className="shrink-0 flex items-center gap-1.5 bg-acid-green/10 border border-acid-green/20 px-3 py-1.5 rounded-xl">
+            <span className="text-[10px] font-black text-acid-green uppercase tracking-wider">LVL {ecoStore.level || 1}</span>
+            <span className="text-[10px] text-muted font-bold">· {ecoStore.xp || 0} XP</span>
+          </div>
+        </div>
+        {/* XP bar — full width below on mobile */}
+        <div className="w-full">
+          <div className="flex justify-between text-[9px] font-bold text-muted uppercase tracking-wider mb-1">
+            <span>XP Progress</span>
+            <span>{(ecoStore.xp || 0)} / {((ecoStore.level || 1) * 1000)} XP</span>
+          </div>
+          <div className="h-1.5 bg-card-border rounded-full overflow-hidden">
+            <div
+              className="h-full bg-acid-green rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(100, ((ecoStore.xp || 0) / ((ecoStore.level || 1) * 1000)) * 100)}%` }}
+            />
+          </div>
+        </div>
+      </div>
       {/* Profile Completeness Alert banner */}
       {profileCompleteness < 100 && (
         <motion.div 
@@ -267,15 +301,15 @@ export default function Dashboard({ onNotification }) {
         </motion.div>
       )}
 
-      {/* ── Streaks Counters Row ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+      {/* ── Streaks Counters Row — horizontal scroll on mobile ── */}
+      <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none sm:grid sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: 'Login Streak', value: ecoStore.streaks.loginStreak, icon: <Flame className="w-5 h-5 text-orange" />, color: 'from-orange/20 to-red-500/10' },
           { label: 'Workout Streak', value: ecoStore.streaks.workoutStreak, icon: <Dumbbell className="w-5 h-5 text-acid-green" />, color: 'from-acid-green/20 to-emerald-500/10' },
           { label: 'Nutrition Streak', value: ecoStore.streaks.nutritionStreak, icon: <Utensils className="w-5 h-5 text-yellow-500" />, color: 'from-yellow-500/20 to-amber-500/10' },
           { label: 'Water Streak', value: ecoStore.streaks.waterStreak, icon: <Droplets className="w-5 h-5 text-blue-400" />, color: 'from-blue-400/20 to-sky-500/10' }
         ].map((s, idx) => (
-          <div key={idx} className={`glass bg-gradient-to-br ${s.color} border border-card-border rounded-2xl p-4 flex items-center justify-between shadow-xs hover:scale-102 transition-all`}>
+          <div key={idx} className={`glass bg-gradient-to-br ${s.color} border border-card-border rounded-2xl p-4 flex items-center justify-between shadow-xs shrink-0 w-40 sm:w-auto`}>
             <div>
               <span className="text-[10px] text-muted font-bold uppercase tracking-wider block">{s.label}</span>
               <span className="text-xl font-black text-foreground mt-1 block">{s.value} <span className="text-xs text-muted font-bold">days</span></span>
@@ -286,11 +320,16 @@ export default function Dashboard({ onNotification }) {
           </div>
         ))}
       </div>
+      
+      {/* Immersive 3D Experience — hidden on mobile for performance */}
+      <div className="hidden md:block">
+        <ThreeHealthCore />
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start w-full">
         
         {/* Calyxo Score Gauge Widget */}
-        <div className="glass p-6 rounded-2xl border border-card-border shadow-md flex flex-col justify-between h-full min-h-[340px]">
+        <div className="glass p-4 sm:p-6 rounded-2xl border border-card-border shadow-md flex flex-col justify-between h-full min-h-[340px]">
           <div>
             <h3 className="text-sm font-extrabold text-foreground uppercase tracking-widest mb-4 flex items-center gap-1.5">
               <Star className="w-4 h-4 text-acid-green animate-pulse" />
@@ -339,7 +378,7 @@ export default function Dashboard({ onNotification }) {
         </div>
 
         {/* ── Today's Summary Card (Spans 2 columns on desktop) ── */}
-        <div className="glass p-6 rounded-2xl border border-[var(--card-border)] md:col-span-2 flex flex-col justify-between h-full shadow-lg">
+        <div className="glass p-4 sm:p-6 rounded-2xl border border-[var(--card-border)] md:col-span-2 flex flex-col justify-between h-full shadow-lg">
           <div>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">Today&apos;s Nutrition Summary</h2>
@@ -354,7 +393,7 @@ export default function Dashboard({ onNotification }) {
 
           <CalorieRing consumed={totalCal} burned={totalBurned} goal={metrics.calorieGoal} />
 
-          <div className="grid grid-cols-3 gap-4 border-t border-card-border pt-4 mt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-card-border pt-4 mt-2">
             <MacroBar label="Protein" current={totalProt} total={metrics.macros.protein} color="var(--accent)" />
             <MacroBar label="Carbs" current={totalCarb} total={metrics.macros.carbs} color="var(--orange-theme)" />
             <MacroBar label="Fats" current={totalFat} total={metrics.macros.fat} color="var(--destructive)" />
@@ -362,7 +401,7 @@ export default function Dashboard({ onNotification }) {
         </div>
 
         {/* Daily Hydration Logger */}
-        <div className="glass p-6 rounded-2xl border border-card-border shadow-md flex flex-col justify-between h-full min-h-[320px]">
+        <div className="glass p-4 sm:p-6 rounded-2xl border border-card-border shadow-md flex flex-col justify-between h-full min-h-[320px]">
           <div>
             <h3 className="text-sm font-extrabold text-foreground uppercase tracking-widest mb-4 flex items-center gap-1.5">
               <Droplets className="w-4 h-4 text-blue-400" />
@@ -417,7 +456,7 @@ export default function Dashboard({ onNotification }) {
         </div>
 
         {/* ── Recent Workouts Card ── */}
-        <div className="glass p-6 rounded-2xl border border-[var(--card-border)] shadow-md flex flex-col justify-between h-full min-h-[320px]">
+        <div className="glass p-4 sm:p-6 rounded-2xl border border-[var(--card-border)] shadow-md flex flex-col justify-between h-full min-h-[320px]">
           <div>
             <SectionHeader title="Recent Workouts" onSeeAll={() => setActiveTab('workout')} />
             
@@ -447,7 +486,7 @@ export default function Dashboard({ onNotification }) {
         </div>
 
         {/* ── Recent Meals Card ── */}
-        <div className="glass p-6 rounded-2xl border border-[var(--card-border)] shadow-md flex flex-col justify-between h-full min-h-[320px]">
+        <div className="glass p-4 sm:p-6 rounded-2xl border border-[var(--card-border)] shadow-md flex flex-col justify-between h-full min-h-[320px]">
           <div>
             <SectionHeader title="Recent Meals" onSeeAll={() => setActiveTab('nutrition')} />
             
@@ -492,21 +531,35 @@ export default function Dashboard({ onNotification }) {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-card-border">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-card-border">
             {[
-              { label: 'Body Mass Index', value: metrics.bmi, sub: metrics.bmiStatus },
-              { label: 'Basal Metabolic Rate', value: `${metrics.bmr.toLocaleString()} kcal`, sub: 'BMR (Rest energy)' },
-              { label: 'Total Energy Expenditure', value: `${metrics.tdee.toLocaleString()} kcal`, sub: 'TDEE (Active energy)' },
-              { label: 'Intake Target', value: `${metrics.calorieGoal.toLocaleString()} kcal`, sub: 'Calculated diet plan', green: true },
+              { label: 'Body Mass Index', value: metrics.bmi, sub: metrics.bmiStatus, key: 0 },
+              { label: 'Basal Metabolic Rate', value: `${metrics.bmr.toLocaleString()} kcal`, sub: 'BMR (Rest energy)', key: 1 },
+              { label: 'Total Energy Expenditure', value: `${metrics.tdee.toLocaleString()} kcal`, sub: 'TDEE (Active energy)', key: 2 },
+              { label: 'Intake Target', value: `${metrics.calorieGoal.toLocaleString()} kcal`, sub: 'Calculated diet plan', green: true, key: 3 },
             ].map((stat, i) => (
-              <div key={i} className="p-5 bg-[var(--card-bg)] flex flex-col justify-between h-28">
-                <span className="text-[9px] text-muted font-bold uppercase tracking-wider">{stat.label}</span>
-                <span className={`text-md font-black block mt-2 ${stat.green ? 'text-[var(--color-acid-green)]' : 'text-foreground'}`}>
+              <div 
+                key={i} 
+                className={`p-4 bg-[var(--card-bg)] flex flex-col justify-between min-h-[100px] ${
+                  (stat.key === 1 || stat.key === 2) && !showAllBiometrics ? 'hidden md:flex' : 'flex'
+                }`}
+              >
+                <span className="text-[9px] text-muted font-bold uppercase tracking-wider leading-tight">{stat.label}</span>
+                <span className={`text-base font-black block mt-2 ${stat.green ? 'text-[var(--color-acid-green)]' : 'text-foreground'}`}>
                   {stat.value}
                 </span>
-                <span className="text-[10px] text-muted block mt-1.5 font-medium">{stat.sub}</span>
+                <span className="text-[10px] text-muted block mt-1 font-medium">{stat.sub}</span>
               </div>
             ))}
+          </div>
+          
+          <div className="md:hidden flex justify-center border-t border-card-border p-2 bg-surface">
+            <button
+              onClick={() => setShowAllBiometrics(!showAllBiometrics)}
+              className="text-[10px] font-black text-acid-green uppercase tracking-wider bg-transparent border-none cursor-pointer p-1"
+            >
+              {showAllBiometrics ? 'View Less ▲' : 'View More ▼'}
+            </button>
           </div>
         </div>
 

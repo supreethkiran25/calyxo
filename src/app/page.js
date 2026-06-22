@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home as HomeIcon, BookOpen, BarChart2, User, Plus, LogOut, Bot, Sparkles, X, TrendingUp } from 'lucide-react';
+import { Home as HomeIcon, BookOpen, BarChart2, User, Plus, LogOut, Bot, Sparkles, X, TrendingUp, Heart, Users, Grid, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { 
   subscribeToAuth, 
@@ -25,6 +25,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import LaunchScreen from '../components/LaunchScreen';
 import AuthFlow from '../components/AuthFlow';
 import OnboardingFlow from '../components/OnboardingFlow';
+import LandingPage from '../components/LandingPage';
 import BackgroundEffects from '../components/BackgroundEffects';
 
 // Reusable loader skeleton for lazy-loaded tabs
@@ -51,14 +52,34 @@ const WorkoutLogger = dynamic(() => import('../components/WorkoutLogger'), { loa
 const AICoach = dynamic(() => import('../components/AICoach'), { loading: () => <TabSkeleton /> });
 const UserProfile = dynamic(() => import('../components/UserProfile'), { loading: () => <TabSkeleton /> });
 const Progress = dynamic(() => import('../components/Progress'), { loading: () => <TabSkeleton /> });
+const HealthHub = dynamic(() => import('../components/HealthHub'), { loading: () => <TabSkeleton /> });
+const TrainerEcosystem = dynamic(() => import('../components/TrainerEcosystem'), { loading: () => <TabSkeleton /> });
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: HomeIcon },
   { id: 'coach', label: 'AI Coach', icon: Bot },
+  { id: 'healthhub', label: 'Health Hub', icon: Heart },
   { id: 'nutrition', label: 'Nutrition', icon: BookOpen },
   { id: 'workout', label: 'Workouts', icon: BarChart2 },
   { id: 'progress', label: 'Progress', icon: TrendingUp },
+  { id: 'trainerhub', label: 'Trainer Hub', icon: Users, roleGated: true },
   { id: 'profile', label: 'Profile', icon: User },
+];
+
+// Primary items shown in mobile bottom bar (max 4 + More)
+const MOBILE_PRIMARY = [
+  { id: 'dashboard', label: 'Home', icon: HomeIcon },
+  { id: 'coach',     label: 'Coach', icon: Bot },
+  { id: 'nutrition', label: 'Food',  icon: BookOpen },
+  { id: 'workout',   label: 'Train', icon: BarChart2 },
+];
+
+// Items accessible via the "More" sheet on mobile
+const MOBILE_MORE = [
+  { id: 'progress',   label: 'Progress',    icon: TrendingUp },
+  { id: 'healthhub', label: 'Health Hub',   icon: Heart },
+  { id: 'trainerhub',label: 'Trainer Hub',  icon: Users },
+  { id: 'profile',   label: 'Profile',      icon: User },
 ];
 
 export default function Home() {
@@ -80,6 +101,19 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreSheetRef = useRef(null);
+
+  // Close More sheet on outside tap
+  useEffect(() => {
+    if (!moreOpen) return;
+    const handler = (e) => {
+      if (moreSheetRef.current && !moreSheetRef.current.contains(e.target)) setMoreOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('touchstart', handler); };
+  }, [moreOpen]);
 
   const showNotification = (msg) => {
     setToast(msg);
@@ -147,7 +181,7 @@ export default function Home() {
   };
 
   if (loading) return <LaunchScreen isLoading={loading} />;
-  if (!user) return <AuthFlow />;
+  if (!user) return <LandingPage />;
   if (!userProfile?.onboarded) {
     return <OnboardingFlow onComplete={() => showNotification("Welcome to Calyxo! Let's smash your goals.")} />;
   }
@@ -328,31 +362,22 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Mobile FAB Button */}
+        {/* Mobile FAB Button — sits above the nav bar with safe-area support */}
         <button
           onClick={() => setAddMenuOpen(true)}
-          className="md:hidden fixed bottom-20 right-5 z-40 w-12 h-12 rounded-full bg-[var(--color-acid-green)] text-accent-foreground flex items-center justify-center shadow-lg shadow-[var(--color-acid-green)]/35 cursor-pointer active:scale-90 transition-transform"
-          style={{ bottom: '80px' }}
+          className="md:hidden fixed z-40 w-13 h-13 rounded-full bg-[var(--color-acid-green)] text-accent-foreground flex items-center justify-center shadow-xl shadow-[var(--color-acid-green)]/40 cursor-pointer active:scale-90 transition-transform"
+          style={{ bottom: 'calc(64px + 12px + env(safe-area-inset-bottom, 0px))', right: '20px' }}
+          aria-label="Quick log"
         >
           <Plus className="w-6 h-6 text-accent-foreground" />
         </button>
 
-        {/* Dashboard Greeting (Only on dashboard tab) */}
-        {activeTab === 'dashboard' && (
-          <div className="px-6 pt-6 pb-2">
-            <h1 className="text-xl md:text-2xl font-extrabold text-[var(--foreground)]">
-              Hello, {firstName} 👋
-            </h1>
-            <p className="text-xs md:text-sm text-[var(--text-muted)] font-medium mt-1">
-              Let&apos;s crash your goals today!
-            </p>
-          </div>
-        )}
-
         {/* Main Content Area */}
-        <main className={`flex-1 w-full max-w-7xl mx-auto p-4 md:p-6 ${
-          activeTab === 'coach' ? 'overflow-hidden pb-20 md:pb-6' : 'overflow-y-auto pb-24 md:pb-6'
-        }`}>
+        <main className={`flex-1 w-full max-w-7xl mx-auto px-3 py-4 md:p-6 ${
+          activeTab === 'coach' ? 'overflow-hidden' : 'overflow-y-auto'
+        }`}
+          style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -364,52 +389,140 @@ export default function Home() {
             >
               {activeTab === 'dashboard' && <Dashboard onNotification={showNotification} />}
               {activeTab === 'coach' && <AICoach />}
+              {activeTab === 'healthhub' && <HealthHub onNotification={showNotification} />}
               {activeTab === 'nutrition' && <FoodTracker onNotification={showNotification} />}
               {activeTab === 'workout' && <WorkoutLogger onNotification={showNotification} />}
               {activeTab === 'progress' && <Progress onNotification={showNotification} />}
+              {activeTab === 'trainerhub' && <TrainerEcosystem onNotification={showNotification} />}
               {activeTab === 'profile' && <UserProfile onNotification={showNotification} />}
             </motion.div>
           </AnimatePresence>
         </main>
 
-        {/* Mobile Bottom Navigation Bar (Hidden on Desktop) */}
-        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--nav-bg)] border-t border-[var(--nav-border)] backdrop-blur-lg px-1 py-2 flex justify-around items-center md:hidden h-16">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
+        {/* ── Mobile Bottom Navigation (4 primary + More) ── */}
+        <nav
+          className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--nav-bg)] border-t border-[var(--nav-border)] backdrop-blur-xl md:hidden"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
+          <div className="flex justify-around items-center px-1 pt-1 pb-1 h-16">
+            {MOBILE_PRIMARY.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => { setActiveTab(item.id); setMoreOpen(false); }}
+                  className={`flex flex-col items-center justify-center gap-1 w-14 h-12 rounded-xl transition-colors cursor-pointer border-none relative ${
+                    isActive ? 'text-[var(--color-acid-green)]' : 'text-[var(--text-muted)]'
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="mobile-nav-bg"
+                      className="absolute inset-0 bg-[var(--color-acid-green)]/10 rounded-xl"
+                    />
+                  )}
+                  <Icon className="w-5 h-5 relative z-10" />
+                  <span className="text-[10px] font-bold tracking-tight relative z-10">{item.label}</span>
+                </button>
+              );
+            })}
 
-            const getMobileLabel = (navItem) => {
-              if (navItem.id === 'dashboard') return 'Dashboard';
-              if (navItem.id === 'coach') return 'Coach';
-              if (navItem.id === 'nutrition') return 'Food';
-              if (navItem.id === 'workout') return 'Workouts';
-              if (navItem.id === 'progress') return 'Trends';
-              if (navItem.id === 'profile') return 'Profile';
-              return navItem.label;
-            };
-
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`flex flex-col items-center gap-0.5 px-1.5 py-1 bg-none border-none cursor-pointer relative transition-colors ${
-                  isActive ? 'text-[var(--color-acid-green)]' : 'text-[var(--text-muted)]'
-                }`}
-              >
-                <Icon className="w-4.5 h-4.5 mb-0.5" />
-                <span className="text-[8.5px] font-bold tracking-tight">
-                  {getMobileLabel(item)}
-                </span>
-                {isActive && (
-                  <motion.span
-                    layoutId="nav-dot-active"
-                    className="absolute -bottom-1 w-1 h-1 bg-[var(--color-acid-green)] rounded-full"
-                  />
-                )}
-              </button>
-            );
-          })}
+            {/* More button */}
+            <button
+              onClick={() => setMoreOpen(prev => !prev)}
+              className={`flex flex-col items-center justify-center gap-1 w-14 h-12 rounded-xl transition-colors cursor-pointer border-none relative ${
+                moreOpen || MOBILE_MORE.some(m => m.id === activeTab)
+                  ? 'text-[var(--color-acid-green)]'
+                  : 'text-[var(--text-muted)]'
+              }`}
+            >
+              {(moreOpen || MOBILE_MORE.some(m => m.id === activeTab)) && (
+                <motion.div
+                  layoutId="mobile-nav-bg"
+                  className="absolute inset-0 bg-[var(--color-acid-green)]/10 rounded-xl"
+                />
+              )}
+              <MoreHorizontal className="w-5 h-5 relative z-10" />
+              <span className="text-[10px] font-bold tracking-tight relative z-10">More</span>
+            </button>
+          </div>
         </nav>
+
+        {/* ── More Sheet (backdrop + slide-up panel) ── */}
+        <AnimatePresence>
+          {moreOpen && (
+            <>
+              <motion.div
+                key="more-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden"
+                onClick={() => setMoreOpen(false)}
+              />
+              <motion.div
+                key="more-sheet"
+                ref={moreSheetRef}
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                className="fixed left-0 right-0 bottom-16 z-40 md:hidden rounded-t-2xl border-t border-[var(--card-border)] shadow-2xl"
+                style={{
+                  background: 'var(--background)',
+                  paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                  bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))'
+                }}
+              >
+                {/* Handle */}
+                <div className="flex justify-center pt-3 pb-2">
+                  <div className="w-8 h-1 rounded-full bg-[var(--text-muted)]/30" />
+                </div>
+
+                <div className="px-4 pb-4">
+                  <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3 px-1">More</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {MOBILE_MORE.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => { setActiveTab(item.id); setMoreOpen(false); }}
+                          className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            isActive
+                              ? 'bg-[var(--color-acid-green)]/10 text-[var(--color-acid-green)] border-[var(--color-acid-green)]/25'
+                              : 'bg-[var(--surface)] text-[var(--text-muted)] border-[var(--card-border)] hover:text-[var(--foreground)]'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4 shrink-0" />
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Theme + Sign Out row */}
+                  <div className="flex gap-2 mt-3">
+                    <div className="flex items-center gap-2 flex-1 px-4 py-3 bg-[var(--surface)] border border-[var(--card-border)] rounded-xl">
+                      <ThemeToggle />
+                      <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Theme</span>
+                    </div>
+                    <button
+                      onClick={() => { handleLogout(); setMoreOpen(false); }}
+                      className="flex items-center justify-center gap-2 px-4 py-3 bg-destructive/5 border border-destructive/20 rounded-xl text-destructive text-xs font-bold cursor-pointer hover:bg-destructive/10"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
       </div>
     </div>

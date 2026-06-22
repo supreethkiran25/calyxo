@@ -1,21 +1,62 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Shield, Eye, EyeOff } from 'lucide-react';
-import { signUpUser, signInUser, signInWithGoogle, signInWithApple } from '../lib/dbService';
+import { Mail, Lock, Shield, Eye, EyeOff, Check } from 'lucide-react';
+import { signUpUser, signInUser, signInWithGoogle, signInWithApple, sendPasswordReset } from '../lib/dbService';
 import { useStore } from '../store/useStore';
 import Logo from './Logo';
 
-export default function AuthFlow() {
+export default function AuthFlow({ isInitialSignUp = false }) {
   const setUser = useStore((state) => state.setUser);
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(isInitialSignUp);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
+
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer;
+    if (cooldown > 0) {
+      timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) return;
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(forgotEmail)) {
+      setForgotError("Please enter a valid email address.");
+      return;
+    }
+
+    setForgotError('');
+    setForgotSuccess('');
+    setForgotLoading(true);
+
+    try {
+      await sendPasswordReset(forgotEmail.trim());
+      setForgotSuccess(`A password reset link has been sent to ${forgotEmail}. Please check your inbox.`);
+      setCooldown(60);
+    } catch (err) {
+      console.error("Password reset error", err);
+      setForgotError(err.message || "Failed to send reset link. Try again.");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -87,85 +128,163 @@ export default function AuthFlow() {
             <Logo className="w-16 h-16" />
           </motion.div>
           <h2 className="font-display text-2xl font-black tracking-widest text-foreground uppercase">
-            {isSignUp ? "Join Calyxo" : "Calyxo Login"}
+            {forgotMode ? "Reset Password" : (isSignUp ? "Join Calyxo" : "Calyxo Login")}
           </h2>
           <p className="text-muted text-[10px] tracking-widest mt-1 uppercase font-semibold">
-            {isSignUp ? "AI Fitness & Diet Concierge" : "Log in to track diet & training"}
+            {forgotMode ? "Account recovery link" : (isSignUp ? "AI Fitness & Diet Concierge" : "Log in to track diet & training")}
           </p>
         </div>
 
-        {error && (
-          <motion.div 
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-semibold leading-relaxed flex items-start gap-2"
-          >
-            <Shield className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </motion.div>
-        )}
+        {forgotMode ? (
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            {forgotError && (
+              <motion.div 
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-semibold leading-relaxed flex items-start gap-2"
+              >
+                <Shield className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{forgotError}</span>
+              </motion.div>
+            )}
+            {forgotSuccess && (
+              <motion.div 
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 p-4 rounded-xl bg-success/10 border border-success/30 text-success text-xs font-semibold leading-relaxed flex items-start gap-2"
+              >
+                <Check className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{forgotSuccess}</span>
+              </motion.div>
+            )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex flex-col space-y-1">
-            <label className="text-muted text-[10px] uppercase font-bold tracking-wider">Email Address</label>
-            <div className="relative flex items-center">
-              <Mail className="absolute left-4 w-4 h-4 text-muted" />
-              <input 
-                type="email" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full bg-[var(--input)] border border-card-border rounded-xl pl-12 pr-4 py-3 text-sm text-foreground focus:outline-none focus:border-acid-green transition-colors"
-                required 
-                disabled={loading}
-              />
+            <div className="flex flex-col space-y-1">
+              <label className="text-muted text-[10px] uppercase font-bold tracking-wider">Email Address</label>
+              <div className="relative flex items-center">
+                <Mail className="absolute left-4 w-4 h-4 text-muted" />
+                <input 
+                  type="email" 
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full bg-[var(--input)] border border-card-border rounded-xl pl-12 pr-4 py-3 text-sm text-foreground focus:outline-none focus:border-acid-green transition-colors"
+                  required 
+                  disabled={forgotLoading}
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="flex flex-col space-y-1">
-            <label className="text-muted text-[10px] uppercase font-bold tracking-wider">Password</label>
-            <div className="relative flex items-center">
-              <Lock className="absolute left-4 w-4 h-4 text-muted" />
-              <input 
-                type={showPassword ? "text" : "password"} 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-[var(--input)] border border-card-border rounded-xl pl-12 pr-12 py-3 text-sm text-foreground focus:outline-none focus:border-acid-green transition-colors"
-                required 
-                disabled={loading}
-              />
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              type="submit"
+              disabled={forgotLoading || cooldown > 0}
+              className="w-full bg-gradient-to-r from-acid-green to-emerald-500 text-accent-foreground font-bold text-sm py-3.5 rounded-xl mt-6 cursor-pointer hover:shadow-[0_0_20px_rgba(57,255,20,0.2)] active:scale-[0.98] transition-all disabled:opacity-50"
+            >
+              {forgotLoading ? "Sending Link..." : (cooldown > 0 ? `Resend in ${cooldown}s` : "Send Recovery Link")}
+            </motion.button>
+
+            <div className="mt-6 text-center">
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 text-muted hover:text-foreground cursor-pointer focus:outline-none"
+                onClick={() => {
+                  setForgotMode(false);
+                  setForgotError('');
+                  setForgotSuccess('');
+                }}
+                className="text-muted hover:text-foreground text-xs font-semibold cursor-pointer transition-colors focus:outline-none"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                Back to Login
               </button>
             </div>
-          </div>
+          </form>
+        ) : (
+          <>
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-semibold leading-relaxed flex items-start gap-2"
+              >
+                <Shield className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </motion.div>
+            )}
 
-          <div className="flex items-center justify-between text-xs py-1">
-            <label className="flex items-center gap-2 text-muted hover:text-foreground cursor-pointer select-none">
-              <input 
-                type="checkbox" 
-                checked={rememberMe} 
-                onChange={(e) => setRememberMe(e.target.checked)} 
-                className="w-4 h-4 rounded bg-[var(--input)] border border-card-border accent-acid-green focus:ring-0 cursor-pointer"
-              />
-              <span>Remember Me</span>
-            </label>
-          </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="flex flex-col space-y-1">
+                <label className="text-muted text-[10px] uppercase font-bold tracking-wider">Email Address</label>
+                <div className="relative flex items-center">
+                  <Mail className="absolute left-4 w-4 h-4 text-muted" />
+                  <input 
+                    type="email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full bg-[var(--input)] border border-card-border rounded-xl pl-12 pr-4 py-3 text-sm text-foreground focus:outline-none focus:border-acid-green transition-colors"
+                    required 
+                    disabled={loading}
+                  />
+                </div>
+              </div>
 
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-acid-green to-emerald-500 text-accent-foreground font-bold text-sm py-3.5 rounded-xl mt-6 cursor-pointer hover:shadow-[0_0_20px_rgba(57,255,20,0.2)] active:scale-[0.98] transition-all disabled:opacity-50"
-          >
-            {loading ? "Authenticating..." : (isSignUp ? "Sign Up" : "Sign In")}
-          </motion.button>
-        </form>
+              <div className="flex flex-col space-y-1">
+                <label className="text-muted text-[10px] uppercase font-bold tracking-wider">Password</label>
+                <div className="relative flex items-center">
+                  <Lock className="absolute left-4 w-4 h-4 text-muted" />
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-[var(--input)] border border-card-border rounded-xl pl-12 pr-12 py-3 text-sm text-foreground focus:outline-none focus:border-acid-green transition-colors"
+                    required 
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 text-muted hover:text-foreground cursor-pointer focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs py-1">
+                <label className="flex items-center gap-2 text-muted hover:text-foreground cursor-pointer select-none">
+                  <input 
+                    type="checkbox" 
+                    checked={rememberMe} 
+                    onChange={(e) => setRememberMe(e.target.checked)} 
+                    className="w-4 h-4 rounded bg-[var(--input)] border border-card-border accent-acid-green focus:ring-0 cursor-pointer"
+                  />
+                  <span>Remember Me</span>
+                </label>
+                {!isSignUp && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotMode(true);
+                      setForgotEmail(email);
+                    }}
+                    className="text-muted hover:text-[var(--color-acid-green)] font-semibold cursor-pointer focus:outline-none"
+                  >
+                    Forgot Password?
+                  </button>
+                )}
+              </div>
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-acid-green to-emerald-500 text-accent-foreground font-bold text-sm py-3.5 rounded-xl mt-6 cursor-pointer hover:shadow-[0_0_20px_rgba(57,255,20,0.2)] active:scale-[0.98] transition-all disabled:opacity-50"
+              >
+                {loading ? "Authenticating..." : (isSignUp ? "Sign Up" : "Sign In")}
+              </motion.button>
+            </form>
+          </>
+        )}
 
         {/* Divider */}
         <div className="relative flex py-5 items-center">

@@ -114,6 +114,7 @@ export default function WorkoutLogger({ onNotification }) {
   const user = useStore(state => state.user);
   const workoutLogs = useStore(state => state.workoutLogs);
   const setWorkoutLogs = useStore(state => state.setWorkoutLogs);
+  const addWorkoutLogStore = useStore(state => state.addWorkoutLog);
   const userId = user?.uid;
   const ecoStore = useEcosystemStore();
 
@@ -140,6 +141,24 @@ export default function WorkoutLogger({ onNotification }) {
   const [editingSplit, setEditingSplit] = useState(false);
   const [editRoutineFields, setEditRoutineFields] = useState({ type: '', desc: '', exercises: [] });
 
+  const [selectedSoreness, setSelectedSoreness] = useState(5);
+  const [selectedFatigue, setSelectedFatigue] = useState(5);
+
+  const handleSaveRecovery = async () => {
+    const recoveryScore = Math.round(100 - (selectedSoreness * 5 + selectedFatigue * 5));
+    ecoStore.updateFitnessScore({ dailyScore: Math.max(50, Math.min(100, recoveryScore)) });
+    
+    const nextHealth = {
+      ...(ecoStore.healthLogs || {}),
+      soreness: selectedSoreness,
+      fatigue: selectedFatigue,
+      recovery: recoveryScore
+    };
+    ecoStore.syncEcosystemState({ healthLogs: nextHealth });
+    await saveEcosystemState(userId, useEcosystemStore.getState());
+    if (onNotification) onNotification("Recovery metrics logged successfully! 🧘");
+  };
+
   // Hydrate Initial Workout state
   useEffect(() => {
     const fetchWorkouts = async () => {
@@ -160,14 +179,6 @@ export default function WorkoutLogger({ onNotification }) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // wger API Search Debouncer
-  useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      handleSearch(exQuery);
-    }, 350);
-    return () => clearTimeout(delayDebounce);
-  }, [exQuery]);
 
   const handleSearch = async (val) => {
     if (val.trim().length < 2) {
@@ -205,6 +216,14 @@ export default function WorkoutLogger({ onNotification }) {
     setShowDropdown(true);
   };
 
+  // wger API Search Debouncer
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      handleSearch(exQuery);
+    }, 350);
+    return () => clearTimeout(delayDebounce);
+  }, [exQuery]);
+
   const selectExercise = (ex) => {
     setExName(ex.name);
     setExCategory(ex.category || 'Strength');
@@ -216,17 +235,53 @@ export default function WorkoutLogger({ onNotification }) {
     e.preventDefault();
     setLoading(true);
 
+    // Bounds Validations
+    if (!exName.trim() || exName.length > 50) {
+      if (onNotification) onNotification("Workout exercise name must be under 50 characters.");
+      setLoading(false);
+      return;
+    }
+
+    const sets = exSets ? Number(exSets) : 0;
+    const reps = exReps ? Number(exReps) : 0;
+    const weight = exWeight ? Number(exWeight) : 0;
+    const duration = exDuration ? Number(exDuration) : 0;
+
+    if (exCategory === 'Cardio') {
+      if (isNaN(duration) || duration < 1 || duration > 480) {
+        if (onNotification) onNotification("Cardio duration must be between 1 and 480 minutes.");
+        setLoading(false);
+        return;
+      }
+    } else {
+      if (isNaN(sets) || sets < 1 || sets > 20) {
+        if (onNotification) onNotification("Workout sets must be between 1 and 20.");
+        setLoading(false);
+        return;
+      }
+      if (isNaN(reps) || reps < 1 || reps > 200) {
+        if (onNotification) onNotification("Workout reps must be between 1 and 200.");
+        setLoading(false);
+        return;
+      }
+      if (isNaN(weight) || weight < 0 || weight > 1000) {
+        if (onNotification) onNotification("Workout weight must be between 0 and 1000.");
+        setLoading(false);
+        return;
+      }
+    }
+
     const workoutItem = {
-      name: exName,
+      name: exName.trim(),
       category: exCategory,
-      sets: exSets ? Number(exSets) : 0,
-      reps: exReps ? Number(exReps) : 0,
-      weight: exWeight ? Number(exWeight) : 0,
-      duration: exDuration ? Number(exDuration) : 0
+      sets: exCategory === 'Cardio' ? 0 : sets,
+      reps: exCategory === 'Cardio' ? 0 : reps,
+      weight: exCategory === 'Cardio' ? 0 : weight,
+      duration: exCategory === 'Cardio' ? duration : 0
     };
 
     const saved = await addWorkoutLog(userId, workoutItem);
-    setWorkoutLogs([saved, ...workoutLogs]);
+    addWorkoutLogStore(saved);
     
     // Clear form
     setExName('');
@@ -267,21 +322,24 @@ export default function WorkoutLogger({ onNotification }) {
     <div className="space-y-6">
       
       {/* Sub tabs nav */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-card-border pb-4 gap-4">
-        <div>
-          <h1 className="text-xl font-black text-foreground uppercase tracking-wider">Workouts Log</h1>
-          <p className="text-xs text-muted font-medium mt-0.5">Register weight sets, reps, and track active fitness targets</p>
+      <div className="flex flex-col gap-3 border-b border-card-border pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-xl font-black text-foreground uppercase tracking-wider leading-tight">Workouts Log</h1>
+            <p className="text-[10px] sm:text-xs text-muted font-medium mt-0.5 hidden sm:block">Register weight sets, reps, and track active fitness targets</p>
+          </div>
         </div>
 
-        <div className="bg-surface border border-card-border p-1 rounded-xl flex gap-0.5 w-full sm:w-auto shrink-0">
+        <div className="bg-surface border border-card-border p-1 rounded-xl flex gap-0.5 w-full overflow-x-auto scrollbar-none">
           {[
-            { id: 'logger', label: 'Workout Logger' },
-            { id: 'challenges', label: 'Arena Challenges' }
+            { id: 'logger', label: 'Logger' },
+            { id: 'analytics', label: 'Analytics' },
+            { id: 'challenges', label: 'Challenges' }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id)}
-              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex-1 sm:flex-none text-center ${
+              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex-1 text-center shrink-0 ${
                 activeSubTab === tab.id
                   ? 'bg-acid-green text-accent-foreground shadow-sm'
                   : 'text-muted hover:text-foreground'
@@ -327,7 +385,7 @@ export default function WorkoutLogger({ onNotification }) {
                               setExName(e.target.value);
                             }}
                             placeholder="Bench press, squat, pullup..."
-                            className="w-full bg-[var(--input)] border border-card-border focus:border-acid-green rounded-xl pl-10 pr-4 py-2.5 text-xs text-foreground focus:outline-none shadow-inner"
+                            className="w-full bg-[var(--input)] border border-card-border focus:border-acid-green rounded-xl pl-10 pr-4 py-3 text-sm text-foreground focus:outline-none shadow-inner"
                           />
                         </div>
 
@@ -360,17 +418,28 @@ export default function WorkoutLogger({ onNotification }) {
                         </AnimatePresence>
                       </div>
                       
-                      <div className="flex flex-col space-y-1">
-                        <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Category</label>
-                        <select
-                          value={exCategory}
-                          onChange={(e) => setExCategory(e.target.value)}
-                          className={inputStyle}
-                        >
-                          <option value="Strength">Strength</option>
-                          <option value="Cardio">Cardio / HIIT</option>
-                          <option value="Hypertrophy">Hypertrophy</option>
-                        </select>
+                      <div className="flex flex-col space-y-1 md:col-span-1">
+                        <label className="text-[9px] text-muted font-bold uppercase tracking-wider mb-1">Category</label>
+                        <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-none shrink-0 w-full">
+                          {[
+                            { id: 'Strength', label: 'Strength' },
+                            { id: 'Cardio', label: 'Cardio / HIIT' },
+                            { id: 'Hypertrophy', label: 'Hypertrophy' }
+                          ].map((cat) => (
+                            <button
+                              type="button"
+                              key={cat.id}
+                              onClick={() => setExCategory(cat.id)}
+                              className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all border shrink-0 cursor-pointer ${
+                                exCategory === cat.id
+                                  ? 'bg-acid-green text-accent-foreground border-acid-green shadow-sm'
+                                  : 'bg-[var(--input)] border-card-border text-muted hover:text-foreground'
+                              }`}
+                            >
+                              {cat.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
@@ -663,6 +732,180 @@ export default function WorkoutLogger({ onNotification }) {
                 </div>
               </section>
             </div>
+          )}
+
+          {activeSubTab === 'analytics' && (
+            (() => {
+              // 1. Calculate PRs
+              const prMap = {};
+              workoutLogs.forEach(log => {
+                if (log.category === 'Strength' && log.weight) {
+                  const name = log.name.trim();
+                  const weight = Number(log.weight);
+                  if (!prMap[name] || weight > prMap[name]) {
+                    prMap[name] = weight;
+                  }
+                }
+              });
+
+              // 2. Calculate Volume
+              const totalVolume = workoutLogs.reduce((acc, log) => {
+                if (log.category === 'Strength' && log.sets && log.reps && log.weight) {
+                  return acc + (Number(log.sets) * Number(log.reps) * Number(log.weight));
+                }
+                return acc;
+              }, 0);
+
+              const templates = [
+                {
+                  name: "Push Day Power",
+                  exercises: [
+                    { name: "Flat Bench Press", sets: 4, reps: 8, weight: 60, category: "Strength" },
+                    { name: "Overhead Press", sets: 3, reps: 10, weight: 40, category: "Strength" }
+                  ]
+                },
+                {
+                  name: "Pull Day Hypertrophy",
+                  exercises: [
+                    { name: "Lat Pulldown", sets: 4, reps: 10, weight: 55, category: "Strength" },
+                    { name: "Bicep Curls", sets: 3, reps: 12, weight: 12, category: "Strength" }
+                  ]
+                },
+                {
+                  name: "Leg Day Compound",
+                  exercises: [
+                    { name: "Barbell Back Squats", sets: 4, reps: 8, weight: 80, category: "Strength" },
+                    { name: "Leg Press", sets: 3, reps: 10, weight: 120, category: "Strength" }
+                  ]
+                }
+              ];
+
+              const loadTemplate = (temp) => {
+                const first = temp.exercises[0];
+                setExName(first.name);
+                setExSets(first.sets);
+                setExReps(first.reps);
+                setExWeight(first.weight);
+                setExCategory(first.category);
+                setActiveSubTab('logger');
+                if (onNotification) onNotification(`Loaded template: ${temp.name}. Feel free to customize and save!`);
+              };
+
+              return (
+                <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-6">
+                  <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    {/* Left Column: PRs & Volume */}
+                    <div className="space-y-6">
+                      {/* PRs Card */}
+                      <div className="glass p-5 rounded-2xl border border-card-border shadow-md">
+                        <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5 mb-4">
+                          <Trophy className="w-4 h-4 text-yellow-500 fill-current" />
+                          Personal Records (PRs)
+                        </h3>
+                        {Object.keys(prMap).length > 0 ? (
+                          <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                            {Object.entries(prMap).map(([name, weight]) => (
+                              <div key={name} className="flex justify-between items-center bg-surface/50 border border-card-border p-3 rounded-xl">
+                                <span className="text-xs font-semibold text-foreground">{name}</span>
+                                <span className="text-xs font-black text-acid-green">{weight} kg</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted italic">Log strength exercises to establish your PR leaderboard.</p>
+                        )}
+                      </div>
+
+                      {/* Volume Tracker */}
+                      <div className="glass p-5 rounded-2xl border border-card-border shadow-md">
+                        <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                          <Dumbbell className="w-4 h-4 text-acid-green" />
+                          Weight Volume Tracked
+                        </h3>
+                        <p className="text-[10px] text-muted font-semibold uppercase tracking-wider mb-4">Cumulative Training Volume</p>
+                        <div className="bg-surface/50 border border-card-border p-4 rounded-xl text-center">
+                          <span className="text-2xl font-black text-foreground block">{totalVolume.toLocaleString()} kg</span>
+                          <span className="text-[9px] text-muted font-bold block mt-1 uppercase tracking-wider">Total sets × reps × weight lifted</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Column: Templates & Recovery */}
+                    <div className="space-y-6">
+                      {/* Workout Templates */}
+                      <div className="glass p-5 rounded-2xl border border-card-border shadow-md">
+                        <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5 mb-4">
+                          <Clock className="w-4 h-4 text-acid-green" />
+                          Workout Templates
+                        </h3>
+                        <div className="space-y-3">
+                          {templates.map(temp => (
+                            <div key={temp.name} className="bg-surface/50 border border-card-border p-3 rounded-xl flex justify-between items-center">
+                              <div>
+                                <h4 className="text-xs font-bold text-foreground">{temp.name}</h4>
+                                <p className="text-[9px] text-muted font-bold mt-0.5 uppercase tracking-wider">
+                                  {temp.exercises.map(x => x.name).join(' · ')}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => loadTemplate(temp)}
+                                className="bg-acid-green text-accent-foreground text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg cursor-pointer border-none"
+                              >
+                                Load
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Recovery & Soreness Input */}
+                      <div className="glass p-5 rounded-2xl border border-card-border shadow-md space-y-4">
+                        <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                          🧘 Daily Recovery Status
+                        </h3>
+                        
+                        <div className="space-y-3">
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-[9px] text-muted font-bold uppercase tracking-wider">
+                              <span>Muscle Soreness</span>
+                              <span className="text-acid-green">{selectedSoreness}/10</span>
+                            </div>
+                            <input 
+                              type="range" min="1" max="10" 
+                              value={selectedSoreness} 
+                              onChange={(e) => setSelectedSoreness(Number(e.target.value))}
+                              className="w-full accent-acid-green cursor-pointer"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-[9px] text-muted font-bold uppercase tracking-wider">
+                              <span>Central Fatigue</span>
+                              <span className="text-acid-green">{selectedFatigue}/10</span>
+                            </div>
+                            <input 
+                              type="range" min="1" max="10" 
+                              value={selectedFatigue} 
+                              onChange={(e) => setSelectedFatigue(Number(e.target.value))}
+                              className="w-full accent-acid-green cursor-pointer"
+                            />
+                          </div>
+
+                          <button
+                            onClick={handleSaveRecovery}
+                            className="w-full bg-acid-green text-accent-foreground font-black text-[10px] uppercase tracking-wider py-2.5 rounded-xl cursor-pointer border-none shadow-sm mt-2"
+                          >
+                            Log Recovery Metrics
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              );
+            })()
           )}
 
         </motion.div>

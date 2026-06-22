@@ -1,8 +1,8 @@
 import { auth, db } from "./firebase";
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut as fbSignOut, 
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut as fbSignOut,
   onAuthStateChanged,
   GoogleAuthProvider,
   OAuthProvider,
@@ -13,17 +13,18 @@ import {
   updateEmail,
   updatePassword,
   updateProfile,
-  deleteUser
+  deleteUser,
+  sendPasswordResetEmail
 } from "firebase/auth";
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy, 
-  doc, 
+import {
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  doc,
   setDoc,
   getDoc
 } from "firebase/firestore";
@@ -31,17 +32,95 @@ import {
 // Helper to determine if Firebase is fully configured or running mock
 const isMockFirebase = !auth.app.options.apiKey || auth.app.options.apiKey === "mock-api-key";
 
-// Local storage state structure for fallback
-const LOCAL_STATE_KEY = "calyxo_pwa_state";
-const getLocalState = () => {
-  const saved = localStorage.getItem(LOCAL_STATE_KEY);
-  if (saved) {
+const ENCRYPTION_SALT = "calyxo_secure_salt_2026";
+
+export const getCurrentUserId = () => {
+  if (typeof window === 'undefined') return "";
+  if (isMockFirebase) {
+    try {
+      const mockUserRaw = localStorage.getItem("calyxo_mock_user");
+      if (mockUserRaw) {
+        const mock = JSON.parse(mockUserRaw);
+        return mock?.uid || "";
+      }
+    } catch (e) {}
+    return "";
+  }
+  return auth?.currentUser?.uid || "";
+};
+
+export const xorEncrypt = (text, key = ENCRYPTION_SALT) => {
+  let result = "";
+  for (let i = 0; i < text.length; i++) {
+    result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+  }
+  try {
+    return btoa(unescape(encodeURIComponent(result)));
+  } catch (e) {
+    return btoa(result);
+  }
+};
+
+export const xorDecrypt = (encoded, key = ENCRYPTION_SALT) => {
+  if (!encoded) return "";
+  try {
+    let text;
+    try {
+      text = decodeURIComponent(escape(atob(encoded)));
+    } catch (e) {
+      text = atob(encoded);
+    }
+    let result = "";
+    for (let i = 0; i < text.length; i++) {
+      result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return result;
+  } catch (e) {
+    return "";
+  }
+};
+
+export const getSecureItem = (key, keyDerivation = ENCRYPTION_SALT) => {
+  if (typeof window === 'undefined') return null;
+  const saved = localStorage.getItem(key);
+  if (!saved) return null;
+  if (saved.startsWith("{") || saved.startsWith("[")) {
     try {
       return JSON.parse(saved);
+    } catch (e) {}
+  }
+  const uid = getCurrentUserId();
+  const derivationKey = (keyDerivation === ENCRYPTION_SALT && uid)
+    ? `${uid}_${ENCRYPTION_SALT}`
+    : keyDerivation;
+
+  const decrypted = xorDecrypt(saved, derivationKey);
+  if (decrypted) {
+    try {
+      return JSON.parse(decrypted);
     } catch (e) {
-      console.error("Local state parse error", e);
+      console.error("Secure parse error", key, e);
     }
   }
+  return null;
+};
+
+export const setSecureItem = (key, val, keyDerivation = ENCRYPTION_SALT) => {
+  if (typeof window === 'undefined') return;
+  const rawStr = JSON.stringify(val);
+  const uid = getCurrentUserId();
+  const derivationKey = (keyDerivation === ENCRYPTION_SALT && uid)
+    ? `${uid}_${ENCRYPTION_SALT}`
+    : keyDerivation;
+
+  const encrypted = xorEncrypt(rawStr, derivationKey);
+  localStorage.setItem(key, encrypted);
+};
+
+const LOCAL_STATE_KEY = "calyxo_pwa_state";
+const getLocalState = (userId) => {
+  const state = getSecureItem(LOCAL_STATE_KEY, userId);
+  if (state) return state;
   return {
     foodLogs: [],
     workoutLogs: [],
@@ -51,8 +130,8 @@ const getLocalState = () => {
   };
 };
 
-const saveLocalState = (state) => {
-  localStorage.setItem(LOCAL_STATE_KEY, JSON.stringify(state));
+const saveLocalState = (userId, state) => {
+  setSecureItem(LOCAL_STATE_KEY, state, userId);
 };
 
 /* ==========================================================================
@@ -115,15 +194,23 @@ export const signOutUser = async () => {
   await fbSignOut(auth);
 };
 
+export const sendPasswordReset = async (email) => {
+  if (isMockFirebase) {
+    console.log(`Mock reset password email sent to ${email}`);
+    return;
+  }
+  await sendPasswordResetEmail(auth, email);
+};
+
 export const subscribeToAuth = (callback) => {
   if (isMockFirebase) {
     // Trigger callback with mock user if exists
     const mockUserRaw = localStorage.getItem("calyxo_mock_user");
     const mockUser = mockUserRaw ? JSON.parse(mockUserRaw) : null;
     callback(mockUser);
-    
+
     // Return a dummy unsubscribe function
-    return () => {};
+    return () => { };
   }
   return onAuthStateChanged(auth, (user) => {
     callback(user);
@@ -136,11 +223,11 @@ export const subscribeToAuth = (callback) => {
 
 export const getFoodLogs = async (userId) => {
   if (isMockFirebase || !userId) {
-    return getLocalState().foodLogs;
+    return getLocalState(userId).foodLogs;
   }
   try {
     const q = query(
-      collection(db, "food_logs"), 
+      collection(db, "food_logs"),
       where("userId", "==", userId),
       orderBy("timestamp", "desc")
     );
@@ -148,17 +235,17 @@ export const getFoodLogs = async (userId) => {
     return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (err) {
     console.error("Firestore getFoodLogs error, falling back to LocalStorage:", err);
-    return getLocalState().foodLogs;
+    return getLocalState(userId).foodLogs;
   }
 };
 
 export const addFoodLog = async (userId, item) => {
   const logItem = { ...item, userId, timestamp: Date.now() };
-  
+
   // Always write locally as cache
-  const state = getLocalState();
+  const state = getLocalState(userId);
   state.foodLogs.push(logItem);
-  saveLocalState(state);
+  saveLocalState(userId, state);
 
   if (isMockFirebase || !userId) return logItem;
 
@@ -173,9 +260,9 @@ export const addFoodLog = async (userId, item) => {
 
 export const deleteFoodLog = async (userId, logId) => {
   // Always filter locally
-  const state = getLocalState();
+  const state = getLocalState(userId);
   state.foodLogs = state.foodLogs.filter(x => x.id !== logId && x.timestamp !== logId);
-  saveLocalState(state);
+  saveLocalState(userId, state);
 
   if (isMockFirebase || !userId || typeof logId === 'number') return;
 
@@ -192,11 +279,11 @@ export const deleteFoodLog = async (userId, logId) => {
 
 export const getWorkoutLogs = async (userId) => {
   if (isMockFirebase || !userId) {
-    return getLocalState().workoutLogs;
+    return getLocalState(userId).workoutLogs;
   }
   try {
     const q = query(
-      collection(db, "workout_logs"), 
+      collection(db, "workout_logs"),
       where("userId", "==", userId),
       orderBy("timestamp", "desc")
     );
@@ -204,16 +291,16 @@ export const getWorkoutLogs = async (userId) => {
     return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (err) {
     console.error("Firestore getWorkoutLogs error:", err);
-    return getLocalState().workoutLogs;
+    return getLocalState(userId).workoutLogs;
   }
 };
 
 export const addWorkoutLog = async (userId, workout) => {
   const logItem = { ...workout, userId, timestamp: Date.now() };
-  
-  const state = getLocalState();
+
+  const state = getLocalState(userId);
   state.workoutLogs.push(logItem);
-  saveLocalState(state);
+  saveLocalState(userId, state);
 
   if (isMockFirebase || !userId) return logItem;
 
@@ -232,7 +319,7 @@ export const addWorkoutLog = async (userId, workout) => {
 
 export const getWaterIntake = async (userId) => {
   if (isMockFirebase || !userId) {
-    return getLocalState().waterIntake;
+    return getLocalState(userId).waterIntake;
   }
   try {
     const docRef = doc(db, "users_metrics", `${userId}_water`);
@@ -247,15 +334,15 @@ export const getWaterIntake = async (userId) => {
     }
     return 0;
   } catch (err) {
-    return getLocalState().waterIntake;
+    return getLocalState(userId).waterIntake;
   }
 };
 
 export const saveWaterIntake = async (userId, amount) => {
   const today = new Date().toDateString();
-  const state = getLocalState();
+  const state = getLocalState(userId);
   state.waterIntake = amount;
-  saveLocalState(state);
+  saveLocalState(userId, state);
 
   if (isMockFirebase || !userId) return;
 
@@ -276,18 +363,18 @@ export const saveWaterIntake = async (userId, amount) => {
 
 export const getWeightLogs = async (userId) => {
   if (isMockFirebase || !userId) {
-    return getLocalState().weightLogs;
+    return getLocalState(userId).weightLogs;
   }
   try {
     const q = query(
-      collection(db, "weight_logs"), 
+      collection(db, "weight_logs"),
       where("userId", "==", userId),
       orderBy("timestamp", "desc")
     );
     const snap = await getDocs(q);
     return snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).reverse();
   } catch (err) {
-    return getLocalState().weightLogs;
+    return getLocalState(userId).weightLogs;
   }
 };
 
@@ -301,12 +388,12 @@ export const addWeightLog = async (userId, weightVal, units) => {
     userId
   };
 
-  const state = getLocalState();
+  const state = getLocalState(userId);
   state.weightLogs.push(entry);
   if (state.weightLogs.length > 10) {
     state.weightLogs.shift();
   }
-  saveLocalState(state);
+  saveLocalState(userId, state);
 
   if (isMockFirebase || !userId) return entry;
 
@@ -325,7 +412,7 @@ export const addWeightLog = async (userId, weightVal, units) => {
 
 export const getUserProfile = async (userId) => {
   if (isMockFirebase || !userId) {
-    return getLocalState().userProfile;
+    return getLocalState(userId).userProfile;
   }
   try {
     const docRef = doc(db, "users_metrics", `${userId}_profile`);
@@ -333,16 +420,16 @@ export const getUserProfile = async (userId) => {
     if (snap.exists()) {
       return snap.data();
     }
-    return getLocalState().userProfile;
+    return getLocalState(userId).userProfile;
   } catch (err) {
-    return getLocalState().userProfile;
+    return getLocalState(userId).userProfile;
   }
 };
 
 export const saveUserProfile = async (userId, profile) => {
-  const state = getLocalState();
+  const state = getLocalState(userId);
   state.userProfile = profile;
-  saveLocalState(state);
+  saveLocalState(userId, state);
 
   if (isMockFirebase || !userId) return;
 
@@ -370,15 +457,9 @@ export const addTrainingLog = async (userId, queryText, responseText, rating) =>
   };
 
   // Always cache locally in mock local storage mode
-  const savedLogsRaw = localStorage.getItem("calyxo_training_logs") || "[]";
-  let logs = [];
-  try {
-    logs = JSON.parse(savedLogsRaw);
-  } catch (e) {
-    logs = [];
-  }
+  let logs = getSecureItem("calyxo_training_logs", userId || ENCRYPTION_SALT) || [];
   logs.push(logItem);
-  localStorage.setItem("calyxo_training_logs", JSON.stringify(logs));
+  setSecureItem("calyxo_training_logs", logs, userId || ENCRYPTION_SALT);
 
   if (isMockFirebase || !userId) return logItem;
 
@@ -393,13 +474,7 @@ export const addTrainingLog = async (userId, queryText, responseText, rating) =>
 
 export const getPositiveTrainingLogs = async (userId) => {
   // Try reading local storage first as a direct source (covers mock mode)
-  const savedLogsRaw = localStorage.getItem("calyxo_training_logs") || "[]";
-  let localLogs = [];
-  try {
-    localLogs = JSON.parse(savedLogsRaw);
-  } catch (e) {
-    localLogs = [];
-  }
+  let localLogs = getSecureItem("calyxo_training_logs", userId || ENCRYPTION_SALT) || [];
   const positiveLocal = localLogs.filter(log => log.rating === 1);
 
   if (isMockFirebase || !userId) {
@@ -414,7 +489,7 @@ export const getPositiveTrainingLogs = async (userId) => {
     );
     const snap = await getDocs(q);
     const firestoreLogs = snap.docs.map(doc => doc.data());
-    
+
     // Merge both sources and deduplicate by timestamp
     const allLogs = [...firestoreLogs, ...positiveLocal];
     const seen = new Set();
@@ -436,15 +511,7 @@ export const getPositiveTrainingLogs = async (userId) => {
 
 export const getChatSessions = async (userId) => {
   if (isMockFirebase || !userId) {
-    const saved = localStorage.getItem("calyxo_chat_sessions");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error("Local chat sessions parse error", e);
-      }
-    }
-    return [];
+    return getSecureItem("calyxo_chat_sessions", userId || ENCRYPTION_SALT) || [];
   }
   try {
     const q = query(
@@ -456,25 +523,14 @@ export const getChatSessions = async (userId) => {
     return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (err) {
     console.error("Firestore getChatSessions error, falling back to local:", err);
-    const saved = localStorage.getItem("calyxo_chat_sessions");
-    try {
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
+    return getSecureItem("calyxo_chat_sessions", userId || ENCRYPTION_SALT) || [];
   }
 };
 
 export const saveChatSession = async (userId, session) => {
   // Always update locally first
-  let localSessions = [];
-  const saved = localStorage.getItem("calyxo_chat_sessions");
-  if (saved) {
-    try {
-      localSessions = JSON.parse(saved);
-    } catch (e) {}
-  }
-  
+  let localSessions = getSecureItem("calyxo_chat_sessions", userId || ENCRYPTION_SALT) || [];
+
   const idx = localSessions.findIndex(s => s.id === session.id);
   const updatedSession = { ...session, userId, updatedAt: Date.now() };
   if (idx > -1) {
@@ -484,7 +540,7 @@ export const saveChatSession = async (userId, session) => {
   }
   // Sort local sessions
   localSessions.sort((a, b) => b.updatedAt - a.updatedAt);
-  localStorage.setItem("calyxo_chat_sessions", JSON.stringify(localSessions));
+  setSecureItem("calyxo_chat_sessions", localSessions, userId || ENCRYPTION_SALT);
 
   if (isMockFirebase || !userId) return updatedSession;
 
@@ -499,15 +555,9 @@ export const saveChatSession = async (userId, session) => {
 
 export const deleteChatSession = async (userId, sessionId) => {
   // Local delete
-  let localSessions = [];
-  const saved = localStorage.getItem("calyxo_chat_sessions");
-  if (saved) {
-    try {
-      localSessions = JSON.parse(saved);
-    } catch (e) {}
-  }
+  let localSessions = getSecureItem("calyxo_chat_sessions", userId || ENCRYPTION_SALT) || [];
   localSessions = localSessions.filter(s => s.id !== sessionId);
-  localStorage.setItem("calyxo_chat_sessions", JSON.stringify(localSessions));
+  setSecureItem("calyxo_chat_sessions", localSessions, userId || ENCRYPTION_SALT);
 
   if (isMockFirebase || !userId) return;
 
@@ -524,12 +574,7 @@ export const deleteChatSession = async (userId, sessionId) => {
 
 export const getEcosystemState = async (userId) => {
   if (isMockFirebase || !userId) {
-    const saved = localStorage.getItem("calyxo_ecosystem_db_state");
-    try {
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      return null;
-    }
+    return getSecureItem("calyxo_ecosystem_db_state", userId || ENCRYPTION_SALT);
   }
   try {
     const docRef = doc(db, "users_ecosystem", userId);
@@ -543,7 +588,7 @@ export const getEcosystemState = async (userId) => {
 
 export const saveEcosystemState = async (userId, state) => {
   if (typeof window !== 'undefined') {
-    localStorage.setItem("calyxo_ecosystem_db_state", JSON.stringify(state));
+    setSecureItem("calyxo_ecosystem_db_state", state, userId || ENCRYPTION_SALT);
   }
   if (isMockFirebase || !userId) return;
   try {
@@ -555,12 +600,7 @@ export const saveEcosystemState = async (userId, state) => {
 
 export const getMealScanLogs = async (userId) => {
   if (isMockFirebase || !userId) {
-    const saved = localStorage.getItem("calyxo_meal_scans");
-    try {
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
+    return getSecureItem("calyxo_meal_scans", userId || ENCRYPTION_SALT) || [];
   }
   try {
     const q = query(
@@ -578,15 +618,9 @@ export const getMealScanLogs = async (userId) => {
 
 export const addMealScanLog = async (userId, scanItem) => {
   const item = { ...scanItem, userId, timestamp: Date.now() };
-  let local = [];
-  const saved = localStorage.getItem("calyxo_meal_scans");
-  if (saved) {
-    try {
-      local = JSON.parse(saved);
-    } catch (e) {}
-  }
+  let local = getSecureItem("calyxo_meal_scans", userId || ENCRYPTION_SALT) || [];
   local.unshift(item);
-  localStorage.setItem("calyxo_meal_scans", JSON.stringify(local));
+  setSecureItem("calyxo_meal_scans", local, userId || ENCRYPTION_SALT);
 
   if (isMockFirebase || !userId) return item;
   try {
@@ -642,7 +676,7 @@ export const deleteUserAccount = async (userId) => {
       await deleteDoc(doc(db, "users_metrics", `${userId}_profile`));
       await deleteDoc(doc(db, "users_metrics", `${userId}_water`));
       await deleteDoc(doc(db, "users_ecosystem", userId));
-      
+
       const foodSnap = await getDocs(query(collection(db, "food_logs"), where("userId", "==", userId)));
       foodSnap.forEach(async (d) => {
         await deleteDoc(doc(db, "food_logs", d.id));
@@ -689,7 +723,7 @@ export const exportAccountData = async (userId) => {
   const waterIntake = await getWaterIntake(userId);
   const ecosystem = await getEcosystemState(userId);
   const chatSessions = await getChatSessions(userId);
-  
+
   const payload = {
     exportDate: new Date().toISOString(),
     userId: userId || "mock-user-id",

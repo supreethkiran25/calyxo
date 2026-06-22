@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { Bot, User, Send, Sparkles, ThumbsUp, ThumbsDown, Plus, Trash2, Menu, X, MessageSquare } from 'lucide-react';
+import { Bot, User, Send, Sparkles, ThumbsUp, ThumbsDown, Plus, Trash2, Menu, X, MessageSquare, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { addTrainingLog, getPositiveTrainingLogs, getChatSessions, saveChatSession, deleteChatSession, saveEcosystemState, fetchWithRetry } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
+
+const getTimestamp = () => Date.now();
 
 const WELCOME_MESSAGE = {
   id: 'welcome',
@@ -19,6 +21,7 @@ export default function AICoach({ onNotification }) {
   const foodLogs = useStore(state => state.foodLogs);
   const workoutLogs = useStore(state => state.workoutLogs);
   const waterIntake = useStore(state => state.waterIntake);
+  const weightLogs = useStore(state => state.weightLogs);
   const userProfile = useStore(state => state.userProfile);
   const updateUserProfile = useStore(state => state.updateUserProfile);
   const userId = user?.uid;
@@ -39,6 +42,42 @@ export default function AICoach({ onNotification }) {
   const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile drawer state
 
   const messagesEndRef = useRef(null);
+
+  const [briefingText, setBriefingText] = useState('');
+  const [briefingType, setBriefingType] = useState('daily_briefing');
+  const [loadingBriefing, setLoadingBriefing] = useState(false);
+
+  const handleGenerateBriefing = async (type) => {
+    setBriefingType(type);
+    setLoadingBriefing(true);
+    setBriefingText('');
+    try {
+      const response = await fetch('/api/gemini/briefing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          briefingType: type,
+          userProfile,
+          foodLogs,
+          workoutLogs,
+          weightLogs,
+          waterIntake,
+          healthLogs: ecoStore.healthLogs || {}
+        })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setBriefingText(data.report);
+      } else {
+        setBriefingText("### Error ⚠️\nFailed to generate AI report. Please try again.");
+      }
+    } catch (e) {
+      console.error("AI briefing fetch error", e);
+      setBriefingText("### Error ⚠️\nNetwork error. Check connection.");
+    } finally {
+      setLoadingBriefing(false);
+    }
+  };
 
   const handleGeneratePlan = async () => {
     setGeneratingPlan(true);
@@ -199,6 +238,15 @@ export default function AICoach({ onNotification }) {
     if (!inputVal.trim() || loading) return;
 
     const userMessageText = inputVal.trim();
+    const plan = userProfile?.subscriptionPlan || 'FREE';
+    const maxLength = plan === 'FREE' ? 1000 : 4000;
+    if (userMessageText.length > maxLength) {
+      if (onNotification) {
+        onNotification(`Message is too long. Limit for ${plan} is ${maxLength} characters.`);
+      }
+      return;
+    }
+
     setInputVal('');
     
     // Add user message to timeline
@@ -301,7 +349,7 @@ export default function AICoach({ onNotification }) {
         const sessionObj = {
           ...activeSession,
           messages: updatedMessages,
-          updatedAt: Date.now()
+          updatedAt: getTimestamp()
         };
         const savedSession = await saveChatSession(userId, sessionObj);
         setSessions(prev => prev.map(s => s.id === activeSessionId ? savedSession : s));
@@ -336,17 +384,35 @@ export default function AICoach({ onNotification }) {
   };
 
   const formatMessageText = (text) => {
-    return text.split('\n').map((line, idx) => {
+    const rawLines = text.split('\n');
+    const elements = [];
+    let currentBulletList = [];
+
+    const flushBulletList = (keyPrefix) => {
+      if (currentBulletList.length > 0) {
+        elements.push(
+          <ul key={`ul-${keyPrefix}`} className="list-disc ml-4 my-1.5 space-y-1">
+            {currentBulletList}
+          </ul>
+        );
+        currentBulletList = [];
+      }
+    };
+
+    rawLines.forEach((line, idx) => {
       let content = line;
       let className = "text-xs font-medium leading-relaxed text-[var(--foreground)] opacity-90";
 
       if (content.startsWith('### ')) {
+        flushBulletList(idx);
         content = content.replace('### ', '');
         className = "text-xs font-bold text-foreground mt-3 mb-1.5 block uppercase tracking-wider";
       } else if (content.startsWith('## ')) {
+        flushBulletList(idx);
         content = content.replace('## ', '');
         className = "text-sm font-extrabold text-[var(--color-acid-green)] mt-4 mb-2 block uppercase tracking-wider";
       } else if (content.startsWith('# ')) {
+        flushBulletList(idx);
         content = content.replace('# ', '');
         className = "text-md font-black text-[var(--color-acid-green)] mt-4 mb-2 block uppercase";
       }
@@ -375,19 +441,23 @@ export default function AICoach({ onNotification }) {
       const finalContent = parts.length > 0 ? parts : content;
 
       if (isBullet) {
-        return (
-          <li key={idx} className="text-xs text-[var(--foreground)] opacity-85 ml-4 list-disc mt-1 font-medium">
+        currentBulletList.push(
+          <li key={`li-${idx}`} className="text-xs text-[var(--foreground)] opacity-85 mt-1 font-medium leading-relaxed">
             {finalContent}
           </li>
         );
+      } else {
+        flushBulletList(idx);
+        elements.push(
+          <span key={idx} className={`${className} block`}>
+            {finalContent}
+          </span>
+        );
       }
-
-      return (
-        <span key={idx} className={`${className} block`}>
-          {finalContent}
-        </span>
-      );
     });
+
+    flushBulletList(rawLines.length);
+    return elements;
   };
 
   const renderHistoryList = () => (
@@ -436,6 +506,122 @@ export default function AICoach({ onNotification }) {
       </div>
     </>
   );
+
+  const renderBriefings = () => {
+    const plan = userProfile?.subscriptionPlan || 'FREE';
+    const hasPro = plan === 'PRO' || plan === 'PRO_PLUS';
+
+    if (!hasPro) {
+      return (
+        <div className="flex-1 overflow-y-auto p-5 flex flex-col justify-center items-center text-center">
+          <div className="glass p-8 rounded-2xl border border-[var(--card-border)] text-center max-w-md space-y-5 shadow-lg">
+            <Lock className="w-12 h-12 text-acid-green/60 mx-auto animate-pulse" />
+            <div className="space-y-2">
+              <h3 className="text-md font-black text-foreground uppercase tracking-wider">AI Daily Briefings Gated</h3>
+              <p className="text-xs text-muted leading-relaxed">
+                Daily Briefings and Weekly Reviews analyze your metrics, sleep, calories, and workouts to provide proactive fitness optimization feedback.
+              </p>
+            </div>
+            <div className="p-4 bg-surface rounded-xl border border-card-border/60 text-center">
+              <p className="text-[10px] text-foreground font-semibold leading-relaxed mb-3">
+                Unlock Daily AI briefings and insights by subscribing to our Pro plan!
+              </p>
+              <button
+                type="button"
+                onClick={() => useStore.getState().setActiveTab('profile')}
+                className="w-full bg-acid-green text-accent-foreground py-2.5 rounded-xl font-black text-xs uppercase tracking-wider hover:opacity-90 transition-all border-none cursor-pointer"
+              >
+                Go to Subscription Plans
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-5 select-text">
+        <div className="max-w-4xl mx-auto space-y-5">
+          {/* Briefing Type Selector */}
+          <div className="glass p-5 rounded-2xl border border-[var(--card-border)] space-y-4">
+            <div>
+              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">AI Health & Biometrics Briefings</h3>
+              <p className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">Compile your biometric logs into high-level athletic reports</p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: 'daily_briefing', label: 'Daily Briefing' },
+                { id: 'weekly_review', label: 'Weekly Review' },
+                { id: 'monthly_trend', label: 'Monthly Review' }
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setBriefingType(opt.id)}
+                  className={`py-2.5 px-2 rounded-xl border text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                    briefingType === opt.id
+                      ? 'bg-[var(--color-acid-green)] border-[var(--color-acid-green)] text-accent-foreground shadow-md'
+                      : 'bg-surface border-[var(--card-border)] text-muted hover:text-foreground'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => handleGenerateBriefing(briefingType)}
+              disabled={loadingBriefing}
+              className="w-full btn-primary py-2.5 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider cursor-pointer active:scale-98 transition-all disabled:opacity-50"
+            >
+              {loadingBriefing ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-accent-foreground border-t-transparent rounded-full animate-spin"></span>
+                  Compiling Report...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 text-accent-foreground" />
+                  Generate AI Report
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Render Active Briefing Report */}
+          {loadingBriefing ? (
+            <div className="glass p-6 rounded-2xl border border-[var(--card-border)] shadow-md space-y-4 animate-pulse">
+              <div className="h-4 bg-surface rounded w-1/3"></div>
+              <div className="space-y-2">
+                <div className="h-3 bg-surface rounded w-full"></div>
+                <div className="h-3 bg-surface rounded w-5/6"></div>
+                <div className="h-3 bg-surface rounded w-4/5"></div>
+              </div>
+            </div>
+          ) : briefingText ? (
+            <div className="glass p-6 rounded-2xl border border-[var(--card-border)] shadow-md space-y-3 animate-fadeIn">
+              <div className="flex justify-between items-center pb-2 border-b border-[var(--card-border)]">
+                <span className="text-[10px] font-bold text-[var(--color-acid-green)] uppercase tracking-wider">
+                  AI Generated Report · {briefingType.replace('_', ' ')}
+                </span>
+                <span className="text-[8px] text-muted font-bold">Powered by Gemini 2.5</span>
+              </div>
+              <div className="text-xs leading-relaxed text-foreground/90 font-medium whitespace-pre-wrap">
+                {formatMessageText(briefingText)}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-10 bg-surface/25 border border-dashed border-[var(--card-border)] rounded-2xl">
+              <Sparkles className="w-8 h-8 text-muted mx-auto mb-2 opacity-50 animate-pulse" />
+              <p className="text-xs text-muted font-bold uppercase tracking-wider">No briefing compiled</p>
+              <p className="text-[10px] text-muted font-medium mt-1">Select briefing interval above and compile report</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const renderPlansGenerator = () => {
     const activePlan = ecoStore.coachingPlan;
@@ -614,7 +800,7 @@ export default function AICoach({ onNotification }) {
   };
 
   return (
-    <div className="flex flex-row h-[calc(100dvh-170px)] md:h-[calc(100vh-140px)] max-h-[820px] glass rounded-2xl overflow-hidden relative border border-[var(--card-border)]">
+    <div className="flex flex-row h-[calc(100dvh-180px)] md:h-[calc(100vh-140px)] max-h-[820px] glass rounded-2xl overflow-hidden relative border border-[var(--card-border)]">
       
       {/* ── Chat Sidebar (Desktop Only) ── */}
       <div className="hidden md:flex w-72 shrink-0 border-r border-[var(--card-border)] bg-surface/20 flex-col p-4">
@@ -684,18 +870,19 @@ export default function AICoach({ onNotification }) {
             </div>
           </div>
           
-          {/* Sub-tab Selectors and New Chat button */}
+          {/* Sub-tab Selectors — horizontally scrollable on small screens */}
           <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
-            <div className="bg-surface border border-[var(--card-border)] p-0.5 rounded-lg flex gap-0.5 flex-1 sm:flex-none">
+            <div className="bg-surface border border-[var(--card-border)] p-0.5 rounded-lg flex gap-0.5 overflow-x-auto scrollbar-none flex-1 sm:flex-none max-w-[calc(100vw-120px)] sm:max-w-none">
               {[
                 { id: 'chat', label: 'Chat' },
+                { id: 'briefing', label: 'Briefings' },
                 { id: 'plans', label: 'AI Plans' },
-                { id: 'accountability', label: 'Accountability' }
+                { id: 'accountability', label: 'Goals' }
               ].map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveSubTab(tab.id)}
-                  className={`px-2 py-1 rounded-md text-[8.5px] font-black uppercase tracking-wider transition-all cursor-pointer flex-1 text-center whitespace-nowrap ${
+                  className={`px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                     activeSubTab === tab.id
                       ? 'bg-[var(--color-acid-green)] text-accent-foreground shadow-sm'
                       : 'text-muted hover:text-foreground'
@@ -708,9 +895,9 @@ export default function AICoach({ onNotification }) {
             
             <button 
               onClick={handleNewChat}
-              className="py-1 px-2.5 rounded-lg border border-[var(--card-border)] bg-surface text-[8.5px] font-bold text-foreground hover:border-[var(--color-acid-green)] transition-all cursor-pointer shrink-0"
+              className="py-1.5 px-3 rounded-lg border border-[var(--card-border)] bg-surface text-[9px] font-bold text-foreground hover:border-[var(--color-acid-green)] transition-all cursor-pointer shrink-0"
             >
-              New Chat
+              New
             </button>
           </div>
         </div>
@@ -787,8 +974,8 @@ export default function AICoach({ onNotification }) {
 
              {/* Suggestion Chips */}
              {messages.length === 1 && !loading && (
-               <div className="px-4 py-2.5 flex gap-2 overflow-x-auto border-t border-[var(--card-border)] bg-surface/5 scrollbar-none shrink-0 w-full">
-                 <div className="flex gap-2 max-w-4xl mx-auto">
+               <div className="px-4 py-2.5 flex overflow-x-auto border-t border-[var(--card-border)] bg-surface/5 scrollbar-none shrink-0 w-full">
+                 <div className="flex flex-row gap-2 whitespace-nowrap shrink-0">
                    <button 
                      onClick={() => handleSuggestionClick("Suggest a workout form tip for Squats")}
                      className="px-3 py-1.5 rounded-full border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--color-acid-green)]/5 text-[9px] sm:text-[10px] text-muted hover:text-[var(--color-acid-green)] font-bold whitespace-nowrap cursor-pointer transition-all bg-[var(--card-bg)]"
@@ -811,28 +998,31 @@ export default function AICoach({ onNotification }) {
                </div>
              )}
  
-             {/* Input Bar */}
-             <div className="p-4 border-t border-[var(--card-border)] bg-surface/5 shrink-0 z-10">
-               <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex gap-2.5 sm:gap-3">
+             {/* Input Bar — keyboard-safe on iOS */}
+             <div className="p-3 sm:p-4 border-t border-[var(--card-border)] bg-surface/5 shrink-0 z-10">
+               <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex gap-2">
                  <input 
                    type="text" 
                    value={inputVal}
                    onChange={(e) => setInputVal(e.target.value)}
                    placeholder="Ask coach Calyxo..."
-                   className="flex-1 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-full px-4 sm:px-5 py-3 text-xs text-[var(--foreground)] focus:outline-none focus:border-[var(--color-acid-green)] shadow-inner"
+                   className="flex-1 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-full px-4 py-3 text-sm text-[var(--foreground)] focus:outline-none focus:border-[var(--color-acid-green)] shadow-inner"
                    disabled={loading}
+                   autoComplete="off"
+                   autoCorrect="on"
                  />
                  <button 
                    type="submit" 
                    disabled={loading || !inputVal.trim()}
-                   className="px-4 sm:px-5 h-10 rounded-full bg-[var(--color-acid-green)] text-accent-foreground flex items-center justify-center gap-1.5 shadow-md disabled:opacity-50 hover:shadow-lg cursor-pointer shrink-0 transition-all active:scale-95 border-none font-bold text-xs uppercase tracking-wider"
+                   className="w-11 h-11 rounded-full bg-[var(--color-acid-green)] text-accent-foreground flex items-center justify-center gap-1.5 shadow-md disabled:opacity-50 hover:shadow-lg cursor-pointer shrink-0 transition-all active:scale-95 border-none"
                  >
-                   <span className="hidden sm:inline">Send</span>
-                   <Send className="w-3.5 h-3.5 text-accent-foreground" />
+                   <Send className="w-4 h-4 text-accent-foreground" />
                  </button>
                </form>
              </div>
           </>
+        ) : activeSubTab === 'briefing' ? (
+          renderBriefings()
         ) : activeSubTab === 'plans' ? (
           renderPlansGenerator()
         ) : (

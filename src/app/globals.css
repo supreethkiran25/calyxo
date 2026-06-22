@@ -117,6 +117,123 @@
   --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
 }
 
+[data-theme='obsidian'] {
+  /* Obsidian Dark (Dark Mode default) */
+  --background: #080808;
+  --foreground: #f3f4f6;
+  --card: #121212;
+  --card-foreground: #f3f4f6;
+  --primary: #b5f23d;
+  --primary-foreground: #000000;
+  --secondary: #181818;
+  --secondary-foreground: #f3f4f6;
+  --muted: #1c1c1e;
+  --muted-foreground: #9ca3af;
+  --accent: #b5f23d;
+  --accent-dim: #a0d934;
+  --accent-foreground: #000000;
+  --border: #1e1e1e;
+  --input: #1c1c1e;
+  --input-foreground: #f3f4f6;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --destructive: #ef5350;
+
+  --orange-theme: #f57c38;
+  --blue-theme: #4fc3f7;
+  --primary-bg: #b5f23d;
+  --primary-fg: #000000;
+  --glow-shadow: 0 0 20px rgba(181, 242, 61, 0.4);
+  --accent-glow: rgba(181, 242, 61, 0.2);
+
+  --card-bg: var(--card);
+  --card-border: var(--border);
+  --text-muted: var(--muted-foreground);
+  --nav-bg: rgba(18, 18, 18, 0.85);
+  --nav-border: var(--border);
+  --surface: var(--secondary);
+  --input-bg: var(--input);
+  --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+}
+
+[data-theme='solarized'] {
+  /* Solarized Retro Cream/Teal */
+  --background: #fdf6e3;
+  --foreground: #657b83;
+  --card: #eee8d5;
+  --card-foreground: #657b83;
+  --primary: #268bd2;
+  --primary-foreground: #ffffff;
+  --secondary: #eee8d5;
+  --secondary-foreground: #586e75;
+  --muted: #eee8d5;
+  --muted-foreground: #93a1a1;
+  --accent: #2aa198;
+  --accent-dim: #268bd2;
+  --accent-foreground: #ffffff;
+  --border: #d3c7a9;
+  --input: #fdf6e3;
+  --input-foreground: #657b83;
+  --success: #859900;
+  --warning: #b58900;
+  --destructive: #dc322f;
+
+  --orange-theme: #cb4b16;
+  --blue-theme: #268bd2;
+  --primary-bg: #2aa198;
+  --primary-fg: #ffffff;
+  --glow-shadow: none;
+  --accent-glow: rgba(42, 161, 152, 0.15);
+
+  --card-bg: var(--card);
+  --card-border: var(--border);
+  --text-muted: var(--muted-foreground);
+  --nav-bg: rgba(238, 232, 213, 0.85);
+  --nav-border: var(--border);
+  --surface: var(--secondary);
+  --input-bg: var(--input);
+  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='emerald'] {
+  /* Emerald Light Premium Green */
+  --background: #f0fdf4;
+  --foreground: #064e3b;
+  --card: #ffffff;
+  --card-foreground: #064e3b;
+  --primary: #10b981;
+  --primary-foreground: #ffffff;
+  --secondary: #e6fbf0;
+  --secondary-foreground: #065f46;
+  --muted: #d1fae5;
+  --muted-foreground: #047857;
+  --accent: #059669;
+  --accent-dim: #047857;
+  --accent-foreground: #ffffff;
+  --border: #a7f3d0;
+  --input: #ffffff;
+  --input-foreground: #064e3b;
+  --success: #059669;
+  --warning: #d97706;
+  --destructive: #dc2626;
+
+  --orange-theme: #d97706;
+  --blue-theme: #2563eb;
+  --primary-bg: #059669;
+  --primary-fg: #ffffff;
+  --glow-shadow: none;
+  --accent-glow: rgba(5, 150, 105, 0.15);
+
+  --card-bg: var(--card);
+  --card-border: var(--border);
+  --text-muted: var(--muted-foreground);
+  --nav-bg: rgba(255, 255, 255, 0.85);
+  --nav-border: var(--border);
+  --surface: var(--secondary);
+  --input-bg: var(--input);
+  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.03);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -416,3 +533,46 @@ input:focus, select:focus, textarea:focus {
   letter-spacing: 0.05em !important;
   word-spacing: 0.1em !important;
 }
+
+/* ── Mobile / Responsive Utilities ─────────────────────── */
+
+/* Hide scrollbar but keep scrollability */
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE & Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;             /* Chrome/Safari/Opera */
+}
+
+/* Safe area padding helpers */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Better touch targets on mobile */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  select,
+  textarea {
+    font-size: 16px; /* Prevents iOS auto-zoom on focus */
+  }
+
+  button {
+    min-height: 36px; /* Minimum tap target */
+  }
+}
+
+/* Prevent body scroll when mobile overlay is open */
+.body-locked {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+

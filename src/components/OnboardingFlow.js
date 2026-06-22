@@ -86,16 +86,16 @@ export default function OnboardingFlow({ onComplete }) {
     setStepIdx(STEPS.length - 1);
     setGenerating(true);
 
-    // Simulated AI Program Architect Progress
+    let progress = 0;
     const interval = setInterval(() => {
-      setGenerationProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          finalizeProfile();
-          return 100;
-        }
-        return prev + 10;
-      });
+      progress += 10;
+      if (progress >= 100) {
+        clearInterval(interval);
+        setGenerationProgress(100);
+        finalizeProfile();
+      } else {
+        setGenerationProgress(progress);
+      }
     }, 250);
   };
 
