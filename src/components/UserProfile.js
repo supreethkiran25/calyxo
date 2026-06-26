@@ -1513,7 +1513,10 @@ export default function UserProfile({ onNotification }) {
               {photoLoading ? (
                 <RefreshCw className="w-4 h-4 animate-spin text-muted" />
               ) : userProfile?.photoURL ? (
-                <img src={userProfile.photoURL} className="object-cover w-full h-full" alt="User profile avatar image" />
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={userProfile.photoURL} className="object-cover w-full h-full" alt="User profile avatar image" />
+                </>
               ) : (
                 <span className="text-xl font-black text-acid-green">{getInitials()}</span>
               )}

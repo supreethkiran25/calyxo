@@ -1181,6 +1181,7 @@ export default function FoodTracker({ onNotification }) {
                 <div className="border border-dashed border-card-border rounded-xl p-6 flex flex-col items-center justify-center bg-surface/50 h-56 relative overflow-hidden">
                   {mealPhoto ? (
                     <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={mealPhoto} className="object-cover w-full h-full" alt="Scanned meal photo preview" />
                       <button onClick={() => { setMealPhoto(null); setScanResult(null); setScanError(null); }} className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1.5 text-[8px] font-bold uppercase tracking-wider cursor-pointer">Clear</button>
                     </>

@@ -434,6 +434,7 @@ export default function Progress({ onNotification }) {
                       <div className="relative border border-dashed border-card-border rounded-xl h-28 flex flex-col items-center justify-center bg-surface/50 overflow-hidden cursor-pointer">
                         {beforeImage ? (
                           <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={beforeImage} className="object-cover w-full h-full" alt="Before transformation comparison preview" />
                             <button onClick={() => setBeforeImage(null)} className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 text-[8px] font-bold">Clear</button>
                           </>
@@ -453,6 +454,7 @@ export default function Progress({ onNotification }) {
                       <div className="relative border border-dashed border-card-border rounded-xl h-28 flex flex-col items-center justify-center bg-surface/50 overflow-hidden cursor-pointer">
                         {afterImage ? (
                           <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={afterImage} className="object-cover w-full h-full" alt="After transformation comparison preview" />
                             <button onClick={() => setAfterImage(null)} className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 text-[8px] font-bold">Clear</button>
                           </>
@@ -498,10 +500,12 @@ export default function Progress({ onNotification }) {
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                               <div className="relative rounded-lg overflow-hidden border border-card-border bg-black aspect-video flex items-center justify-center max-h-24">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={log.before} className="object-contain w-full h-full" alt={`Before photo logged on ${log.date}`} />
                                 <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[7px] font-bold px-1 py-0.5 rounded">BEFORE</div>
                               </div>
                               <div className="relative rounded-lg overflow-hidden border border-card-border bg-black aspect-video flex items-center justify-center max-h-24">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={log.after} className="object-contain w-full h-full" alt={`After photo logged on ${log.date}`} />
                                 <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[7px] font-bold px-1 py-0.5 rounded">AFTER</div>
                               </div>
