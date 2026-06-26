@@ -16,6 +16,17 @@ const STEPS = [
   { id: 'generating', title: 'Creating Profile', icon: Sparkles, desc: 'Architecting your personalized AI program...' }
 ];
 
+const RANDOM_SUGGESTIONS = [
+  { first: 'Arnold', last: 'Gains', nick: 'IronArnie' },
+  { first: 'Serena', last: 'Pace', nick: 'SerenaFit' },
+  { first: 'Marcus', last: 'Lift', nick: 'MarcusActive' },
+  { first: 'Diana', last: 'Power', nick: 'WonderAthlete' },
+  { first: 'Bruce', last: 'Beast', nick: 'DragonFit' },
+  { first: 'Alex', last: 'Runner', nick: 'AlexSprint' },
+  { first: 'Jordan', last: 'Sprint', nick: 'JordyPace' },
+  { first: 'Chris', last: 'Flex', nick: 'ChrisBeast' }
+];
+
 export default function OnboardingFlow({ onComplete }) {
   const { user, updateUserProfile, userProfile } = useStore();
   const ecoStore = useEcosystemStore();
@@ -23,6 +34,12 @@ export default function OnboardingFlow({ onComplete }) {
 
   const [stepIdx, setStepIdx] = useState(0);
   
+  // Random Suggestion for placeholders
+  const [suggestion] = useState(() => {
+    const idx = Math.floor(Math.random() * RANDOM_SUGGESTIONS.length);
+    return RANDOM_SUGGESTIONS[idx];
+  });
+
   // Fields State
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -296,7 +313,7 @@ export default function OnboardingFlow({ onComplete }) {
                     <label className="text-[10px] text-muted font-bold uppercase tracking-wider">First Name</label>
                     <input 
                       type="text" 
-                      placeholder="e.g. Alex"
+                      placeholder={`e.g. ${suggestion.first}`}
                       value={firstName} 
                       onChange={(e) => setFirstName(e.target.value)} 
                       className={inputStyle}
@@ -306,7 +323,7 @@ export default function OnboardingFlow({ onComplete }) {
                     <label className="text-[10px] text-muted font-bold uppercase tracking-wider">Last Name</label>
                     <input 
                       type="text" 
-                      placeholder="e.g. Mercer"
+                      placeholder={`e.g. ${suggestion.last}`}
                       value={lastName} 
                       onChange={(e) => setLastName(e.target.value)} 
                       className={inputStyle}
@@ -318,7 +335,7 @@ export default function OnboardingFlow({ onComplete }) {
                   <label className="text-[10px] text-muted font-bold uppercase tracking-wider">Athlete Nickname</label>
                   <input 
                     type="text" 
-                    placeholder="e.g. AlexFit"
+                    placeholder={`e.g. ${suggestion.nick}`}
                     value={nickname} 
                     onChange={(e) => setNickname(e.target.value)} 
                     className={inputStyle}
