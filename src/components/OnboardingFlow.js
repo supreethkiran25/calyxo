@@ -296,7 +296,7 @@ export default function OnboardingFlow({ onComplete }) {
                     <label className="text-[10px] text-muted font-bold uppercase tracking-wider">First Name</label>
                     <input 
                       type="text" 
-                      placeholder="e.g. Suppy"
+                      placeholder="e.g. Alex"
                       value={firstName} 
                       onChange={(e) => setFirstName(e.target.value)} 
                       className={inputStyle}
@@ -306,7 +306,7 @@ export default function OnboardingFlow({ onComplete }) {
                     <label className="text-[10px] text-muted font-bold uppercase tracking-wider">Last Name</label>
                     <input 
                       type="text" 
-                      placeholder="e.g. Kiran"
+                      placeholder="e.g. Mercer"
                       value={lastName} 
                       onChange={(e) => setLastName(e.target.value)} 
                       className={inputStyle}
@@ -318,7 +318,7 @@ export default function OnboardingFlow({ onComplete }) {
                   <label className="text-[10px] text-muted font-bold uppercase tracking-wider">Athlete Nickname</label>
                   <input 
                     type="text" 
-                    placeholder="e.g. Suppy23"
+                    placeholder="e.g. AlexFit"
                     value={nickname} 
                     onChange={(e) => setNickname(e.target.value)} 
                     className={inputStyle}
