@@ -283,7 +283,7 @@ export default function Home() {
           {/* Logo */}
           <div className="flex items-center gap-3 px-2">
             <Logo className="w-8 h-8 text-[var(--color-acid-green)]" glow={true} />
-            <span className="text-lg font-black tracking-widest text-[var(--foreground)] uppercase">
+            <span className="brand-name text-lg text-[var(--foreground)]">
               calyxo
             </span>
           </div>
@@ -345,7 +345,7 @@ export default function Home() {
         <header className="flex md:hidden justify-between items-center px-5 py-4 border-b border-[var(--card-border)] bg-[var(--background)] sticky top-0 z-30">
           <div className="flex items-center gap-2.5">
             <Logo className="w-7 h-7" glow={false} />
-            <span className="text-md font-black tracking-widest text-[var(--foreground)] uppercase">
+            <span className="brand-name text-md text-[var(--foreground)]">
               calyxo
             </span>
           </div>

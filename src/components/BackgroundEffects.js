@@ -131,7 +131,7 @@ export default function BackgroundEffects({ activeTab }) {
           vx: (Math.random() - 0.5) * 0.8 * speedMult,
           vy: (Math.random() - 0.5) * 0.8 * speedMult,
           size: Math.random() * 2 + 1,
-          color: theme === 'dark' ? 'rgba(163, 230, 53, 0.25)' : 'rgba(101, 163, 13, 0.2)' // neon-green
+          color: theme === 'dark' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(16, 185, 129, 0.2)' // calm-green
         });
       }
     }
@@ -179,7 +179,7 @@ export default function BackgroundEffects({ activeTab }) {
         });
 
         // Draw web lines
-        ctx.strokeStyle = theme === 'dark' ? 'rgba(163, 230, 53, 0.04)' : 'rgba(101, 163, 13, 0.03)';
+        ctx.strokeStyle = theme === 'dark' ? 'rgba(16, 185, 129, 0.04)' : 'rgba(16, 185, 129, 0.03)';
         ctx.lineWidth = 1;
         for (let i = 0; i < particles.length; i++) {
           for (let j = i + 1; j < particles.length; j++) {
@@ -199,7 +199,7 @@ export default function BackgroundEffects({ activeTab }) {
         // 3D Isometric mesh projection
         time += 0.01 * (activeSpeed > 0 ? activeSpeed : 0.2);
         
-        ctx.strokeStyle = theme === 'dark' ? 'rgba(163, 230, 53, 0.05)' : 'rgba(101, 163, 13, 0.04)';
+        ctx.strokeStyle = theme === 'dark' ? 'rgba(16, 185, 129, 0.05)' : 'rgba(16, 185, 129, 0.04)';
         ctx.lineWidth = 1.2;
 
         const cellW = width / (gridCols - 1);
@@ -292,7 +292,7 @@ export default function BackgroundEffects({ activeTab }) {
       {bgStyle === 'orbs' && (
         <div className="absolute inset-0 w-full h-full opacity-35 dark:opacity-[0.22] blur-[100px] transition-opacity duration-700">
           <div 
-            className="absolute w-[300px] h-[300px] sm:w-[450px] sm:h-[450px] rounded-full bg-acid-green/20 -top-20 -left-20 animate-float"
+            className="absolute w-[300px] h-[300px] sm:w-[450px] sm:h-[450px] rounded-full bg-[var(--accent)]/15 -top-20 -left-20 animate-float"
             style={{ 
               animationDuration: getIntensityDuration(25),
               animationPlayState: isAnimationOff ? 'paused' : 'running'
@@ -319,7 +319,7 @@ export default function BackgroundEffects({ activeTab }) {
       {bgStyle === 'aurora' && (
         <div className="absolute inset-0 w-full h-full opacity-[0.25] dark:opacity-[0.14] transition-opacity duration-700">
           <div 
-            className="absolute inset-0 w-full h-full bg-gradient-to-tr from-acid-green/10 via-transparent to-violet-600/10 animate-pulse"
+            className="absolute inset-0 w-full h-full bg-gradient-to-tr from-[var(--accent)]/10 via-transparent to-violet-600/10 animate-pulse"
             style={pulseStyle}
           />
           <div 
@@ -369,7 +369,7 @@ export default function BackgroundEffects({ activeTab }) {
 
       {/* 5. AI Coach Special Overlay Effect (soft ambient green pulse at bottom/center) */}
       {activeTab === 'coach' && (
-        <div className="absolute inset-x-0 bottom-0 h-2/3 w-full bg-gradient-to-t from-acid-green/10 dark:from-acid-green/[0.06] to-transparent pointer-events-none z-[1] opacity-75 animate-pulse duration-10000" />
+        <div className="absolute inset-x-0 bottom-0 h-2/3 w-full bg-gradient-to-t from-[var(--accent)]/10 dark:from-[var(--accent)]/[0.06] to-transparent pointer-events-none z-[1] opacity-75 animate-pulse duration-10000" />
       )}
 
       {/* Readability & Contrast Shield Overlay */}

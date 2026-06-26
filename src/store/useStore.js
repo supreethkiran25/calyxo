@@ -22,7 +22,7 @@ const DEFAULT_USER_PROFILE = {
   allergies: '',
   medicalRestrictions: '',
   foodDislikes: '',
-  favoriteFoods: '',
+  favoriteFoods: [],
   // Coach Settings
   coachPersonality: 'motivational',
   responseLength: 'short',

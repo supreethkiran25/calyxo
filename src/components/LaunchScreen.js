@@ -28,7 +28,7 @@ export default function LaunchScreen({ isLoading }) {
           <div 
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: 'radial-gradient(ellipse 60% 50% at 50% 60%, rgba(181,242,61,0.06) 0%, transparent 70%)'
+              background: 'radial-gradient(ellipse 60% 50% at 50% 60%, rgba(16,185,129,0.06) 0%, transparent 70%)'
             }}
           />
 
@@ -43,9 +43,9 @@ export default function LaunchScreen({ isLoading }) {
               <motion.div
                 animate={{
                   filter: [
-                    "drop-shadow(0 0 12px rgba(181,242,61,0.3))",
-                    "drop-shadow(0 0 28px rgba(181,242,61,0.6))",
-                    "drop-shadow(0 0 12px rgba(181,242,61,0.3))"
+                    "drop-shadow(0 0 12px rgba(16,185,129,0.3))",
+                    "drop-shadow(0 0 28px rgba(16,185,129,0.6))",
+                    "drop-shadow(0 0 12px rgba(16,185,129,0.3))"
                   ]
                 }}
                 transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
@@ -59,13 +59,10 @@ export default function LaunchScreen({ isLoading }) {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25, duration: 0.4 }}
+              className="brand-name"
               style={{
-                fontFamily: "'Inter', sans-serif",
                 fontSize: '28px',
-                fontWeight: 900,
-                letterSpacing: '0.25em',
                 color: '#f5f5f5',
-                textTransform: 'uppercase',
                 margin: 0,
                 marginBottom: '8px'
               }}
@@ -99,7 +96,7 @@ export default function LaunchScreen({ isLoading }) {
                 style={{
                   height: '100%',
                   width: '50%',
-                  background: 'linear-gradient(90deg, transparent, #b5f23d, transparent)',
+                  background: 'linear-gradient(90deg, transparent, #10B981, transparent)',
                   borderRadius: '1px'
                 }}
               />

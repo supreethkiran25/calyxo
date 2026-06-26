@@ -214,20 +214,33 @@ export default function Dashboard({ onNotification }) {
     if (onNotification) onNotification("Water hydration reset");
   };
 
-  // Consumed aggregates
-  const totalCal = foodLogs.reduce((s, x) => s + x.calories, 0);
-  const totalProt = foodLogs.reduce((s, x) => s + (x.protein || 0), 0);
-  const totalCarb = foodLogs.reduce((s, x) => s + (x.carbs || 0), 0);
-  const totalFat = foodLogs.reduce((s, x) => s + (x.fat || 0), 0);
+  // Helper to check if a timestamp is today (12am to 12am)
+  const isToday = (timestamp) => {
+    if (!timestamp) return false;
+    const d = new Date(timestamp);
+    const today = new Date();
+    return d.getDate() === today.getDate() &&
+           d.getMonth() === today.getMonth() &&
+           d.getFullYear() === today.getFullYear();
+  };
+
+  const todaysFoodLogs = foodLogs.filter(x => isToday(x.timestamp));
+  const todaysWorkoutLogs = workoutLogs.filter(x => isToday(x.timestamp));
+
+  // Consumed aggregates (resets after 24 hours)
+  const totalCal = todaysFoodLogs.reduce((s, x) => s + x.calories, 0);
+  const totalProt = todaysFoodLogs.reduce((s, x) => s + (x.protein || 0), 0);
+  const totalCarb = todaysFoodLogs.reduce((s, x) => s + (x.carbs || 0), 0);
+  const totalFat = todaysFoodLogs.reduce((s, x) => s + (x.fat || 0), 0);
 
   // Estimated burned from workouts
-  const totalBurned = workoutLogs.reduce((s, x) => s + (x.caloriesBurned || 0), 0);
+  const totalBurned = todaysWorkoutLogs.reduce((s, x) => s + (x.caloriesBurned || 0), 0);
 
-  // Recent meals (last 4)
-  const recentMeals = [...foodLogs].reverse().slice(0, 4);
+  // Recent meals (last 4 today)
+  const recentMeals = [...todaysFoodLogs].reverse().slice(0, 4);
 
-  // Recent workouts (last 3)
-  const recentWorkouts = [...workoutLogs].reverse().slice(0, 3);
+  // Recent workouts (last 3 today)
+  const recentWorkouts = [...todaysWorkoutLogs].reverse().slice(0, 3);
 
   // Water hydration percentage
   const waterGoal = 3000;

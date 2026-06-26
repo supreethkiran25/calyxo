@@ -91,6 +91,18 @@ export default function FoodTracker({ onNotification }) {
   const userId = user?.uid;
   const ecoStore = useEcosystemStore();
 
+  // Helper to check if a timestamp is today (12am to 12am)
+  const isToday = (timestamp) => {
+    if (!timestamp) return false;
+    const d = new Date(timestamp);
+    const today = new Date();
+    return d.getDate() === today.getDate() &&
+           d.getMonth() === today.getMonth() &&
+           d.getFullYear() === today.getFullYear();
+  };
+
+  const todaysFoodLogs = foodLogs.filter(x => isToday(x.timestamp));
+
   const [activeSubTab, setActiveSubTab] = useState('diary');
 
   // Search & custom logging
@@ -114,7 +126,7 @@ export default function FoodTracker({ onNotification }) {
 
   const toggleFavorite = async (e, food) => {
     e.stopPropagation();
-    const favorites = userProfile.favoriteFoods || [];
+    const favorites = Array.isArray(userProfile.favoriteFoods) ? userProfile.favoriteFoods : [];
     const isFav = favorites.some(x => x.name.toLowerCase() === food.name.toLowerCase());
     let nextFavorites = [];
     if (isFav) {
@@ -707,7 +719,7 @@ export default function FoodTracker({ onNotification }) {
                                 >
                                   <Star 
                                     className={`w-3.5 h-3.5 ${
-                                      (userProfile.favoriteFoods || []).some(x => x.name.toLowerCase() === item.name.toLowerCase()) 
+                                      (Array.isArray(userProfile.favoriteFoods) ? userProfile.favoriteFoods : []).some(x => x.name.toLowerCase() === item.name.toLowerCase()) 
                                         ? 'text-yellow-500 fill-current' 
                                         : 'text-muted'
                                     }`} 
@@ -746,9 +758,9 @@ export default function FoodTracker({ onNotification }) {
                   <div className="bg-surface/30 border border-card-border p-4 rounded-2xl space-y-2.5">
                     <span className="text-[10px] text-muted font-bold uppercase tracking-wider block flex items-center gap-1">
                       <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                      Favorites ({(userProfile.favoriteFoods || []).length})
+                      Favorites ({(Array.isArray(userProfile.favoriteFoods) ? userProfile.favoriteFoods : []).length})
                     </span>
-                    {userProfile.favoriteFoods && userProfile.favoriteFoods.length > 0 ? (
+                    {Array.isArray(userProfile.favoriteFoods) && userProfile.favoriteFoods.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {userProfile.favoriteFoods.map((fav, i) => (
                           <button
@@ -1003,8 +1015,8 @@ export default function FoodTracker({ onNotification }) {
                 <section className="glass rounded-2xl p-6">
                   <h2 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4">Logged Intake Timeline</h2>
                   <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-                    {foodLogs && foodLogs.length > 0 ? (
-                      foodLogs.map((item, idx) => (
+                    {todaysFoodLogs && todaysFoodLogs.length > 0 ? (
+                      todaysFoodLogs.map((item, idx) => (
                         <div key={idx} className="flex justify-between items-center bg-surface/50 border border-card-border px-4 py-3 rounded-xl">
                           <div className="flex flex-col">
                             <span className="text-xs font-bold text-foreground">{item.name} <span className="text-[9px] text-muted font-medium">({item.portionWeight}g)</span></span>

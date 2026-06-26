@@ -113,6 +113,19 @@ const INITIAL_WORKOUT_SPLITS = [
 export default function WorkoutLogger({ onNotification }) {
   const user = useStore(state => state.user);
   const workoutLogs = useStore(state => state.workoutLogs);
+  
+  // Helper to check if a timestamp is today (12am to 12am)
+  const isToday = (timestamp) => {
+    if (!timestamp) return false;
+    const d = new Date(timestamp);
+    const today = new Date();
+    return d.getDate() === today.getDate() &&
+           d.getMonth() === today.getMonth() &&
+           d.getFullYear() === today.getFullYear();
+  };
+
+  const todaysWorkoutLogs = workoutLogs.filter(x => isToday(x.timestamp));
+
   const setWorkoutLogs = useStore(state => state.setWorkoutLogs);
   const addWorkoutLogStore = useStore(state => state.addWorkoutLog);
   const userId = user?.uid;
@@ -504,8 +517,8 @@ export default function WorkoutLogger({ onNotification }) {
                 <section className="glass rounded-2xl p-6">
                   <h2 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4">Logged Workouts History</h2>
                   <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                    {workoutLogs && workoutLogs.length > 0 ? (
-                      workoutLogs.map((item, idx) => (
+                    {todaysWorkoutLogs && todaysWorkoutLogs.length > 0 ? (
+                      todaysWorkoutLogs.map((item, idx) => (
                         <div key={idx} className="flex justify-between items-center bg-surface/50 border border-card-border px-4 py-3 rounded-xl">
                           <div className="flex flex-col">
                             <span className="text-xs font-bold text-foreground">{item.name}</span>

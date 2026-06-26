@@ -110,7 +110,7 @@ export default function AuthFlow({ isInitialSignUp = false }) {
   return (
     <div className="min-h-screen bg-obsidian flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-300">
       {/* Background glowing gradients */}
-      <div className="absolute top-1/4 left-1/4 w-[350px] h-[350px] bg-acid-green/10 dark:bg-acid-green/5 rounded-full blur-[100px] pointer-events-none"></div>
+      <div className="absolute top-1/4 left-1/4 w-[350px] h-[350px] bg-[#10B981]/10 dark:bg-[#10B981]/5 rounded-full blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 
       <motion.div 
@@ -127,7 +127,7 @@ export default function AuthFlow({ isInitialSignUp = false }) {
           >
             <Logo className="w-16 h-16" />
           </motion.div>
-          <h2 className="font-display text-2xl font-black tracking-widest text-foreground uppercase">
+          <h2 className="brand-name text-2xl text-foreground">
             {forgotMode ? "Reset Password" : (isSignUp ? "Join Calyxo" : "Calyxo Login")}
           </h2>
           <p className="text-muted text-[10px] tracking-widest mt-1 uppercase font-semibold">
@@ -178,7 +178,7 @@ export default function AuthFlow({ isInitialSignUp = false }) {
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={forgotLoading || cooldown > 0}
-              className="w-full bg-gradient-to-r from-acid-green to-emerald-500 text-accent-foreground font-bold text-sm py-3.5 rounded-xl mt-6 cursor-pointer hover:shadow-[0_0_20px_rgba(57,255,20,0.2)] active:scale-[0.98] transition-all disabled:opacity-50"
+              className="w-full bg-[#10B981] hover:bg-[#059669] text-white font-bold text-sm py-3.5 rounded-xl mt-6 cursor-pointer hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-[0.98] transition-all disabled:opacity-50 border-none"
             >
               {forgotLoading ? "Sending Link..." : (cooldown > 0 ? `Resend in ${cooldown}s` : "Send Recovery Link")}
             </motion.button>
@@ -278,7 +278,7 @@ export default function AuthFlow({ isInitialSignUp = false }) {
                 whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-acid-green to-emerald-500 text-accent-foreground font-bold text-sm py-3.5 rounded-xl mt-6 cursor-pointer hover:shadow-[0_0_20px_rgba(57,255,20,0.2)] active:scale-[0.98] transition-all disabled:opacity-50"
+                className="w-full bg-[#10B981] hover:bg-[#059669] text-white font-bold text-sm py-3.5 rounded-xl mt-6 cursor-pointer hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-[0.98] transition-all disabled:opacity-50 border-none"
               >
                 {loading ? "Authenticating..." : (isSignUp ? "Sign Up" : "Sign In")}
               </motion.button>
