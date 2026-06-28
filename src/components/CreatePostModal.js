@@ -8,7 +8,9 @@ import {
   Users, BarChart2, ChevronLeft, MapPin, Tag, Globe, Lock, Shield
 } from 'lucide-react';
 import { publishActivity } from '../lib/socialService';
-import { generateWorkoutPostData, generateMealPostData, generateAIStoryCaption, enhanceCaptionWithAI } from '../lib/postGeneratorService';
+import { generateWorkoutPostData, generateMealPostData } from '../lib/postGeneratorService';
+import { useEcosystemStore } from '../store/useEcosystemStore';
+import AIMagicModal from './AIMagicModal';
 import MediaEditor from './MediaEditor';
 
 // The 12 post types requested
@@ -40,9 +42,10 @@ export default function CreatePostModal({ currentUserId, onClose, onNotification
   const [caption, setCaption] = useState('');
   const [visibility, setVisibility] = useState('public');
   const [isPublishing, setIsPublishing] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
   const [mediaFiles, setMediaFiles] = useState([]);
   const [showMediaEditor, setShowMediaEditor] = useState(false);
+  const [showAIMagic, setShowAIMagic] = useState(false);
+  const ecoStore = useEcosystemStore();
 
   // Mock pre-filled data for the specific post type (In Phase 2, this will come from postGeneratorService)
   const [postData, setPostData] = useState(null);
@@ -60,18 +63,11 @@ export default function CreatePostModal({ currentUserId, onClose, onNotification
       if (data) setPostData(data);
       else setPostData({ name: 'Meal', calories: 0, protein: 0, carbs: 0, fat: 0 }); // Fallback
     } else if (type.id === 'ai_story') {
-      const story = await generateAIStoryCaption(currentUserId);
-      setCaption(story);
+      setShowAIMagic(true);
+      return; // Will set step 2 after magic modal applies
     }
 
     setStep(2);
-  };
-
-  const handleAIRewrite = async () => {
-    setAiLoading(true);
-    const newCaption = await enhanceCaptionWithAI(caption, postData);
-    setCaption(newCaption);
-    setAiLoading(false);
   };
 
   const handlePublish = async () => {
@@ -108,6 +104,7 @@ export default function CreatePostModal({ currentUserId, onClose, onNotification
   };
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-background/80 backdrop-blur-sm">
       
       {/* Mobile drag handle area & click outside to close */}
@@ -208,15 +205,10 @@ export default function CreatePostModal({ currentUserId, onClose, onNotification
                   />
                   <div className="absolute -bottom-2 right-0 flex gap-2">
                     <button 
-                      onClick={handleAIRewrite}
-                      disabled={aiLoading}
+                      onClick={() => setShowAIMagic(true)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold uppercase tracking-widest hover:bg-purple-500/20 transition-colors disabled:opacity-50"
                     >
-                      {aiLoading ? (
-                        <div className="w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <Sparkles className="w-3.5 h-3.5" />
-                      )}
+                      <Sparkles className="w-3.5 h-3.5" />
                       AI Magic
                     </button>
                   </div>
@@ -303,5 +295,22 @@ export default function CreatePostModal({ currentUserId, onClose, onNotification
 
       </motion.div>
     </div>
+    
+    <AnimatePresence>
+      {showAIMagic && (
+        <AIMagicModal
+          isOpen={showAIMagic}
+          onClose={() => setShowAIMagic(false)}
+          onApply={(text) => { setCaption(text); setStep(2); }}
+          mediaFiles={mediaFiles}
+          context={{
+            userGoals: ecoStore.healthMetrics?.primaryGoal,
+            dietPrefs: ecoStore.healthMetrics?.dietaryPreference,
+            postData: postData
+          }}
+        />
+      )}
+    </AnimatePresence>
+    </>
   );
 }

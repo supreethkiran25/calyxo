@@ -546,9 +546,87 @@ input:focus, select:focus, textarea:focus {
 
 /* Hide scrollbar but keep scrollability */
 .scrollbar-none {
-  -ms-overflow-style: none;  /* IE & Edge */
-  scrollbar-width: none;     /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
+
+@layer base {
+  :root {
+    /* Safe Area Variables */
+    --sat: env(safe-area-inset-top, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+
+    /* Spacing */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    --space-2xl: 3rem;
+
+    /* Touch Targets */
+    --min-touch-target: 48px;
+  }
+
+  /* Fluid Typography */
+  html {
+    font-size: 16px;
+  }
+
+  body {
+    font-size: clamp(0.9375rem, 0.4vw + 0.8rem, 1.125rem); /* ~15px to 18px */
+    line-height: 1.5;
+  }
+
+  h1 {
+    font-size: clamp(1.375rem, 2vw + 1rem, 2.625rem); /* ~22px to 42px */
+    line-height: 1.2;
+    font-weight: 900;
+  }
+
+  h2 {
+    font-size: clamp(1.25rem, 1.5vw + 1rem, 2rem); /* ~20px to 32px */
+    line-height: 1.2;
+    font-weight: 800;
+  }
+
+  h3 {
+    font-size: clamp(1.125rem, 1vw + 1rem, 1.5rem); /* ~18px to 24px */
+    line-height: 1.3;
+    font-weight: 700;
+  }
+
+  h4, h5, h6 {
+    font-size: clamp(1rem, 0.5vw + 1rem, 1.25rem); /* ~16px to 20px */
+    line-height: 1.4;
+    font-weight: 700;
+  }
+
+  .caption {
+    font-size: clamp(0.8125rem, 0.2vw + 0.75rem, 0.9375rem); /* ~13px to 15px */
+  }
+
+  /* Form Elements Touch Target */
+  input[type="text"], input[type="password"], input[type="email"], input[type="number"], 
+  select, textarea {
+    min-height: var(--min-touch-target);
+  }
+
+  .btn-primary, .btn-secondary, .btn-ghost {
+    min-height: var(--min-touch-target);
+  }
+
+  @media (min-width: 1024px) {
+    /* Relax touch targets on desktop with mouse */
+    input[type="text"], input[type="password"], input[type="email"], input[type="number"], 
+    select, textarea, .btn-primary, .btn-secondary, .btn-ghost {
+      min-height: 40px;
+    }
+  }
+}
+
 .scrollbar-none::-webkit-scrollbar {
   display: none;             /* Chrome/Safari/Opera */
 }

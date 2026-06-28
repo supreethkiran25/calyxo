@@ -1610,14 +1610,16 @@ export default function UserProfile({ onNotification }) {
   );
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 pb-20 select-text px-2 md:px-4">
-      {/* ─── Hero / Profile Header Card ─── */}
-      <div className="glass rounded-xl border border-card-border p-4 relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at top right, rgba(204,255,0,0.03) 0%, transparent 60%)' }} />
-        <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4">
-          <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-            {/* Avatar */}
-            <div className="relative w-16 h-16 rounded-full border-2 border-acid-green/30 bg-surface flex items-center justify-center overflow-hidden shadow-md shrink-0">
+    <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-4 md:gap-6 pb-20 select-text px-2 md:px-4 pt-4">
+      {/* ─── SIDEBAR (Mobile: Top, Desktop: Left) ─── */}
+      <div className="w-full md:w-72 lg:w-80 shrink-0 space-y-4">
+        
+        {/* Hero / Profile Header Card */}
+        <div className="glass rounded-xl border border-card-border p-4 md:p-6 relative overflow-hidden flex flex-col items-center text-center">
+          <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at top right, rgba(204,255,0,0.03) 0%, transparent 60%)' }} />
+          
+          {/* Avatar */}
+          <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-acid-green/30 bg-surface flex items-center justify-center overflow-hidden shadow-xl shrink-0 mb-3">
               {photoLoading ? (
                 <RefreshCw className="w-4 h-4 animate-spin text-muted" />
               ) : userProfile?.photoURL ? (
@@ -1628,56 +1630,55 @@ export default function UserProfile({ onNotification }) {
               ) : (
                 <span className="text-xl font-black text-acid-green">{getInitials()}</span>
               )}
-              <label className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
-                <span className="text-[8px] text-white font-bold uppercase tracking-wider">Edit</span>
-                <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-              </label>
-            </div>
+            <label className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
+              <span className="text-[10px] text-white font-bold uppercase tracking-wider">Edit</span>
+              <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+            </label>
+          </div>
 
-            {/* Name/Email */}
-            <div className="min-w-0">
-              <h2 className="text-sm font-black text-foreground uppercase tracking-wider truncate">
-                {firstName ? `${firstName} ${lastName}`.trim() : (username || nickname || 'Athlete')}
-              </h2>
-              <p className="text-[10px] text-muted font-medium truncate">{user?.email}</p>
-              <div className="mt-1 flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                {isAccountVerified && (
-                  <span className="inline-flex items-center gap-1 text-[8px] text-acid-green font-black uppercase tracking-wider">
-                    <CheckCircle className="w-2.5 h-2.5" /> Verified
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-1 text-[8px] text-muted font-bold uppercase tracking-wider">
-                  BMI: <strong className="text-foreground">{mobileBmi}</strong>
+          {/* Name/Email */}
+          <div className="min-w-0 w-full">
+            <h2 className="text-base md:text-xl font-black text-foreground uppercase tracking-wider truncate">
+              {firstName ? `${firstName} ${lastName}`.trim() : (username || nickname || 'Athlete')}
+            </h2>
+            <p className="text-[10px] md:text-xs text-muted font-medium truncate">{user?.email}</p>
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+              {isAccountVerified && (
+                <span className="inline-flex items-center gap-1 text-[9px] text-acid-green font-black uppercase tracking-wider">
+                  <CheckCircle className="w-3 h-3" /> Verified
                 </span>
-                <span className="inline-flex items-center gap-1 bg-acid-green/10 border border-acid-green/20 text-acid-green text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
-                  <Target className="w-2 h-2" />
-                  {goalLabel}
-                </span>
-              </div>
+              )}
+              <span className="inline-flex items-center gap-1 text-[9px] text-muted font-bold uppercase tracking-wider">
+                BMI: <strong className="text-foreground">{mobileBmi}</strong>
+              </span>
+              <span className="inline-flex items-center gap-1 bg-acid-green/10 border border-acid-green/20 text-acid-green text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
+                <Target className="w-2.5 h-2.5" />
+                {goalLabel}
+              </span>
             </div>
           </div>
 
           {/* Level & Streak Quick Stats */}
-          <div className="w-full sm:w-auto grid grid-cols-3 gap-2 sm:flex sm:items-center sm:gap-3 flex-wrap">
+          <div className="w-full grid grid-cols-3 gap-2 mt-4">
             {[
               { label: 'Followers', value: userProfile?.followersCount || 0, icon: Users, color: 'text-white' },
               { label: 'Following', value: userProfile?.followingCount || 0, icon: User, color: 'text-white' },
               { label: 'Level', value: level, icon: Zap, color: 'text-acid-green' },
-              { label: 'Health Score', value: `${fitnessScore}%`, icon: Activity, color: 'text-acid-green' },
-              { label: 'Streak', value: `${ecoStore.streaks?.loginStreak || 1}d`, icon: TrendingUp, color: 'text-blue-400' }
+              { label: 'Health', value: `${fitnessScore}%`, icon: Activity, color: 'text-acid-green' },
+              { label: 'Streak', value: `${ecoStore.streaks?.loginStreak || 1}d`, icon: TrendingUp, color: 'text-blue-400' },
+              { label: 'Badges', value: unlockedAchievements, icon: Award, color: 'text-yellow-400' }
             ].map(s => (
-              <div key={s.label} className="bg-surface/50 border border-card-border rounded-xl p-2 flex flex-col items-center justify-center text-center sm:min-w-[80px]">
-                <s.icon className={`w-3.5 h-3.5 mb-1 ${s.color}`} />
-                <span className="text-xs font-black text-foreground leading-none">{s.value}</span>
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider mt-0.5">{s.label}</span>
+              <div key={s.label} className="bg-surface/50 border border-card-border rounded-xl p-2 flex flex-col items-center justify-center text-center">
+                <s.icon className={`w-4 h-4 mb-1.5 ${s.color}`} />
+                <span className="text-sm font-black text-foreground leading-none">{s.value}</span>
+                <span className="text-[9px] text-muted font-bold uppercase tracking-wider mt-1">{s.label}</span>
               </div>
             ))}
           </div>
-        </div>
 
-        {/* Level XP Progress Bar */}
-        <div className="mt-4 border-t border-card-border/60 pt-3">
-          <div className="flex justify-between text-[8px] font-bold text-muted uppercase tracking-wider mb-1">
+          {/* Level XP Progress Bar */}
+          <div className="w-full mt-4 border-t border-card-border/60 pt-3">
+            <div className="flex justify-between text-[9px] font-bold text-muted uppercase tracking-wider mb-1.5">
             <span>XP Progress</span>
             <span>{xp} / {xpToNext} XP</span>
           </div>
@@ -1688,13 +1689,57 @@ export default function UserProfile({ onNotification }) {
               animate={{ width: `${xpPercent}%` }}
               transition={{ duration: 0.8, ease: 'easeOut' }}
             />
+            </div>
           </div>
         </div>
+
+        {/* Navigation Sidebar (Desktop Only) */}
+        <div className="hidden md:flex flex-col gap-1 glass rounded-xl border border-card-border p-2">
+          {[
+            { id: 'appearance', label: 'Appearance & Themes', icon: Eye },
+            { id: 'ai', label: 'AI Coach Settings', icon: Sparkles },
+            { id: 'notifications', label: 'Notification Settings', icon: Bell },
+            { id: 'privacy', label: 'Privacy & Telemetry', icon: Shield },
+            { id: 'security', label: 'Security & 2FA', icon: Key },
+            { id: 'subscription', label: 'Subscription Plans', icon: CreditCard },
+            { id: 'data', label: 'Data & Storage', icon: Database },
+            { id: 'about', label: 'About & Legal Policies', icon: Info },
+          ].map(item => (
+            <button
+              key={item.id}
+              onClick={() => { setOpenAccordion(item.id); setAdvancedOpen(true); }}
+              className={`w-full flex items-center justify-between p-3 text-xs font-bold transition-all cursor-pointer rounded-lg border-none ${
+                openAccordion === item.id && advancedOpen 
+                  ? 'bg-acid-green/10 text-acid-green' 
+                  : 'text-muted hover:bg-surface/50 hover:text-foreground'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <item.icon className="w-4 h-4" />
+                <span>{item.label}</span>
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 opacity-50" />
+            </button>
+          ))}
+        </div>
+
+        {/* Sign Out Button (Sidebar) */}
+        <button
+          onClick={handleLogout}
+          className="hidden md:flex w-full items-center justify-center gap-2 py-3 border border-destructive/20 hover:border-destructive active:border-destructive bg-destructive/5 hover:bg-destructive/10 text-destructive text-[10px] uppercase font-bold tracking-wider rounded-xl transition-all cursor-pointer mt-4"
+        >
+          <LogOut className="w-4 h-4" />
+          Sign Out
+        </button>
+
       </div>
 
-      {/* ─── Profile Info & Health Stats Grid ─── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Profile Information */}
+      {/* ─── MAIN CONTENT ─── */}
+      <div className="flex-1 space-y-4">
+        
+        {/* Profile Info & Health Stats Grid */}
+        <div className="grid grid-cols-1 gap-4">
+          {/* Profile Information */}
         <div className="glass p-4 rounded-xl border border-card-border space-y-3">
           <div className="flex justify-between items-center border-b border-card-border/60 pb-2">
             <h3 className="text-[10px] font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
@@ -1946,92 +1991,102 @@ export default function UserProfile({ onNotification }) {
         </div>
       </div>
 
-      {/* ─── Achievements Row (Horizontal list) ─── */}
-      {ecoStore.achievements && ecoStore.achievements.some(a => a.unlocked) && (
-        <div className="glass rounded-xl border border-card-border p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-[10px] font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Award className="w-3.5 h-3.5 text-yellow-400" /> Unlocked Achievements
-            </h3>
-            <span className="text-[9px] text-acid-green font-bold">{unlockedAchievements} Unlocked</span>
+        {/* ─── Achievements Row (Horizontal list) ─── */}
+        {ecoStore.achievements && ecoStore.achievements.some(a => a.unlocked) && (
+          <div className="glass rounded-xl border border-card-border p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-[10px] font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Award className="w-3.5 h-3.5 text-yellow-400" /> Unlocked Achievements
+              </h3>
+              <span className="text-[9px] text-acid-green font-bold">{unlockedAchievements} Unlocked</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {ecoStore.achievements.filter(a => a.unlocked).map(a => (
+                <div key={a.id} className="flex items-center gap-1 bg-surface border border-card-border rounded-lg px-2 py-1 shrink-0">
+                  <span className="text-xs">{a.icon}</span>
+                  <span className="text-[9px] text-foreground font-bold">{a.name}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {ecoStore.achievements.filter(a => a.unlocked).map(a => (
-              <div key={a.id} className="flex items-center gap-1 bg-surface border border-card-border rounded-lg px-2 py-1 shrink-0">
-                <span className="text-xs">{a.icon}</span>
-                <span className="text-[9px] text-foreground font-bold">{a.name}</span>
-              </div>
-            ))}
+        )}
+
+        {/* ─── Advanced Settings Collapsible Trigger (Mobile Only) ─── */}
+        <button
+          onClick={() => setAdvancedOpen(!advancedOpen)}
+          className="md:hidden w-full flex items-center justify-between px-4 py-3 glass border border-card-border rounded-xl hover:border-acid-green/40 transition-all cursor-pointer text-left font-bold"
+        >
+          <div className="flex items-center gap-2">
+            <Settings className="w-4 h-4 text-acid-green" />
+            <span className="text-xs font-bold text-foreground">Advanced Settings</span>
           </div>
-        </div>
-      )}
+          <span className="text-xs text-muted font-bold">{advancedOpen ? '▲' : '▼'}</span>
+        </button>
 
-      {/* ─── Advanced Settings Collapsible Trigger ─── */}
-      <button
-        onClick={() => setAdvancedOpen(!advancedOpen)}
-        className="w-full flex items-center justify-between px-4 py-3 glass border border-card-border rounded-xl hover:border-acid-green/40 transition-all cursor-pointer text-left font-bold"
-      >
-        <div className="flex items-center gap-2">
-          <Settings className="w-4 h-4 text-acid-green" />
-          <span className="text-xs font-bold text-foreground">Advanced Settings</span>
-        </div>
-        <span className="text-xs text-muted font-bold">{advancedOpen ? '▲' : '▼'}</span>
-      </button>
-
-      {/* ─── Advanced Settings Accordion ─── */}
-      {advancedOpen && (
-        <div className="space-y-2 border border-card-border/60 p-2.5 rounded-xl bg-surface/20">
-          {[
-            { id: 'appearance', label: 'Appearance & Themes', icon: Eye },
-            { id: 'ai', label: 'AI Coach Settings', icon: Sparkles },
-            { id: 'notifications', label: 'Notification Settings', icon: Bell },
-            { id: 'privacy', label: 'Privacy & Telemetry', icon: Shield },
-            { id: 'security', label: 'Security & 2FA', icon: Key },
-            { id: 'subscription', label: 'Subscription Plans', icon: CreditCard },
-            { id: 'data', label: 'Data & Storage', icon: Database },
-            { id: 'about', label: 'About & Legal Policies', icon: Info },
-          ].map(acc => {
-            const isOpen = openAccordion === acc.id;
-            const Icon = acc.icon;
-            return (
-              <div key={acc.id} className="border border-card-border rounded-lg overflow-hidden glass bg-surface/30">
-                <button
-                  onClick={() => toggleAccordion(acc.id)}
-                  className="w-full flex items-center justify-between p-3 text-xs font-bold text-foreground hover:bg-surface/50 transition-colors cursor-pointer border-none"
-                >
-                  <div className="flex items-center gap-2">
-                    <Icon className="w-3.5 h-3.5 text-muted" />
-                    <span>{acc.label}</span>
+        {/* ─── Advanced Settings Content ─── */}
+        {advancedOpen && (
+          <div className="space-y-2 border border-card-border/60 p-2.5 rounded-xl bg-surface/20">
+            {/* On desktop, show the active panel without accordion wrapper if possible, but keeping accordion is safer to avoid breaking state */}
+            {[
+              { id: 'appearance', label: 'Appearance & Themes', icon: Eye },
+              { id: 'ai', label: 'AI Coach Settings', icon: Sparkles },
+              { id: 'notifications', label: 'Notification Settings', icon: Bell },
+              { id: 'privacy', label: 'Privacy & Telemetry', icon: Shield },
+              { id: 'security', label: 'Security & 2FA', icon: Key },
+              { id: 'subscription', label: 'Subscription Plans', icon: CreditCard },
+              { id: 'data', label: 'Data & Storage', icon: Database },
+              { id: 'about', label: 'About & Legal Policies', icon: Info },
+            ].map(acc => {
+              const isOpen = openAccordion === acc.id || (!openAccordion && acc.id === 'appearance'); // default open first on desktop if nothing selected
+              
+              // Only render if it's the open one on desktop, or render all as accordion on mobile
+              return (
+                <div key={acc.id} className={`border border-card-border rounded-lg overflow-hidden glass bg-surface/30 ${!isOpen && 'md:hidden'}`}>
+                  <button
+                    onClick={() => toggleAccordion(acc.id)}
+                    className="w-full flex md:hidden items-center justify-between p-3 text-xs font-bold text-foreground hover:bg-surface/50 transition-colors cursor-pointer border-none"
+                  >
+                    <div className="flex items-center gap-2">
+                      <acc.icon className="w-3.5 h-3.5 text-muted" />
+                      <span>{acc.label}</span>
+                    </div>
+                    <span className="text-muted">{isOpen ? '▲' : '▼'}</span>
+                  </button>
+                  
+                  {/* Desktop header */}
+                  <div className="hidden md:flex items-center gap-2 p-4 border-b border-card-border bg-surface/50">
+                    <acc.icon className="w-4 h-4 text-acid-green" />
+                    <h3 className="text-sm font-black text-foreground uppercase tracking-wider">{acc.label}</h3>
                   </div>
-                  <span className="text-muted">{isOpen ? '▲' : '▼'}</span>
-                </button>
 
-                {isOpen && (
-                  <div className="p-4 border-t border-card-border bg-[var(--card-bg)] space-y-4">
-                    {acc.id === 'appearance' && renderAppearanceForm()}
-                    {acc.id === 'ai' && renderAIForm()}
-                    {acc.id === 'notifications' && renderNotificationsForm()}
-                    {acc.id === 'privacy' && renderPrivacyForm()}
-                    {acc.id === 'security' && renderSecurityForm()}
-                    {acc.id === 'subscription' && <MonetizationCenter onNotification={onNotification} />}
-                    {acc.id === 'data' && renderDataForm()}
-                    {acc.id === 'about' && renderAboutForm()}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+                  {isOpen && (
+                    <div className="p-4 bg-[var(--card-bg)] space-y-4">
+                      {acc.id === 'appearance' && renderAppearanceForm()}
+                      {acc.id === 'ai' && renderAIForm()}
+                      {acc.id === 'notifications' && renderNotificationsForm()}
+                      {acc.id === 'privacy' && renderPrivacyForm()}
+                      {acc.id === 'security' && renderSecurityForm()}
+                      {acc.id === 'subscription' && <MonetizationCenter onNotification={onNotification} />}
+                      {acc.id === 'data' && renderDataForm()}
+                      {acc.id === 'about' && renderAboutForm()}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
-      {/* ─── Sign Out ─── */}
-      <button
-        onClick={handleLogout}
-        className="w-full flex items-center justify-center gap-2 py-3 border border-destructive/20 hover:border-destructive active:border-destructive bg-destructive/5 hover:bg-destructive/10 text-destructive text-[10px] uppercase font-bold tracking-wider rounded-xl transition-all cursor-pointer"
-      >
-        <LogOut className="w-4 h-4" />
-        Sign Out
-      </button>
+        {/* ─── Sign Out (Mobile) ─── */}
+        <button
+          onClick={handleLogout}
+          className="md:hidden w-full flex items-center justify-center gap-2 py-3 border border-destructive/20 hover:border-destructive active:border-destructive bg-destructive/5 hover:bg-destructive/10 text-destructive text-[10px] uppercase font-bold tracking-wider rounded-xl transition-all cursor-pointer"
+        >
+          <LogOut className="w-4 h-4" />
+          Sign Out
+        </button>
+
+      </div>
     </div>
   );
 }
