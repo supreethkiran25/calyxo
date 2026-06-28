@@ -205,8 +205,13 @@ export const sendPasswordReset = async (email) => {
 export const subscribeToAuth = (callback) => {
   if (isMockFirebase) {
     // Trigger callback with mock user if exists
-    const mockUserRaw = localStorage.getItem("calyxo_mock_user");
-    const mockUser = mockUserRaw ? JSON.parse(mockUserRaw) : null;
+    let mockUser = null;
+    try {
+      const mockUserRaw = localStorage.getItem("calyxo_mock_user");
+      mockUser = mockUserRaw ? JSON.parse(mockUserRaw) : null;
+    } catch (e) {
+      console.error("Error parsing mock user", e);
+    }
     callback(mockUser);
 
     // Return a dummy unsubscribe function

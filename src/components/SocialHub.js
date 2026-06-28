@@ -481,7 +481,7 @@ export default function SocialHub({ onNotification }) {
                             <img src={u.photoURL} alt="Avatar" className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-acid-green/5 text-acid-green text-xs font-bold">
-                              {u.nickname?.substring(0, 2).toUpperCase() || "AT"}
+                              {(u.nickname || "AT").substring(0, 2).toUpperCase()}
                             </div>
                           )}
                         </div>
@@ -587,7 +587,7 @@ export default function SocialHub({ onNotification }) {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {blockedUsers.map(b => (
                       <div key={b.blockedId} className="flex justify-between items-center p-2.5 rounded-lg border border-card-border bg-surface/10">
-                        <span className="text-xs font-semibold text-foreground">Block ID: {b.blockedId.substring(0, 8)}...</span>
+                        <span className="text-xs font-semibold text-foreground">Block ID: {(b.blockedId || '').substring(0, 8)}...</span>
                         <button
                           onClick={() => handleUnblockUser(b.blockedId, "Athlete")}
                           className="py-1 px-2.5 rounded text-[8px] font-extrabold uppercase border border-destructive/20 text-destructive bg-destructive/5 hover:bg-destructive/10 transition-colors cursor-pointer"
