@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useStore } from '../store/useStore';
 import {
-  checkUsernameUniqueness,
+  checkUsernameAvailability,
   claimUsername,
   followUser,
   unfollowUser,
@@ -121,14 +121,15 @@ export default function useSocial() {
     }
   };
 
-  const checkUsernameAction = async (username) => {
+  const checkUsernameAction = useCallback(async (username) => {
     try {
-      return await checkUsernameUniqueness(username);
+      const result = await checkUsernameAvailability(username);
+      return result.available;
     } catch (err) {
-      setError(err.message || "Failed to check username uniqueness.");
+      console.error(err);
       return false;
     }
-  };
+  }, []);
 
   // Follow management
   const followUserAction = async (targetId) => {

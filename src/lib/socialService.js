@@ -52,36 +52,81 @@ const saveMockData = (key, data) => {
    USERNAME UNIQUENESS & CLAIMING
    ========================================================================== */
 
-export const checkUsernameUniqueness = async (username) => {
-  if (!username || username.trim().length < 3) return false;
-  const usernameClean = username.trim().toLowerCase();
+const RESERVED_USERNAMES = [
+  'admin', 'support', 'help', 'calyxo', 'official', 'system', 
+  'trainer', 'dietitian', 'founder', 'moderator', 'verified'
+];
 
-  if (isMockFirebase) {
-    const usernames = getMockData(MOCK_USERNAMES_KEY);
-    return !usernames.some(x => x.username_lowercase === usernameClean);
+export const checkUsernameAvailability = async (username) => {
+  if (!username) return { available: false, reason: "Empty username" };
+  
+  const usernameClean = username.trim();
+  const usernameLower = usernameClean.toLowerCase();
+  
+  const formatRegex = /^[a-zA-Z0-9_.]{3,20}$/;
+  if (!formatRegex.test(usernameClean)) {
+    return { available: false, reason: "Must be 3-20 characters (letters, numbers, underscores, periods)" };
+  }
+
+  if (RESERVED_USERNAMES.includes(usernameLower)) {
+    return { available: false, reason: "Reserved username" };
   }
 
   try {
-    const docRef = doc(db, "usernames", usernameClean);
-    const snap = await getDoc(docRef);
-    return !snap.exists();
+    if (isMockFirebase) {
+      const usernames = getMockData(MOCK_USERNAMES_KEY);
+      const isTaken = usernames.some(x => x.username_lowercase === usernameLower);
+      if (isTaken) {
+        return { 
+          available: false, 
+          reason: "Taken",
+          suggestions: [
+            `${usernameLower}fit`,
+            `${usernameLower}_pro`,
+            `${usernameLower}${Math.floor(Math.random() * 999)}`
+          ]
+        };
+      }
+      return { available: true };
+    }
+
+    const usernameDocRef = doc(db, "usernames", usernameLower);
+    const snap = await getDoc(usernameDocRef);
+    
+    if (snap.exists()) {
+      return { 
+        available: false, 
+        reason: "Taken",
+        suggestions: [
+          `${usernameLower}fit`,
+          `${usernameLower}_pro`,
+          `${usernameLower}${Math.floor(Math.random() * 999)}`
+        ]
+      };
+    }
+    
+    return { available: true };
   } catch (err) {
-    console.error("Error checking username uniqueness", err);
-    throw new Error("Failed to verify username uniqueness.");
+    console.error("Availability check failed", err);
+    return { available: false, reason: "Error checking availability" };
   }
 };
 
-export const claimUsername = async (userId, username) => {
+export const claimUsername = async (userId, username, email = null) => {
   if (!userId) throw new Error("User must be authenticated.");
   if (!username) throw new Error("Username cannot be empty.");
   
   const usernameClean = username.trim();
   const usernameLower = usernameClean.toLowerCase();
   
-  // Format check: alphanumeric and underscores only, 3-20 chars
-  const formatRegex = /^[a-zA-Z0-9_]{3,20}$/;
+  // Format check: alphanumeric, underscores, periods, 3-20 chars
+  const formatRegex = /^[a-zA-Z0-9_.]{3,20}$/;
   if (!formatRegex.test(usernameClean)) {
-    throw new Error("Username must be 3-20 characters long and contain only letters, numbers, or underscores.");
+    throw new Error("Username must be 3-20 characters long and contain only letters, numbers, underscores, or periods.");
+  }
+
+  if (RESERVED_USERNAMES.includes(usernameLower)) {
+    throw new Error("This username is reserved and cannot be registered.");
   }
 
   if (isMockFirebase) {
@@ -93,15 +138,28 @@ export const claimUsername = async (userId, username) => {
     
     // Remove any previous claimed username for this user
     const filtered = usernames.filter(x => x.userId !== userId);
-    filtered.push({ userId, username: usernameClean, username_lowercase: usernameLower });
+    filtered.push({ userId, username: usernameClean, username_lowercase: usernameLower, email });
     saveMockData(MOCK_USERNAMES_KEY, filtered);
 
     // Update profile
     const profile = await getUserProfile(userId);
+
+    const now = Date.now();
+    if (profile.lastUsernameChange && (now - profile.lastUsernameChange) < 30 * 24 * 60 * 60 * 1000) {
+      throw new Error("You can only change your username once every 30 days.");
+    }
+
+    const history = profile.usernameHistory || [];
+    if (profile.username && profile.username !== usernameClean) {
+      history.push({ username: profile.username, changedAt: now });
+    }
+
     const updatedProfile = {
       ...profile,
       username: usernameClean,
-      username_lowercase: usernameLower
+      username_lowercase: usernameLower,
+      lastUsernameChange: now,
+      usernameHistory: history
     };
     await saveUserProfile(userId, updatedProfile);
     return updatedProfile;
@@ -121,14 +179,26 @@ export const claimUsername = async (userId, username) => {
       const profileData = profileSnap.exists() ? profileSnap.data() : {};
       const oldUsername = profileData.username;
 
+      const now = Date.now();
+      if (profileData.lastUsernameChange && (now - profileData.lastUsernameChange) < 30 * 24 * 60 * 60 * 1000) {
+        throw new Error("You can only change your username once every 30 days.");
+      }
+
       // Claim new username
-      transaction.set(usernameDocRef, { userId, username: usernameClean });
+      transaction.set(usernameDocRef, { userId, username: usernameClean, email });
+
+      const history = profileData.usernameHistory || [];
+      if (oldUsername && oldUsername !== usernameClean) {
+        history.push({ username: oldUsername, changedAt: now });
+      }
 
       // Update Profile document
       const updatedProfile = {
         ...profileData,
         username: usernameClean,
         username_lowercase: usernameLower,
+        lastUsernameChange: now,
+        usernameHistory: history,
         userId
       };
       transaction.set(profileDocRef, updatedProfile);
