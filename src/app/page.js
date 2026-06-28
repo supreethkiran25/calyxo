@@ -46,15 +46,15 @@ function TabSkeleton() {
   );
 }
 
-const Dashboard = dynamic(() => import('../components/Dashboard'), { loading: () => <TabSkeleton /> });
-const FoodTracker = dynamic(() => import('../components/FoodTracker'), { loading: () => <TabSkeleton /> });
-const WorkoutLogger = dynamic(() => import('../components/WorkoutLogger'), { loading: () => <TabSkeleton /> });
-const AICoach = dynamic(() => import('../components/AICoach'), { loading: () => <TabSkeleton /> });
-const UserProfile = dynamic(() => import('../components/UserProfile'), { loading: () => <TabSkeleton /> });
-const Progress = dynamic(() => import('../components/Progress'), { loading: () => <TabSkeleton /> });
-const HealthHub = dynamic(() => import('../components/HealthHub'), { loading: () => <TabSkeleton /> });
-const TrainerEcosystem = dynamic(() => import('../components/TrainerEcosystem'), { loading: () => <TabSkeleton /> });
-const SocialHub = dynamic(() => import('../components/SocialHub'), { loading: () => <TabSkeleton /> });
+const Dashboard = dynamic(() => import('../components/Dashboard'), { ssr: false, loading: () => <TabSkeleton /> });
+const FoodTracker = dynamic(() => import('../components/FoodTracker'), { ssr: false, loading: () => <TabSkeleton /> });
+const WorkoutLogger = dynamic(() => import('../components/WorkoutLogger'), { ssr: false, loading: () => <TabSkeleton /> });
+const AICoach = dynamic(() => import('../components/AICoach'), { ssr: false, loading: () => <TabSkeleton /> });
+const UserProfile = dynamic(() => import('../components/UserProfile'), { ssr: false, loading: () => <TabSkeleton /> });
+const Progress = dynamic(() => import('../components/Progress'), { ssr: false, loading: () => <TabSkeleton /> });
+const HealthHub = dynamic(() => import('../components/HealthHub'), { ssr: false, loading: () => <TabSkeleton /> });
+const TrainerEcosystem = dynamic(() => import('../components/TrainerEcosystem'), { ssr: false, loading: () => <TabSkeleton /> });
+const SocialHub = dynamic(() => import('../components/SocialHub'), { ssr: false, loading: () => <TabSkeleton /> });
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: HomeIcon },

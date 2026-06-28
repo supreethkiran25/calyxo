@@ -603,12 +603,15 @@ export const getEcosystemState = async (userId) => {
 };
 
 export const saveEcosystemState = async (userId, state) => {
+  if (!state || !userId) return;
+  // Clean state to strip any store action functions
+  const cleanState = JSON.parse(JSON.stringify(state));
   if (typeof window !== 'undefined') {
-    setSecureItem("calyxo_ecosystem_db_state", state, userId || ENCRYPTION_SALT);
+    setSecureItem("calyxo_ecosystem_db_state", cleanState, userId || ENCRYPTION_SALT);
   }
-  if (isMockFirebase || !userId) return;
+  if (isMockFirebase) return;
   try {
-    await setDoc(doc(db, "users_ecosystem", userId), state);
+    await setDoc(doc(db, "users_ecosystem", userId), cleanState);
   } catch (err) {
     console.error("Firestore saveEcosystemState error:", err);
   }
