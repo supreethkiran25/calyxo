@@ -776,16 +776,29 @@ export const getFriendSuggestions = async (userId) => {
   }
 };
 
-export const publishActivity = async (userId, type, title, content, data = {}) => {
+export const publishActivity = async (payloadOrUserId, type, title, content, data = {}) => {
+  let payload;
+  if (typeof payloadOrUserId === 'object' && payloadOrUserId !== null) {
+    payload = payloadOrUserId;
+  } else {
+    payload = { userId: payloadOrUserId, type, title, content, data };
+  }
+  
+  const { userId, type: pType, title: pTitle, content: pContent, data: pData, visibility = 'public', mediaUrls = [], tags = [], location = '' } = payload;
+
   if (!userId) return;
   try {
     const profile = await getUserProfile(userId);
     const activityItem = {
       userId,
-      type,
-      title,
-      content,
-      data,
+      type: pType,
+      title: pTitle,
+      content: pContent,
+      data: pData || {},
+      visibility,
+      mediaUrls,
+      tags,
+      location,
       timestamp: Date.now(),
       nickname: profile?.nickname || profile?.firstName || "Athlete",
       username: profile?.username || "athlete",
@@ -812,14 +825,24 @@ export const publishActivity = async (userId, type, title, content, data = {}) =
   }
 };
 
-export const fetchActivityFeed = async (userId, followingIds = [], limitCount = 10, lastDoc = null) => {
-  if (!userId) return { items: [], lastDoc: null };
+export const fetchActivityFeed = async (viewerId, followingIds = [], limitCount = 10, lastDoc = null) => {
+  if (!viewerId) return { items: [], lastDoc: null };
 
-  const queryIds = [userId, ...followingIds].slice(0, 30);
+  const queryIds = [viewerId, ...followingIds].slice(0, 30);
+  
+  // Helper to check visibility
+  const isVisible = (act) => {
+    if (!act.visibility || act.visibility === 'public') return true;
+    if (act.userId === viewerId) return true; // Can always see own posts
+    if (act.visibility === 'private' && act.userId !== viewerId) return false;
+    // For 'friends' or 'club', in this prototype we'll assume if they are in 'followingIds', they meet the basic threshold,
+    // though 'friends' technically requires mutual follow.
+    return true; 
+  };
 
   if (isMockFirebase) {
     const allActivities = getMockData("calyxo_social_activities");
-    const filtered = allActivities.filter(act => queryIds.includes(act.userId));
+    const filtered = allActivities.filter(act => queryIds.includes(act.userId) && isVisible(act));
     
     let startIndex = 0;
     if (lastDoc) {
@@ -836,7 +859,7 @@ export const fetchActivityFeed = async (userId, followingIds = [], limitCount = 
       collection(db, "social_activities"),
       where("userId", "in", queryIds),
       orderBy("timestamp", "desc"),
-      limit(limitCount)
+      limit(limitCount * 2) // Fetch extra to account for client-side filtering
     );
 
     if (lastDoc) {
@@ -844,12 +867,114 @@ export const fetchActivityFeed = async (userId, followingIds = [], limitCount = 
     }
 
     const snap = await getDocs(q);
-    const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const nextLastDoc = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null;
+    const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(isVisible).slice(0, limitCount);
+    const nextLastDoc = items.length > 0 ? items[items.length - 1] : null;
 
-    return { items, lastDoc: nextLastDoc };
+    return { items, lastDoc: nextLastDoc ? snap.docs[snap.docs.indexOf(nextLastDoc)] : null };
   } catch (err) {
     console.error("Error fetching activity feed", err);
     return { items: [], lastDoc: null };
+  }
+};
+
+export const rankFeedWithAI = async (userId, feedItems) => {
+  if (!feedItems || feedItems.length === 0) return feedItems;
+  try {
+    const profile = await getUserProfile(userId);
+    const res = await fetch('/api/gemini/feed-rank', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userProfile: profile, feedItems: feedItems.slice(0, 20) })
+    });
+    if (!res.ok) return feedItems;
+    const { rankedIds } = await res.json();
+    if (!rankedIds || !Array.isArray(rankedIds)) return feedItems;
+    
+    // Sort feedItems based on the order of rankedIds
+    const rankedItems = [...feedItems].sort((a, b) => {
+      const idxA = rankedIds.indexOf(a.id);
+      const idxB = rankedIds.indexOf(b.id);
+      if (idxA === -1 && idxB === -1) return 0;
+      if (idxA === -1) return 1;
+      if (idxB === -1) return -1;
+      return idxA - idxB;
+    });
+    return rankedItems;
+  } catch (err) {
+    console.error("AI Feed ranking failed", err);
+    return feedItems;
+  }
+};
+
+export const addReaction = async (userId, activityId, reactionType) => {
+  if (!userId || !activityId || !reactionType) return;
+  // Supported reactions: '👏', '🔥', '💪', '❤️', '🎯', '🥗', '🏆'
+  try {
+    if (isMockFirebase) {
+      const activities = getMockData("calyxo_social_activities");
+      const activity = activities.find(a => a.id === activityId);
+      if (activity) {
+        if (!activity.reactions) activity.reactions = {};
+        if (!activity.reactions[reactionType]) activity.reactions[reactionType] = [];
+        if (!activity.reactions[reactionType].includes(userId)) {
+           activity.reactions[reactionType].push(userId);
+           saveMockData("calyxo_social_activities", activities);
+        }
+      }
+      return;
+    }
+    // Real firestore logic would update the subcollection or document array
+    // For simplicity, we merge into a reactions map
+    const docRef = doc(db, "social_activities", activityId);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      const reactions = data.reactions || {};
+      const current = reactions[reactionType] || [];
+      if (!current.includes(userId)) {
+        reactions[reactionType] = [...current, userId];
+        await setDoc(docRef, { reactions }, { merge: true });
+      }
+    }
+  } catch (err) {
+    console.error("Error adding reaction", err);
+  }
+};
+
+export const addComment = async (userId, activityId, text) => {
+  if (!userId || !activityId || !text) return;
+  try {
+    const profile = await getUserProfile(userId);
+    const commentObj = {
+      id: `cmd_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      userId,
+      text,
+      timestamp: Date.now(),
+      username: profile?.username || "athlete",
+      photoURL: profile?.photoURL || ""
+    };
+    
+    if (isMockFirebase) {
+      const activities = getMockData("calyxo_social_activities");
+      const activity = activities.find(a => a.id === activityId);
+      if (activity) {
+        if (!activity.comments) activity.comments = [];
+        activity.comments.push(commentObj);
+        saveMockData("calyxo_social_activities", activities);
+      }
+      return commentObj;
+    }
+
+    const docRef = doc(db, "social_activities", activityId);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      const comments = data.comments || [];
+      comments.push(commentObj);
+      await setDoc(docRef, { comments }, { merge: true });
+    }
+    return commentObj;
+  } catch (err) {
+    console.error("Error adding comment", err);
   }
 };

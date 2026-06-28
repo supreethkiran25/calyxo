@@ -22,6 +22,19 @@ const getLocalEcosystemState = () => {
     predictions: null,
     timelineLogs: [],
     fitnessScore: { dailyScore: 70, weeklyScore: 72, monthlyScore: 75, recommendations: ["Hit your protein target today", "Log 3000ml of water to hit hydration goals"] },
+    healthTwin: {
+      recoveryScore: 85,
+      fitnessAge: 25,
+      sleepDebt: 0,
+      dailyHealthScore: 80,
+      predictedWeight: 70,
+      predictedMuscleGain: 0.5,
+      predictedFatLoss: 0.5,
+      calorieForecast: 2200,
+      weeklyHealthForecast: "Maintained steady progress.",
+      riskDetection: "None",
+      personalizedRecommendations: ["Stay hydrated", "Increase protein"]
+    },
     activeChallenges: [
       { id: 'fat_loss_30', name: '30 Day Fat Loss Challenge', target: 'Burn 15,000 active calories', progress: 0, targetVal: 15000, completed: false, unit: 'kcal' },
       { id: 'hydration_30', name: '30 Day Hydration Challenge', target: 'Drink 90L of water', progress: 0, targetVal: 90000, completed: false, unit: 'ml' },
@@ -179,6 +192,14 @@ export const useEcosystemStore = create((set, get) => ({
     const nextState = { ...state, fitnessScore: next };
     saveLocalEcosystemState(nextState);
     return { fitnessScore: next };
+  }),
+
+  // AI Health Twin update
+  updateHealthTwin: (updates) => set((state) => {
+    const next = { ...state.healthTwin, ...updates };
+    const nextState = { ...state, healthTwin: next };
+    saveLocalEcosystemState(nextState);
+    return { healthTwin: next };
   }),
 
   // Challenge tracking
