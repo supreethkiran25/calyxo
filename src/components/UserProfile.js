@@ -17,7 +17,7 @@ import {
   saveEcosystemState
 } from '../lib/dbService';
 import { 
-  User, Mail, Lock, ShieldAlert, Award, RefreshCw, LogOut, CheckCircle, 
+  User, Users, Mail, Lock, ShieldAlert, Award, RefreshCw, LogOut, CheckCircle, 
   Settings, Heart, Sparkles, Bell, Database, Trash2, Download, Eye, EyeOff,
   Shield, FileText, Info, HelpCircle, Key, Cpu, Activity, CreditCard,
   MoreVertical, X, Target, Zap, ChevronRight, TrendingUp, Star
@@ -1658,8 +1658,10 @@ export default function UserProfile({ onNotification }) {
           </div>
 
           {/* Level & Streak Quick Stats */}
-          <div className="w-full sm:w-auto grid grid-cols-3 gap-2 sm:flex sm:items-center sm:gap-3">
+          <div className="w-full sm:w-auto grid grid-cols-3 gap-2 sm:flex sm:items-center sm:gap-3 flex-wrap">
             {[
+              { label: 'Followers', value: userProfile?.followersCount || 0, icon: Users, color: 'text-white' },
+              { label: 'Following', value: userProfile?.followingCount || 0, icon: User, color: 'text-white' },
               { label: 'Level', value: level, icon: Zap, color: 'text-acid-green' },
               { label: 'Health Score', value: `${fitnessScore}%`, icon: Activity, color: 'text-acid-green' },
               { label: 'Streak', value: `${ecoStore.streaks?.loginStreak || 1}d`, icon: TrendingUp, color: 'text-blue-400' }

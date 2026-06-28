@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
@@ -86,7 +86,7 @@ export default function Progress({ onNotification }) {
   }
 
   // Calculate Calorie Averages
-  const calorieTrend = React.useMemo(() => {
+  const calorieTrend = useMemo(() => {
     if (!foodLogs || foodLogs.length === 0) return [];
     const grouped = {};
     foodLogs.forEach(log => {
@@ -97,7 +97,7 @@ export default function Progress({ onNotification }) {
   }, [foodLogs]);
 
   // Recalculated user metric strategy for deficit/gains calculation
-  const metrics = React.useMemo(() => {
+  const metrics = useMemo(() => {
     const wkg = userProfile?.weight || 70;
     const hcm = userProfile?.height || 175;
     const dob = userProfile?.dob || '2001-01-01';

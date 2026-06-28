@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home as HomeIcon, BookOpen, BarChart2, User, Plus, LogOut, Bot, Sparkles, X, TrendingUp, Heart, Users, Grid, ChevronRight, MoreHorizontal, Share2 } from 'lucide-react';
 import { useStore } from '../store/useStore';
@@ -118,10 +118,10 @@ export default function Home() {
     return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('touchstart', handler); };
   }, [moreOpen]);
 
-  const showNotification = (msg) => {
+  const showNotification = useCallback((msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
-  };
+  }, []);
 
   useEffect(() => {
     initializeTheme();
@@ -166,10 +166,12 @@ export default function Home() {
           }
         } catch (e) {
           console.error("Auth sync profile/logs error", e);
+        } finally {
+          setLoading(false);
         }
+      } else {
+        setLoading(false);
       }
-      const timer = setTimeout(() => setLoading(false), 1800);
-      return () => clearTimeout(timer);
     });
     return () => unsubscribe();
   }, [setUser, initializeTheme, setUserProfile, setFoodLogs, setWorkoutLogs, setWeightLogs, setWaterIntake]);

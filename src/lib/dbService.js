@@ -126,7 +126,20 @@ const getLocalState = (userId) => {
     workoutLogs: [],
     weightLogs: [],
     waterIntake: 0,
-    userProfile: { gender: "male", age: 25, weight: 70, height: 175, activity: 1.55, goal: "lose" }
+    userProfile: { 
+      gender: "male", 
+      age: 25, 
+      weight: 70, 
+      height: 175, 
+      activity: 1.55, 
+      goal: "lose",
+      bio: "",
+      website: "",
+      coverImage: "",
+      followersCount: 0,
+      followingCount: 0,
+      isVerified: false
+    }
   };
 };
 
