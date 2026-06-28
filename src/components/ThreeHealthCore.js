@@ -4,127 +4,6 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 
-// Dynamic import helpers to avoid SSR errors
-let Canvas = null;
-let useFrame = null;
-let OrbitControls = null;
-let Sphere = null;
-let Html = null;
-
-try {
-  const r3f = require('@react-three/fiber');
-  const drei = require('@react-three/drei');
-  Canvas = r3f.Canvas;
-  useFrame = r3f.useFrame;
-  OrbitControls = drei.OrbitControls;
-  Sphere = drei.Sphere;
-  Html = drei.Html;
-} catch (e) {
-  console.warn("WebGL React Three Fiber not available. Using premium 2D fallback.", e);
-}
-
-// ── 3D Scene Component ──
-function HealthCoreScene({ metrics }) {
-  const orbRef = useRef();
-  
-  // Custom frame animation hook
-  useFrame(({ clock }) => {
-    const elapsed = clock.getElapsedTime();
-    if (orbRef.current) {
-      orbRef.current.rotation.y = elapsed * 0.4;
-      orbRef.current.rotation.x = Math.sin(elapsed * 0.25) * 0.2;
-      const scale = 1.0 + Math.sin(elapsed * 2.0) * 0.04;
-      orbRef.current.scale.set(scale, scale, scale);
-    }
-  });
-
-  return (
-    <>
-      <ambientLight intensity={0.5} />
-      <pointLight position={[10, 10, 10]} intensity={1.5} color="#b5f23d" />
-      <directionalLight position={[-5, 5, -5]} intensity={0.8} color="#059669" />
-
-      {/* Futuristic Center Health Core Orb */}
-      <mesh ref={orbRef}>
-        <sphereGeometry args={[1.5, 32, 32]} />
-        <meshStandardMaterial 
-          color="#b5f23d" 
-          roughness={0.1} 
-          metalness={0.9} 
-          wireframe={true}
-          emissive="#4c7a00"
-          emissiveIntensity={0.6}
-        />
-        
-        {/* Inner solid glowing sphere */}
-        <mesh scale={[0.85, 0.85, 0.85]}>
-          <sphereGeometry args={[1.5, 32, 32]} />
-          <meshStandardMaterial 
-            color="#059669" 
-            roughness={0.2} 
-            metalness={0.5} 
-            transparent={true} 
-            opacity={0.7} 
-          />
-        </mesh>
-      </mesh>
-
-      {/* Orbiting Metrics */}
-      {metrics.map((m, idx) => {
-        const angle = (idx / metrics.length) * Math.PI * 2;
-        const radius = 3.6;
-        const x = Math.cos(angle) * radius;
-        const z = Math.sin(angle) * radius;
-        
-        return (
-          <OrbitingNode 
-            key={m.label} 
-            initialPos={[x, Math.sin(angle * 2) * 0.8, z]} 
-            metric={m} 
-            angleOffset={angle}
-          />
-        );
-      })}
-
-      <OrbitControls enableZoom={false} enablePan={false} autoRotate={false} />
-    </>
-  );
-}
-
-function OrbitingNode({ initialPos, metric, angleOffset }) {
-  const nodeRef = useRef();
-
-  useFrame(({ clock }) => {
-    const elapsed = clock.getElapsedTime();
-    if (nodeRef.current) {
-      // Gentle orbit variation
-      const angle = elapsed * 0.15 + angleOffset;
-      const radius = 3.6;
-      nodeRef.current.position.x = Math.cos(angle) * radius;
-      nodeRef.current.position.z = Math.sin(angle) * radius;
-      nodeRef.current.position.y = Math.sin(elapsed * 1.5 + angleOffset) * 0.4;
-    }
-  });
-
-  return (
-    <group ref={nodeRef} position={initialPos}>
-      {/* Node Sphere */}
-      <mesh>
-        <sphereGeometry args={[0.22, 16, 16]} />
-        <meshStandardMaterial color={metric.color} roughness={0.1} metalness={0.8} />
-      </mesh>
-      
-      {/* HTML Label */}
-      <Html distanceFactor={8} position={[0, 0.4, 0]} center>
-        <div className="bg-black/85 border border-card-border px-2.5 py-1.5 rounded-xl text-[9px] font-black tracking-wider uppercase text-foreground whitespace-nowrap shadow-md flex items-center gap-1.5">
-          <span style={{ color: metric.color }}>●</span>
-          <span>{metric.label}: {metric.value}</span>
-        </div>
-      </Html>
-    </group>
-  );
-}
-
 // ── Fallback 2D UI Component ──
 function Fallback2DHealthCore({ metrics, hasProAccess }) {
   return (
@@ -196,7 +75,6 @@ export default function ThreeHealthCore() {
 
   const plan = userProfile?.subscriptionPlan || 'FREE';
   const hasProAccess = plan === 'PRO' || plan === 'PRO_PLUS';
-  const enable3D = userProfile?.appearance?.enable3DExperience !== false && hasProAccess;
 
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 0);
@@ -225,23 +103,6 @@ export default function ThreeHealthCore() {
     return (
       <div className="w-full h-[400px] flex items-center justify-center bg-surface/20 border border-card-border rounded-3xl animate-pulse">
         <span className="text-xs text-muted uppercase font-bold tracking-widest">Initializing Core...</span>
-      </div>
-    );
-  }
-
-  // If 3D is active and required libraries loaded successfully, render the R3F Canvas
-  if (enable3D && Canvas && useFrame && OrbitControls && Sphere && Html) {
-    return (
-      <div className="w-full h-[400px] relative bg-surface/10 border border-card-border rounded-3xl overflow-hidden shadow-lg">
-        {/* Canvas container */}
-        <Canvas camera={{ position: [0, 0, 8.5], fov: 60 }}>
-          <HealthCoreScene metrics={metrics} />
-        </Canvas>
-
-        {/* 3D Active Indicator Badge */}
-        <div className="absolute bottom-4 left-4 bg-black/60 border border-card-border px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider text-acid-green z-10">
-          3D GRAPHICS ACTIVE
-        </div>
       </div>
     );
   }
