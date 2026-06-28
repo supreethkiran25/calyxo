@@ -23,6 +23,19 @@ import {
   MoreVertical, X, Target, Zap, ChevronRight, TrendingUp, Star
 } from 'lucide-react';
 import MonetizationCenter from './MonetizationCenter';
+import { claimUsername } from '../lib/socialService';
+
+const HEALTH_INTERESTS_OPTIONS = [
+  "Weight Loss",
+  "Muscle Gain",
+  "Strength Training",
+  "Cardio Conditioning",
+  "Yoga & Flexibility",
+  "Athletic Speed",
+  "Keto Diet",
+  "Vegan Nutrition",
+  "General Wellness"
+];
 
 export default function UserProfile({ onNotification }) {
   const user = useStore(state => state.user);
@@ -76,6 +89,13 @@ export default function UserProfile({ onNotification }) {
   
   // Privacy
   const [analyticsTracking, setAnalyticsTracking] = useState(true);
+
+  // Social Profile Fields
+  const [bio, setBio] = useState('');
+  const [website, setWebsite] = useState('');
+  const [coverImage, setCoverImage] = useState('');
+  const [fitnessLevel, setFitnessLevel] = useState('beginner');
+  const [healthInterests, setHealthInterests] = useState([]);
 
   // Appearance & Accessibility Settings
   const [bgEffectsEnabled, setBgEffectsEnabled] = useState(false);
@@ -194,6 +214,12 @@ export default function UserProfile({ onNotification }) {
         setMarketingCommunications(!!userProfile.marketingCommunications);
 
         setEmailInput(user?.email || '');
+
+        setBio(userProfile.bio || '');
+        setWebsite(userProfile.website || '');
+        setCoverImage(userProfile.coverImage || '');
+        setFitnessLevel(userProfile.fitnessLevel || userProfile.experience || 'beginner');
+        setHealthInterests(userProfile.healthInterests || []);
       }, 0);
     }
   }, [userProfile, user]);
@@ -340,6 +366,18 @@ export default function UserProfile({ onNotification }) {
       }
     }
 
+    // Check if username changed and claim it
+    const oldUsername = userProfile?.username;
+    if (username && username.trim().toLowerCase() !== (oldUsername || '').toLowerCase()) {
+      try {
+        await claimUsername(userId, username);
+      } catch (claimErr) {
+        if (onNotification) onNotification(`Username Error: ${claimErr.message}`);
+        setSaving(false);
+        return;
+      }
+    }
+
     const updatedProfile = {
       ...userProfile,
       firstName,
@@ -355,7 +393,7 @@ export default function UserProfile({ onNotification }) {
       goalWeight: Number(goalWeight),
       activity: Number(activity),
       goal,
-      experience,
+      experience: fitnessLevel || experience,
       dietPreferences,
       allergies,
       medicalRestrictions,
@@ -369,6 +407,11 @@ export default function UserProfile({ onNotification }) {
       notifications,
       analyticsTracking,
       photoURL: userProfile?.photoURL || '',
+      bio,
+      website,
+      coverImage,
+      fitnessLevel,
+      healthInterests,
       aiMemoryEnabled,
       notificationFrequency,
       dailyCalories: Number(dailyCalories),
@@ -393,11 +436,21 @@ export default function UserProfile({ onNotification }) {
     };
 
     updateUserProfile(updatedProfile);
-    await saveUserProfile(userId, updatedProfile);
-    ecoStore.setPersonality(coachPersonality);
-    await saveEcosystemState(userId, useEcosystemStore.getState());
-    setSaving(false);
-    if (onNotification) onNotification("Settings saved successfully! 💾");
+    try {
+      await saveUserProfile(userId, updatedProfile);
+      ecoStore.setPersonality(coachPersonality);
+      try {
+        await saveEcosystemState(userId, useEcosystemStore.getState());
+      } catch (ecoErr) {
+        console.error("Failed to save personality state", ecoErr);
+      }
+      if (onNotification) onNotification("Settings saved successfully! 💾");
+    } catch (err) {
+      console.error("Save profile details failed", err);
+      if (onNotification) onNotification("Failed to save settings. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleUpdateEmail = async () => {
@@ -444,10 +497,17 @@ export default function UserProfile({ onNotification }) {
         
         // Save
         updateUserProfile({ photoURL: base64 });
-        await updateUserAuthProfile(nickname || user?.displayName || 'Calyxo Athlete', base64);
-        await saveUserProfile(userId, { ...userProfile, photoURL: base64 });
-        setPhotoLoading(false);
-        if (onNotification) onNotification("Profile photo updated! 📸");
+        try {
+          await updateUserAuthProfile(nickname || user?.displayName || 'Calyxo Athlete', base64);
+          await saveUserProfile(userId, { ...userProfile, photoURL: base64 });
+          if (onNotification) onNotification("Profile photo updated! 📸");
+        } catch (err) {
+          console.error("Upload photo database write failed", err);
+          updateUserProfile({ photoURL: userProfile?.photoURL || '' }); // Revert
+          if (onNotification) onNotification("Failed to upload profile photo. Please try again.");
+        } finally {
+          setPhotoLoading(false);
+        }
       };
       img.src = event.target.result;
     };
@@ -456,16 +516,29 @@ export default function UserProfile({ onNotification }) {
 
   const handleRemovePhoto = async () => {
     setPhotoLoading(true);
+    const prevPhoto = userProfile?.photoURL || '';
     updateUserProfile({ photoURL: '' });
-    await updateUserAuthProfile(nickname || user?.displayName || 'Calyxo Athlete', '');
-    await saveUserProfile(userId, { ...userProfile, photoURL: '' });
-    setPhotoLoading(false);
-    if (onNotification) onNotification("Profile photo removed.");
+    try {
+      await updateUserAuthProfile(nickname || user?.displayName || 'Calyxo Athlete', '');
+      await saveUserProfile(userId, { ...userProfile, photoURL: '' });
+      if (onNotification) onNotification("Profile photo removed.");
+    } catch (err) {
+      console.error("Remove photo failed", err);
+      updateUserProfile({ photoURL: prevPhoto });
+      if (onNotification) onNotification("Failed to remove profile photo. Please try again.");
+    } finally {
+      setPhotoLoading(false);
+    }
   };
 
   const handleExportData = async () => {
-    await exportAccountData(userId);
-    if (onNotification) onNotification("Data export initiated! 📦");
+    try {
+      await exportAccountData(userId);
+      if (onNotification) onNotification("Data export initiated! 📦");
+    } catch (e) {
+      console.error("Export data failed", e);
+      if (onNotification) onNotification("Failed to export data.");
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -489,17 +562,27 @@ export default function UserProfile({ onNotification }) {
 
   const handleClearHistory = async () => {
     if (window.confirm("Clear all nutrition and workout logs? Your streaks and biometric targets will remain.")) {
-      await clearChatHistory(userId);
-      if (onNotification) onNotification("Account logs history cleared.");
+      try {
+        await clearChatHistory(userId);
+        if (onNotification) onNotification("Account logs history cleared.");
+      } catch (e) {
+        console.error("Clear logs failed", e);
+        if (onNotification) onNotification("Failed to clear account history.");
+      }
     }
   };
 
   const handleClearMemory = async () => {
     if (window.confirm("Reset AI memories & current plan setup?")) {
-      await clearAIMemory(userId);
-      ecoStore.setCoachingPlan(null);
-      ecoStore.setPredictions(null);
-      if (onNotification) onNotification("AI Coach model memory cleared.");
+      try {
+        await clearAIMemory(userId);
+        ecoStore.setCoachingPlan(null);
+        ecoStore.setPredictions(null);
+        if (onNotification) onNotification("AI Coach model memory cleared.");
+      } catch (e) {
+        console.error("Clear AI memory failed", e);
+        if (onNotification) onNotification("Failed to clear AI memory.");
+      }
     }
   };
 
@@ -1641,7 +1724,87 @@ export default function UserProfile({ onNotification }) {
                   </select>
                 </div>
               </div>
-              <button type="submit" disabled={saving} className="w-full btn-primary py-2 rounded-lg font-bold text-[10px] uppercase tracking-wider border-none flex items-center justify-center gap-1 cursor-pointer">
+
+              {/* Social Fields */}
+              <div className="space-y-2 pt-2 border-t border-card-border/40">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className={labelClass}>Website Link</label>
+                    <input type="text" placeholder="https://example.com" value={website} onChange={(e) => setWebsite(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Fitness Level</label>
+                    <select value={fitnessLevel} onChange={(e) => setFitnessLevel(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
+                      <option value="beginner">Beginner</option>
+                      <option value="intermediate">Intermediate</option>
+                      <option value="advanced">Advanced</option>
+                      <option value="elite">Elite Athlete</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelClass}>Bio (Short Description)</label>
+                  <textarea maxLength={160} rows={2} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell the community about yourself..." className="w-full bg-[var(--input)] text-foreground border border-card-border px-2.5 py-2 rounded-xl focus:outline-none focus:border-acid-green text-xs shadow-inner resize-none" />
+                </div>
+
+                <div>
+                  <label className={labelClass}>Profile Cover Image</label>
+                  <input type="file" accept="image/*" onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      const img = new Image();
+                      img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 600;
+                        canvas.height = 200;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, 600, 200);
+                        setCoverImage(canvas.toDataURL('image/jpeg', 0.7));
+                      };
+                      img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                  }} className="w-full text-xs text-muted" />
+                  {coverImage && (
+                    <div className="mt-1.5 relative w-full h-14 rounded-lg overflow-hidden border border-card-border">
+                      <img src={coverImage} alt="Cover Preview" className="w-full h-full object-cover" />
+                      <button type="button" onClick={() => setCoverImage('')} className="absolute right-1 top-1 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center text-[8px] text-white border-none cursor-pointer">✕</button>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className={labelClass}>Health Interests</label>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {HEALTH_INTERESTS_OPTIONS.map(opt => {
+                      const selected = healthInterests.includes(opt);
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => {
+                            setHealthInterests(prev => 
+                              prev.includes(opt) ? prev.filter(x => x !== opt) : [...prev, opt]
+                            );
+                          }}
+                          className={`px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase border cursor-pointer transition-colors ${
+                            selected 
+                              ? 'bg-acid-green/10 border-acid-green text-acid-green' 
+                              : 'bg-surface border-card-border text-muted hover:text-foreground'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" disabled={saving} className="w-full btn-primary py-2 rounded-lg font-bold text-[10px] uppercase tracking-wider border-none flex items-center justify-center gap-1 cursor-pointer mt-3">
                 {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
                 Save Profile
               </button>
@@ -1661,9 +1824,29 @@ export default function UserProfile({ onNotification }) {
                 <span className="text-xs font-black text-foreground mt-0.5 block">@{username || nickname || 'athlete'}</span>
               </div>
               <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Unit System</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block capitalize">{units}</span>
+                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Fitness Level</span>
+                <span className="text-xs font-black text-foreground mt-0.5 block capitalize">{fitnessLevel || 'beginner'}</span>
               </div>
+              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5 col-span-2">
+                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Social Bio</span>
+                <span className="text-xs font-medium text-foreground/90 mt-0.5 block italic">{bio || 'No bio written yet.'}</span>
+              </div>
+              {website && (
+                <div className="bg-surface/50 border border-card-border rounded-lg p-2.5 col-span-2">
+                  <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Website</span>
+                  <a href={website} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-acid-green mt-0.5 block hover:underline break-all">{website}</a>
+                </div>
+              )}
+              {healthInterests.length > 0 && (
+                <div className="bg-surface/50 border border-card-border rounded-lg p-2.5 col-span-2">
+                  <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Health Interests</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {healthInterests.map(tag => (
+                      <span key={tag} className="px-2 py-0.5 rounded bg-surface border border-card-border text-[8.5px] font-bold text-foreground">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1803,7 +1986,7 @@ export default function UserProfile({ onNotification }) {
                     {acc.id === 'notifications' && renderNotificationsForm()}
                     {acc.id === 'privacy' && renderPrivacyForm()}
                     {acc.id === 'security' && renderSecurityForm()}
-                    {acc.id === 'subscription' && <MonetizationCenter />}
+                    {acc.id === 'subscription' && <MonetizationCenter onNotification={onNotification} />}
                     {acc.id === 'data' && renderDataForm()}
                     {acc.id === 'about' && renderAboutForm()}
                   </div>

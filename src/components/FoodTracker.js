@@ -144,11 +144,18 @@ export default function FoodTracker({ onNotification }) {
       }];
     }
     const updated = { ...userProfile, favoriteFoods: nextFavorites };
+    const prev = userProfile;
     updateUserProfile(updated);
     if (userId) {
-      await saveUserProfile(userId, updated);
+      try {
+        await saveUserProfile(userId, updated);
+        if (onNotification) onNotification(isFav ? `Removed ${food.name} from favorites` : `Added ${food.name} to favorites ⭐`);
+      } catch (err) {
+        console.error("Toggle favorite save failed", err);
+        updateUserProfile(prev); // Revert
+        if (onNotification) onNotification("Failed to update favorites. Please try again.");
+      }
     }
-    if (onNotification) onNotification(isFav ? `Removed ${food.name} from favorites` : `Added ${food.name} to favorites ⭐`);
   };
 
   const recentFoods = React.useMemo(() => {
@@ -193,11 +200,16 @@ export default function FoodTracker({ onNotification }) {
   useEffect(() => {
     const fetchLogs = async () => {
       if (!userId) return;
-      const logs = await getFoodLogs(userId);
-      setFoodLogs(logs || []);
+      try {
+        const logs = await getFoodLogs(userId);
+        setFoodLogs(logs || []);
+      } catch (err) {
+        console.error("Fetch food logs failed", err);
+        if (onNotification) onNotification("Failed to load food logs. Please reload.");
+      }
     };
     fetchLogs();
-  }, [userId, setFoodLogs]);
+  }, [userId, setFoodLogs, onNotification]);
 
   // Handle outside clicks
   useEffect(() => {
@@ -326,11 +338,16 @@ export default function FoodTracker({ onNotification }) {
       portionWeight: activePortion
     };
 
-    const saved = await addFoodLog(userId, logItem);
-    addFoodLogStore(saved);
-    setQueryVal('');
-    setShowDropdown(false);
-    if (onNotification) onNotification(`Logged ${activePortion}g ${logItem.name} 🍽️`);
+    try {
+      const saved = await addFoodLog(userId, logItem);
+      addFoodLogStore(saved);
+      setQueryVal('');
+      setShowDropdown(false);
+      if (onNotification) onNotification(`Logged ${activePortion}g ${logItem.name} 🍽️`);
+    } catch (err) {
+      console.error("Quick log food database write failure", err);
+      if (onNotification) onNotification("Failed to save food log. Please try again.");
+    }
   };
 
   const calculateMacrosRatings = (food) => {
@@ -391,10 +408,15 @@ export default function FoodTracker({ onNotification }) {
       portionWeight: portion
     };
 
-    const saved = await addFoodLog(userId, logItem);
-    addFoodLogStore(saved);
-    setAnalysedFood(null);
-    if (onNotification) onNotification(`Logged ${logItem.name} to diary 🍽️`);
+    try {
+      const saved = await addFoodLog(userId, logItem);
+      addFoodLogStore(saved);
+      setAnalysedFood(null);
+      if (onNotification) onNotification(`Logged ${logItem.name} to diary 🍽️`);
+    } catch (err) {
+      console.error("Log food item database write failure", err);
+      if (onNotification) onNotification("Failed to save food log. Please try again.");
+    }
   };
 
   const handleCustomFoodSubmit = async (e) => {
@@ -438,27 +460,37 @@ export default function FoodTracker({ onNotification }) {
       portionWeight: 100
     };
 
-    const saved = await addFoodLog(userId, logItem);
-    addFoodLogStore(saved);
-    
-    // Clear forms
-    setCfName('');
-    setCfCals('');
-    setCfProt('');
-    setCfCarb('');
-    setCfFat('');
-    setCfFiber('');
-    setCfSugar('');
-    setCfSodium('');
-    setShowCustomFood(false);
-    
-    if (onNotification) onNotification(`Logged custom item: ${logItem.name}`);
+    try {
+      const saved = await addFoodLog(userId, logItem);
+      addFoodLogStore(saved);
+      
+      // Clear forms
+      setCfName('');
+      setCfCals('');
+      setCfProt('');
+      setCfCarb('');
+      setCfFat('');
+      setCfFiber('');
+      setCfSugar('');
+      setCfSodium('');
+      setShowCustomFood(false);
+      
+      if (onNotification) onNotification(`Logged custom item: ${logItem.name}`);
+    } catch (err) {
+      console.error("Custom food save failed", err);
+      if (onNotification) onNotification("Failed to save custom food. Please try again.");
+    }
   };
 
   const handleDeleteMeal = async (logId) => {
-    await deleteFoodLog(userId, logId);
-    deleteFoodLogStore(logId);
-    if (onNotification) onNotification("Diary meal deleted.");
+    try {
+      await deleteFoodLog(userId, logId);
+      deleteFoodLogStore(logId);
+      if (onNotification) onNotification("Diary meal deleted.");
+    } catch (err) {
+      console.error("Delete food log failed", err);
+      if (onNotification) onNotification("Failed to delete diary meal. Please try again.");
+    }
   };
 
   const handlePhotoUpload = (e) => {
@@ -509,11 +541,16 @@ export default function FoodTracker({ onNotification }) {
       fiber: scanResult.fiber || 0,
       portionWeight: 100
     };
-    const saved = await addFoodLog(userId, logItem);
-    addFoodLogStore(saved);
-    setMealPhoto(null);
-    setScanResult(null);
-    if (onNotification) onNotification(`Scanned meal logged: ${logItem.name}! 📸`);
+    try {
+      const saved = await addFoodLog(userId, logItem);
+      addFoodLogStore(saved);
+      setMealPhoto(null);
+      setScanResult(null);
+      if (onNotification) onNotification(`Scanned meal logged: ${logItem.name}! 📸`);
+    } catch (err) {
+      console.error("Scan log save failed", err);
+      if (onNotification) onNotification("Failed to log scanned meal. Please try again.");
+    }
   };
 
   const handleLogSuggestedMeal = async (meal) => {
@@ -525,9 +562,14 @@ export default function FoodTracker({ onNotification }) {
       fat: meal.fat,
       portionWeight: 100
     };
-    const saved = await addFoodLog(userId, logItem);
-    addFoodLogStore(saved);
-    if (onNotification) onNotification(`Logged suggestion: ${meal.name}`);
+    try {
+      const saved = await addFoodLog(userId, logItem);
+      addFoodLogStore(saved);
+      if (onNotification) onNotification(`Logged suggestion: ${meal.name}`);
+    } catch (err) {
+      console.error("Suggested meal log save failed", err);
+      if (onNotification) onNotification("Failed to log suggestion. Please try again.");
+    }
   };
 
   const handleStartEditMeal = (idx, meal) => {
@@ -564,9 +606,12 @@ export default function FoodTracker({ onNotification }) {
         const data = await res.json();
         setGroceryList(data.grocery);
         if (onNotification) onNotification("Smart Grocery checklist compiled! 🛒");
+      } else {
+        if (onNotification) onNotification("Failed to generate grocery list.");
       }
     } catch (e) {
       console.error("Grocery compile error", e);
+      if (onNotification) onNotification("Failed to generate grocery list. Check network.");
     } finally {
       setGeneratingGrocery(false);
     }

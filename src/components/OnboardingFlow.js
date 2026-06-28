@@ -27,7 +27,7 @@ const RANDOM_SUGGESTIONS = [
   { first: 'Chris', last: 'Flex', nick: 'ChrisBeast' }
 ];
 
-export default function OnboardingFlow({ onComplete }) {
+export default function OnboardingFlow({ onComplete, onNotification }) {
   const { user, updateUserProfile, userProfile } = useStore();
   const ecoStore = useEcosystemStore();
   const userId = user?.uid;
@@ -182,9 +182,21 @@ export default function OnboardingFlow({ onComplete }) {
     ecoStore.unlockAchievement('first_workout');
     ecoStore.updateFitnessScore({ dailyScore: 75, weeklyScore: 75 });
 
-    // Save profile to Firestore / Local cache
-    await saveUserProfile(userId, profileData);
-    await saveEcosystemState(userId, ecoStore);
+    try {
+      // Save profile to Firestore / Local cache
+      await saveUserProfile(userId, profileData);
+      await saveEcosystemState(userId, ecoStore);
+    } catch (err) {
+      console.error("Onboarding profile save failure", err);
+      setGenerating(false);
+      setStepIdx(STEPS.length - 2); // Revert to last editable step
+      if (onNotification) {
+        onNotification("Failed to save profile. Please try again.");
+      } else {
+        alert("Failed to save profile. Please try again.");
+      }
+      return;
+    }
 
     // Call API helper to compile initial suggested program if available
     try {
@@ -201,7 +213,11 @@ export default function OnboardingFlow({ onComplete }) {
         const data = await response.json();
         if (data.program) {
           ecoStore.setCoachingPlan(data.program);
-          await saveEcosystemState(userId, ecoStore);
+          try {
+            await saveEcosystemState(userId, ecoStore);
+          } catch (e) {
+            console.error("Could not save AI plan during onboarding", e);
+          }
         }
       }
     } catch (err) {

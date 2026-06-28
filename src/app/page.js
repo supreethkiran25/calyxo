@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home as HomeIcon, BookOpen, BarChart2, User, Plus, LogOut, Bot, Sparkles, X, TrendingUp, Heart, Users, Grid, ChevronRight, MoreHorizontal } from 'lucide-react';
+import { Home as HomeIcon, BookOpen, BarChart2, User, Plus, LogOut, Bot, Sparkles, X, TrendingUp, Heart, Users, Grid, ChevronRight, MoreHorizontal, Share2 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { 
   subscribeToAuth, 
@@ -54,6 +54,7 @@ const UserProfile = dynamic(() => import('../components/UserProfile'), { loading
 const Progress = dynamic(() => import('../components/Progress'), { loading: () => <TabSkeleton /> });
 const HealthHub = dynamic(() => import('../components/HealthHub'), { loading: () => <TabSkeleton /> });
 const TrainerEcosystem = dynamic(() => import('../components/TrainerEcosystem'), { loading: () => <TabSkeleton /> });
+const SocialHub = dynamic(() => import('../components/SocialHub'), { loading: () => <TabSkeleton /> });
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: HomeIcon },
@@ -62,6 +63,7 @@ const NAV_ITEMS = [
   { id: 'nutrition', label: 'Nutrition', icon: BookOpen },
   { id: 'workout', label: 'Workouts', icon: BarChart2 },
   { id: 'progress', label: 'Progress', icon: TrendingUp },
+  { id: 'social', label: 'Social Hub', icon: Share2 },
   { id: 'trainerhub', label: 'Trainer Hub', icon: Users, roleGated: true },
   { id: 'profile', label: 'Profile', icon: User },
 ];
@@ -78,6 +80,7 @@ const MOBILE_PRIMARY = [
 const MOBILE_MORE = [
   { id: 'progress',   label: 'Progress',    icon: TrendingUp },
   { id: 'healthhub', label: 'Health Hub',   icon: Heart },
+  { id: 'social',     label: 'Social Hub',   icon: Share2 },
   { id: 'trainerhub',label: 'Trainer Hub',  icon: Users },
   { id: 'profile',   label: 'Profile',      icon: User },
 ];
@@ -183,7 +186,7 @@ export default function Home() {
   if (loading) return <LaunchScreen isLoading={loading} />;
   if (!user) return <LandingPage />;
   if (!userProfile?.onboarded) {
-    return <OnboardingFlow onComplete={() => showNotification("Welcome to Calyxo! Let's smash your goals.")} />;
+    return <OnboardingFlow onComplete={() => showNotification("Welcome to Calyxo! Let's smash your goals.")} onNotification={showNotification} />;
   }
 
   const firstName = user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'User';
@@ -388,12 +391,13 @@ export default function Home() {
               className="h-full"
             >
               {activeTab === 'dashboard' && <Dashboard onNotification={showNotification} />}
-              {activeTab === 'coach' && <AICoach />}
+              {activeTab === 'coach' && <AICoach onNotification={showNotification} />}
               {activeTab === 'healthhub' && <HealthHub onNotification={showNotification} />}
               {activeTab === 'nutrition' && <FoodTracker onNotification={showNotification} />}
               {activeTab === 'workout' && <WorkoutLogger onNotification={showNotification} />}
               {activeTab === 'progress' && <Progress onNotification={showNotification} />}
               {activeTab === 'trainerhub' && <TrainerEcosystem onNotification={showNotification} />}
+              {activeTab === 'social' && <SocialHub onNotification={showNotification} />}
               {activeTab === 'profile' && <UserProfile onNotification={showNotification} />}
             </motion.div>
           </AnimatePresence>

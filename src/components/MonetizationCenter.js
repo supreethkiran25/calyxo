@@ -3,6 +3,7 @@
 import React from 'react';
 import { useStore } from '../store/useStore';
 import { Check, X, Shield, Star, Crown, Zap, Sparkles } from 'lucide-react';
+import { saveUserProfile } from '../lib/dbService';
 
 const PLANS = [
   {
@@ -75,14 +76,32 @@ const PLANS = [
 ];
 
 export default function MonetizationCenter({ onNotification }) {
+  const user = useStore(state => state.user);
   const userProfile = useStore(state => state.userProfile);
   const updateUserProfile = useStore(state => state.updateUserProfile);
   const currentPlan = userProfile?.subscriptionPlan || 'FREE';
 
-  const handleSelectPlan = (planId) => {
-    updateUserProfile({ subscriptionPlan: planId });
-    if (onNotification) {
-      onNotification(`Successfully switched to the ${planId.replace('_', ' ')} plan! 🎉`);
+  const handleSelectPlan = async (planId) => {
+    const updated = { ...userProfile, subscriptionPlan: planId };
+    const prev = userProfile;
+    updateUserProfile(updated);
+    if (user?.uid) {
+      try {
+        await saveUserProfile(user.uid, updated);
+        if (onNotification) {
+          onNotification(`Successfully switched to the ${planId.replace('_', ' ')} plan! 🎉`);
+        }
+      } catch (err) {
+        console.error("Save subscription plan failed", err);
+        updateUserProfile(prev);
+        if (onNotification) {
+          onNotification("Failed to save subscription plan selection. Please try again.");
+        }
+      }
+    } else {
+      if (onNotification) {
+        onNotification(`Successfully switched to the ${planId.replace('_', ' ')} plan locally! 🎉`);
+      }
     }
   };
 

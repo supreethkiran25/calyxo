@@ -56,18 +56,26 @@ export default function Progress({ onNotification }) {
       unit: units === 'imperial' ? 'in' : 'cm'
     };
 
+    const prevMeasurements = ecoStore.measurementLogs;
     ecoStore.addMeasurementLog(logEntry);
-    await saveEcosystemState(userId, useEcosystemStore.getState());
-    
-    // Clear inputs
-    setChestInput('');
-    setWaistInput('');
-    setHipsInput('');
-    setBicepsInput('');
-    setThighsInput('');
-    setNeckInput('');
-    
-    if (onNotification) onNotification("Logged body measurements! 📏");
+    try {
+      await saveEcosystemState(userId, useEcosystemStore.getState());
+      
+      // Clear inputs
+      setChestInput('');
+      setWaistInput('');
+      setHipsInput('');
+      setBicepsInput('');
+      setThighsInput('');
+      setNeckInput('');
+      
+      if (onNotification) onNotification("Logged body measurements! 📏");
+    } catch (err) {
+      console.error("Save measurements failed", err);
+      // Revert store state
+      ecoStore.syncEcosystemState({ measurementLogs: prevMeasurements });
+      if (onNotification) onNotification("Failed to save measurements. Please try again.");
+    }
   };
 
   // Compute stats trend
@@ -120,10 +128,15 @@ export default function Progress({ onNotification }) {
     e.preventDefault();
     if (!weightInput.trim() || isNaN(weightInput)) return;
     const val = Number(weightInput);
-    const entry = await addWeightLog(userId, val, units);
-    storeAddWeightLog(entry);
-    setWeightInput('');
-    if (onNotification) onNotification(`Logged weight: ${val} ${units === 'imperial' ? 'lbs' : 'kg'}`);
+    try {
+      const entry = await addWeightLog(userId, val, units);
+      storeAddWeightLog(entry);
+      setWeightInput('');
+      if (onNotification) onNotification(`Logged weight: ${val} ${units === 'imperial' ? 'lbs' : 'kg'}`);
+    } catch (err) {
+      console.error("Save weight log failed", err);
+      if (onNotification) onNotification("Failed to save weight. Please try again.");
+    }
   };
 
   const handlePhotoUpload = (e, target) => {
@@ -149,12 +162,19 @@ export default function Progress({ onNotification }) {
       after: afterImage,
       notes: timelineNotes || "Progress Transformation"
     };
+    const prevTimeline = ecoStore.timelineLogs;
     ecoStore.addTimelineLog(logEntry);
-    await saveEcosystemState(userId, useEcosystemStore.getState());
-    setBeforeImage(null);
-    setAfterImage(null);
-    setTimelineNotes('');
-    if (onNotification) onNotification("Added transformation comparison log! 📸");
+    try {
+      await saveEcosystemState(userId, useEcosystemStore.getState());
+      setBeforeImage(null);
+      setAfterImage(null);
+      setTimelineNotes('');
+      if (onNotification) onNotification("Added transformation comparison log! 📸");
+    } catch (err) {
+      console.error("Save timeline comparison failed", err);
+      ecoStore.syncEcosystemState({ timelineLogs: prevTimeline });
+      if (onNotification) onNotification("Failed to save transformation comparison log. Please try again.");
+    }
   };
 
   const handleGenerateForecast = async () => {
@@ -174,11 +194,19 @@ export default function Progress({ onNotification }) {
       if (res.ok) {
         const data = await res.json();
         ecoStore.setPredictions(data);
-        await saveEcosystemState(userId, useEcosystemStore.getState());
-        if (onNotification) onNotification("AI Body Composition Forecast calculated! 📈");
+        try {
+          await saveEcosystemState(userId, useEcosystemStore.getState());
+          if (onNotification) onNotification("AI Body Composition Forecast calculated! 📈");
+        } catch (dbErr) {
+          console.error("Save forecast predictions failed", dbErr);
+          if (onNotification) onNotification("Forecast calculated but failed to sync online.");
+        }
+      } else {
+        if (onNotification) onNotification("Failed to calculate AI forecast. Try again.");
       }
     } catch (e) {
       console.error("Error generating prediction forecast:", e);
+      if (onNotification) onNotification("Network error calculating AI forecast.");
     } finally {
       setLoadingForecast(false);
     }

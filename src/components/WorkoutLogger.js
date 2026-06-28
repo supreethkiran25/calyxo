@@ -159,28 +159,44 @@ export default function WorkoutLogger({ onNotification }) {
 
   const handleSaveRecovery = async () => {
     const recoveryScore = Math.round(100 - (selectedSoreness * 5 + selectedFatigue * 5));
-    ecoStore.updateFitnessScore({ dailyScore: Math.max(50, Math.min(100, recoveryScore)) });
-    
     const nextHealth = {
       ...(ecoStore.healthLogs || {}),
       soreness: selectedSoreness,
       fatigue: selectedFatigue,
       recovery: recoveryScore
     };
+    
+    const prevHealth = ecoStore.healthLogs;
+    const prevScore = ecoStore.fitnessScore;
+    
+    ecoStore.updateFitnessScore({ dailyScore: Math.max(50, Math.min(100, recoveryScore)) });
     ecoStore.syncEcosystemState({ healthLogs: nextHealth });
-    await saveEcosystemState(userId, useEcosystemStore.getState());
-    if (onNotification) onNotification("Recovery metrics logged successfully! 🧘");
+    try {
+      await saveEcosystemState(userId, useEcosystemStore.getState());
+      if (onNotification) onNotification("Recovery metrics logged successfully! 🧘");
+    } catch (err) {
+      console.error("Save recovery log failed", err);
+      // Revert store state
+      ecoStore.syncEcosystemState({ healthLogs: prevHealth });
+      if (prevScore) ecoStore.updateFitnessScore(prevScore);
+      if (onNotification) onNotification("Failed to save recovery metrics. Please try again.");
+    }
   };
 
   // Hydrate Initial Workout state
   useEffect(() => {
     const fetchWorkouts = async () => {
       if (!userId) return;
-      const data = await getWorkoutLogs(userId);
-      setWorkoutLogs(data || []);
+      try {
+        const data = await getWorkoutLogs(userId);
+        setWorkoutLogs(data || []);
+      } catch (err) {
+        console.error("Error loading workouts log", err);
+        if (onNotification) onNotification("Failed to load workout logs. Please reload.");
+      }
     };
     fetchWorkouts();
-  }, [userId, setWorkoutLogs]);
+  }, [userId, setWorkoutLogs, onNotification]);
 
   // Click outside to dismiss dropdown
   useEffect(() => {
@@ -293,18 +309,22 @@ export default function WorkoutLogger({ onNotification }) {
       duration: exCategory === 'Cardio' ? duration : 0
     };
 
-    const saved = await addWorkoutLog(userId, workoutItem);
-    addWorkoutLogStore(saved);
-    
-    // Clear form
-    setExName('');
-    setExSets('');
-    setExReps('');
-    setExWeight('');
-    setExDuration('');
-    setLoading(false);
-
-    if (onNotification) onNotification(`Logged exercise: ${workoutItem.name}`);
+    try {
+      const saved = await addWorkoutLog(userId, workoutItem);
+      addWorkoutLogStore(saved);
+      // Clear form
+      setExName('');
+      setExSets('');
+      setExReps('');
+      setExWeight('');
+      setExDuration('');
+      if (onNotification) onNotification(`Logged exercise: ${workoutItem.name} 🏋️`);
+    } catch (err) {
+      console.error("Failed to log workout to database", err);
+      if (onNotification) onNotification("Failed to log workout. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleStartEditSplit = () => {
@@ -656,13 +676,18 @@ export default function WorkoutLogger({ onNotification }) {
                             </span>
                           ) : !hasStarted ? (
                             <button
-                              onClick={async () => {
-                                ecoStore.updateChallengeProgress(challenge.id, 1);
-                                await saveEcosystemState(userId, useEcosystemStore.getState());
-                                if (onNotification) onNotification(`Joined Challenge: ${challenge.name}! 🚀`);
-                              }}
-                              className="text-[9px] font-extrabold text-accent-foreground bg-acid-green hover:shadow-md px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer border-none"
-                            >
+                               onClick={async () => {
+                                 ecoStore.updateChallengeProgress(challenge.id, 1);
+                                 try {
+                                   await saveEcosystemState(userId, useEcosystemStore.getState());
+                                   if (onNotification) onNotification(`Joined Challenge: ${challenge.name}! 🚀`);
+                                 } catch (err) {
+                                   console.error("Join challenge error", err);
+                                   if (onNotification) onNotification("Failed to join challenge. Please try again.");
+                                 }
+                               }}
+                               className="text-[9px] font-extrabold text-accent-foreground bg-acid-green hover:shadow-md px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer border-none"
+                             >
                               Join
                             </button>
                           ) : (
@@ -696,17 +721,25 @@ export default function WorkoutLogger({ onNotification }) {
                                         const val = Number(e.target.value);
                                         if (val > 0) {
                                           ecoStore.updateChallengeProgress(challenge.id, val);
-                                          await saveEcosystemState(userId, useEcosystemStore.getState());
-                                          
-                                          const nextState = useEcosystemStore.getState();
-                                          const updated = nextState.activeChallenges.find(c => c.id === challenge.id);
-                                          if (updated?.completed) {
-                                            ecoStore.unlockAchievement('first_workout');
-                                            if (onNotification) onNotification(`Challenge Completed: ${challenge.name}! 🏆`);
-                                          } else {
-                                            if (onNotification) onNotification(`Logged progress: +${val} to ${challenge.name}`);
+                                          try {
+                                            await saveEcosystemState(userId, useEcosystemStore.getState());
+                                            const nextState = useEcosystemStore.getState();
+                                            const updated = nextState.activeChallenges.find(c => c.id === challenge.id);
+                                            if (updated?.completed) {
+                                              ecoStore.unlockAchievement('first_workout');
+                                              try {
+                                                await saveEcosystemState(userId, useEcosystemStore.getState());
+                                              } catch (e) {}
+                                              if (onNotification) onNotification(`Challenge Completed: ${challenge.name}! 🏆`);
+                                            } else {
+                                              if (onNotification) onNotification(`Logged progress: +${val} to ${challenge.name}`);
+                                            }
+                                            e.target.value = '';
+                                          } catch (err) {
+                                            console.error("Save challenge progress error", err);
+                                            ecoStore.updateChallengeProgress(challenge.id, -val); // Revert
+                                            if (onNotification) onNotification("Failed to log progress. Please try again.");
                                           }
-                                          e.target.value = '';
                                         }
                                       }
                                     }}
@@ -717,17 +750,25 @@ export default function WorkoutLogger({ onNotification }) {
                                       const val = Number(inputEl?.value);
                                       if (val > 0) {
                                         ecoStore.updateChallengeProgress(challenge.id, val);
-                                        await saveEcosystemState(userId, useEcosystemStore.getState());
-                                        
-                                        const nextState = useEcosystemStore.getState();
-                                        const updated = nextState.activeChallenges.find(c => c.id === challenge.id);
-                                        if (updated?.completed) {
-                                          ecoStore.unlockAchievement('first_workout');
-                                          if (onNotification) onNotification(`Challenge Completed: ${challenge.name}! 🏆`);
-                                        } else {
-                                          if (onNotification) onNotification(`Logged progress: +${val} to ${challenge.name}`);
+                                        try {
+                                          await saveEcosystemState(userId, useEcosystemStore.getState());
+                                          const nextState = useEcosystemStore.getState();
+                                          const updated = nextState.activeChallenges.find(c => c.id === challenge.id);
+                                          if (updated?.completed) {
+                                            ecoStore.unlockAchievement('first_workout');
+                                            try {
+                                              await saveEcosystemState(userId, useEcosystemStore.getState());
+                                            } catch (e) {}
+                                            if (onNotification) onNotification(`Challenge Completed: ${challenge.name}! 🏆`);
+                                          } else {
+                                            if (onNotification) onNotification(`Logged progress: +${val} to ${challenge.name}`);
+                                          }
+                                          if (inputEl) inputEl.value = '';
+                                        } catch (err) {
+                                          console.error("Save challenge progress click error", err);
+                                          ecoStore.updateChallengeProgress(challenge.id, -val); // Revert
+                                          if (onNotification) onNotification("Failed to log progress. Please try again.");
                                         }
-                                        if (inputEl) inputEl.value = '';
                                       }
                                     }}
                                     className="bg-surface border border-card-border hover:border-acid-green text-foreground px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer"

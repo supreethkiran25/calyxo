@@ -147,22 +147,27 @@ export default function Dashboard({ onNotification }) {
   useEffect(() => {
     const load = async () => {
       if (!userId) return;
-      const profile = await getUserProfile(userId);
-      if (profile) {
-        setUserProfile(profile);
-        setGender(profile.gender || 'male');
-        setAge(profile.age || 25);
-        setActivity(profile.activity || 1.55);
-        setGoal(profile.goal || 'lose');
-        setUnits(profile.units || 'metric');
-        setWeight(profile.weight || 70);
-        setHeight(profile.height || 175);
+      try {
+        const profile = await getUserProfile(userId);
+        if (profile) {
+          setUserProfile(profile);
+          setGender(profile.gender || 'male');
+          setAge(profile.age || 25);
+          setActivity(profile.activity || 1.55);
+          setGoal(profile.goal || 'lose');
+          setUnits(profile.units || 'metric');
+          setWeight(profile.weight || 70);
+          setHeight(profile.height || 175);
+        }
+        const savedWater = await getWaterIntake(userId);
+        setWaterIntake(savedWater || 0);
+      } catch (err) {
+        console.error("Dashboard profile/water loading error", err);
+        if (onNotification) onNotification("Error loading profile or water intake logs. Please reload.");
       }
-      const savedWater = await getWaterIntake(userId);
-      setWaterIntake(savedWater || 0);
     };
     load();
-  }, [userId, setUserProfile, setWaterIntake]);
+  }, [userId, setUserProfile, setWaterIntake, onNotification]);
 
   const recalculateMetrics = useCallback(() => {
     const rawW = Number(weight) || 70;
@@ -202,16 +207,30 @@ export default function Dashboard({ onNotification }) {
   }, [recalculateMetrics]);
 
   const handleAddWater = async (amount) => {
+    const prevWater = useStore.getState().waterIntake;
     addWaterIntakeStore(amount);
     const next = useStore.getState().waterIntake;
-    await saveWaterIntake(userId, next);
-    if (onNotification) onNotification(`+${amount}ml water logged 💧`);
+    try {
+      await saveWaterIntake(userId, next);
+      if (onNotification) onNotification(`+${amount}ml water logged 💧`);
+    } catch (err) {
+      console.error("Add water database write failure", err);
+      setWaterIntake(prevWater); // Rollback
+      if (onNotification) onNotification("Failed to save water log. Please try again.");
+    }
   };
 
   const handleResetWater = async () => {
+    const prevWater = useStore.getState().waterIntake;
     setWaterIntake(0);
-    await saveWaterIntake(userId, 0);
-    if (onNotification) onNotification("Water hydration reset");
+    try {
+      await saveWaterIntake(userId, 0);
+      if (onNotification) onNotification("Water hydration reset");
+    } catch (err) {
+      console.error("Reset water database write failure", err);
+      setWaterIntake(prevWater); // Rollback
+      if (onNotification) onNotification("Failed to reset water log. Please try again.");
+    }
   };
 
   // Helper to check if a timestamp is today (12am to 12am)

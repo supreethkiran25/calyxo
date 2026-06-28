@@ -15,7 +15,17 @@ service cloud.firestore {
     // User metrics: profile, water logs etc
     // Metric document ID is in format: {userId}_profile or {userId}_water
     match /users_metrics/{metricId} {
-      allow read, write, delete: if isAuth() && (
+      allow read: if isAuth() && (
+        metricId == request.auth.uid + "_profile" || 
+        metricId == request.auth.uid + "_water" ||
+        (metricId.endsWith("_profile") && (
+          !('privacy' in resource.data) ||
+          resource.data.privacy.isPrivate == false ||
+          exists(/databases/$(database)/documents/follows/$(request.auth.uid + "_" + resource.data.userId)) &&
+          get(/databases/$(database)/documents/follows/$(request.auth.uid + "_" + resource.data.userId)).data.status == "accepted"
+        ))
+      );
+      allow write, delete: if isAuth() && (
         metricId == request.auth.uid + "_profile" || 
         metricId == request.auth.uid + "_water"
       );
@@ -57,6 +67,28 @@ service cloud.firestore {
     match /TrainingLogs/{logId} {
       allow read, delete: if isAuth() && resource.data.userId == request.auth.uid;
       allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Social usernames collection
+    match /usernames/{username} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
+
+    // Social follow system
+    match /follows/{followId} {
+      allow read: if isAuth() && (resource.data.followerId == request.auth.uid || resource.data.followingId == request.auth.uid);
+      allow create: if isAuth() && request.resource.data.followerId == request.auth.uid;
+      allow update: if isAuth() && resource.data.followingId == request.auth.uid && request.resource.data.status == "accepted";
+      allow delete: if isAuth() && (resource.data.followerId == request.auth.uid || resource.data.followingId == request.auth.uid);
+    }
+
+    // Social blocking system
+    match /blocks/{blockId} {
+      allow read: if isAuth() && resource.data.blockerId == request.auth.uid;
+      allow create: if isAuth() && request.resource.data.blockerId == request.auth.uid;
+      allow delete: if isAuth() && resource.data.blockerId == request.auth.uid;
     }
   }
 }

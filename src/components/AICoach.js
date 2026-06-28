@@ -90,10 +90,19 @@ export default function AICoach({ onNotification }) {
       if (res.ok) {
         const data = await res.json();
         ecoStore.setCoachingPlan(data);
-        await saveEcosystemState(userId, useEcosystemStore.getState());
+        try {
+          await saveEcosystemState(userId, useEcosystemStore.getState());
+          if (onNotification) onNotification("AI Program Plan generated successfully! 🤖");
+        } catch (dbErr) {
+          console.error("Failed to sync AI plan to Firestore", dbErr);
+          if (onNotification) onNotification("AI Plan generated but failed to sync online.");
+        }
+      } else {
+        if (onNotification) onNotification("Failed to generate AI plan. Please try again.");
       }
     } catch (e) {
       console.error("Plan generate error", e);
+      if (onNotification) onNotification("Network error generating AI plan.");
     } finally {
       setGeneratingPlan(false);
     }
@@ -111,9 +120,13 @@ export default function AICoach({ onNotification }) {
       if (res.ok) {
         const data = await res.json();
         setGroceryList(data.categories);
+        if (onNotification) onNotification("Grocery list compiled successfully! 🛒");
+      } else {
+        if (onNotification) onNotification("Failed to generate grocery list. Try again.");
       }
     } catch (e) {
       console.error("Grocery list generate error", e);
+      if (onNotification) onNotification("Network error generating grocery list.");
     } finally {
       setGeneratingGrocery(false);
     }
@@ -262,6 +275,8 @@ export default function AICoach({ onNotification }) {
 
     const context = compileContextPayload();
 
+    let textResponse = "Sorry, I could not generate a response. Please try again.";
+    let fetchSuccess = false;
     try {
       const positiveLogs = await getPositiveTrainingLogs(userId);
 
@@ -284,8 +299,22 @@ export default function AICoach({ onNotification }) {
       }
 
       const resData = await response.json();
-      const textResponse = resData.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I could not generate a response. Please try again.";
+      textResponse = resData.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I could not generate a response. Please try again.";
+      fetchSuccess = true;
+    } catch (err) {
+      console.error("Failed server route AI call", err);
+      const botMsg = {
+        id: `bot-${Date.now()}`,
+        role: 'assistant',
+        text: `⚠️ **Calyxo Connection Error:** Could not contact server-side AI. Please check your network or API keys.`,
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, botMsg]);
+    } finally {
+      setLoading(false);
+    }
 
+    if (fetchSuccess) {
       const botMsg = {
         id: `bot-${Date.now()}`,
         role: 'assistant',
@@ -317,24 +346,16 @@ export default function AICoach({ onNotification }) {
         updatedAt: Date.now()
       };
 
-      const savedSession = await saveChatSession(userId, sessionObj);
-
-      setSessions(prev => {
-        const filtered = prev.filter(x => x.id !== sessionId);
-        return [savedSession, ...filtered];
-      });
-
-    } catch (err) {
-      console.error("Failed server route AI call", err);
-      const botMsg = {
-        id: `bot-${Date.now()}`,
-        role: 'assistant',
-        text: `⚠️ **Calyxo Connection Error:** Could not contact server-side AI. Please check your network or API keys.`,
-        timestamp: Date.now()
-      };
-      setMessages(prev => [...prev, botMsg]);
-    } finally {
-      setLoading(false);
+      try {
+        const savedSession = await saveChatSession(userId, sessionObj);
+        setSessions(prev => {
+          const filtered = prev.filter(x => x.id !== sessionId);
+          return [savedSession, ...filtered];
+        });
+      } catch (dbErr) {
+        console.error("Failed to save chat session to database", dbErr);
+        if (onNotification) onNotification("Response generated, but failed to sync online.");
+      }
     }
   };
 
@@ -1041,8 +1062,13 @@ export default function AICoach({ onNotification }) {
                       value={ecoStore.personality}
                       onChange={async (e) => {
                         ecoStore.setPersonality(e.target.value);
-                        await saveEcosystemState(userId, useEcosystemStore.getState());
-                        if (onNotification) onNotification(`Coach personality updated to: ${e.target.value}`);
+                        try {
+                          await saveEcosystemState(userId, useEcosystemStore.getState());
+                          if (onNotification) onNotification(`Coach personality updated to: ${e.target.value}`);
+                        } catch (err) {
+                          console.error("Update personality failure", err);
+                          if (onNotification) onNotification("Failed to update personality settings.");
+                        }
                       }}
                       className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl px-3 py-2.5 text-xs text-foreground focus:outline-none focus:border-[var(--color-acid-green)] cursor-pointer"
                     >
@@ -1052,16 +1078,23 @@ export default function AICoach({ onNotification }) {
                       <option value="strict">Strict / Disciplined</option>
                     </select>
                   </div>
-
+ 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Accountability Reminders</label>
                     <select 
                       value={userProfile?.reminderFrequency || 'daily'}
                       onChange={async (e) => {
                         const updated = { ...userProfile, reminderFrequency: e.target.value };
+                        const prev = userProfile;
                         updateUserProfile(updated);
-                        await saveUserProfile(userId, updated);
-                        if (onNotification) onNotification(`Reminder frequency set to ${e.target.value}`);
+                        try {
+                          await saveUserProfile(userId, updated);
+                          if (onNotification) onNotification(`Reminder frequency set to ${e.target.value}`);
+                        } catch (err) {
+                          console.error("Update reminder frequency failure", err);
+                          updateUserProfile(prev);
+                          if (onNotification) onNotification("Failed to save reminder settings.");
+                        }
                       }}
                       className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl px-3 py-2.5 text-xs text-foreground focus:outline-none focus:border-[var(--color-acid-green)] cursor-pointer"
                     >
