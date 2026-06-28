@@ -2,6 +2,7 @@
 
 import React, { useEffect, useCallback, useState } from 'react';
 import { Activity, Dumbbell, BookOpen, Trophy, Award, BarChart2, Zap, Heart, CheckCircle, Search } from 'lucide-react';
+import MediaCarousel from './MediaCarousel';
 import { fetchActivityFeed, rankFeedWithAI, addReaction, addComment } from '../lib/socialService';
 
 export default function SocialFeed({ currentUserId, following, setSelectedUser }) {
@@ -103,6 +104,13 @@ export default function SocialFeed({ currentUserId, following, setSelectedUser }
                   </div>
                   
                   <p className="text-[11px] text-foreground/80 mt-1.5 font-medium leading-relaxed">{item.content}</p>
+
+                  {/* Media Carousel */}
+                  {item.mediaUrls && item.mediaUrls.length > 0 && (
+                    <div className="mt-3">
+                      <MediaCarousel mediaUrls={item.mediaUrls} />
+                    </div>
+                  )}
 
                   {/* Data Tags */}
                   {item.type === 'workout' && item.data && (

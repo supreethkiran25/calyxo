@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { publishActivity } from '../lib/socialService';
 import { generateWorkoutPostData, generateMealPostData, generateAIStoryCaption, enhanceCaptionWithAI } from '../lib/postGeneratorService';
+import MediaEditor from './MediaEditor';
 
 // The 12 post types requested
 const postTypes = [
@@ -40,6 +41,8 @@ export default function CreatePostModal({ currentUserId, onClose, onNotification
   const [visibility, setVisibility] = useState('public');
   const [isPublishing, setIsPublishing] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [mediaFiles, setMediaFiles] = useState([]);
+  const [showMediaEditor, setShowMediaEditor] = useState(false);
 
   // Mock pre-filled data for the specific post type (In Phase 2, this will come from postGeneratorService)
   const [postData, setPostData] = useState(null);
@@ -72,9 +75,18 @@ export default function CreatePostModal({ currentUserId, onClose, onNotification
   };
 
   const handlePublish = async () => {
-    if (!caption.trim() && !postData) return;
+    // Cannot publish if media is still uploading
+    if (mediaFiles.some(m => m.status === 'uploading')) {
+      if (onNotification) onNotification('Please wait for media to finish uploading.');
+      return;
+    }
+
+    if (!caption.trim() && !postData && mediaFiles.length === 0) return;
+    
     setIsPublishing(true);
     try {
+      const mediaUrls = mediaFiles.filter(m => m.status === 'complete' && m.url).map(m => m.url);
+
       await publishActivity({
         userId: currentUserId,
         type: selectedType.id,
@@ -82,6 +94,7 @@ export default function CreatePostModal({ currentUserId, onClose, onNotification
         content: caption,
         data: postData,
         visibility: visibility,
+        mediaUrls: mediaUrls,
         timestamp: Date.now()
       });
       if (onNotification) onNotification('Post published successfully! 🎉');
@@ -211,9 +224,14 @@ export default function CreatePostModal({ currentUserId, onClose, onNotification
 
                 {/* Toolbar */}
                 <div className="border-t border-card-border/50 pt-4 flex flex-wrap items-center gap-4">
-                  <button className="flex flex-col items-center gap-1 text-muted hover:text-acid-green transition-colors">
-                    <div className="p-2 rounded-full bg-surface border border-card-border"><ImageIcon className="w-4 h-4" /></div>
-                    <span className="text-[8px] font-bold uppercase">Media</span>
+                  <button 
+                    onClick={() => setShowMediaEditor(!showMediaEditor)}
+                    className={`flex flex-col items-center gap-1 transition-colors ${showMediaEditor || mediaFiles.length > 0 ? 'text-acid-green' : 'text-muted hover:text-acid-green'}`}
+                  >
+                    <div className={`p-2 rounded-full border ${showMediaEditor || mediaFiles.length > 0 ? 'bg-acid-green/10 border-acid-green/30' : 'bg-surface border-card-border'}`}>
+                      <ImageIcon className="w-4 h-4" />
+                    </div>
+                    <span className="text-[8px] font-bold uppercase">Media {mediaFiles.length > 0 ? `(${mediaFiles.length})` : ''}</span>
                   </button>
                   <button className="flex flex-col items-center gap-1 text-muted hover:text-blue-400 transition-colors">
                     <div className="p-2 rounded-full bg-surface border border-card-border"><Tag className="w-4 h-4" /></div>
@@ -241,6 +259,26 @@ export default function CreatePostModal({ currentUserId, onClose, onNotification
                   </div>
                 </div>
 
+                {/* Media Editor Injection */}
+                <AnimatePresence>
+                  {(showMediaEditor || mediaFiles.length > 0) && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-4 border-t border-card-border/50">
+                        <MediaEditor 
+                          currentUserId={currentUserId}
+                          mediaFiles={mediaFiles}
+                          setMediaFiles={setMediaFiles}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
               </motion.div>
             )}
           </AnimatePresence>
@@ -255,7 +293,7 @@ export default function CreatePostModal({ currentUserId, onClose, onNotification
             </button>
             <button
               onClick={handlePublish}
-              disabled={isPublishing || (!caption.trim() && !postData)}
+              disabled={isPublishing || mediaFiles.some(m => m.status === 'uploading') || (!caption.trim() && !postData && mediaFiles.length === 0)}
               className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-acid-green text-accent-foreground text-[11px] font-black uppercase tracking-widest disabled:opacity-50 hover:bg-acid-green/90 transition-colors"
             >
               {isPublishing ? 'Publishing...' : 'Publish'}
