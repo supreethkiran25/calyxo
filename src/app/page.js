@@ -25,6 +25,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import LaunchScreen from '../components/LaunchScreen';
 import AuthFlow from '../components/AuthFlow';
 import OnboardingFlow from '../components/OnboardingFlow';
+import UsernameMigrationFlow from '../components/UsernameMigrationFlow';
 import LandingPage from '../components/LandingPage';
 import BackgroundEffects from '../components/BackgroundEffects';
 

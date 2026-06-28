@@ -163,15 +163,45 @@ export const signUpUser = async (email, password, remember = true) => {
   return credential.user;
 };
 
-export const signInUser = async (email, password, remember = true) => {
+export const signInWithUsernameOrEmail = async (identifier, password, remember = true) => {
+  let loginEmail = identifier;
+
   if (isMockFirebase) {
     // Mock Login
-    const mockUser = { uid: "mock-user-id", email };
+    if (!identifier.includes('@')) {
+      const usernamesStr = localStorage.getItem("calyxo_mock_usernames");
+      if (usernamesStr) {
+        const usernames = JSON.parse(usernamesStr);
+        const match = usernames.find(u => u.username_lowercase === identifier.toLowerCase());
+        if (!match) throw new Error("Username not found");
+        loginEmail = match.email || `${identifier}@mock.com`;
+      } else {
+        throw new Error("Username not found");
+      }
+    }
+    
+    const mockUser = { uid: "mock-user-id", email: loginEmail };
     localStorage.setItem("calyxo_mock_user", JSON.stringify(mockUser));
     return mockUser;
   }
+
+  // Resolve Username to Email
+  if (!identifier.includes('@')) {
+    const usernameLower = identifier.toLowerCase();
+    const usernameDocRef = doc(db, "usernames", usernameLower);
+    const snap = await getDoc(usernameDocRef);
+    if (!snap.exists()) {
+      throw new Error("Username not found.");
+    }
+    const data = snap.data();
+    if (!data.email) {
+      throw new Error("This username does not have an associated email address.");
+    }
+    loginEmail = data.email;
+  }
+
   await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
-  const credential = await signInWithEmailAndPassword(auth, email, password);
+  const credential = await signInWithEmailAndPassword(auth, loginEmail, password);
   return credential.user;
 };
 

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Shield, Eye, EyeOff, Check } from 'lucide-react';
-import { signUpUser, signInUser, signInWithGoogle, signInWithApple, sendPasswordReset } from '../lib/dbService';
+import { signUpUser, signInWithUsernameOrEmail, signInWithGoogle, signInWithApple, sendPasswordReset } from '../lib/dbService';
 import { useStore } from '../store/useStore';
 import Logo from './Logo';
 
@@ -68,7 +68,7 @@ export default function AuthFlow({ isInitialSignUp = false }) {
       if (isSignUp) {
         user = await signUpUser(email, password, rememberMe);
       } else {
-        user = await signInUser(email, password, rememberMe);
+        user = await signInWithUsernameOrEmail(email, password, rememberMe);
       }
       setUser(user);
     } catch (err) {
@@ -79,7 +79,7 @@ export default function AuthFlow({ isInitialSignUp = false }) {
       } else if (code.includes("auth/email-already-in-use")) {
         setError("This email address is already in use.");
       } else if (code.includes("auth/invalid-credential") || code.includes("auth/wrong-password") || code.includes("auth/user-not-found")) {
-        setError("Invalid email or password credentials.");
+        setError("Invalid credentials. Please check your username/email and password.");
       } else {
         setError(err.message || "Authentication failed. Try again.");
       }
@@ -207,14 +207,14 @@ export default function AuthFlow({ isInitialSignUp = false }) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex flex-col space-y-1">
-              <label className="text-muted text-[10px] uppercase font-bold tracking-wider">Email Address</label>
+              <label className="text-muted text-[10px] uppercase font-bold tracking-wider">{isSignUp ? 'Email Address' : 'Email or Username'}</label>
               <div className="relative flex items-center">
                 <Mail className="absolute left-4 w-4 h-4 text-muted" />
                 <input 
-                  type="email" 
+                  type={isSignUp ? "email" : "text"} 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder={isSignUp ? "you@example.com" : "Email or Username"}
                   className="w-full bg-[var(--input)] border border-card-border rounded-xl pl-12 pr-4 py-3 text-sm text-foreground focus:outline-none focus:border-acid-green transition-colors"
                   required 
                   disabled={loading}

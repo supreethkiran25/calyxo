@@ -12,7 +12,8 @@ import {
   limit,
   addDoc,
   orderBy,
-  startAfter
+  startAfter,
+  onSnapshot
 } from "firebase/firestore";
 
 // Helper to determine mock mode
@@ -976,5 +977,255 @@ export const addComment = async (userId, activityId, text) => {
     return commentObj;
   } catch (err) {
     console.error("Error adding comment", err);
+  }
+};
+
+/**
+ * Syncs the main profile image to the social profile data.
+ * The social profile is essentially the users_metrics/{userId}_profile document,
+ * which may have photoURL cached.
+ */
+export const syncProfileImages = async (userId, newPhotoUrl) => {
+  if (!userId) return;
+  if (isMockFirebase) {
+    const profile = await getUserProfile(userId);
+    if (profile) {
+      await saveUserProfile(userId, { ...profile, photoURL: newPhotoUrl });
+    }
+    return;
+  }
+  
+  try {
+    const profileRef = doc(db, 'users_metrics', `${userId}_profile`);
+    await setDoc(profileRef, { photoURL: newPhotoUrl }, { merge: true });
+  } catch (err) {
+    console.error("Failed to sync profile image to social profile", err);
+  }
+};
+
+/* ==========================================================================
+   MESSAGING API
+   ========================================================================== */
+
+export const getConversations = async (userId) => {
+  if (isMockFirebase) {
+    return getMockData(`calyxo_conversations_${userId}`);
+  }
+  try {
+    const q = query(
+      collection(db, "conversations"),
+      where("participants", "array-contains", userId),
+      orderBy("lastUpdated", "desc")
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (err) {
+    console.error("Error fetching conversations:", err);
+    return [];
+  }
+};
+
+export const subscribeToMessages = (conversationId, callback) => {
+  if (isMockFirebase) {
+    const messages = getMockData(`calyxo_messages_${conversationId}`);
+    callback(messages);
+    return () => {}; // unsub
+  }
+  
+  const q = query(
+    collection(db, "conversations", conversationId, "messages"),
+    orderBy("timestamp", "asc")
+  );
+  
+  const unsub = onSnapshot(q, (snap) => {
+    const messages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    callback(messages);
+  });
+  
+  return unsub;
+};
+
+export const sendMessage = async (conversationId, senderId, text, participants = []) => {
+  const msgObj = {
+    senderId,
+    text,
+    timestamp: Date.now()
+  };
+
+  if (isMockFirebase) {
+    const key = `calyxo_messages_${conversationId}`;
+    const msgs = getMockData(key);
+    msgs.push({ id: `msg_${Date.now()}`, ...msgObj });
+    saveMockData(key, msgs);
+    return;
+  }
+
+  try {
+    // Add message
+    const msgRef = collection(db, "conversations", conversationId, "messages");
+    await addDoc(msgRef, msgObj);
+    
+    // Update conversation metadata
+    const convRef = doc(db, "conversations", conversationId);
+    await setDoc(convRef, {
+      participants,
+      lastMessage: text,
+      lastSender: senderId,
+      lastUpdated: Date.now()
+    }, { merge: true });
+  } catch (err) {
+    console.error("Error sending message:", err);
+  }
+};
+
+/* ==========================================================================
+   NOTIFICATIONS API
+   ========================================================================== */
+
+export const getNotifications = async (userId) => {
+  if (isMockFirebase) {
+    return getMockData(`calyxo_notifications_${userId}`);
+  }
+  try {
+    const q = query(
+      collection(db, "users_metrics", `${userId}_profile`, "notifications"),
+      orderBy("timestamp", "desc"),
+      limit(50)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (err) {
+    console.error("Error fetching notifications:", err);
+    return [];
+  }
+};
+
+export const markNotificationRead = async (userId, notificationId) => {
+  if (isMockFirebase) {
+    const key = `calyxo_notifications_${userId}`;
+    const notifs = getMockData(key);
+    const updated = notifs.map(n => n.id === notificationId ? { ...n, read: true } : n);
+    saveMockData(key, updated);
+    return;
+  }
+  try {
+    const docRef = doc(db, "users_metrics", `${userId}_profile`, "notifications", notificationId);
+    await setDoc(docRef, { read: true }, { merge: true });
+  } catch (err) {
+    console.error("Error marking notification read:", err);
+  }
+};
+
+export const markAllNotificationsRead = async (userId) => {
+  if (isMockFirebase) {
+    const key = `calyxo_notifications_${userId}`;
+    const notifs = getMockData(key);
+    const updated = notifs.map(n => ({ ...n, read: true }));
+    saveMockData(key, updated);
+    return;
+  }
+  try {
+    const notifs = await getNotifications(userId);
+    const unread = notifs.filter(n => !n.read);
+    for (const notif of unread) {
+      await markNotificationRead(userId, notif.id);
+    }
+  } catch (err) {
+    console.error("Error marking all notifications read:", err);
+  }
+};
+
+/* ==========================================================================
+   CLUBS API
+   ========================================================================== */
+
+export const getClubs = async () => {
+  if (isMockFirebase) {
+    return getMockData("calyxo_clubs") || [];
+  }
+  try {
+    const snap = await getDocs(collection(db, "clubs"));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (err) {
+    console.error("Error fetching clubs:", err);
+    return [];
+  }
+};
+
+export const createClub = async (userId, clubData) => {
+  const newClub = {
+    ...clubData,
+    creatorId: userId,
+    members: [userId],
+    createdAt: Date.now()
+  };
+
+  if (isMockFirebase) {
+    const clubs = getMockData("calyxo_clubs") || [];
+    const created = { id: `club_${Date.now()}`, ...newClub };
+    clubs.push(created);
+    saveMockData("calyxo_clubs", clubs);
+    return created;
+  }
+  try {
+    const docRef = await addDoc(collection(db, "clubs"), newClub);
+    return { id: docRef.id, ...newClub };
+  } catch (err) {
+    console.error("Error creating club:", err);
+    throw err;
+  }
+};
+
+export const joinClub = async (userId, clubId) => {
+  if (isMockFirebase) {
+    const clubs = getMockData("calyxo_clubs") || [];
+    const updated = clubs.map(c => {
+      if (c.id === clubId && !c.members.includes(userId)) {
+        return { ...c, members: [...c.members, userId] };
+      }
+      return c;
+    });
+    saveMockData("calyxo_clubs", updated);
+    return;
+  }
+  try {
+    const docRef = doc(db, "clubs", clubId);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      const members = data.members || [];
+      if (!members.includes(userId)) {
+        await setDoc(docRef, { members: [...members, userId] }, { merge: true });
+      }
+    }
+  } catch (err) {
+    console.error("Error joining club:", err);
+    throw err;
+  }
+};
+
+export const leaveClub = async (userId, clubId) => {
+  if (isMockFirebase) {
+    const clubs = getMockData("calyxo_clubs") || [];
+    const updated = clubs.map(c => {
+      if (c.id === clubId) {
+        return { ...c, members: c.members.filter(m => m !== userId) };
+      }
+      return c;
+    });
+    saveMockData("calyxo_clubs", updated);
+    return;
+  }
+  try {
+    const docRef = doc(db, "clubs", clubId);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      const members = data.members || [];
+      await setDoc(docRef, { members: members.filter(m => m !== userId) }, { merge: true });
+    }
+  } catch (err) {
+    console.error("Error leaving club:", err);
+    throw err;
   }
 };

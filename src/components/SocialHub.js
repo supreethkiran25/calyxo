@@ -13,6 +13,8 @@ import ClubHub from './ClubHub';
 import SocialProfileView from './SocialProfileView';
 import SocialSettings from './SocialSettings';
 import CreatePostModal from './CreatePostModal';
+import SocialMessaging from './SocialMessaging';
+import SocialNotifications from './SocialNotifications';
 
 export default function SocialHub({ onNotification }) {
   const user = useStore(state => state.user);
@@ -23,6 +25,7 @@ export default function SocialHub({ onNotification }) {
   const [activeTab, setActiveTab] = useState('feed'); // 'feed' | 'explore' | 'clubs' | 'messages' | 'profile' | 'settings'
   const [selectedUser, setSelectedUser] = useState(null); // Used to view another person's profile
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   // Handle back from viewing a profile or settings
   const handleBack = () => {
@@ -89,11 +92,25 @@ export default function SocialHub({ onNotification }) {
         <div className="flex items-center gap-2">
           <h1 className="text-lg font-black uppercase tracking-widest text-acid-green">Social</h1>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="p-2 rounded-full bg-surface border border-card-border hover:bg-surface/80 relative">
+        <div className="flex items-center gap-3 relative">
+          <button 
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="p-2 rounded-full bg-surface border border-card-border hover:bg-surface/80 relative"
+          >
             <Bell className="w-4 h-4 text-foreground" />
+            {/* The red dot will be dynamic in the future */}
             <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-destructive border-2 border-surface"></span>
           </button>
+          
+          <AnimatePresence>
+            {showNotifications && (
+              <SocialNotifications 
+                currentUserId={currentUserId} 
+                onClose={() => setShowNotifications(false)} 
+              />
+            )}
+          </AnimatePresence>
+
           <button 
             onClick={() => { setActiveTab('settings'); setSelectedUser(null); }}
             className="p-2 rounded-full bg-surface border border-card-border hover:bg-surface/80"
@@ -132,13 +149,7 @@ export default function SocialHub({ onNotification }) {
               {activeTab === 'clubs' && <ClubHub currentUserId={currentUserId} />}
               {activeTab === 'profile' && <SocialProfileView targetUserId={currentUserId} currentUserId={currentUserId} />}
               {activeTab === 'settings' && <SocialSettings currentUserId={currentUserId} onBack={handleBack} />}
-              {activeTab === 'messages' && (
-                <div className="h-full flex flex-col items-center justify-center p-8 text-center">
-                  <MessageCircle className="w-12 h-12 text-muted mb-4 opacity-50" />
-                  <h2 className="text-sm font-black uppercase tracking-widest text-foreground">Direct Messages</h2>
-                  <p className="text-[10px] text-muted font-medium mt-2 max-w-xs">End-to-end encrypted messaging with trainers, dietitians, and friends. Coming in Phase 5.</p>
-                </div>
-              )}
+              {activeTab === 'messages' && <SocialMessaging currentUserId={currentUserId} />}
             </motion.div>
           )}
         </AnimatePresence>
