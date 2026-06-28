@@ -19,7 +19,8 @@ import {
   isBlocked,
   updatePrivacySettings,
   canViewProfileSection,
-  searchUsers
+  searchUsers,
+  getFriendSuggestions
 } from '../lib/socialService';
 
 export default function useSocial() {
@@ -31,6 +32,7 @@ export default function useSocial() {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -42,16 +44,18 @@ export default function useSocial() {
     setLoading(true);
     setError(null);
     try {
-      const [followersList, followingList, pendingList, blockedList] = await Promise.all([
+      const [followersList, followingList, pendingList, blockedList, suggestionsList] = await Promise.all([
         getFollowers(userId),
         getFollowing(userId),
         getPendingFollowRequests(userId),
-        getBlockedUsers(userId)
+        getBlockedUsers(userId),
+        getFriendSuggestions(userId)
       ]);
       setFollowers(followersList);
       setFollowing(followingList);
       setPendingRequests(pendingList);
       setBlockedUsers(blockedList);
+      setSuggestions(suggestionsList);
     } catch (err) {
       console.error("Error refreshing social states", err);
       setError(err.message || "Failed to load social relationships.");
@@ -71,20 +75,23 @@ export default function useSocial() {
         setFollowing([]);
         setPendingRequests([]);
         setBlockedUsers([]);
+        setSuggestions([]);
         return;
       }
       try {
-        const [followersList, followingList, pendingList, blockedList] = await Promise.all([
+        const [followersList, followingList, pendingList, blockedList, suggestionsList] = await Promise.all([
           getFollowers(userId),
           getFollowing(userId),
           getPendingFollowRequests(userId),
-          getBlockedUsers(userId)
+          getBlockedUsers(userId),
+          getFriendSuggestions(userId)
         ]);
         if (active) {
           setFollowers(followersList);
           setFollowing(followingList);
           setPendingRequests(pendingList);
           setBlockedUsers(blockedList);
+          setSuggestions(suggestionsList);
         }
       } catch (err) {
         console.error("Initial load social states failed", err);
@@ -282,6 +289,7 @@ export default function useSocial() {
     following,
     pendingRequests,
     blockedUsers,
+    suggestions,
     searchResults,
     loading,
     error,

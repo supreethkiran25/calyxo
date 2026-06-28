@@ -21,6 +21,7 @@ export default function SocialHub({ onNotification }) {
     following,
     pendingRequests,
     blockedUsers,
+    suggestions,
     searchResults,
     loading,
     error,
@@ -443,6 +444,43 @@ export default function SocialHub({ onNotification }) {
                   className="w-full bg-[var(--input)] border border-card-border rounded-xl pl-10 pr-4 py-3 text-xs text-foreground focus:outline-none focus:border-acid-green"
                 />
               </div>
+
+              {/* Suggested Athletes (only show when not searching) */}
+              {!searchQuery && suggestions.length > 0 && (
+                <div className="space-y-2.5 pt-1 shrink-0">
+                  <span className="text-[9px] text-muted font-black uppercase tracking-widest block">Suggested Athletes</span>
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none -mx-1 px-1">
+                    {suggestions.map(s => (
+                      <div 
+                        key={s.userId}
+                        onClick={() => setSelectedUser(s)}
+                        className="bg-surface/30 border border-card-border rounded-xl p-3 flex flex-col items-center justify-between text-center min-w-[120px] max-w-[120px] hover:border-acid-green/30 transition-all cursor-pointer relative shrink-0"
+                      >
+                        <div className="w-10 h-10 rounded-full border border-card-border overflow-hidden bg-surface mb-2 shrink-0">
+                          {s.photoURL ? (
+                            <img src={s.photoURL} alt="Avatar" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-acid-green/5 text-acid-green text-[10px] font-black uppercase">
+                              {(s.nickname || "AT").substring(0, 2)}
+                            </div>
+                          )}
+                        </div>
+                        <div className="w-full mb-2">
+                          <span className="text-[10.5px] font-extrabold text-foreground block truncate">{s.nickname}</span>
+                          <span className="text-[8.5px] text-muted font-bold block truncate mt-0.5">@{s.username || "athlete"}</span>
+                          <span className="text-[8px] text-acid-green font-bold block truncate mt-1 bg-acid-green/5 py-0.5 rounded-full">{s.reason}</span>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleFollowToggle(s); }}
+                          className="w-full py-1.5 rounded bg-acid-green text-accent-foreground text-[8px] font-black uppercase border-none cursor-pointer hover:shadow-sm"
+                        >
+                          Follow
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Live search results or recommended feed */}
               <div className="flex-1 overflow-y-auto space-y-2 pr-1">

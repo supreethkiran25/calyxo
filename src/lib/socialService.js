@@ -297,15 +297,23 @@ export const followUser = async (followerId, followingId) => {
     const follows = getMockData(MOCK_FOLLOWS_KEY);
     const key = `${followerId}_${followingId}`;
     
-    // Remove if already existing to avoid duplicates
-    const filtered = follows.filter(x => x.id !== key);
-    filtered.push({ id: key, ...followObj });
-    saveMockData(MOCK_FOLLOWS_KEY, filtered);
+    // Avoid duplicates / overwrites if relationship exists
+    const existing = follows.find(x => x.id === key);
+    if (existing) {
+      return existing;
+    }
+
+    follows.push({ id: key, ...followObj });
+    saveMockData(MOCK_FOLLOWS_KEY, follows);
     return { id: key, ...followObj };
   }
 
   try {
     const followDocRef = doc(db, "follows", `${followerId}_${followingId}`);
+    const snap = await getDoc(followDocRef);
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() };
+    }
     await setDoc(followDocRef, followObj);
     return { id: followDocRef.id, ...followObj };
   } catch (err) {
@@ -667,6 +675,120 @@ export const getMutualFriends = async (userId, targetId) => {
     return followingA.filter(x => idsB.has(x.userId));
   } catch (err) {
     console.error("Error computing mutual friends", err);
+    return [];
+  }
+};
+
+export const getFriendSuggestions = async (userId) => {
+  if (!userId) return [];
+  try {
+    // 1. Gather exclusions: self, followed, blocked, incoming pending, outgoing pending
+    const followingList = await getFollowing(userId);
+    const blockedList = await getBlockedUsers(userId);
+    const pendingList = await getPendingFollowRequests(userId);
+    
+    let outgoingPendingIds = [];
+    if (isMockFirebase) {
+      const follows = getMockData(MOCK_FOLLOWS_KEY);
+      outgoingPendingIds = follows
+        .filter(x => x.followerId === userId && x.status === "pending")
+        .map(x => x.followingId);
+    } else {
+      const q = query(
+        collection(db, "follows"),
+        where("followerId", "==", userId),
+        where("status", "==", "pending")
+      );
+      const snap = await getDocs(q);
+      outgoingPendingIds = snap.docs.map(doc => doc.data().followingId);
+    }
+
+    const excludeIds = new Set([
+      userId,
+      ...followingList.map(x => x.userId),
+      ...blockedList.map(x => x.blockedId),
+      ...pendingList.map(x => x.userId),
+      ...outgoingPendingIds
+    ]);
+
+    const currentUserProfile = await getUserProfile(userId);
+    const myInterests = currentUserProfile?.healthInterests || [];
+
+    const suggestions = [];
+
+    if (isMockFirebase) {
+      const usernames = getMockData(MOCK_USERNAMES_KEY);
+      for (const item of usernames) {
+        if (excludeIds.has(item.userId)) continue;
+        const targetProfile = await getUserProfile(item.userId);
+        if (!targetProfile) continue;
+
+        // Calculate mutual friends
+        const targetFollowing = await getFollowing(item.userId);
+        const idsB = new Set(targetFollowing.map(x => x.userId));
+        const sharedFriends = followingList.filter(x => idsB.has(x.userId));
+
+        // Calculate interests match
+        const targetInterests = targetProfile.healthInterests || [];
+        const sharedInterests = myInterests.filter(x => targetInterests.includes(x));
+
+        const score = (sharedFriends.length * 5) + (sharedInterests.length * 3);
+
+        suggestions.push({
+          userId: item.userId,
+          username: item.username,
+          nickname: targetProfile.nickname || targetProfile.firstName || "Athlete",
+          photoURL: targetProfile.photoURL || "",
+          score,
+          reason: sharedFriends.length > 0 
+            ? `${sharedFriends.length} mutual friends`
+            : sharedInterests.length > 0
+            ? `Shares ${sharedInterests[0]}`
+            : "Popular near you"
+        });
+      }
+    } else {
+      // Real Firestore: Query up to 50 users_metrics profiles
+      const q = query(collection(db, "users_metrics"), limit(50));
+      const snap = await getDocs(q);
+      
+      for (const d of snap.docs) {
+        const data = d.data();
+        const uId = data.userId;
+        if (!uId || excludeIds.has(uId)) continue;
+
+        // Calculate mutual friends
+        const targetFollowing = await getFollowing(uId);
+        const idsB = new Set(targetFollowing.map(x => x.userId));
+        const sharedFriends = followingList.filter(x => idsB.has(x.userId));
+
+        // Calculate interests match
+        const targetInterests = data.healthInterests || [];
+        const sharedInterests = myInterests.filter(x => targetInterests.includes(x));
+
+        const score = (sharedFriends.length * 5) + (sharedInterests.length * 3);
+
+        suggestions.push({
+          userId: uId,
+          username: data.username,
+          nickname: data.nickname || data.firstName || "Athlete",
+          photoURL: data.photoURL || "",
+          score,
+          reason: sharedFriends.length > 0 
+            ? `${sharedFriends.length} mutual friends`
+            : sharedInterests.length > 0
+            ? `Shares ${sharedInterests[0]}`
+            : "Popular near you"
+        });
+      }
+    }
+
+    // Sort by score descending and take top 5
+    return suggestions
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+  } catch (err) {
+    console.error("Error computing friend suggestions", err);
     return [];
   }
 };
