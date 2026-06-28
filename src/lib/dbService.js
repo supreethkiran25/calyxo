@@ -30,7 +30,7 @@ import {
 } from "firebase/firestore";
 
 // Helper to determine if Firebase is fully configured or running mock
-const isMockFirebase = !auth.app.options.apiKey || auth.app.options.apiKey === "mock-api-key";
+export const isMockFirebase = !auth.app.options.apiKey || auth.app.options.apiKey === "mock-api-key";
 
 const ENCRYPTION_SALT = "calyxo_secure_salt_2026";
 
@@ -251,6 +251,17 @@ export const addFoodLog = async (userId, item) => {
   const state = getLocalState(userId);
   state.foodLogs.push(logItem);
   saveLocalState(userId, state);
+
+  // Publish Social Activity Feed Item (dynamic import to avoid circular dependency)
+  import('./socialService').then(m => {
+    m.publishActivity(
+      userId,
+      'meal',
+      'Meal Logged',
+      `Logged a meal: ${item.name} (${item.calories} kcal)`,
+      { name: item.name, calories: item.calories, protein: item.protein, carbs: item.carbs, fat: item.fat, mealType: item.mealType }
+    ).catch(err => console.error("Failed to publish meal activity", err));
+  }).catch(e => console.error("Dynamic publishActivity import failed", e));
 
   if (isMockFirebase || !userId) return logItem;
 

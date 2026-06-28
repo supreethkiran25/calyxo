@@ -23,7 +23,7 @@ import {
   MoreVertical, X, Target, Zap, ChevronRight, TrendingUp, Star
 } from 'lucide-react';
 import MonetizationCenter from './MonetizationCenter';
-import { claimUsername } from '../lib/socialService';
+import { claimUsername, publishActivity } from '../lib/socialService';
 
 const HEALTH_INTERESTS_OPTIONS = [
   "Weight Loss",
@@ -438,6 +438,31 @@ export default function UserProfile({ onNotification }) {
     updateUserProfile(updatedProfile);
     try {
       await saveUserProfile(userId, updatedProfile);
+      
+      // Publish Weight Milestone
+      const oldWeight = Number(userProfile?.weight);
+      const newWeight = Number(weight);
+      if (newWeight && newWeight !== oldWeight) {
+        const isGoalAchieved = newWeight === Number(goalWeight);
+        if (isGoalAchieved) {
+          publishActivity(
+            userId,
+            'weight_milestone',
+            'Goal Weight Achieved! 🏆',
+            `Successfully hit the target goal weight of ${newWeight} ${units === 'imperial' ? 'lbs' : 'kg'}!`,
+            { weight: newWeight, goalWeight, units }
+          ).catch(e => console.error("Goal weight milestone publish failed", e));
+        } else {
+          publishActivity(
+            userId,
+            'weight_milestone',
+            'Weight Milestone Logged ⚖️',
+            `Logged a new weight milestone: ${newWeight} ${units === 'imperial' ? 'lbs' : 'kg'}`,
+            { weight: newWeight, goalWeight, units }
+          ).catch(e => console.error("Weight milestone publish failed", e));
+        }
+      }
+
       ecoStore.setPersonality(coachPersonality);
       try {
         await saveEcosystemState(userId, useEcosystemStore.getState());

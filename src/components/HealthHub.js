@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { saveEcosystemState } from '../lib/dbService';
+import { publishActivity } from '../lib/socialService';
 import { Heart, Activity, Moon, Footprints, RefreshCw, Zap, Award } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -91,6 +92,34 @@ export default function HealthHub({ onNotification }) {
     });
 
     await saveEcosystemState(userId, useEcosystemStore.getState());
+    
+    // Publish Social Activities
+    try {
+      const oldSteps = Number(healthLogs.steps || 0);
+      const newSteps = Number(parsedSteps);
+      if (newSteps >= 10000 && oldSteps < 10000) {
+        publishActivity(
+          userId,
+          'step_goal',
+          'Step Goal Completed! 🚶',
+          `Successfully completed the 10,000 steps daily baseline target with ${newSteps.toLocaleString()} steps!`,
+          { steps: newSteps }
+        ).catch(e => console.error("Step goal publish failed", e));
+      }
+
+      const oldHealthScore = Number(ecoStore.fitnessScore?.dailyScore || 0);
+      if (compositeHealthScore > oldHealthScore) {
+        publishActivity(
+          userId,
+          'health_score',
+          'Health Score Improved! 📈',
+          `Improved Calyxo Daily Health compliance rating to ${compositeHealthScore}%!`,
+          { oldScore: oldHealthScore, newScore: compositeHealthScore }
+        ).catch(e => console.error("Health score publish failed", e));
+      }
+    } catch (actErr) {
+      console.error("Error publishing HealthHub activities", actErr);
+    }
     
     // Clear inputs
     setSleepHours('');

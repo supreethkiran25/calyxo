@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getSecureItem, setSecureItem } from '../lib/dbService';
+import { getSecureItem, setSecureItem, getCurrentUserId } from '../lib/dbService';
 
 const LOCAL_ECOSYSTEM_KEY = "calyxo_ecosystem_state";
 
@@ -83,6 +83,35 @@ export const useEcosystemStore = create((set, get) => ({
 
     const nextState = { ...state, achievements: next, xp: nextXP, level: nextLevel };
     saveLocalEcosystemState(nextState);
+
+    // Publish Achievement & Level Up Activities
+    const userId = getCurrentUserId();
+    const oldLevel = state.level || 1;
+    if (userId && xpGranted > 0) {
+      const achName = next.find(a => a.id === id)?.name || "Achievement";
+      import('../lib/socialService').then(m => {
+        m.publishActivity(
+          userId,
+          'achievement',
+          'Achievement Unlocked! 🏆',
+          `Unlocked a new achievement badge: ${achName}`,
+          { achievementId: id, achievementName: achName }
+        ).catch(e => console.error(e));
+      }).catch(e => console.error(e));
+    }
+
+    if (userId && nextLevel > oldLevel) {
+      import('../lib/socialService').then(m => {
+        m.publishActivity(
+          userId,
+          'level_up',
+          'XP Level Up! ⚡',
+          `Leveled up to Level ${nextLevel}! Keep crushing those goals.`,
+          { level: nextLevel }
+        ).catch(e => console.error(e));
+      }).catch(e => console.error(e));
+    }
+
     return { achievements: next, xp: nextXP, level: nextLevel };
   }),
 
@@ -90,12 +119,27 @@ export const useEcosystemStore = create((set, get) => ({
   addXP: (amount) => set((state) => {
     let nextXP = (state.xp || 0) + amount;
     let nextLevel = state.level || 1;
+    const oldLevel = state.level || 1;
     while (nextXP >= nextLevel * 1000) {
       nextXP -= nextLevel * 1000;
       nextLevel += 1;
     }
     const nextState = { ...state, xp: nextXP, level: nextLevel };
     saveLocalEcosystemState(nextState);
+
+    const userId = getCurrentUserId();
+    if (userId && nextLevel > oldLevel) {
+      import('../lib/socialService').then(m => {
+        m.publishActivity(
+          userId,
+          'level_up',
+          'XP Level Up! ⚡',
+          `Leveled up to Level ${nextLevel}! Keep crushing those goals.`,
+          { level: nextLevel }
+        ).catch(e => console.error(e));
+      }).catch(e => console.error(e));
+    }
+
     return { xp: nextXP, level: nextLevel };
   }),
 
@@ -148,6 +192,22 @@ export const useEcosystemStore = create((set, get) => ({
     });
     const nextState = { ...state, activeChallenges: next };
     saveLocalEcosystemState(nextState);
+
+    const oldCh = state.activeChallenges.find(c => c.id === id);
+    const nextCh = next.find(c => c.id === id);
+    const userId = getCurrentUserId();
+    if (userId && nextCh && nextCh.completed && !oldCh?.completed) {
+      import('../lib/socialService').then(m => {
+        m.publishActivity(
+          userId,
+          'challenge',
+          'Challenge Completed! 🥇',
+          `Successfully completed the challenge: ${nextCh.name}!`,
+          { challengeId: id, challengeName: nextCh.name }
+        ).catch(e => console.error(e));
+      }).catch(e => console.error(e));
+    }
+
     return { activeChallenges: next };
   }),
 

@@ -9,7 +9,10 @@ import {
   query,
   where,
   runTransaction,
-  limit
+  limit,
+  addDoc,
+  orderBy,
+  startAfter
 } from "firebase/firestore";
 
 // Helper to determine mock mode
@@ -790,5 +793,83 @@ export const getFriendSuggestions = async (userId) => {
   } catch (err) {
     console.error("Error computing friend suggestions", err);
     return [];
+  }
+};
+
+export const publishActivity = async (userId, type, title, content, data = {}) => {
+  if (!userId) return;
+  try {
+    const profile = await getUserProfile(userId);
+    const activityItem = {
+      userId,
+      type,
+      title,
+      content,
+      data,
+      timestamp: Date.now(),
+      nickname: profile?.nickname || profile?.firstName || "Athlete",
+      username: profile?.username || "athlete",
+      photoURL: profile?.photoURL || ""
+    };
+
+    if (isMockFirebase) {
+      const activities = getMockData("calyxo_social_activities");
+      const newActivity = { id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`, ...activityItem };
+      activities.unshift(newActivity);
+      saveMockData("calyxo_social_activities", activities);
+
+      if (typeof window !== 'undefined') {
+        const event = new CustomEvent("calyxo_new_activity", { detail: newActivity });
+        window.dispatchEvent(event);
+      }
+      return newActivity;
+    }
+
+    const docRef = await addDoc(collection(db, "social_activities"), activityItem);
+    return { id: docRef.id, ...activityItem };
+  } catch (err) {
+    console.error("Error publishing social activity log", err);
+  }
+};
+
+export const fetchActivityFeed = async (userId, followingIds = [], limitCount = 10, lastDoc = null) => {
+  if (!userId) return { items: [], lastDoc: null };
+
+  const queryIds = [userId, ...followingIds].slice(0, 30);
+
+  if (isMockFirebase) {
+    const allActivities = getMockData("calyxo_social_activities");
+    const filtered = allActivities.filter(act => queryIds.includes(act.userId));
+    
+    let startIndex = 0;
+    if (lastDoc) {
+      startIndex = filtered.findIndex(x => x.id === lastDoc) + 1;
+    }
+    
+    const pageItems = filtered.slice(startIndex, startIndex + limitCount);
+    const nextLastDoc = pageItems.length > 0 ? pageItems[pageItems.length - 1].id : null;
+    return { items: pageItems, lastDoc: nextLastDoc };
+  }
+
+  try {
+    let q = query(
+      collection(db, "social_activities"),
+      where("userId", "in", queryIds),
+      orderBy("timestamp", "desc"),
+      limit(limitCount)
+    );
+
+    if (lastDoc) {
+      q = query(q, startAfter(lastDoc));
+    }
+
+    const snap = await getDocs(q);
+    const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const nextLastDoc = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null;
+
+    return { items, lastDoc: nextLastDoc };
+  } catch (err) {
+    console.error("Error fetching activity feed", err);
+    return { items: [], lastDoc: null };
   }
 };

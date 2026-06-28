@@ -4,12 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import useSocial from '../hooks/useSocial';
-import { getMutualFriends, canViewProfileSection, getFollowers, getFollowing } from '../lib/socialService';
-import { getWorkoutLogs, getFoodLogs } from '../lib/dbService';
+import { getMutualFriends, canViewProfileSection, getFollowers, getFollowing, fetchActivityFeed } from '../lib/socialService';
+import { getWorkoutLogs, getFoodLogs, isMockFirebase } from '../lib/dbService';
+import { db } from '../lib/firebase';
+import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import {
   Search, User, Users, UserPlus, UserMinus, UserCheck, ShieldAlert,
   Sparkles, Globe, Lock, Link, Activity, Heart, CheckCircle,
-  AlertCircle, X, Shield, BookOpen, BarChart2
+  AlertCircle, X, Shield, BookOpen, BarChart2, Trophy, Award, Zap, Dumbbell, RefreshCw
 } from 'lucide-react';
 
 export default function SocialHub({ onNotification }) {
@@ -39,7 +41,7 @@ export default function SocialHub({ onNotification }) {
   } = useSocial();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('explore'); // 'explore' | 'friends' | 'requests'
+  const [activeTab, setActiveTab] = useState('feed'); // 'feed' | 'explore' | 'friends' | 'requests'
   const [selectedUser, setSelectedUser] = useState(null); // Selected Social Profile
   const [selectedUserFollowers, setSelectedUserFollowers] = useState([]);
   const [selectedUserFollowing, setSelectedUserFollowing] = useState([]);
@@ -48,6 +50,115 @@ export default function SocialHub({ onNotification }) {
   const [selectedUserWorkouts, setSelectedUserWorkouts] = useState([]);
   const [selectedUserFoodLogs, setSelectedUserFoodLogs] = useState([]);
   const [loadingProfileDetails, setLoadingProfileDetails] = useState(false);
+
+  // Activity Feed states
+  const [feedItems, setFeedItems] = useState([]);
+  const [feedLoading, setFeedLoading] = useState(false);
+  const [feedLastDoc, setFeedLastDoc] = useState(null);
+  const [hasMoreFeed, setHasMoreFeed] = useState(true);
+
+  // Fetch feed function
+  const loadFeed = useCallback(async (isRefresh = false) => {
+    if (!currentUserId) return;
+    setFeedLoading(true);
+    const currentLastDoc = isRefresh ? null : feedLastDoc;
+    const followingIds = following.map(x => x.userId);
+    try {
+      const { items, lastDoc: nextLastDoc } = await fetchActivityFeed(currentUserId, followingIds, 10, currentLastDoc);
+      
+      if (isRefresh) {
+        setFeedItems(items);
+      } else {
+        setFeedItems(prev => {
+          const existingIds = new Set(prev.map(x => x.id));
+          const filtered = items.filter(x => !existingIds.has(x.id));
+          return [...prev, ...filtered];
+        });
+      }
+      setFeedLastDoc(nextLastDoc);
+      setHasMoreFeed(items.length === 10);
+    } catch (err) {
+      console.error("Error loading activity feed", err);
+    } finally {
+      setFeedLoading(false);
+    }
+  }, [currentUserId, following, feedLastDoc]);
+
+  // Initial feed load
+  useEffect(() => {
+    let active = true;
+    const run = async () => {
+      await Promise.resolve();
+      if (active) {
+        loadFeed(true);
+      }
+    };
+    run();
+    return () => {
+      active = false;
+    };
+  }, [currentUserId, following, loadFeed]);
+
+  // Listen to new real-time activities
+  useEffect(() => {
+    if (!currentUserId) return;
+    const queryIds = [currentUserId, ...following.map(x => x.userId)];
+
+    const handleNewLocalActivity = (e) => {
+      const act = e.detail;
+      if (queryIds.includes(act.userId)) {
+        setFeedItems(prev => {
+          if (prev.some(x => x.id === act.id)) return prev;
+          return [act, ...prev];
+        });
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener("calyxo_new_activity", handleNewLocalActivity);
+    }
+
+    let unsubscribe = () => {};
+    if (!isMockFirebase) {
+      try {
+        const q = query(
+          collection(db, "social_activities"),
+          where("userId", "in", queryIds.slice(0, 30)),
+          orderBy("timestamp", "desc"),
+          limit(10)
+        );
+        unsubscribe = onSnapshot(q, (snap) => {
+          const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setFeedItems(prev => {
+            const merged = [...prev];
+            for (const item of items) {
+              if (!merged.some(x => x.id === item.id)) {
+                merged.push(item);
+              }
+            }
+            return merged.sort((a, b) => b.timestamp - a.timestamp);
+          });
+        });
+      } catch (e) {
+        console.error("Firestore onSnapshot error", e);
+      }
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener("calyxo_new_activity", handleNewLocalActivity);
+      }
+      unsubscribe();
+    };
+  }, [currentUserId, following]);
+
+  // Infinite Scroll scroll handler
+  const handleFeedScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop <= clientHeight + 30 && !feedLoading && hasMoreFeed) {
+      loadFeed();
+    }
+  };
 
   // Trigger search on query change
   useEffect(() => {
@@ -404,8 +515,9 @@ export default function SocialHub({ onNotification }) {
         </div>
 
         {/* Tab Selection */}
-        <div className="bg-surface border border-card-border p-0.5 rounded-xl flex gap-1 self-start shrink-0">
+        <div className="bg-surface border border-card-border p-0.5 rounded-xl flex gap-1 self-start shrink-0 overflow-x-auto max-w-full">
           {[
+            { id: 'feed', label: 'Activity Feed', icon: Activity },
             { id: 'explore', label: 'Explore Community', icon: Globe },
             { id: 'friends', label: 'My Friends', icon: Users },
             { id: 'requests', label: `Requests (${pendingRequests.length})`, icon: UserPlus }
@@ -431,6 +543,123 @@ export default function SocialHub({ onNotification }) {
         {/* Tab Contents */}
         <div className="flex-1 min-h-0 bg-surface/5 border border-card-border rounded-2xl p-4 flex flex-col space-y-4">
           
+          {activeTab === 'feed' && (
+            <div 
+              onScroll={handleFeedScroll}
+              className="flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-none"
+            >
+              {feedItems.length === 0 && !feedLoading ? (
+                <div className="text-center py-16 bg-surface/10 border border-dashed border-card-border rounded-xl">
+                  <Activity className="w-8 h-8 text-muted mx-auto mb-2 opacity-50" />
+                  <p className="text-xs text-muted font-bold">No activity in your circle yet.</p>
+                  <p className="text-[10px] text-muted/80 mt-1">Log workouts, meals, or find friends to see updates!</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {feedItems.map(item => {
+                    let Icon = Activity;
+                    let colorClass = 'text-acid-green';
+                    let bgGradient = 'bg-acid-green/5 border-acid-green/20';
+                    
+                    if (item.type === 'workout') {
+                      Icon = Dumbbell;
+                      colorClass = 'text-acid-green';
+                      bgGradient = 'bg-acid-green/5 border-acid-green/20';
+                    } else if (item.type === 'meal') {
+                      Icon = BookOpen;
+                      colorClass = 'text-amber-500';
+                      bgGradient = 'bg-amber-500/5 border-amber-500/20';
+                    } else if (item.type === 'achievement') {
+                      Icon = Trophy;
+                      colorClass = 'text-yellow-400';
+                      bgGradient = 'bg-yellow-400/5 border-yellow-400/20';
+                    } else if (item.type === 'challenge') {
+                      Icon = Award;
+                      colorClass = 'text-purple-400';
+                      bgGradient = 'bg-purple-400/5 border-purple-400/20';
+                    } else if (item.type === 'weight_milestone') {
+                      Icon = BarChart2;
+                      colorClass = 'text-cyan-400';
+                      bgGradient = 'bg-cyan-400/5 border-cyan-400/20';
+                    } else if (item.type === 'level_up') {
+                      Icon = Zap;
+                      colorClass = 'text-yellow-300';
+                      bgGradient = 'bg-yellow-300/10 border-yellow-300/30';
+                    } else if (item.type === 'health_score') {
+                      Icon = Heart;
+                      colorClass = 'text-rose-400';
+                      bgGradient = 'bg-rose-400/5 border-rose-400/20';
+                    } else if (item.type === 'step_goal') {
+                      Icon = CheckCircle;
+                      colorClass = 'text-emerald-400';
+                      bgGradient = 'bg-emerald-400/5 border-emerald-400/20';
+                    }
+
+                    return (
+                      <div 
+                        key={item.id} 
+                        onClick={() => setSelectedUser({ userId: item.userId, nickname: item.nickname, username: item.username, photoURL: item.photoURL })}
+                        className={`p-3.5 rounded-xl border ${bgGradient} flex gap-3 hover:bg-surface/30 hover:border-card-border transition-all cursor-pointer`}
+                      >
+                        <div className="w-9 h-9 rounded-full border border-card-border overflow-hidden shrink-0 bg-surface">
+                          {item.photoURL ? (
+                            <img src={item.photoURL} alt="Avatar" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-acid-green/5 text-acid-green text-xs font-black uppercase">
+                              {(item.nickname || "AT").substring(0, 2)}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start gap-1">
+                            <div>
+                              <span className="text-[11px] font-extrabold text-foreground">{item.nickname}</span>
+                              <span className="text-[8.5px] text-muted font-medium ml-1.5">@{item.username}</span>
+                            </div>
+                            <span className="text-[7.5px] text-muted font-bold uppercase tracking-wider">{new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <div className="p-1 rounded bg-surface border border-card-border shrink-0">
+                              <Icon className={`w-3.5 h-3.5 ${colorClass}`} />
+                            </div>
+                            <span className="text-xs font-black text-foreground">{item.title}</span>
+                          </div>
+                          
+                          <p className="text-[10px] text-foreground/80 mt-1 font-medium">{item.content}</p>
+
+                          {item.type === 'workout' && item.data && (
+                            <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-card-border/40">
+                              {item.data.weight > 0 && <span className="px-2 py-0.5 rounded bg-surface/50 border border-card-border text-[8px] font-extrabold text-foreground">{item.data.weight} kg</span>}
+                              {item.data.sets > 0 && <span className="px-2 py-0.5 rounded bg-surface/50 border border-card-border text-[8px] font-extrabold text-foreground">{item.data.sets} sets x {item.data.reps} reps</span>}
+                              {item.data.duration > 0 && <span className="px-2 py-0.5 rounded bg-surface/50 border border-card-border text-[8px] font-extrabold text-foreground">{item.data.duration} mins</span>}
+                            </div>
+                          )}
+
+                          {item.type === 'meal' && item.data && (
+                            <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-card-border/40">
+                              <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-[8px] font-extrabold text-amber-500">{item.data.calories} kcal</span>
+                              {item.data.protein > 0 && <span className="px-2 py-0.5 rounded bg-surface/50 border border-card-border text-[8px] font-extrabold text-foreground">P: {item.data.protein}g</span>}
+                              {item.data.carbs > 0 && <span className="px-2 py-0.5 rounded bg-surface/50 border border-card-border text-[8px] font-extrabold text-foreground">C: {item.data.carbs}g</span>}
+                              {item.data.fat > 0 && <span className="px-2 py-0.5 rounded bg-surface/50 border border-card-border text-[8px] font-extrabold text-foreground">F: {item.data.fat}g</span>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {feedLoading && (
+                <div className="text-center py-4 text-xs text-muted flex items-center justify-center gap-1.5">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-acid-green" />
+                  Loading more activity feed...
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === 'explore' && (
             <>
               {/* Search Bar */}

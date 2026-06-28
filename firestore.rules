@@ -90,5 +90,16 @@ service cloud.firestore {
       allow create: if isAuth() && request.resource.data.blockerId == request.auth.uid;
       allow delete: if isAuth() && resource.data.blockerId == request.auth.uid;
     }
+
+    // Social activity feed items
+    match /social_activities/{activityId} {
+      allow read: if isAuth() && (
+        resource.data.userId == request.auth.uid || 
+        (exists(/databases/$(database)/documents/follows/$(request.auth.uid + "_" + resource.data.userId)) &&
+         get(/databases/$(database)/documents/follows/$(request.auth.uid + "_" + resource.data.userId)).data.status == "accepted")
+      );
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
   }
 }

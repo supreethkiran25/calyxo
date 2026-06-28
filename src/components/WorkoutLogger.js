@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { getWorkoutLogs, addWorkoutLog, saveEcosystemState } from '../lib/dbService';
+import { publishActivity } from '../lib/socialService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { Plus, Dumbbell, Clock, Edit3, X, Check, Search, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -312,6 +313,15 @@ export default function WorkoutLogger({ onNotification }) {
     try {
       const saved = await addWorkoutLog(userId, workoutItem);
       addWorkoutLogStore(saved);
+      
+      // Publish Social Activity Feed Item
+      publishActivity(
+        userId,
+        'workout',
+        'Workout Completed',
+        `Completed workout exercise: ${workoutItem.name} (${workoutItem.category})`,
+        { name: workoutItem.name, category: workoutItem.category, sets: workoutItem.sets, reps: workoutItem.reps, weight: workoutItem.weight, duration: workoutItem.duration }
+      ).catch(err => console.error("Error publishing workout activity", err));
       // Clear form
       setExName('');
       setExSets('');
