@@ -22,28 +22,8 @@ const isMockFirebase = !auth.app.options.apiKey || auth.app.options.apiKey === "
 const MOCK_USERNAMES_KEY = "calyxo_social_usernames";
 const MOCK_FOLLOWS_KEY = "calyxo_social_follows";
 const MOCK_BLOCKS_KEY = "calyxo_social_blocks";
-const LOCAL_STATE_KEY = "calyxo_pwa_state";
 
-// Helper to decrypt/load mock state
-const getLocalState = (userId) => {
-  if (typeof window === 'undefined') return { foodLogs: [], workoutLogs: [], weightLogs: [], waterIntake: 0, userProfile: {} };
-  try {
-    const raw = localStorage.getItem(LOCAL_STATE_KEY);
-    if (!raw) return { foodLogs: [], workoutLogs: [], weightLogs: [], waterIntake: 0, userProfile: {} };
-    // The main dbService encrypts it, but lets check if it parses directly or needs decryption
-    // We can fallback to basic parsing since dbService handles decrypting
-    // Let's import decrypt or just read raw if not encrypted.
-    // In dbService.js, local state is stored as a secure item.
-    // Since we don't want to re-implement the exact encryption loop here, we can reuse getSecureItem from dbService
-    // or we can import it. Let's import it or just read it from localstorage.
-    // Wait, let's look at dbService: it exports getSecureItem.
-    // Let's import getSecureItem and setSecureItem from './dbService' to be absolutely safe!
-  } catch (e) {
-    return { foodLogs: [], workoutLogs: [], weightLogs: [], waterIntake: 0, userProfile: {} };
-  }
-};
-
-// Instead of re-implementing, let's import the local storage handlers from dbService.js
+// Import local storage handlers from dbService.js
 import { getSecureItem, setSecureItem, getUserProfile, saveUserProfile } from "./dbService";
 
 // Helper for Mock collections
