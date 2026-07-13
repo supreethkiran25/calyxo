@@ -675,24 +675,3 @@ input:focus, select:focus, textarea:focus {
   border-radius: 1rem;
 }
 
-/* Role-based Theme Overrides */
-.role-user {
-  --accent: #A855F7;
-  --accent-dim: #9333EA;
-  --glow-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
-  --accent-glow: rgba(168, 85, 247, 0.2);
-}
-
-.role-trainer {
-  --accent: #3B82F6;
-  --accent-dim: #2563EB;
-  --glow-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
-  --accent-glow: rgba(59, 130, 246, 0.2);
-}
-
-.role-admin {
-  --accent: #10B981;
-  --accent-dim: #059669;
-  --glow-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
-  --accent-glow: rgba(16, 185, 129, 0.2);
-}
