@@ -71,8 +71,14 @@ You MUST output pure JSON matching this exact schema:
     });
 
     if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error?.message || "Gemini request failed.");
+      console.warn("Gemini API call failed, falling back to mock data.");
+      return NextResponse.json({
+        text: `[Mock AI Magic] Applied style: ${style}. Intent: ${intent}. This is a generated placeholder since the API call failed (invalid key?).`,
+        isMeal: intent === 'meal_analysis',
+        isWorkout: intent === 'workout_analysis',
+        isProgress: intent === 'progress_analysis',
+        suggestedActions: intent === 'meal_analysis' ? ['Log Meal'] : intent === 'workout_analysis' ? ['Save Workout'] : []
+      });
     }
 
     const data = await response.json();

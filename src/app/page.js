@@ -11,11 +11,12 @@ import {
   getUserProfile, 
   saveUserProfile,
   getFoodLogs, 
-  getWorkoutLogs, 
-  getWeightLogs, 
-  getWaterIntake 
+  getWorkoutLogs,
+  getWeightLogs,
+  getWaterIntake
 } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
+import useCreateHubStore from '../store/useCreateHubStore';
 
 import dynamic from 'next/dynamic';
 
@@ -29,6 +30,14 @@ import UsernameMigrationFlow from '../components/UsernameMigrationFlow';
 import LandingPage from '../components/LandingPage';
 import BackgroundEffects from '../components/BackgroundEffects';
 import QuickActionsSheet from '../components/QuickActionsSheet';
+import WorkoutLoggerModal from '../components/CreateHub/WorkoutLoggerModal';
+import MealLoggerModal from '../components/CreateHub/MealLoggerModal';
+import FoodScannerModal from '../components/CreateHub/FoodScannerModal';
+import ProgressUploadModal from '../components/CreateHub/ProgressUploadModal';
+import CreateClubModal from '../components/CreateHub/CreateClubModal';
+import StartChallengeModal from '../components/CreateHub/StartChallengeModal';
+import AIChatModal from '../components/CreateHub/AIChatModal';
+import CreatePostModal from '../components/CreatePostModal';
 import GlobalSearch from '../components/GlobalSearch';
 import AIWorkspace from '../components/AIWorkspace';
 
@@ -128,6 +137,7 @@ export default function Home() {
 
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
+  const { activeWorkflow, setActiveWorkflow } = useCreateHubStore();
   
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -208,9 +218,10 @@ export default function Home() {
   }
 
   const firstName = user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'User';
+  const currentRole = userProfile?.role || 'user';
 
   return (
-    <div className="min-h-screen flex flex-row relative select-none bg-[var(--background)] text-[var(--foreground)]">
+    <div className={`min-h-screen flex flex-row relative select-none bg-[var(--background)] text-[var(--foreground)] role-${currentRole}`}>
       {/* Immersive Optional Background Effects */}
       <BackgroundEffects activeTab={activeTab} />
 
@@ -254,13 +265,26 @@ export default function Home() {
         isOpen={isQuickActionsOpen}
         onClose={() => setIsQuickActionsOpen(false)}
         onAction={(actionId) => {
-          // Handle actions contextually
-          if (actionId === 'log_workout') setActiveTab('workout');
-          else if (actionId === 'log_meal') setActiveTab('nutrition');
-          else if (actionId === 'start_chat') setActiveTab('ai');
-          else setToast(`Action: ${actionId} selected`);
+          // The QuickActionsSheet internally sets the active workflow in Zustand.
         }}
       />
+
+      {/* Create Hub Modals */}
+      <WorkoutLoggerModal />
+      <MealLoggerModal />
+      <FoodScannerModal />
+      <ProgressUploadModal />
+      <CreateClubModal />
+      <StartChallengeModal />
+      <AIChatModal />
+      {activeWorkflow === 'create_post' && (
+        <CreatePostModal 
+          currentUserId={user?.uid} 
+          onClose={() => setActiveWorkflow(null)} 
+          onNotification={setToast} 
+        />
+      )}
+
 
       {/* ── Desktop Left Sidebar ── */}
       <aside className={`hidden md:flex flex-col bg-[var(--card-bg)] border-r border-[var(--card-border)] fixed left-0 top-0 bottom-0 z-30 justify-between transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>

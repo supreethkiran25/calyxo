@@ -2,7 +2,11 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Dumbbell, Apple, ScanLine, Image as ImageIcon, Users, MessageSquare, TrendingUp, Target, X } from 'lucide-react';
 
+import useCreateHubStore from '../store/useCreateHubStore';
+
 export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
+  const setActiveWorkflow = useCreateHubStore((state) => state.setActiveWorkflow);
+
   if (!isOpen) return null;
 
   const actions = [
@@ -17,7 +21,8 @@ export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
   ];
 
   const handleAction = (id) => {
-    onAction(id);
+    setActiveWorkflow(id);
+    if (onAction) onAction(id);
     onClose();
   };
 

@@ -1,11 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 .brand-name {
-  font-family: 'Montserrat', 'Arial Black', -apple-system, sans-serif !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
   font-weight: 900 !important;
   letter-spacing: 0.16em !important;
   text-transform: uppercase !important;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
 }
 
 /* Tailwind v4 class-based dark mode toggle support */
@@ -86,39 +90,39 @@
 :root.dark,
 [data-theme='dark'] {
   /* Semantic WCAG variables (Dark Mode) */
-  --background: #030303;
+  --background: #0A0A0F;
   --foreground: #f3f4f6;
-  --card: #09090d;
+  --card: rgba(255, 255, 255, 0.05);
   --card-foreground: #f3f4f6;
-  --primary: #10B981;
+  --primary: #A855F7;
   --primary-foreground: #ffffff;
-  --secondary: #0D0D12;
+  --secondary: #12121A;
   --secondary-foreground: #f3f4f6;
-  --muted: #121218;
-  --muted-foreground: #B9B9C7; /* Silver-grey text contrast */
-  --accent: #10B981; /* Calm Emerald Green */
-  --accent-dim: #059669;
+  --muted: #1A1A24;
+  --muted-foreground: #B9B9C7;
+  --accent: #A855F7; 
+  --accent-dim: #9333EA;
   --accent-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.08);
-  --input: #121218;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: #12121A;
   --input-foreground: #f3f4f6;
-  --success: #10b981;
-  --warning: #f59e0b;
+  --success: #10B981;
+  --warning: #F59E0B;
   --destructive: #ef5350;
 
   /* Brand overrides for Dark Mode */
-  --orange-theme: #f57c38;
-  --blue-theme: #4fc3f7;
-  --primary-bg: #10B981;
+  --orange-theme: #F59E0B;
+  --blue-theme: #3B82F6;
+  --primary-bg: #A855F7;
   --primary-fg: #ffffff;
-  --glow-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
-  --accent-glow: rgba(16, 185, 129, 0.2);
+  --glow-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+  --accent-glow: rgba(168, 85, 247, 0.2);
 
   /* Backward compatibility links */
   --card-bg: var(--card);
   --card-border: var(--border);
   --text-muted: var(--muted-foreground);
-  --nav-bg: rgba(3, 3, 3, 0.75);
+  --nav-bg: rgba(10, 10, 15, 0.75);
   --nav-border: var(--border);
   --surface: var(--secondary);
   --input-bg: var(--input);
@@ -127,24 +131,24 @@
 
 [data-theme='obsidian'] {
   /* Obsidian Dark (Dark Mode default) */
-  --background: #030303;
+  --background: #0A0A0F;
   --foreground: #f3f4f6;
-  --card: #09090d;
+  --card: rgba(255, 255, 255, 0.05);
   --card-foreground: #f3f4f6;
-  --primary: #10B981;
+  --primary: #A855F7;
   --primary-foreground: #ffffff;
-  --secondary: #0D0D12;
+  --secondary: #12121A;
   --secondary-foreground: #f3f4f6;
-  --muted: #121218;
+  --muted: #1A1A24;
   --muted-foreground: #B9B9C7;
-  --accent: #10B981;
-  --accent-dim: #059669;
+  --accent: #A855F7;
+  --accent-dim: #9333EA;
   --accent-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.08);
-  --input: #121218;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: #12121A;
   --input-foreground: #f3f4f6;
-  --success: #10b981;
-  --warning: #f59e0b;
+  --success: #10B981;
+  --warning: #F59E0B;
   --destructive: #ef5350;
 
   --orange-theme: #f57c38;
@@ -662,3 +666,33 @@ input:focus, select:focus, textarea:focus {
   width: 100%;
 }
 
+/* Glass Card Utility */
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+}
+
+/* Role-based Theme Overrides */
+.role-user {
+  --accent: #A855F7;
+  --accent-dim: #9333EA;
+  --glow-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+  --accent-glow: rgba(168, 85, 247, 0.2);
+}
+
+.role-trainer {
+  --accent: #3B82F6;
+  --accent-dim: #2563EB;
+  --glow-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+  --accent-glow: rgba(59, 130, 246, 0.2);
+}
+
+.role-admin {
+  --accent: #10B981;
+  --accent-dim: #059669;
+  --glow-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+  --accent-glow: rgba(16, 185, 129, 0.2);
+}

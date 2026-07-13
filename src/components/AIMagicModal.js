@@ -46,7 +46,11 @@ export default function AIMagicModal({ isOpen, onClose, onApply, mediaFiles = []
         body: JSON.stringify(payload)
       });
       
-      if (!res.ok) throw new Error("Generation failed");
+      if (!res.ok) {
+        console.warn("Post Magic API returned non-OK status. Falling back.");
+        setResult({ text: "Offline Mode: This is a placeholder for your AI generated content!" });
+        return;
+      }
       const data = await res.json();
       setResult(data);
     } catch (err) {
