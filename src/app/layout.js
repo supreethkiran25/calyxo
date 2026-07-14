@@ -12,6 +12,18 @@ export const metadata = {
   title: "Calyxo — Track Today. Transform Tomorrow.",
   description: "Track your food, workouts, and calories with Calyxo — your personal AI fitness and nutrition coach. Know exactly what you eat and how much you burn.",
   manifest: "/manifest.json",
+  icons: {
+    icon: '/icon-192x192.png',
+    apple: '/icon-192x192.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Calyxo',
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export const viewport = {
@@ -19,6 +31,8 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }) {

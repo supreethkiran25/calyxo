@@ -126,7 +126,20 @@ const getLocalState = (userId) => {
     workoutLogs: [],
     weightLogs: [],
     waterIntake: 0,
-    userProfile: { gender: "male", age: 25, weight: 70, height: 175, activity: 1.55, goal: "lose" }
+    userProfile: { 
+      gender: "male", 
+      age: 25, 
+      weight: 70, 
+      height: 175, 
+      activity: 1.55, 
+      goal: "lose",
+      bio: "",
+      website: "",
+      coverImage: "",
+      followersCount: 0,
+      followingCount: 0,
+      isVerified: false
+    }
   };
 };
 
@@ -150,15 +163,45 @@ export const signUpUser = async (email, password, remember = true) => {
   return credential.user;
 };
 
-export const signInUser = async (email, password, remember = true) => {
+export const signInWithUsernameOrEmail = async (identifier, password, remember = true) => {
+  let loginEmail = identifier;
+
   if (isMockFirebase) {
     // Mock Login
-    const mockUser = { uid: "mock-user-id", email };
+    if (!identifier.includes('@')) {
+      const usernamesStr = localStorage.getItem("calyxo_mock_usernames");
+      if (usernamesStr) {
+        const usernames = JSON.parse(usernamesStr);
+        const match = usernames.find(u => u.username_lowercase === identifier.toLowerCase());
+        if (!match) throw new Error("Username not found");
+        loginEmail = match.email || `${identifier}@mock.com`;
+      } else {
+        throw new Error("Username not found");
+      }
+    }
+    
+    const mockUser = { uid: "mock-user-id", email: loginEmail };
     localStorage.setItem("calyxo_mock_user", JSON.stringify(mockUser));
     return mockUser;
   }
+
+  // Resolve Username to Email
+  if (!identifier.includes('@')) {
+    const usernameLower = identifier.toLowerCase();
+    const usernameDocRef = doc(db, "usernames", usernameLower);
+    const snap = await getDoc(usernameDocRef);
+    if (!snap.exists()) {
+      throw new Error("Username not found.");
+    }
+    const data = snap.data();
+    if (!data.email) {
+      throw new Error("This username does not have an associated email address.");
+    }
+    loginEmail = data.email;
+  }
+
   await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
-  const credential = await signInWithEmailAndPassword(auth, email, password);
+  const credential = await signInWithEmailAndPassword(auth, loginEmail, password);
   return credential.user;
 };
 
@@ -805,5 +848,117 @@ export const fetchWithRetry = async (url, options = {}, retries = 3, delay = 100
       return fetchWithRetry(url, options, retries - 1, delay * 1.5);
     }
     throw error;
+  }
+};
+
+/* ==========================================================================
+   RELATIONSHIP ECOSYSTEM API
+   ========================================================================== */
+
+export const createGym = async (ownerId, name, description) => {
+  if (isMockFirebase) return { id: "mock-gym", name, ownerId };
+  const gym = { name, description, ownerId, createdAt: Date.now() };
+  try {
+    const docRef = await addDoc(collection(db, "gyms"), gym);
+    return { id: docRef.id, ...gym };
+  } catch (err) {
+    console.error("Error creating gym", err);
+    throw err;
+  }
+};
+
+export const getGymsForOwner = async (ownerId) => {
+  if (isMockFirebase) return [];
+  try {
+    const q = query(collection(db, "gyms"), where("ownerId", "==", ownerId));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    return [];
+  }
+};
+
+export const inviteGymStaff = async (gymId, staffId, role, invitedBy) => {
+  if (isMockFirebase) return;
+  try {
+    await setDoc(doc(db, "gym_staff", `${gymId}_${staffId}`), {
+      gymId, staffId, role, status: "pending", invitedBy, createdAt: Date.now(), updatedAt: Date.now()
+    });
+  } catch (err) {
+    console.error("Error inviting staff", err);
+    throw err;
+  }
+};
+
+export const updateStaffStatus = async (gymId, staffId, status) => {
+  if (isMockFirebase) return;
+  try {
+    await setDoc(doc(db, "gym_staff", `${gymId}_${staffId}`), { status, updatedAt: Date.now() }, { merge: true });
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const sendClientRequest = async (professionalId, clientId, professionalRole, scope, initiatedBy) => {
+  if (isMockFirebase) return;
+  try {
+    await setDoc(doc(db, "client_relationships", `${professionalId}_${clientId}`), {
+      professionalId, clientId, professionalRole, scope, status: "pending", initiatedBy, createdAt: Date.now(), updatedAt: Date.now()
+    });
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const updateClientRelationshipStatus = async (professionalId, clientId, status) => {
+  if (isMockFirebase) return;
+  try {
+    await setDoc(doc(db, "client_relationships", `${professionalId}_${clientId}`), { status, updatedAt: Date.now() }, { merge: true });
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const getProfessionalClientRelationships = async (professionalId) => {
+  if (isMockFirebase) return [];
+  try {
+    const q = query(collection(db, "client_relationships"), where("professionalId", "==", professionalId));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    return [];
+  }
+};
+
+export const getUserClientRelationships = async (clientId) => {
+  if (isMockFirebase) return [];
+  try {
+    const q = query(collection(db, "client_relationships"), where("clientId", "==", clientId));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    return [];
+  }
+};
+
+export const getGymStaff = async (gymId) => {
+  if (isMockFirebase) return [];
+  try {
+    const q = query(collection(db, "gym_staff"), where("gymId", "==", gymId));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    return [];
+  }
+};
+
+export const getUserStaffRoles = async (staffId) => {
+  if (isMockFirebase) return [];
+  try {
+    const q = query(collection(db, "gym_staff"), where("staffId", "==", staffId));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    return [];
   }
 };

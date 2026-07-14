@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { getFoodLogs, addFoodLog, deleteFoodLog, saveEcosystemState, fetchWithRetry, saveUserProfile } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
@@ -158,7 +158,7 @@ export default function FoodTracker({ onNotification }) {
     }
   };
 
-  const recentFoods = React.useMemo(() => {
+  const recentFoods = useMemo(() => {
     const seen = new Set();
     const recents = [];
     for (const log of [...foodLogs]) {

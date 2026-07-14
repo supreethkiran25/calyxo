@@ -65,7 +65,14 @@ const DEFAULT_USER_PROFILE = {
     highContrastMode: false,
     dyslexiaFont: false,
     enable3DExperience: true
-  }
+  },
+  // Social
+  bio: '',
+  website: '',
+  coverImage: '',
+  followersCount: 0,
+  followingCount: 0,
+  isVerified: false
 };
 
 export const useStore = create((set, get) => ({

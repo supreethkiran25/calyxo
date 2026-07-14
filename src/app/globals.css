@@ -1,11 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 .brand-name {
-  font-family: 'Montserrat', 'Arial Black', -apple-system, sans-serif !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
   font-weight: 900 !important;
   letter-spacing: 0.16em !important;
   text-transform: uppercase !important;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
 }
 
 /* Tailwind v4 class-based dark mode toggle support */
@@ -53,8 +57,10 @@
   --secondary: #f3f4f6;
   --secondary-foreground: #111827;
   --muted: #f3f4f6;
-  --muted-foreground: #4b5563; /* Accessible gray text contrast */
-  --accent: #4c7a00; /* High contrast dark green text/buttons */
+  --muted-foreground: #4b5563;
+  /* Accessible gray text contrast */
+  --accent: #4c7a00;
+  /* High contrast dark green text/buttons */
   --accent-dim: #3d6600;
   --accent-foreground: #ffffff;
   --border: #e5e7eb;
@@ -86,39 +92,39 @@
 :root.dark,
 [data-theme='dark'] {
   /* Semantic WCAG variables (Dark Mode) */
-  --background: #030303;
+  --background: #0A0A0F;
   --foreground: #f3f4f6;
-  --card: #09090d;
+  --card: rgba(255, 255, 255, 0.05);
   --card-foreground: #f3f4f6;
-  --primary: #10B981;
+  --primary: #097d32;
   --primary-foreground: #ffffff;
-  --secondary: #0D0D12;
+  --secondary: #12121A;
   --secondary-foreground: #f3f4f6;
-  --muted: #121218;
-  --muted-foreground: #B9B9C7; /* Silver-grey text contrast */
-  --accent: #10B981; /* Calm Emerald Green */
-  --accent-dim: #059669;
+  --muted: #1A1A24;
+  --muted-foreground: #B9B9C7;
+  --accent: #097d32;
+  --accent-dim: #097d32;
   --accent-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.08);
-  --input: #121218;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: #12121A;
   --input-foreground: #f3f4f6;
-  --success: #10b981;
-  --warning: #f59e0b;
+  --success: #10B981;
+  --warning: #F59E0B;
   --destructive: #ef5350;
 
   /* Brand overrides for Dark Mode */
-  --orange-theme: #f57c38;
-  --blue-theme: #4fc3f7;
-  --primary-bg: #10B981;
+  --orange-theme: #F59E0B;
+  --blue-theme: #3B82F6;
+  --primary-bg: #097d32;
   --primary-fg: #ffffff;
-  --glow-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
-  --accent-glow: rgba(16, 185, 129, 0.2);
+  --glow-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+  --accent-glow: rgba(168, 85, 247, 0.2);
 
   /* Backward compatibility links */
   --card-bg: var(--card);
   --card-border: var(--border);
   --text-muted: var(--muted-foreground);
-  --nav-bg: rgba(3, 3, 3, 0.75);
+  --nav-bg: rgba(10, 10, 15, 0.75);
   --nav-border: var(--border);
   --surface: var(--secondary);
   --input-bg: var(--input);
@@ -127,24 +133,24 @@
 
 [data-theme='obsidian'] {
   /* Obsidian Dark (Dark Mode default) */
-  --background: #030303;
+  --background: #0A0A0F;
   --foreground: #f3f4f6;
-  --card: #09090d;
+  --card: rgba(255, 255, 255, 0.05);
   --card-foreground: #f3f4f6;
-  --primary: #10B981;
+  --primary: #097d32;
   --primary-foreground: #ffffff;
-  --secondary: #0D0D12;
+  --secondary: #12121A;
   --secondary-foreground: #f3f4f6;
-  --muted: #121218;
+  --muted: #1A1A24;
   --muted-foreground: #B9B9C7;
-  --accent: #10B981;
-  --accent-dim: #059669;
+  --accent: #097d32;
+  --accent-dim: #097d32;
   --accent-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.08);
-  --input: #121218;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: #12121A;
   --input-foreground: #f3f4f6;
-  --success: #10b981;
-  --warning: #f59e0b;
+  --success: #10B981;
+  --warning: #F59E0B;
   --destructive: #ef5350;
 
   --orange-theme: #f57c38;
@@ -268,10 +274,23 @@ body {
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-acid-green); }
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--card-border);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-acid-green);
+}
 
 /* Card styles */
 .card {
@@ -305,7 +324,9 @@ body {
 }
 
 /* Input styles */
-input, select, textarea {
+input,
+select,
+textarea {
   background: var(--input-bg);
   color: var(--foreground);
   border: 1px solid var(--card-border);
@@ -314,26 +335,45 @@ input, select, textarea {
   transition: border-color 0.2s ease;
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
   border-color: var(--color-acid-green);
 }
 
 /* Macro bar animations */
 @keyframes fillBar {
-  from { width: 0%; }
-  to { width: var(--fill-width); }
+  from {
+    width: 0%;
+  }
+
+  to {
+    width: var(--fill-width);
+  }
 }
 
 /* Progress ring */
 @keyframes ringFill {
-  from { stroke-dashoffset: var(--dash-total); }
-  to { stroke-dashoffset: var(--dash-offset); }
+  from {
+    stroke-dashoffset: var(--dash-total);
+  }
+
+  to {
+    stroke-dashoffset: var(--dash-offset);
+  }
 }
 
 /* Pulse */
 @keyframes softPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
 }
 
 .pulse-dot {
@@ -342,9 +382,17 @@ input:focus, select:focus, textarea:focus {
 
 /* Water animation */
 @keyframes waterRise {
-  0% { transform: scaleY(1); }
-  50% { transform: scaleY(1.015); }
-  100% { transform: scaleY(1); }
+  0% {
+    transform: scaleY(1);
+  }
+
+  50% {
+    transform: scaleY(1.015);
+  }
+
+  100% {
+    transform: scaleY(1);
+  }
 }
 
 .animate-water {
@@ -403,8 +451,13 @@ input:focus, select:focus, textarea:focus {
 
 /* Shimmer loading skeleton */
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .skeleton {
@@ -439,6 +492,7 @@ input:focus, select:focus, textarea:focus {
   border-radius: 3px;
   overflow: hidden;
 }
+
 .macro-bar-fill {
   height: 100%;
   border-radius: 3px;
@@ -462,20 +516,43 @@ input:focus, select:focus, textarea:focus {
 
 /* Custom Background Animations */
 @keyframes floatAnimation {
-  0% { transform: translateY(0px) rotate(0deg) scale(1); }
-  50% { transform: translateY(-40px) rotate(180deg) scale(1.05); }
-  100% { transform: translateY(0px) rotate(360deg) scale(1); }
+  0% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+
+  50% {
+    transform: translateY(-40px) rotate(180deg) scale(1.05);
+  }
+
+  100% {
+    transform: translateY(0px) rotate(360deg) scale(1);
+  }
 }
 
 @keyframes floatDelayedAnimation {
-  0% { transform: translateY(0px) rotate(0deg) scale(1.05); }
-  50% { transform: translateY(35px) rotate(-180deg) scale(0.95); }
-  100% { transform: translateY(0px) rotate(-360deg) scale(1.05); }
+  0% {
+    transform: translateY(0px) rotate(0deg) scale(1.05);
+  }
+
+  50% {
+    transform: translateY(35px) rotate(-180deg) scale(0.95);
+  }
+
+  100% {
+    transform: translateY(0px) rotate(-360deg) scale(1.05);
+  }
 }
 
 @keyframes pulseDelayedAnimation {
-  0%, 100% { opacity: 0.25; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .animate-float {
@@ -495,7 +572,8 @@ input:focus, select:focus, textarea:focus {
 .accessibility-large-text {
   font-size: 112% !important;
 }
-.accessibility-large-text .text-xs, 
+
+.accessibility-large-text .text-xs,
 .accessibility-large-text .text-\[10px\],
 .accessibility-large-text .text-\[9px\],
 .accessibility-large-text .text-\[8px\],
@@ -512,6 +590,7 @@ input:focus, select:focus, textarea:focus {
   --card-border: #ffffff !important;
   --muted-foreground: #ffffff !important;
 }
+
 .accessibility-high-contrast.light,
 .accessibility-high-contrast[data-theme='light'] {
   --background: #ffffff !important;
@@ -521,6 +600,7 @@ input:focus, select:focus, textarea:focus {
   --card-border: #000000 !important;
   --muted-foreground: #000000 !important;
 }
+
 .accessibility-high-contrast *,
 .accessibility-high-contrast button,
 .accessibility-high-contrast input,
@@ -536,6 +616,7 @@ input:focus, select:focus, textarea:focus {
 .accessibility-dyslexic-font {
   font-family: 'Comic Sans MS', 'OpenDyslexic', 'Chalkboard SE', cursive, sans-serif !important;
 }
+
 .accessibility-dyslexic-font * {
   font-family: 'Comic Sans MS', 'OpenDyslexic', 'Chalkboard SE', cursive, sans-serif !important;
   letter-spacing: 0.05em !important;
@@ -546,34 +627,139 @@ input:focus, select:focus, textarea:focus {
 
 /* Hide scrollbar but keep scrollability */
 .scrollbar-none {
-  -ms-overflow-style: none;  /* IE & Edge */
-  scrollbar-width: none;     /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
+
+@layer base {
+  :root {
+    /* Safe Area Variables */
+    --sat: env(safe-area-inset-top, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+
+    /* Spacing */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    --space-2xl: 3rem;
+
+    /* Touch Targets */
+    --min-touch-target: 48px;
+  }
+
+  /* Fluid Typography */
+  html {
+    font-size: 16px;
+  }
+
+  body {
+    font-size: clamp(0.9375rem, 0.4vw + 0.8rem, 1.125rem);
+    /* ~15px to 18px */
+    line-height: 1.5;
+  }
+
+  h1 {
+    font-size: clamp(1.375rem, 2vw + 1rem, 2.625rem);
+    /* ~22px to 42px */
+    line-height: 1.2;
+    font-weight: 900;
+  }
+
+  h2 {
+    font-size: clamp(1.25rem, 1.5vw + 1rem, 2rem);
+    /* ~20px to 32px */
+    line-height: 1.2;
+    font-weight: 800;
+  }
+
+  h3 {
+    font-size: clamp(1.125rem, 1vw + 1rem, 1.5rem);
+    /* ~18px to 24px */
+    line-height: 1.3;
+    font-weight: 700;
+  }
+
+  h4,
+  h5,
+  h6 {
+    font-size: clamp(1rem, 0.5vw + 1rem, 1.25rem);
+    /* ~16px to 20px */
+    line-height: 1.4;
+    font-weight: 700;
+  }
+
+  .caption {
+    font-size: clamp(0.8125rem, 0.2vw + 0.75rem, 0.9375rem);
+    /* ~13px to 15px */
+  }
+
+  /* Form Elements Touch Target */
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  select,
+  textarea {
+    min-height: var(--min-touch-target);
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost {
+    min-height: var(--min-touch-target);
+  }
+
+  @media (min-width: 1024px) {
+
+    /* Relax touch targets on desktop with mouse */
+    input[type="text"],
+    input[type="password"],
+    input[type="email"],
+    input[type="number"],
+    select,
+    textarea,
+    .btn-primary,
+    .btn-secondary,
+    .btn-ghost {
+      min-height: 40px;
+    }
+  }
+}
+
 .scrollbar-none::-webkit-scrollbar {
-  display: none;             /* Chrome/Safari/Opera */
+  display: none;
+  /* Chrome/Safari/Opera */
 }
 
 /* Safe area padding helpers */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
 .pt-safe {
   padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* Better touch targets on mobile */
 @media (max-width: 768px) {
+
   input[type="text"],
   input[type="number"],
   input[type="email"],
   input[type="password"],
   select,
   textarea {
-    font-size: 16px; /* Prevents iOS auto-zoom on focus */
+    font-size: 16px;
+    /* Prevents iOS auto-zoom on focus */
   }
 
   button {
-    min-height: 36px; /* Minimum tap target */
+    min-height: 36px;
+    /* Minimum tap target */
   }
 }
 
@@ -584,3 +770,11 @@ input:focus, select:focus, textarea:focus {
   width: 100%;
 }
 
+/* Glass Card Utility */
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+}

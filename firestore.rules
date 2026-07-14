@@ -12,6 +12,12 @@ service cloud.firestore {
       return isAuth() && request.auth.uid == userId;
     }
 
+    // Helper: is the current user an accepted professional for the client
+    function hasActiveClientRelationship(clientId) {
+      return exists(/databases/$(database)/documents/client_relationships/$(request.auth.uid + "_" + clientId)) &&
+             get(/databases/$(database)/documents/client_relationships/$(request.auth.uid + "_" + clientId)).data.status == "accepted";
+    }
+
     // User metrics: profile, water logs etc
     // Metric document ID is in format: {userId}_profile or {userId}_water
     match /users_metrics/{metricId} {
@@ -21,11 +27,20 @@ service cloud.firestore {
         (metricId.endsWith("_profile") && (
           !('privacy' in resource.data) ||
           resource.data.privacy.isPrivate == false ||
-          exists(/databases/$(database)/documents/follows/$(request.auth.uid + "_" + resource.data.userId)) &&
-          get(/databases/$(database)/documents/follows/$(request.auth.uid + "_" + resource.data.userId)).data.status == "accepted"
+          (exists(/databases/$(database)/documents/follows/$(request.auth.uid + "_" + resource.data.userId)) &&
+           get(/databases/$(database)/documents/follows/$(request.auth.uid + "_" + resource.data.userId)).data.status == "accepted") ||
+          hasActiveClientRelationship(resource.data.userId)
         ))
       );
-      allow write, delete: if isAuth() && (
+      allow create: if isAuth() && (
+        (metricId == request.auth.uid + "_profile" && (!('role' in request.resource.data) || request.resource.data.role == 'user')) || 
+        metricId == request.auth.uid + "_water"
+      );
+      allow update: if isAuth() && (
+        (metricId == request.auth.uid + "_profile" && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) || 
+        metricId == request.auth.uid + "_water"
+      );
+      allow delete: if isAuth() && (
         metricId == request.auth.uid + "_profile" || 
         metricId == request.auth.uid + "_water"
       );
@@ -38,22 +53,26 @@ service cloud.firestore {
 
     // Log items containing userId field
     match /food_logs/{logId} {
-      allow read, delete: if isAuth() && resource.data.userId == request.auth.uid;
+      allow read: if isAuth() && (resource.data.userId == request.auth.uid || hasActiveClientRelationship(resource.data.userId));
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
       allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
     }
 
     match /workout_logs/{logId} {
-      allow read, delete: if isAuth() && resource.data.userId == request.auth.uid;
+      allow read: if isAuth() && (resource.data.userId == request.auth.uid || hasActiveClientRelationship(resource.data.userId));
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
       allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
     }
 
     match /weight_logs/{logId} {
-      allow read, delete: if isAuth() && resource.data.userId == request.auth.uid;
+      allow read: if isAuth() && (resource.data.userId == request.auth.uid || hasActiveClientRelationship(resource.data.userId));
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
       allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
     }
 
     match /meal_scans/{logId} {
-      allow read, delete: if isAuth() && resource.data.userId == request.auth.uid;
+      allow read: if isAuth() && (resource.data.userId == request.auth.uid || hasActiveClientRelationship(resource.data.userId));
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
       allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
     }
 
@@ -96,10 +115,45 @@ service cloud.firestore {
       allow read: if isAuth() && (
         resource.data.userId == request.auth.uid || 
         (exists(/databases/$(database)/documents/follows/$(request.auth.uid + "_" + resource.data.userId)) &&
-         get(/databases/$(database)/documents/follows/$(request.auth.uid + "_" + resource.data.userId)).data.status == "accepted")
+         get(/databases/$(database)/documents/follows/$(request.auth.uid + "_" + resource.data.userId)).data.status == "accepted") ||
+        hasActiveClientRelationship(resource.data.userId)
       );
       allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
       allow delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
+
+    // --- Relationship Ecosystem ---
+
+    // gyms
+    match /gyms/{gymId} {
+      allow read: if isAuth(); 
+      allow create: if isAuth(); 
+      allow update, delete: if isAuth() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // gym_staff
+    match /gym_staff/{staffDocId} {
+      allow read: if isAuth() && (
+        resource.data.staffId == request.auth.uid ||
+        get(/databases/$(database)/documents/gyms/$(resource.data.gymId)).data.ownerId == request.auth.uid
+      );
+      allow create: if isAuth() && get(/databases/$(database)/documents/gyms/$(request.resource.data.gymId)).data.ownerId == request.auth.uid;
+      allow update: if isAuth() && resource.data.staffId == request.auth.uid && request.resource.data.status in ['accepted', 'declined'];
+      allow delete: if isAuth() && (
+        resource.data.staffId == request.auth.uid ||
+        get(/databases/$(database)/documents/gyms/$(resource.data.gymId)).data.ownerId == request.auth.uid
+      );
+    }
+
+    // client_relationships
+    match /client_relationships/{relId} {
+      allow read: if isAuth() && (resource.data.professionalId == request.auth.uid || resource.data.clientId == request.auth.uid);
+      allow create: if isAuth() && (request.resource.data.initiatedBy == request.auth.uid);
+      allow update: if isAuth() && (
+        (resource.data.clientId == request.auth.uid && request.resource.data.status in ['accepted', 'declined']) ||
+        (resource.data.professionalId == request.auth.uid && request.resource.data.status in ['accepted', 'declined'])
+      );
+      allow delete: if isAuth() && (resource.data.professionalId == request.auth.uid || resource.data.clientId == request.auth.uid);
     }
   }
 }
