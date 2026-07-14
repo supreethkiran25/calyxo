@@ -850,3 +850,115 @@ export const fetchWithRetry = async (url, options = {}, retries = 3, delay = 100
     throw error;
   }
 };
+
+/* ==========================================================================
+   RELATIONSHIP ECOSYSTEM API
+   ========================================================================== */
+
+export const createGym = async (ownerId, name, description) => {
+  if (isMockFirebase) return { id: "mock-gym", name, ownerId };
+  const gym = { name, description, ownerId, createdAt: Date.now() };
+  try {
+    const docRef = await addDoc(collection(db, "gyms"), gym);
+    return { id: docRef.id, ...gym };
+  } catch (err) {
+    console.error("Error creating gym", err);
+    throw err;
+  }
+};
+
+export const getGymsForOwner = async (ownerId) => {
+  if (isMockFirebase) return [];
+  try {
+    const q = query(collection(db, "gyms"), where("ownerId", "==", ownerId));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    return [];
+  }
+};
+
+export const inviteGymStaff = async (gymId, staffId, role, invitedBy) => {
+  if (isMockFirebase) return;
+  try {
+    await setDoc(doc(db, "gym_staff", `${gymId}_${staffId}`), {
+      gymId, staffId, role, status: "pending", invitedBy, createdAt: Date.now(), updatedAt: Date.now()
+    });
+  } catch (err) {
+    console.error("Error inviting staff", err);
+    throw err;
+  }
+};
+
+export const updateStaffStatus = async (gymId, staffId, status) => {
+  if (isMockFirebase) return;
+  try {
+    await setDoc(doc(db, "gym_staff", `${gymId}_${staffId}`), { status, updatedAt: Date.now() }, { merge: true });
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const sendClientRequest = async (professionalId, clientId, professionalRole, scope, initiatedBy) => {
+  if (isMockFirebase) return;
+  try {
+    await setDoc(doc(db, "client_relationships", `${professionalId}_${clientId}`), {
+      professionalId, clientId, professionalRole, scope, status: "pending", initiatedBy, createdAt: Date.now(), updatedAt: Date.now()
+    });
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const updateClientRelationshipStatus = async (professionalId, clientId, status) => {
+  if (isMockFirebase) return;
+  try {
+    await setDoc(doc(db, "client_relationships", `${professionalId}_${clientId}`), { status, updatedAt: Date.now() }, { merge: true });
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const getProfessionalClientRelationships = async (professionalId) => {
+  if (isMockFirebase) return [];
+  try {
+    const q = query(collection(db, "client_relationships"), where("professionalId", "==", professionalId));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    return [];
+  }
+};
+
+export const getUserClientRelationships = async (clientId) => {
+  if (isMockFirebase) return [];
+  try {
+    const q = query(collection(db, "client_relationships"), where("clientId", "==", clientId));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    return [];
+  }
+};
+
+export const getGymStaff = async (gymId) => {
+  if (isMockFirebase) return [];
+  try {
+    const q = query(collection(db, "gym_staff"), where("gymId", "==", gymId));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    return [];
+  }
+};
+
+export const getUserStaffRoles = async (staffId) => {
+  if (isMockFirebase) return [];
+  try {
+    const q = query(collection(db, "gym_staff"), where("staffId", "==", staffId));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    return [];
+  }
+};

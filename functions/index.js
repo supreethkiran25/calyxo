@@ -1,4 +1,4 @@
-const { onRequest } = require("firebase-functions/v2/https");
+const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getStorage } = require("firebase-admin/storage");
 const admin = require("firebase-admin");
@@ -51,4 +51,37 @@ exports.exportTrainingLogs = onRequest(async (req, res) => {
     console.error("Export function error:", error);
     res.status(500).send({ error: error.message });
   }
+});
+
+exports.setUserRole = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in.");
+  }
+
+  const callerUid = request.auth.uid;
+  const db = getFirestore();
+
+  // Verify caller is admin
+  const callerProfileSnap = await db.collection("users_metrics").doc(`${callerUid}_profile`).get();
+  if (!callerProfileSnap.exists) {
+    throw new HttpsError("permission-denied", "Caller profile not found.");
+  }
+
+  const callerRole = callerProfileSnap.data().role;
+  if (callerRole !== "admin") {
+    throw new HttpsError("permission-denied", "Only admins can change roles.");
+  }
+
+  const targetUid = request.data.targetUid;
+  const newRole = request.data.newRole;
+
+  if (!['user', 'trainer', 'dietitian', 'admin'].includes(newRole)) {
+    throw new HttpsError("invalid-argument", "Invalid role specified.");
+  }
+
+  await db.collection("users_metrics").doc(`${targetUid}_profile`).update({
+    role: newRole
+  });
+
+  return { success: true, role: newRole };
 });

@@ -5,24 +5,27 @@ import { useStore } from '../store/useStore';
 import { getWorkoutLogs, addWorkoutLog, saveEcosystemState } from '../lib/dbService';
 import { publishActivity } from '../lib/socialService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
-import { Plus, Dumbbell, Clock, Edit3, X, Check, Search, Trophy } from 'lucide-react';
+import { Plus, Dumbbell, Clock, Edit3, X, Check, Search, Trophy, Activity, Move, PersonStanding, Target, User, Crosshair } from 'lucide-react';
+
+const globalImageCache = new Map();
+const activeFetches = new Set();
 import { motion, AnimatePresence } from 'framer-motion';
 
 const LOCAL_EXERCISES = [
-  "Incline Dumbbell Press",
-  "Barbell Back Squats",
-  "Weighted Pull-ups",
-  "Romanian Deadlifts (RDLs)",
-  "Dumbbell Lateral Raises",
-  "Overhead Press",
-  "Bicep Curls",
-  "Tricep Pushdowns",
-  "Plank Hold",
-  "Hanging Leg Raises",
-  "Flat Bench Press",
-  "Lat Pulldown",
-  "Seated Cable Rows",
-  "Leg Press"
+  { name: "Incline Dumbbell Bench Press", muscleGroup: "Chest", category: "Strength" },
+  { name: "Barbell Back Squats", muscleGroup: "Legs", category: "Strength" },
+  { name: "Weighted Pull-ups", muscleGroup: "Back", category: "Strength" },
+  { name: "Lat Pulldown", muscleGroup: "Back", category: "Hypertrophy" },
+  { name: "Romanian Deadlifts (RDLs)", muscleGroup: "Legs", category: "Strength" },
+  { name: "Dumbbell Lateral Shoulder Raises", muscleGroup: "Shoulders", category: "Hypertrophy" },
+  { name: "Overhead Barbell Press", muscleGroup: "Shoulders", category: "Strength" },
+  { name: "Dumbbell Alternate Bicep Curls", muscleGroup: "Arms", category: "Hypertrophy" },
+  { name: "Tricep Parallel Dips", muscleGroup: "Arms", category: "Hypertrophy" },
+  { name: "Plank Hold", muscleGroup: "Core", category: "Strength" },
+  { name: "Hanging Knee / Leg Raises", muscleGroup: "Core", category: "Hypertrophy" },
+  { name: "Flat Bench Press", muscleGroup: "Chest", category: "Strength" },
+  { name: "Seated Cable Rows", muscleGroup: "Back", category: "Hypertrophy" },
+  { name: "Heavy Leg Press", muscleGroup: "Legs", category: "Strength" }
 ];
 
 const INITIAL_WORKOUT_SPLITS = [
@@ -111,6 +114,26 @@ const INITIAL_WORKOUT_SPLITS = [
   }
 ];
 
+const FallbackIcon = ({ category, muscleGroup, className }) => {
+  if (muscleGroup) {
+    switch (muscleGroup.toLowerCase()) {
+      case 'chest': return <Target className={className} />;
+      case 'back': return <Move className={className} />;
+      case 'legs': return <PersonStanding className={className} />;
+      case 'shoulders': return <User className={className} />;
+      case 'arms': return <Crosshair className={className} />;
+      case 'core': return <Activity className={className} />;
+      default: break;
+    }
+  }
+  switch (category) {
+    case 'Cardio': return <Activity className={className} />;
+    case 'Hypertrophy': return <Move className={className} />;
+    case 'Strength':
+    default: return <Dumbbell className={className} />;
+  }
+};
+
 export default function WorkoutLogger({ onNotification }) {
   const user = useStore(state => state.user);
   const workoutLogs = useStore(state => state.workoutLogs);
@@ -134,6 +157,48 @@ export default function WorkoutLogger({ onNotification }) {
 
   const [activeSubTab, setActiveSubTab] = useState('logger');
 
+  const [imageTick, setImageTick] = useState(0);
+
+  const fetchImageForExercise = async (name) => {
+    if (globalImageCache.has(name) || activeFetches.has(name)) return;
+    activeFetches.add(name);
+    try {
+      const res = await fetch(`https://wger.de/api/v2/exercise/?name__icontains=${encodeURIComponent(name)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.results && data.results.length > 0) {
+          const exId = data.results[0].id;
+          const imgRes = await fetch(`https://wger.de/api/v2/exerciseimage/?exercise=${exId}`);
+          if (imgRes.ok) {
+            const imgData = await imgRes.json();
+            if (imgData.results && imgData.results.length > 0) {
+              globalImageCache.set(name, imgData.results[0].image);
+              setImageTick(t => t + 1);
+              return;
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("wger image fetch failed for", name, err);
+    }
+    globalImageCache.set(name, null);
+    setImageTick(t => t + 1);
+  };
+
+  useEffect(() => {
+    todaysWorkoutLogs.forEach(log => {
+      if (!log.image && !globalImageCache.has(log.name)) {
+        fetchImageForExercise(log.name);
+      }
+    });
+    splits[activeDay].workout.exercises.forEach(ex => {
+      if (!ex.image && !globalImageCache.has(ex.name)) {
+        fetchImageForExercise(ex.name);
+      }
+    });
+  }, [todaysWorkoutLogs, splits, activeDay]);
+
   // Autocomplete search states
   const [exQuery, setExQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -143,6 +208,7 @@ export default function WorkoutLogger({ onNotification }) {
   // Form Fields
   const [exName, setExName] = useState('');
   const [exCategory, setExCategory] = useState('Strength');
+  const [exImage, setExImage] = useState(null);
   const [exSets, setExSets] = useState('');
   const [exReps, setExReps] = useState('');
   const [exWeight, setExWeight] = useState('');
@@ -216,33 +282,20 @@ export default function WorkoutLogger({ onNotification }) {
       return;
     }
 
-    const locals = LOCAL_EXERCISES.filter(x => x.toLowerCase().includes(val.toLowerCase())).map(x => ({
-      name: x,
-      category: "Strength"
+    const locals = LOCAL_EXERCISES.filter(x => x.name.toLowerCase().includes(val.toLowerCase())).map(x => ({
+      name: x.name,
+      category: x.category || "Strength",
+      muscleGroup: x.muscleGroup,
+      image: globalImageCache.get(x.name) || null
     }));
 
-    let apiResults = [];
-    try {
-      const response = await fetch(`/api/workout?q=${encodeURIComponent(val)}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.suggestions && data.suggestions.length > 0) {
-          apiResults = data.suggestions.map(s => ({
-            name: s.value,
-            category: s.data.category || "Strength"
-          }));
-        } else if (data.results && data.results.length > 0) {
-          apiResults = data.results.map(r => ({
-            name: r.title,
-            category: "Strength"
-          }));
-        }
+    locals.forEach(item => {
+      if (!globalImageCache.has(item.name)) {
+        fetchImageForExercise(item.name);
       }
-    } catch (err) {
-      console.warn("wger API search failed, falling back to local catalog", err);
-    }
+    });
 
-    setSearchResults([...locals, ...apiResults].slice(0, 8));
+    setSearchResults(locals.slice(0, 8));
     setShowDropdown(true);
   };
 
@@ -257,6 +310,7 @@ export default function WorkoutLogger({ onNotification }) {
   const selectExercise = (ex) => {
     setExName(ex.name);
     setExCategory(ex.category || 'Strength');
+    setExImage(ex.image || null);
     setExQuery('');
     setShowDropdown(false);
   };
@@ -304,6 +358,7 @@ export default function WorkoutLogger({ onNotification }) {
     const workoutItem = {
       name: exName.trim(),
       category: exCategory,
+      image: exImage,
       sets: exCategory === 'Cardio' ? 0 : sets,
       reps: exCategory === 'Cardio' ? 0 : reps,
       weight: exCategory === 'Cardio' ? 0 : weight,
@@ -324,6 +379,7 @@ export default function WorkoutLogger({ onNotification }) {
       ).catch(err => console.error("Error publishing workout activity", err));
       // Clear form
       setExName('');
+      setExImage(null);
       setExSets('');
       setExReps('');
       setExWeight('');
@@ -450,10 +506,18 @@ export default function WorkoutLogger({ onNotification }) {
                                 <div 
                                   key={idx}
                                   onClick={() => selectExercise(item)}
-                                  className="px-4 py-2.5 border-b border-card-border last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-acid-green hover:text-accent-foreground transition-colors"
+                                  className="px-4 py-2.5 border-b border-card-border last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-acid-green hover:text-accent-foreground transition-colors gap-3"
                                 >
-                                  <span className="text-xs font-semibold">{item.name}</span>
-                                  <span className="text-[9px] opacity-75">{item.category}</span>
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-10 h-10 rounded-md bg-surface/50 border border-card-border/50 flex items-center justify-center shrink-0 overflow-hidden">
+                                      {item.image || globalImageCache.get(item.name) ? (
+                                        <img src={item.image || globalImageCache.get(item.name)} alt={item.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+                                      ) : null}
+                                      <FallbackIcon category={item.category} muscleGroup={item.muscleGroup || LOCAL_EXERCISES.find(l => l.name === item.name)?.muscleGroup} className={`w-4 h-4 text-muted ${(item.image || globalImageCache.get(item.name)) ? 'hidden' : ''}`} />
+                                    </div>
+                                    <span className="text-xs font-semibold truncate">{item.name}</span>
+                                  </div>
+                                  <span className="text-[9px] opacity-75 shrink-0">{item.category}</span>
                                 </div>
                               ))}
                             </motion.div>
@@ -549,12 +613,20 @@ export default function WorkoutLogger({ onNotification }) {
                   <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
                     {todaysWorkoutLogs && todaysWorkoutLogs.length > 0 ? (
                       todaysWorkoutLogs.map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-center bg-surface/50 border border-card-border px-4 py-3 rounded-xl">
-                          <div className="flex flex-col">
-                            <span className="text-xs font-bold text-foreground">{item.name}</span>
-                            <span className="text-[9px] text-muted mt-0.5 font-medium">Category: {item.category}</span>
+                        <div key={idx} className="flex justify-between items-center bg-surface/50 border border-card-border px-4 py-3 rounded-xl gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded border border-card-border/50 bg-black/20 flex items-center justify-center shrink-0 overflow-hidden">
+                              {item.image || globalImageCache.get(item.name) ? (
+                                <img src={item.image || globalImageCache.get(item.name)} alt={item.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+                              ) : null}
+                              <FallbackIcon category={item.category} muscleGroup={item.muscleGroup || LOCAL_EXERCISES.find(l => l.name === item.name)?.muscleGroup} className={`w-4 h-4 text-muted ${(item.image || globalImageCache.get(item.name)) ? 'hidden' : ''}`} />
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-xs font-bold text-foreground truncate">{item.name}</span>
+                              <span className="text-[9px] text-muted mt-0.5 font-medium truncate">Category: {item.category}</span>
+                            </div>
                           </div>
-                          <div className="text-xs font-bold text-acid-green">
+                          <div className="text-xs font-bold text-acid-green shrink-0">
                             {item.category === "Cardio" ? (
                               <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {item.duration} Mins</span>
                             ) : (
@@ -645,9 +717,17 @@ export default function WorkoutLogger({ onNotification }) {
                       <div className="mt-4 border-t border-card-border pt-3 space-y-3">
                         <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Exercises Recommended:</span>
                         {splits[activeDay].workout.exercises.map((ex, i) => (
-                          <div key={i} className="flex justify-between items-center text-xs">
-                            <span className="font-semibold text-foreground">{ex.name}</span>
-                            <span className="text-muted text-[11px]">{ex.details}</span>
+                          <div key={i} className="flex justify-between items-center text-xs gap-3">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="w-8 h-8 rounded border border-card-border/50 bg-black/20 flex items-center justify-center shrink-0 overflow-hidden">
+                                {ex.image || globalImageCache.get(ex.name) ? (
+                                  <img src={ex.image || globalImageCache.get(ex.name)} alt={ex.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+                                ) : null}
+                                <FallbackIcon category={ex.category || 'Strength'} muscleGroup={ex.muscleGroup || LOCAL_EXERCISES.find(l => l.name === ex.name)?.muscleGroup} className={`w-4 h-4 text-muted ${(ex.image || globalImageCache.get(ex.name)) ? 'hidden' : ''}`} />
+                              </div>
+                              <span className="font-semibold text-foreground truncate">{ex.name}</span>
+                            </div>
+                            <span className="text-muted text-[11px] shrink-0 text-right max-w-[120px] sm:max-w-[160px] md:max-w-none">{ex.details}</span>
                           </div>
                         ))}
                       </div>
