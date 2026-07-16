@@ -86,6 +86,16 @@ export const useStore = create((set, get) => ({
   weightLogs: [],
   waterIntake: 0,
   userProfile: DEFAULT_USER_PROFILE,
+  favoriteExercises: typeof window !== 'undefined' ? (() => {
+    try {
+      return JSON.parse(localStorage.getItem('calyxo_favorite_exercises') || '[]');
+    } catch(e) { return []; }
+  })() : [],
+  recentlyViewedExercises: typeof window !== 'undefined' ? (() => {
+    try {
+      return JSON.parse(localStorage.getItem('calyxo_recent_exercises') || '[]');
+    } catch(e) { return []; }
+  })() : [],
 
   // Auth Actions
   setUser: (user) => set({ user }),
@@ -191,6 +201,26 @@ export const useStore = create((set, get) => ({
     userProfile: { ...state.userProfile, ...profileUpdates }
   })),
 
+  toggleFavoriteExercise: (id) => set((state) => {
+    const isFav = state.favoriteExercises.includes(id);
+    const nextFavs = isFav 
+      ? state.favoriteExercises.filter(x => x !== id)
+      : [...state.favoriteExercises, id];
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('calyxo_favorite_exercises', JSON.stringify(nextFavs));
+    }
+    return { favoriteExercises: nextFavs };
+  }),
+
+  addRecentlyViewedExercise: (id) => set((state) => {
+    const filtered = state.recentlyViewedExercises.filter(x => x !== id);
+    const nextRecents = [id, ...filtered].slice(0, 10);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('calyxo_recent_exercises', JSON.stringify(nextRecents));
+    }
+    return { recentlyViewedExercises: nextRecents };
+  }),
+
   // Clear states on Logout
   resetStore: () => set({
     user: null,
@@ -199,6 +229,8 @@ export const useStore = create((set, get) => ({
     workoutLogs: [],
     weightLogs: [],
     waterIntake: 0,
-    userProfile: DEFAULT_USER_PROFILE
+    userProfile: DEFAULT_USER_PROFILE,
+    favoriteExercises: [],
+    recentlyViewedExercises: []
   })
 }));

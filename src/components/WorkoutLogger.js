@@ -5,28 +5,13 @@ import { useStore } from '../store/useStore';
 import { getWorkoutLogs, addWorkoutLog, saveEcosystemState } from '../lib/dbService';
 
 import { useEcosystemStore } from '../store/useEcosystemStore';
-import { Plus, Dumbbell, Clock, Edit3, X, Check, Search, Trophy, Activity, Move, PersonStanding, Target, User, Crosshair } from 'lucide-react';
+import { Plus, Dumbbell, Clock, Edit3, X, Check, Search, Trophy, Activity, Move, PersonStanding, Target, User, Crosshair, Heart, Share2 } from 'lucide-react';
 
 const globalImageCache = new Map();
 const activeFetches = new Set();
 import { motion, AnimatePresence } from 'framer-motion';
 
-const LOCAL_EXERCISES = [
-  { name: "Incline Dumbbell Bench Press", muscleGroup: "Chest", category: "Strength" },
-  { name: "Barbell Back Squats", muscleGroup: "Legs", category: "Strength" },
-  { name: "Weighted Pull-ups", muscleGroup: "Back", category: "Strength" },
-  { name: "Lat Pulldown", muscleGroup: "Back", category: "Hypertrophy" },
-  { name: "Romanian Deadlifts (RDLs)", muscleGroup: "Legs", category: "Strength" },
-  { name: "Dumbbell Lateral Shoulder Raises", muscleGroup: "Shoulders", category: "Hypertrophy" },
-  { name: "Overhead Barbell Press", muscleGroup: "Shoulders", category: "Strength" },
-  { name: "Dumbbell Alternate Bicep Curls", muscleGroup: "Arms", category: "Hypertrophy" },
-  { name: "Tricep Parallel Dips", muscleGroup: "Arms", category: "Hypertrophy" },
-  { name: "Plank Hold", muscleGroup: "Core", category: "Strength" },
-  { name: "Hanging Knee / Leg Raises", muscleGroup: "Core", category: "Hypertrophy" },
-  { name: "Flat Bench Press", muscleGroup: "Chest", category: "Strength" },
-  { name: "Seated Cable Rows", muscleGroup: "Back", category: "Hypertrophy" },
-  { name: "Heavy Leg Press", muscleGroup: "Legs", category: "Strength" }
-];
+import exercisesData from '../lib/exercises.json';
 
 const INITIAL_WORKOUT_SPLITS = [
   {
@@ -116,15 +101,13 @@ const INITIAL_WORKOUT_SPLITS = [
 
 const FallbackIcon = ({ category, muscleGroup, className }) => {
   if (muscleGroup) {
-    switch (muscleGroup.toLowerCase()) {
-      case 'chest': return <Target className={className} />;
-      case 'back': return <Move className={className} />;
-      case 'legs': return <PersonStanding className={className} />;
-      case 'shoulders': return <User className={className} />;
-      case 'arms': return <Crosshair className={className} />;
-      case 'core': return <Activity className={className} />;
-      default: break;
-    }
+    const mg = muscleGroup.toLowerCase();
+    if (mg.includes('chest')) return <Target className={className} />;
+    if (mg.includes('back')) return <Move className={className} />;
+    if (mg.includes('leg')) return <PersonStanding className={className} />;
+    if (mg.includes('shoulder') || mg.includes('neck')) return <User className={className} />;
+    if (mg.includes('arm')) return <Crosshair className={className} />;
+    if (mg.includes('waist') || mg.includes('core')) return <Activity className={className} />;
   }
   switch (category) {
     case 'Cardio': return <Activity className={className} />;
@@ -186,18 +169,7 @@ export default function WorkoutLogger({ onNotification }) {
     setImageTick(t => t + 1);
   };
 
-  useEffect(() => {
-    todaysWorkoutLogs.forEach(log => {
-      if (!log.image && !globalImageCache.has(log.name)) {
-        fetchImageForExercise(log.name);
-      }
-    });
-    splits[activeDay].workout.exercises.forEach(ex => {
-      if (!ex.image && !globalImageCache.has(ex.name)) {
-        fetchImageForExercise(ex.name);
-      }
-    });
-  }, [todaysWorkoutLogs, splits, activeDay]);
+
 
   // Autocomplete search states
   const [exQuery, setExQuery] = useState('');
@@ -220,6 +192,29 @@ export default function WorkoutLogger({ onNotification }) {
   const [splits, setSplits] = useState(INITIAL_WORKOUT_SPLITS);
   const [editingSplit, setEditingSplit] = useState(false);
   const [editRoutineFields, setEditRoutineFields] = useState({ type: '', desc: '', exercises: [] });
+
+  // Exercise Library States
+  const [libQuery, setLibQuery] = useState('');
+  const [libBodyPart, setLibBodyPart] = useState('all');
+  const [libTarget, setLibTarget] = useState('all');
+  const [libEquipment, setLibEquipment] = useState('all');
+  const [libCategory, setLibCategory] = useState('all');
+  const [libOnlyFavorites, setLibOnlyFavorites] = useState(false);
+  const [libLimit, setLibLimit] = useState(24);
+  const [selectedExercise, setSelectedExercise] = useState(null);
+
+  useEffect(() => {
+    todaysWorkoutLogs.forEach(log => {
+      if (!log.image && !globalImageCache.has(log.name)) {
+        fetchImageForExercise(log.name);
+      }
+    });
+    splits[activeDay].workout.exercises.forEach(ex => {
+      if (!ex.image && !globalImageCache.has(ex.name)) {
+        fetchImageForExercise(ex.name);
+      }
+    });
+  }, [todaysWorkoutLogs, splits, activeDay]);
 
   const [selectedSoreness, setSelectedSoreness] = useState(5);
   const [selectedFatigue, setSelectedFatigue] = useState(5);
@@ -282,24 +277,33 @@ export default function WorkoutLogger({ onNotification }) {
       return;
     }
 
-    const locals = LOCAL_EXERCISES.filter(x => x.name.toLowerCase().includes(val.toLowerCase())).map(x => ({
-      name: x.name,
-      category: x.category || "Strength",
-      muscleGroup: x.muscleGroup,
-      image: globalImageCache.get(x.name) || null
-    }));
+    const matches = exercisesData
+      .filter(x => 
+        x.name.toLowerCase().includes(val.toLowerCase()) ||
+        (x.body_part || '').toLowerCase().includes(val.toLowerCase()) ||
+        (x.target || '').toLowerCase().includes(val.toLowerCase())
+      )
+      .map(x => ({
+        id: x.id,
+        name: x.name,
+        category: x.category || "Strength",
+        muscleGroup: x.muscle_group || x.body_part,
+        image: x.image,
+        gif_url: x.gif_url,
+        instructions: x.instructions,
+        instruction_steps: x.instruction_steps,
+        equipment: x.equipment,
+        target: x.target,
+        body_part: x.body_part,
+        caloriesEstimate: x.caloriesEstimate,
+        difficulty: x.difficulty
+      }));
 
-    locals.forEach(item => {
-      if (!globalImageCache.has(item.name)) {
-        fetchImageForExercise(item.name);
-      }
-    });
-
-    setSearchResults(locals.slice(0, 8));
+    setSearchResults(matches.slice(0, 8));
     setShowDropdown(true);
   };
 
-  // wger API Search Debouncer
+  // wger API Search Debouncer (kept for local search trigger)
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       handleSearch(exQuery);
@@ -408,6 +412,37 @@ export default function WorkoutLogger({ onNotification }) {
     if (onNotification) onNotification("Suggested workout split updated.");
   };
 
+  const favoriteExercises = useStore(state => state.favoriteExercises || []);
+  const toggleFavoriteExercise = useStore(state => state.toggleFavoriteExercise);
+  const recentlyViewedExercises = useStore(state => state.recentlyViewedExercises || []);
+  const addRecentlyViewedExercise = useStore(state => state.addRecentlyViewedExercise);
+
+  // Derive unique categories for select list
+  const uniqueBodyParts = Array.from(new Set(exercisesData.map(e => e.body_part))).filter(Boolean).sort();
+  const uniqueTargets = Array.from(new Set(exercisesData.map(e => e.target))).filter(Boolean).sort();
+  const uniqueEquipments = Array.from(new Set(exercisesData.map(e => e.equipment))).filter(Boolean).sort();
+  const uniqueCategories = Array.from(new Set(exercisesData.map(e => e.category))).filter(Boolean).sort();
+
+  // Filter exercises
+  const filteredExercises = exercisesData.filter(ex => {
+    const matchesSearch = !libQuery.trim() || 
+      ex.name.toLowerCase().includes(libQuery.toLowerCase()) ||
+      (ex.body_part || '').toLowerCase().includes(libQuery.toLowerCase()) ||
+      (ex.target || '').toLowerCase().includes(libQuery.toLowerCase()) ||
+      (ex.equipment || '').toLowerCase().includes(libQuery.toLowerCase()) ||
+      (ex.category || '').toLowerCase().includes(libQuery.toLowerCase());
+
+    const matchesBodyPart = libBodyPart === 'all' || ex.body_part === libBodyPart;
+    const matchesTarget = libTarget === 'all' || ex.target === libTarget;
+    const matchesEquipment = libEquipment === 'all' || ex.equipment === libEquipment;
+    const matchesCategory = libCategory === 'all' || ex.category === libCategory;
+    const matchesFavorite = !libOnlyFavorites || favoriteExercises.includes(ex.id);
+
+    return matchesSearch && matchesBodyPart && matchesTarget && matchesEquipment && matchesCategory && matchesFavorite;
+  });
+
+  const visibleExercises = filteredExercises.slice(0, libLimit);
+
   const inputStyle = "w-full bg-[var(--input)] border border-card-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner";
 
   return (
@@ -425,6 +460,7 @@ export default function WorkoutLogger({ onNotification }) {
         <div className="bg-surface border border-card-border p-1 rounded-xl flex gap-0.5 w-full overflow-x-auto scrollbar-none">
           {[
             { id: 'logger', label: 'Logger' },
+            { id: 'library', label: 'Library' },
             { id: 'analytics', label: 'Analytics' },
             { id: 'challenges', label: 'Challenges' }
           ].map(tab => (
@@ -612,7 +648,7 @@ export default function WorkoutLogger({ onNotification }) {
                               {item.image || globalImageCache.get(item.name) ? (
                                 <img src={item.image || globalImageCache.get(item.name)} alt={item.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
                               ) : null}
-                              <FallbackIcon category={item.category} muscleGroup={item.muscleGroup || LOCAL_EXERCISES.find(l => l.name === item.name)?.muscleGroup} className={`w-4 h-4 text-muted ${(item.image || globalImageCache.get(item.name)) ? 'hidden' : ''}`} />
+                              <FallbackIcon category={item.category} muscleGroup={item.muscleGroup || exercisesData.find(l => l.name === item.name)?.muscle_group || exercisesData.find(l => l.name === item.name)?.body_part} className={`w-4 h-4 text-muted ${(item.image || globalImageCache.get(item.name)) ? 'hidden' : ''}`} />
                             </div>
                             <div className="flex flex-col min-w-0">
                               <span className="text-xs font-bold text-foreground truncate">{item.name}</span>
@@ -716,7 +752,7 @@ export default function WorkoutLogger({ onNotification }) {
                                 {ex.image || globalImageCache.get(ex.name) ? (
                                   <img src={ex.image || globalImageCache.get(ex.name)} alt={ex.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
                                 ) : null}
-                                <FallbackIcon category={ex.category || 'Strength'} muscleGroup={ex.muscleGroup || LOCAL_EXERCISES.find(l => l.name === ex.name)?.muscleGroup} className={`w-4 h-4 text-muted ${(ex.image || globalImageCache.get(ex.name)) ? 'hidden' : ''}`} />
+                                <FallbackIcon category={ex.category || 'Strength'} muscleGroup={ex.muscleGroup || exercisesData.find(l => l.name === ex.name)?.muscle_group || exercisesData.find(l => l.name === ex.name)?.body_part} className={`w-4 h-4 text-muted ${(ex.image || globalImageCache.get(ex.name)) ? 'hidden' : ''}`} />
                               </div>
                               <span className="font-semibold text-foreground truncate">{ex.name}</span>
                             </div>
@@ -728,6 +764,210 @@ export default function WorkoutLogger({ onNotification }) {
                   )}
                 </section>
               </div>
+            </div>
+          )}
+
+          {/* LIBRARY TAB VIEW */}
+          {activeSubTab === 'library' && (
+            <div className="space-y-6">
+              {/* Search & Toggle row */}
+              <div className="glass rounded-2xl p-5 flex flex-col gap-4">
+                <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
+                  <div className="relative flex-1 flex items-center">
+                    <Search className="absolute left-3.5 w-4 h-4 text-muted" />
+                    <input
+                      type="text"
+                      value={libQuery}
+                      onChange={(e) => {
+                        setLibQuery(e.target.value);
+                        setLibLimit(24); // reset limit on search
+                      }}
+                      placeholder="Search exercises by name, muscle, equipment..."
+                      className="w-full bg-[var(--input)] border border-card-border focus:border-acid-green rounded-xl pl-11 pr-4 py-3 text-sm text-foreground focus:outline-none shadow-inner"
+                    />
+                    {libQuery && (
+                      <button 
+                        onClick={() => { setLibQuery(''); setLibLimit(24); }} 
+                        className="absolute right-3 text-xs text-muted hover:text-foreground cursor-pointer bg-transparent border-none"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setLibOnlyFavorites(prev => !prev);
+                      setLibLimit(24);
+                    }}
+                    className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                      libOnlyFavorites
+                        ? 'bg-acid-green text-accent-foreground border-acid-green'
+                        : 'bg-surface border-card-border text-muted hover:text-foreground'
+                    }`}
+                  >
+                    <Heart className={`w-4 h-4 ${libOnlyFavorites ? 'fill-current' : ''}`} />
+                    <span>Favorites {favoriteExercises.length > 0 ? `(${favoriteExercises.length})` : ''}</span>
+                  </button>
+                </div>
+
+                {/* Filters grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Body Part</label>
+                    <select
+                      value={libBodyPart}
+                      onChange={(e) => { setLibBodyPart(e.target.value); setLibLimit(24); }}
+                      className="bg-[var(--input)] border border-card-border text-xs rounded-xl px-3 py-2.5 text-foreground focus:outline-none focus:border-acid-green cursor-pointer"
+                    >
+                      <option value="all">All Body Parts</option>
+                      {uniqueBodyParts.map(bp => (
+                        <option key={bp} value={bp}>{bp.charAt(0).toUpperCase() + bp.slice(1)}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Target Muscle</label>
+                    <select
+                      value={libTarget}
+                      onChange={(e) => { setLibTarget(e.target.value); setLibLimit(24); }}
+                      className="bg-[var(--input)] border border-card-border text-xs rounded-xl px-3 py-2.5 text-foreground focus:outline-none focus:border-acid-green cursor-pointer"
+                    >
+                      <option value="all">All Muscles</option>
+                      {uniqueTargets.map(t => (
+                        <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Equipment</label>
+                    <select
+                      value={libEquipment}
+                      onChange={(e) => { setLibEquipment(e.target.value); setLibLimit(24); }}
+                      className="bg-[var(--input)] border border-card-border text-xs rounded-xl px-3 py-2.5 text-foreground focus:outline-none focus:border-acid-green cursor-pointer"
+                    >
+                      <option value="all">All Equipment</option>
+                      {uniqueEquipments.map(eq => (
+                        <option key={eq} value={eq}>{eq.charAt(0).toUpperCase() + eq.slice(1)}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Category</label>
+                    <select
+                      value={libCategory}
+                      onChange={(e) => { setLibCategory(e.target.value); setLibLimit(24); }}
+                      className="bg-[var(--input)] border border-card-border text-xs rounded-xl px-3 py-2.5 text-foreground focus:outline-none focus:border-acid-green cursor-pointer"
+                    >
+                      <option value="all">All Categories</option>
+                      {uniqueCategories.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Exercises Grid */}
+              {visibleExercises.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {visibleExercises.map((ex) => {
+                    const isFav = favoriteExercises.includes(ex.id);
+                    return (
+                      <div
+                        key={ex.id}
+                        onClick={() => {
+                          setSelectedExercise(ex);
+                          addRecentlyViewedExercise(ex.id);
+                        }}
+                        className="bg-surface border border-card-border p-3.5 rounded-xl cursor-pointer hover:border-acid-green hover:shadow-[0_0_12px_rgba(204,255,0,0.1)] transition-all flex flex-col justify-between h-56 relative group overflow-hidden"
+                      >
+                        <div className="w-full h-32 rounded-lg overflow-hidden border border-card-border/50 bg-black/25 flex items-center justify-center relative">
+                          <img
+                            src={ex.image}
+                            alt={ex.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="hidden absolute inset-0 flex items-center justify-center bg-black/20 text-muted">
+                            <FallbackIcon category={ex.category} muscleGroup={ex.muscle_group || ex.body_part} className="w-6 h-6" />
+                          </div>
+
+                          {/* Difficulty indicator badge */}
+                          <span className={`absolute bottom-2 left-2 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
+                            ex.difficulty === 'beginner' 
+                              ? 'bg-success/20 text-success border-success/30' 
+                              : ex.difficulty === 'intermediate'
+                              ? 'bg-warning/20 text-warning border-warning/30'
+                              : 'bg-destructive/20 text-destructive border-destructive/30'
+                          }`}>
+                            {ex.difficulty}
+                          </span>
+
+                          {/* Favorite toggle button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavoriteExercise(ex.id);
+                            }}
+                            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 hover:bg-black/75 border border-white/10 flex items-center justify-center text-white cursor-pointer transition-colors active:scale-95"
+                          >
+                            <Heart className={`w-3.5 h-3.5 ${isFav ? 'text-destructive fill-destructive' : 'text-white'}`} />
+                          </button>
+                        </div>
+
+                        <div className="mt-2.5 flex-1 flex flex-col justify-between">
+                          <h3 className="text-xs font-black text-foreground leading-tight line-clamp-2 uppercase tracking-wide">
+                            {ex.name}
+                          </h3>
+                          <div className="text-[8px] text-muted font-bold uppercase tracking-widest mt-1 flex justify-between items-center border-t border-card-border/30 pt-1.5">
+                            <span>{ex.target}</span>
+                            <span className="text-acid-green">{ex.equipment}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-16 glass rounded-2xl">
+                  <Dumbbell className="w-8 h-8 mx-auto text-muted mb-2 animate-pulse" />
+                  <span className="text-xs font-bold text-muted uppercase tracking-wider block">No exercises match your filters</span>
+                  <button 
+                    onClick={() => {
+                      setLibQuery('');
+                      setLibBodyPart('all');
+                      setLibTarget('all');
+                      setLibEquipment('all');
+                      setLibCategory('all');
+                      setLibOnlyFavorites(false);
+                      setLibLimit(24);
+                    }}
+                    className="mt-4 text-[10px] uppercase font-black tracking-wider text-acid-green hover:underline cursor-pointer bg-transparent border-none"
+                  >
+                    Reset All Filters
+                  </button>
+                </div>
+              )}
+
+              {/* Load More Button */}
+              {filteredExercises.length > visibleExercises.length && (
+                <div className="flex justify-center pt-4">
+                  <button
+                    onClick={() => setLibLimit(prev => prev + 24)}
+                    className="px-6 py-3 rounded-xl border border-card-border bg-surface hover:border-acid-green hover:text-foreground text-muted text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(204,255,0,0.1)] active:scale-[0.98]"
+                  >
+                    Load More Exercises ({filteredExercises.length - visibleExercises.length} Remaining)
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -1046,6 +1286,160 @@ export default function WorkoutLogger({ onNotification }) {
           )}
 
         </motion.div>
+      </AnimatePresence>
+
+      {/* EXERCISE DETAIL MODAL */}
+      <AnimatePresence>
+        {selectedExercise && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
+            onClick={() => setSelectedExercise(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="bg-surface border border-card-border w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header / Media Carousel Section */}
+              <div className="relative w-full h-64 md:h-80 bg-black/45 flex items-center justify-center overflow-hidden border-b border-card-border">
+                {/* Auto playing looping GIF */}
+                <img 
+                  src={selectedExercise.gif_url} 
+                  alt={`${selectedExercise.name} Animation`}
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    // Fallback to static image if GIF fails to load
+                    e.target.src = selectedExercise.image;
+                  }}
+                />
+
+                {/* Favorite Button on top-right */}
+                <button
+                  onClick={() => toggleFavoriteExercise(selectedExercise.id)}
+                  className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/60 hover:bg-black/85 border border-white/10 flex items-center justify-center text-white cursor-pointer active:scale-95 transition-all"
+                >
+                  <Heart className={`w-4 h-4 ${favoriteExercises.includes(selectedExercise.id) ? 'text-destructive fill-destructive' : 'text-white'}`} />
+                </button>
+
+                {/* Close Button on top-left */}
+                <button
+                  onClick={() => setSelectedExercise(null)}
+                  className="absolute top-4 left-4 w-9 h-9 rounded-full bg-black/60 hover:bg-black/85 border border-white/10 flex items-center justify-center text-white cursor-pointer active:scale-95 transition-all"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Detail Content */}
+              <div className="p-6 space-y-5 max-h-[calc(100vh-24rem)] overflow-y-auto">
+                <div className="flex justify-between items-start gap-4">
+                  <div>
+                    <h2 className="text-lg md:text-xl font-black text-foreground uppercase tracking-wide leading-tight">
+                      {selectedExercise.name}
+                    </h2>
+                    <span className="text-[9px] font-extrabold text-acid-green uppercase tracking-widest mt-1 block">
+                      Targeting {selectedExercise.target} ({selectedExercise.body_part})
+                    </span>
+                  </div>
+
+                  <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border shrink-0 ${
+                    selectedExercise.difficulty === 'beginner' 
+                      ? 'bg-success/20 text-success border-success/30' 
+                      : selectedExercise.difficulty === 'intermediate'
+                      ? 'bg-warning/20 text-warning border-warning/30'
+                      : 'bg-destructive/20 text-destructive border-destructive/30'
+                  }`}>
+                    {selectedExercise.difficulty}
+                  </span>
+                </div>
+
+                {/* Badges / Meta row */}
+                <div className="flex flex-wrap gap-2 pt-1 border-t border-card-border/40">
+                  <div className="bg-surface/50 border border-card-border/60 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-muted">
+                    Equipment: <span className="text-foreground">{selectedExercise.equipment}</span>
+                  </div>
+                  <div className="bg-surface/50 border border-card-border/60 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-muted">
+                    Muscle Group: <span className="text-foreground">{selectedExercise.muscle_group}</span>
+                  </div>
+                  <div className="bg-surface/50 border border-card-border/60 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-muted">
+                    Burn Est: <span className="text-acid-green">{selectedExercise.caloriesEstimate} kcal/min</span>
+                  </div>
+                </div>
+
+                {/* Step-by-Step Instructions */}
+                <div className="space-y-2.5">
+                  <h3 className="text-xs font-black text-foreground uppercase tracking-wider">Instructions</h3>
+                  <ol className="space-y-2 list-decimal list-inside pr-2">
+                    {selectedExercise.instruction_steps && selectedExercise.instruction_steps.map((step, idx) => (
+                      <li key={idx} className="text-xs text-muted leading-relaxed pl-1 align-top">
+                        <span className="text-foreground pl-1">{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+
+                {/* Secondary Muscles involved */}
+                {selectedExercise.secondary_muscles && selectedExercise.secondary_muscles.length > 0 && (
+                  <div className="space-y-1.5 pt-3 border-t border-card-border/40">
+                    <h3 className="text-[10px] font-black text-muted uppercase tracking-wider">Secondary Muscles Involved</h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedExercise.secondary_muscles.map((mus) => (
+                        <span key={mus} className="bg-black/20 border border-card-border/50 px-2 py-0.5 rounded text-[8px] font-bold text-muted uppercase">
+                          {mus}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Actions Footer */}
+              <div className="bg-surface/80 border-t border-card-border p-4 flex gap-3 justify-end items-center">
+                <button
+                  onClick={() => {
+                    // Quick share mock trigger
+                    if (navigator.share) {
+                      navigator.share({
+                        title: selectedExercise.name,
+                        text: `Check out the ${selectedExercise.name} exercise on Calyxo!`,
+                        url: window.location.href,
+                      }).catch(console.error);
+                    } else {
+                      navigator.clipboard.writeText(`Calyxo Exercise: ${selectedExercise.name} targeting ${selectedExercise.target}`);
+                      if (onNotification) onNotification("Exercise details copied to clipboard!");
+                    }
+                  }}
+                  className="px-4 py-2.5 rounded-xl border border-card-border bg-surface hover:text-foreground text-muted text-xs font-black uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-colors"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Share</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    // Populate logger fields and close detail page
+                    setExName(selectedExercise.name);
+                    setExCategory(selectedExercise.category || 'Strength');
+                    setExImage(selectedExercise.image || null);
+                    setSelectedExercise(null);
+                    setActiveSubTab('logger');
+                    if (onNotification) onNotification(`${selectedExercise.name} loaded into Logger! specify sets and log.`);
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-acid-green text-accent-foreground font-black text-xs uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all shadow-md hover:shadow-[0_0_12px_rgba(204,255,0,0.15)] border-none"
+                >
+                  <Plus className="w-4 h-4 shrink-0" />
+                  <span>Log This Exercise</span>
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );

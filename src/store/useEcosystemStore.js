@@ -3,11 +3,7 @@ import { getSecureItem, setSecureItem, getCurrentUserId } from '../lib/dbService
 
 const LOCAL_ECOSYSTEM_KEY = "calyxo_ecosystem_state";
 
-const getLocalEcosystemState = () => {
-  const saved = getSecureItem(LOCAL_ECOSYSTEM_KEY);
-  if (saved) return saved;
-
-  return {
+const INITIAL_STATE = {
     streaks: { loginStreak: 1, workoutStreak: 0, nutritionStreak: 0, waterStreak: 0, lastCheckIn: new Date().toDateString() },
     achievements: [
       { id: 'first_workout', name: 'First Workout', icon: '💪', description: 'Log your first workout session', unlocked: false },
@@ -48,6 +44,11 @@ const getLocalEcosystemState = () => {
     level: 1,
     clientAssignments: {}
   };
+
+const getLocalEcosystemState = () => {
+  const saved = getSecureItem(LOCAL_ECOSYSTEM_KEY);
+  if (saved) return saved;
+  return INITIAL_STATE;
 };
 
 const saveLocalEcosystemState = (state) => {
@@ -217,8 +218,7 @@ export const useEcosystemStore = create((set, get) => ({
 
   // Reset store
   resetEcosystemStore: () => {
-    const fresh = getLocalEcosystemState();
-    set({ ...fresh });
+    set({ ...INITIAL_STATE });
     if (typeof window !== 'undefined') {
       localStorage.removeItem(LOCAL_ECOSYSTEM_KEY);
     }

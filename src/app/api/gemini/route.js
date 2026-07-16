@@ -1,4 +1,43 @@
 import { NextResponse } from 'next/server';
+import exercisesData from '../../../lib/exercises.json';
+
+function searchLibraryExercises(queryText) {
+  if (!queryText) return [];
+  const words = queryText.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  if (words.length === 0) return [];
+
+  const matches = exercisesData.filter(ex => {
+    return words.some(word => 
+      ex.name.toLowerCase().includes(word) ||
+      (ex.body_part || '').toLowerCase().includes(word) ||
+      (ex.target || '').toLowerCase().includes(word) ||
+      (ex.equipment || '').toLowerCase().includes(word)
+    );
+  });
+
+  const scored = matches.map(ex => {
+    let score = 0;
+    const nameLower = ex.name.toLowerCase();
+    const targetLower = (ex.target || '').toLowerCase();
+    const equipLower = (ex.equipment || '').toLowerCase();
+    const bpLower = (ex.body_part || '').toLowerCase();
+
+    words.forEach(word => {
+      if (nameLower.includes(word)) score += 3;
+      if (targetLower.includes(word)) score += 2;
+      if (bpLower.includes(word)) score += 2;
+      if (equipLower.includes(word)) score += 1;
+    });
+
+    return { ex, score };
+  });
+
+  return scored
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8)
+    .map(x => x.ex);
+}
 
 function getKeywords(text) {
   const stopwords = new Set([
@@ -88,6 +127,16 @@ Configure the API key in \`.env.local\` to activate live Gemini coaching.`
   * Water Compliance Streak: ${memory.waterStreak || 0} days`;
     }
 
+    // RAG: Query matching exercises from the library
+    const relevantExercises = searchLibraryExercises(query);
+    let exercisesPrompt = "";
+    if (relevantExercises.length > 0) {
+      exercisesPrompt = `\n\n### Relevant Exercises from Calyxo Library:
+You have access to the following matching exercises from the user's exercise database. When recommending or detailing exercises, you MUST recommend these exact ones by name:
+${relevantExercises.map(ex => `- **${ex.name}**: Target: ${ex.target}, Body Part: ${ex.body_part}, Equipment: ${ex.equipment}, Difficulty: ${ex.difficulty}, Calories Burned: ~${ex.caloriesEstimate} kcal/min.
+  Instructions: ${ex.instructions}`).join('\n')}`;
+    }
+
     // Compile system prompt from user context details
     let systemPrompt = `You are Calyxo, a smart, encouraging, and highly knowledgeable AI fitness & nutrition coach.
 ${personalityPrompt}
@@ -100,7 +149,7 @@ Here is the user's current physical biometrics and daily activity context:
 - Today's Logged Foods:
 ${context.foodListStr || 'No foods logged yet today.'}
 - Today's Logged Workouts:
-${context.workoutListStr || 'No workouts logged yet today.'}
+${context.workoutListStr || 'No workouts logged yet today.'}${exercisesPrompt}
 
 When answering questions:
 1. Address the user's specific query.
