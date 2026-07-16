@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageSquare } from 'lucide-react';
 import useCreateHubStore from '../../store/useCreateHubStore';
-import AIWorkspace from '../AIWorkspace';
+import AICoach from '../AICoach';
 
 export default function AIChatModal() {
   const { activeWorkflow, closeWorkflow } = useCreateHubStore();
@@ -22,7 +22,7 @@ export default function AIChatModal() {
           </div>
 
           <div className="flex-1 overflow-hidden">
-            <AIWorkspace />
+            <AICoach autoFocus={true} />
           </div>
         </motion.div>
       </div>

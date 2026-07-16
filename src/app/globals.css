@@ -744,6 +744,14 @@ textarea:focus {
   padding-top: env(safe-area-inset-top, 0px);
 }
 
+.pt-safe-inset {
+  padding-top: calc(1.25rem + env(safe-area-inset-top, 0px));
+}
+
+.pb-safe-inset {
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+}
+
 /* Better touch targets on mobile */
 @media (max-width: 768px) {
 

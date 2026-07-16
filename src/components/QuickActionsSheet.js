@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Dumbbell, Apple, ScanLine, Image as ImageIcon, Users, MessageSquare, TrendingUp, Target, X } from 'lucide-react';
-
+import { X, Dumbbell, Apple, ScanLine, Image as ImageIcon, Users, MessageSquare, TrendingUp, Target } from 'lucide-react';
 import useCreateHubStore from '../store/useCreateHubStore';
 
 export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
@@ -10,15 +9,19 @@ export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
   if (!isOpen) return null;
 
   const actions = [
-    { id: 'log_workout', label: 'Log Workout', icon: Dumbbell, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { id: 'log_meal', label: 'Log Meal', icon: Apple, color: 'text-green-500', bg: 'bg-green-500/10' },
-    { id: 'scan_food', label: 'Scan Food', icon: ScanLine, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-    { id: 'create_post', label: 'Create Post', icon: ImageIcon, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-    { id: 'create_club', label: 'Create Club', icon: Users, color: 'text-pink-500', bg: 'bg-pink-500/10' },
-    { id: 'start_chat', label: 'Start AI Chat', icon: MessageSquare, color: 'text-[var(--color-acid-green)]', bg: 'bg-[var(--color-acid-green)]/10' },
-    { id: 'progress_photo', label: 'Upload Progress', icon: TrendingUp, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-    { id: 'start_challenge', label: 'Start Challenge', icon: Target, color: 'text-red-500', bg: 'bg-red-500/10' },
+    { id: 'log_workout', label: 'Log Workout', icon: Dumbbell, color: 'text-blue-500', bg: 'bg-blue-500/10', section: 'Health' },
+    { id: 'log_meal', label: 'Log Meal', icon: Apple, color: 'text-green-500', bg: 'bg-green-500/10', section: 'Health' },
+    { id: 'scan_food', label: 'Scan Food', icon: ScanLine, color: 'text-orange-500', bg: 'bg-orange-500/10', section: 'Health' },
+    { id: 'progress_photo', label: 'Upload Progress', icon: TrendingUp, color: 'text-indigo-500', bg: 'bg-indigo-500/10', section: 'Health' },
+
+    { id: 'create_post', label: 'Create Post', icon: ImageIcon, color: 'text-purple-500', bg: 'bg-purple-500/10', section: 'Social' },
+    { id: 'create_club', label: 'Create Club', icon: Users, color: 'text-pink-500', bg: 'bg-pink-500/10', section: 'Social' },
+    { id: 'start_challenge', label: 'Start Challenge', icon: Target, color: 'text-red-500', bg: 'bg-red-500/10', section: 'Social' },
+
+    { id: 'start_chat', label: 'AI Coach Chat', icon: MessageSquare, color: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]/10', section: 'AI' }
   ];
+
+  const sections = ['Health', 'Social', 'AI'];
 
   const handleAction = (id) => {
     setActiveWorkflow(id);
@@ -34,7 +37,7 @@ export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
           initial={{ opacity: 0 }} 
           animate={{ opacity: 1 }} 
           exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+          className="absolute inset-0 bg-background/80 backdrop-blur-md"
           onClick={onClose}
         />
         
@@ -43,38 +46,62 @@ export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
           initial={{ opacity: 0, y: '100%' }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: '100%' }}
-          transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className="relative w-full sm:max-w-md bg-surface border-t sm:border border-card-border rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl flex flex-col"
-          style={{ maxHeight: '90vh' }}
+          transition={{ type: "spring", damping: 28, stiffness: 220 }}
+          drag="y"
+          dragConstraints={{ top: 0, bottom: 200 }}
+          dragElastic={{ top: 0.1, bottom: 0.8 }}
+          onDragEnd={(e, info) => {
+            if (info.offset.y > 100) {
+              onClose();
+            }
+          }}
+          className="relative w-full sm:max-w-xl bg-surface border-t sm:border border-card-border rounded-t-[32px] sm:rounded-[32px] p-6 sm:p-8 shadow-2xl flex flex-col focus:outline-none overflow-y-auto max-h-[90vh] pb-safe-inset"
         >
           {/* Mobile pull handle */}
-          <div className="w-12 h-1.5 bg-card-border rounded-full mx-auto mb-6 sm:hidden" />
+          <div className="w-12 h-1.5 bg-card-border rounded-full mx-auto mb-6 sm:hidden cursor-row-resize active:bg-muted" />
           
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-black uppercase tracking-widest text-foreground">Create</h2>
+          <div className="flex items-start justify-between mb-8">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">Quick Actions</h2>
+              <p className="text-xs sm:text-sm text-muted mt-1">Start tracking or create something new.</p>
+            </div>
             <button 
               onClick={onClose}
-              className="p-2 rounded-full bg-[var(--input)] text-muted hover:text-foreground transition-colors"
+              className="p-2 rounded-full bg-[var(--input)] border border-card-border text-muted hover:text-foreground active:scale-95 transition-all outline-none"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="grid grid-cols-4 sm:grid-cols-4 gap-y-6 gap-x-2 pb-safe">
-            {actions.map(action => (
-              <button 
-                key={action.id}
-                onClick={() => handleAction(action.id)}
-                className="flex flex-col items-center gap-2 group outline-none"
-              >
-                <div className={`w-14 h-14 rounded-2xl ${action.bg} flex items-center justify-center border border-transparent group-hover:border-card-border transition-all group-active:scale-95`}>
-                  <action.icon className={`w-6 h-6 ${action.color}`} />
+          <div className="space-y-6">
+            {sections.map(sectionName => {
+              const secActions = actions.filter(a => a.section === sectionName);
+              if (secActions.length === 0) return null;
+              
+              return (
+                <div key={sectionName} className="space-y-3">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] border-b border-card-border/50 pb-1.5">
+                    {sectionName}
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
+                    {secActions.map(action => (
+                      <button 
+                        key={action.id}
+                        onClick={() => handleAction(action.id)}
+                        className="flex items-center gap-3 p-3.5 rounded-2xl bg-surface border border-card-border hover:border-[var(--accent)]/40 hover:bg-[var(--input)] transition-all duration-200 outline-none group text-left min-h-[48px] active:scale-[0.98] select-none"
+                      >
+                        <div className={`w-10 h-10 shrink-0 rounded-xl ${action.bg} flex items-center justify-center group-hover:scale-105 transition-transform`}>
+                          <action.icon className={`w-5 h-5 ${action.color}`} />
+                        </div>
+                        <span className="text-[11px] font-black text-foreground group-hover:text-[var(--accent)] transition-colors leading-tight">
+                          {action.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <span className="text-[10px] font-bold text-muted group-hover:text-foreground text-center leading-tight">
-                  {action.label}
-                </span>
-              </button>
-            ))}
+              );
+            })}
           </div>
         </motion.div>
       </div>

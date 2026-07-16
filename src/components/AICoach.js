@@ -16,7 +16,7 @@ const WELCOME_MESSAGE = {
   timestamp: Date.now()
 };
 
-export default function AICoach({ onNotification }) {
+export default function AICoach({ onNotification, autoFocus = false }) {
   const user = useStore(state => state.user);
   const foodLogs = useStore(state => state.foodLogs);
   const workoutLogs = useStore(state => state.workoutLogs);
@@ -42,6 +42,15 @@ export default function AICoach({ onNotification }) {
   const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile drawer state
 
   const messagesEndRef = useRef(null);
+  const chatInputRef = useRef(null);
+
+  useEffect(() => {
+    if (autoFocus && activeSubTab === 'chat' && chatInputRef.current) {
+      setTimeout(() => {
+        chatInputRef.current?.focus();
+      }, 150);
+    }
+  }, [autoFocus, activeSubTab]);
 
   const [briefingText, setBriefingText] = useState('');
   const [briefingType, setBriefingType] = useState('daily_briefing');
@@ -1023,6 +1032,7 @@ export default function AICoach({ onNotification }) {
              <div className="p-3 sm:p-4 border-t border-[var(--card-border)] bg-surface/5 shrink-0 z-10">
                <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex gap-2">
                  <input 
+                   ref={chatInputRef}
                    type="text" 
                    value={inputVal}
                    onChange={(e) => setInputVal(e.target.value)}

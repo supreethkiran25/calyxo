@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Apple, Camera, Save, RefreshCw, Search } from 'lucide-react';
 import useCreateHubStore from '../../store/useCreateHubStore';
@@ -8,6 +8,15 @@ import { addFoodLog, getCurrentUserId } from '../../lib/dbService';
 export default function MealLoggerModal() {
   const { activeWorkflow, closeWorkflow, setActiveWorkflow } = useCreateHubStore();
   const { addXP, updateStreaks } = useEcosystemStore();
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (activeWorkflow === 'log_meal' && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [activeWorkflow]);
   
   const [mealName, setMealName] = useState('');
   const [calories, setCalories] = useState(0);
@@ -97,6 +106,7 @@ export default function MealLoggerModal() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                 <input 
+                  ref={inputRef}
                   type="text" 
                   placeholder="e.g. Grilled Chicken Salad" 
                   value={mealName}

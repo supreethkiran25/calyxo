@@ -363,7 +363,7 @@ export default function Home() {
       <div className={`flex-1 min-h-screen flex flex-col transition-all duration-300 ${isSidebarCollapsed ? 'md:pl-20' : 'md:pl-64'}`}>
         
         {/* Mobile Header (Hidden on Desktop) */}
-        <header className="flex md:hidden justify-between items-center px-5 py-4 border-b border-[var(--card-border)] bg-[var(--background)]/80 backdrop-blur-lg sticky top-0 z-30">
+        <header className="flex md:hidden justify-between items-center px-5 pb-4 pt-safe-inset border-b border-[var(--card-border)] bg-[var(--background)]/80 backdrop-blur-lg sticky top-0 z-30">
           <div className="flex items-center gap-2.5">
             <Logo className="w-7 h-7" glow={false} />
             <span className="brand-name text-md text-[var(--foreground)]">calyxo</span>
