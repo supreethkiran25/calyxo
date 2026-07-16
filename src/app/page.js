@@ -26,7 +26,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import LaunchScreen from '../components/LaunchScreen';
 import AuthFlow from '../components/AuthFlow';
 import OnboardingFlow from '../components/OnboardingFlow';
-import UsernameMigrationFlow from '../components/UsernameMigrationFlow';
+
 import LandingPage from '../components/LandingPage';
 import BackgroundEffects from '../components/BackgroundEffects';
 import QuickActionsSheet from '../components/QuickActionsSheet';
@@ -67,7 +67,7 @@ const UserProfile = dynamic(() => import('../components/UserProfile'), { ssr: fa
 const Progress = dynamic(() => import('../components/Progress'), { ssr: false, loading: () => <TabSkeleton /> });
 const HealthHub = dynamic(() => import('../components/HealthHub'), { ssr: false, loading: () => <TabSkeleton /> });
 const TrainerEcosystem = dynamic(() => import('../components/TrainerEcosystem'), { ssr: false, loading: () => <TabSkeleton /> });
-const SocialHub = dynamic(() => import('../components/SocialHub'), { ssr: false, loading: () => <TabSkeleton /> });
+
 
 const DESKTOP_NAV = [
   {
@@ -85,12 +85,7 @@ const DESKTOP_NAV = [
       { id: 'healthhub', label: 'Health Hub', icon: Heart },
     ]
   },
-  {
-    group: 'SOCIAL',
-    items: [
-      { id: 'social', label: 'Social Hub', icon: Share2 },
-    ]
-  },
+
   {
     group: 'AI',
     items: [
@@ -113,7 +108,7 @@ const DESKTOP_NAV = [
 
 const MOBILE_NAV = [
   { id: 'dashboard', label: 'Home', icon: HomeIcon },
-  { id: 'social', label: 'Social', icon: Share2 },
+
   { id: 'create', label: 'Create', icon: Plus, isCreate: true },
   { id: 'ai', label: 'AI', icon: Sparkles },
   { id: 'profile', label: 'Profile', icon: User },
@@ -433,7 +428,7 @@ export default function Home() {
               {activeTab === 'workout' && <WorkoutLogger onNotification={showNotification} />}
               {activeTab === 'progress' && <Progress />}
               {activeTab === 'trainerhub' && <TrainerEcosystem currentUserId={user.uid} />}
-              {activeTab === 'social' && <SocialHub onNotification={showNotification} />}
+
               {activeTab === 'profile' && <UserProfile />}
             </motion.div>
           </AnimatePresence>

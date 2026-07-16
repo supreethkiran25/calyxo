@@ -102,27 +102,11 @@ export const useEcosystemStore = create((set, get) => ({
     const oldLevel = state.level || 1;
     if (userId && xpGranted > 0) {
       const achName = next.find(a => a.id === id)?.name || "Achievement";
-      import('../lib/socialService').then(m => {
-        m.publishActivity(
-          userId,
-          'achievement',
-          'Achievement Unlocked! 🏆',
-          `Unlocked a new achievement badge: ${achName}`,
-          { achievementId: id, achievementName: achName }
-        ).catch(e => console.error(e));
-      }).catch(e => console.error(e));
+      // Publish Achievement & Level Up Activities removed
     }
 
     if (userId && nextLevel > oldLevel) {
-      import('../lib/socialService').then(m => {
-        m.publishActivity(
-          userId,
-          'level_up',
-          'XP Level Up! ⚡',
-          `Leveled up to Level ${nextLevel}! Keep crushing those goals.`,
-          { level: nextLevel }
-        ).catch(e => console.error(e));
-      }).catch(e => console.error(e));
+      // Level up publish removed
     }
 
     return { achievements: next, xp: nextXP, level: nextLevel };
@@ -142,15 +126,7 @@ export const useEcosystemStore = create((set, get) => ({
 
     const userId = getCurrentUserId();
     if (userId && nextLevel > oldLevel) {
-      import('../lib/socialService').then(m => {
-        m.publishActivity(
-          userId,
-          'level_up',
-          'XP Level Up! ⚡',
-          `Leveled up to Level ${nextLevel}! Keep crushing those goals.`,
-          { level: nextLevel }
-        ).catch(e => console.error(e));
-      }).catch(e => console.error(e));
+      // Level up publish removed
     }
 
     return { xp: nextXP, level: nextLevel };
@@ -218,15 +194,7 @@ export const useEcosystemStore = create((set, get) => ({
     const nextCh = next.find(c => c.id === id);
     const userId = getCurrentUserId();
     if (userId && nextCh && nextCh.completed && !oldCh?.completed) {
-      import('../lib/socialService').then(m => {
-        m.publishActivity(
-          userId,
-          'challenge',
-          'Challenge Completed! 🥇',
-          `Successfully completed the challenge: ${nextCh.name}!`,
-          { challengeId: id, challengeName: nextCh.name }
-        ).catch(e => console.error(e));
-      }).catch(e => console.error(e));
+      // Challenge complete publish removed
     }
 
     return { activeChallenges: next };

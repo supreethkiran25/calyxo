@@ -295,17 +295,6 @@ export const addFoodLog = async (userId, item) => {
   state.foodLogs.push(logItem);
   saveLocalState(userId, state);
 
-  // Publish Social Activity Feed Item (dynamic import to avoid circular dependency)
-  import('./socialService').then(m => {
-    m.publishActivity(
-      userId,
-      'meal',
-      'Meal Logged',
-      `Logged a meal: ${item.name} (${item.calories} kcal)`,
-      { name: item.name, calories: item.calories, protein: item.protein, carbs: item.carbs, fat: item.fat, mealType: item.mealType }
-    ).catch(err => console.error("Failed to publish meal activity", err));
-  }).catch(e => console.error("Dynamic publishActivity import failed", e));
-
   if (isMockFirebase || !userId) return logItem;
 
   try {

@@ -11,6 +11,7 @@ function RadialHealthCore({ metrics, hasProAccess }) {
   const ARC_DEG = 50;
   const ARC_LEN = C * (ARC_DEG / 360);
   
+  const onTrackCount = metrics.filter(m => m.progress >= 1).length;
   const overallProgress = metrics.reduce((acc, m) => acc + m.progress, 0) / (metrics.length || 1);
 
   return (
@@ -66,7 +67,7 @@ function RadialHealthCore({ metrics, hasProAccess }) {
                   cx="160" cy="160" r={R}
                   fill="none"
                   stroke={m.color}
-                  strokeWidth="8"
+                  strokeWidth="3"
                   strokeOpacity="0.15"
                   strokeLinecap="round"
                   strokeDasharray={`${ARC_LEN} ${C}`}
@@ -111,25 +112,28 @@ function RadialHealthCore({ metrics, hasProAccess }) {
       </div>
 
       {/* Center Label / Tooltip */}
-      <div className="absolute w-44 h-44 rounded-full border border-card-border/50 bg-surface/80 backdrop-blur-md shadow-2xl flex items-center justify-center z-20 transition-all duration-300">
+      <div className="absolute w-44 h-44 sm:w-48 sm:h-48 rounded-full border border-card-border/50 bg-surface/80 backdrop-blur-md shadow-2xl flex items-center justify-center z-20 transition-all duration-300 pointer-events-none p-4">
         <div className="text-center space-y-1 relative w-full h-full flex flex-col items-center justify-center">
           {hoveredIdx !== null ? (
             <div className="animate-in fade-in zoom-in-95 duration-200">
               <span className="text-[10px] uppercase font-black tracking-widest block" style={{ color: metrics[hoveredIdx].color }}>
                 {metrics[hoveredIdx].label}
               </span>
-              <span className="text-2xl font-black text-foreground block mt-1">
-                {metrics[hoveredIdx].value}
+              <span className="text-lg sm:text-xl font-black text-foreground block mt-1 break-words">
+                {metrics[hoveredIdx].raw.toLocaleString()} <span className="text-[10px] sm:text-xs text-muted font-bold">/ {metrics[hoveredIdx].target.toLocaleString()} {metrics[hoveredIdx].unit}</span>
               </span>
               <span className="text-[9px] text-muted font-bold tracking-wider uppercase mt-1">
-                {Math.round(metrics[hoveredIdx].progress * 100)}% of Goal
+                {Math.max(0, metrics[hoveredIdx].target - metrics[hoveredIdx].raw).toLocaleString()} {metrics[hoveredIdx].unit} to go
               </span>
             </div>
           ) : (
             <div className="animate-in fade-in zoom-in-95 duration-200">
               <span className="text-[10px] text-muted font-bold uppercase tracking-widest block">Health Core</span>
-              <span className="text-xl font-black text-foreground block my-1">CALYXO</span>
+              <span className="text-lg sm:text-xl font-black text-foreground block my-1">CALYXO</span>
               <span className="text-[8px] text-acid-green font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-acid-green/10 border border-acid-green/20">Active</span>
+              <span className="text-[9px] text-muted font-bold tracking-wider uppercase mt-2 block">
+                {onTrackCount} of {metrics.length} goals met
+              </span>
             </div>
           )}
         </div>
@@ -179,12 +183,12 @@ export default function ThreeHealthCore() {
   const waterTarget = 3000;
 
   const metrics = [
-    { label: "Calories", value: `${totalCal} kcal`, progress: Math.min(1, Math.max(0, totalCal / calTarget)), color: "#b5f23d" },
-    { label: "Protein", value: `${Math.round(totalProt)}g`, progress: Math.min(1, Math.max(0, totalProt / protTarget)), color: "#ff8c00" },
-    { label: "Sleep", value: `${sleepHours} hrs`, progress: Math.min(1, Math.max(0, sleepHours / sleepTarget)), color: "#4fc3f7" },
-    { label: "Recovery", value: `${recoveryScore}%`, progress: Math.min(1, Math.max(0, recoveryScore / recoveryTarget)), color: "#ef5350" },
-    { label: "Steps", value: `${totalSteps}`, progress: Math.min(1, Math.max(0, totalSteps / stepsTarget)), color: "#e040fb" },
-    { label: "Hydration", value: `${waterIntake} ml`, progress: Math.min(1, Math.max(0, waterIntake / waterTarget)), color: "#29b6f6" }
+    { label: "Calories", raw: totalCal, target: calTarget, unit: "kcal", progress: Math.min(1, Math.max(0, totalCal / calTarget)), color: "#b5f23d" },
+    { label: "Protein", raw: Math.round(totalProt), target: protTarget, unit: "g", progress: Math.min(1, Math.max(0, totalProt / protTarget)), color: "#ff8c00" },
+    { label: "Sleep", raw: sleepHours, target: sleepTarget, unit: "hrs", progress: Math.min(1, Math.max(0, sleepHours / sleepTarget)), color: "#4fc3f7" },
+    { label: "Recovery", raw: recoveryScore, target: recoveryTarget, unit: "%", progress: Math.min(1, Math.max(0, recoveryScore / recoveryTarget)), color: "#ef5350" },
+    { label: "Steps", raw: totalSteps, target: stepsTarget, unit: "steps", progress: Math.min(1, Math.max(0, totalSteps / stepsTarget)), color: "#e040fb" },
+    { label: "Hydration", raw: waterIntake, target: waterTarget, unit: "ml", progress: Math.min(1, Math.max(0, waterIntake / waterTarget)), color: "#29b6f6" }
   ];
 
   if (!mounted) {

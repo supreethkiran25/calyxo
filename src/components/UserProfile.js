@@ -23,7 +23,7 @@ import {
   MoreVertical, X, Target, Zap, ChevronRight, TrendingUp, Star
 } from 'lucide-react';
 import MonetizationCenter from './MonetizationCenter';
-import { claimUsername, publishActivity } from '../lib/socialService';
+
 
 const HEALTH_INTERESTS_OPTIONS = [
   "Weight Loss",
@@ -90,7 +90,7 @@ export default function UserProfile({ onNotification }) {
   // Privacy
   const [analyticsTracking, setAnalyticsTracking] = useState(true);
 
-  // Social Profile Fields
+  // Profile Fields
   const [bio, setBio] = useState('');
   const [website, setWebsite] = useState('');
   const [coverImage, setCoverImage] = useState('');
@@ -366,17 +366,7 @@ export default function UserProfile({ onNotification }) {
       }
     }
 
-    // Check if username changed and claim it
-    const oldUsername = userProfile?.username;
-    if (username && username.trim().toLowerCase() !== (oldUsername || '').toLowerCase()) {
-      try {
-        await claimUsername(userId, username);
-      } catch (claimErr) {
-        if (onNotification) onNotification(`Username Error: ${claimErr.message}`);
-        setSaving(false);
-        return;
-      }
-    }
+    // Username claim removed
 
     const updatedProfile = {
       ...userProfile,
@@ -439,30 +429,6 @@ export default function UserProfile({ onNotification }) {
     try {
       await saveUserProfile(userId, updatedProfile);
       
-      // Publish Weight Milestone
-      const oldWeight = Number(userProfile?.weight);
-      const newWeight = Number(weight);
-      if (newWeight && newWeight !== oldWeight) {
-        const isGoalAchieved = newWeight === Number(goalWeight);
-        if (isGoalAchieved) {
-          publishActivity(
-            userId,
-            'weight_milestone',
-            'Goal Weight Achieved! 🏆',
-            `Successfully hit the target goal weight of ${newWeight} ${units === 'imperial' ? 'lbs' : 'kg'}!`,
-            { weight: newWeight, goalWeight, units }
-          ).catch(e => console.error("Goal weight milestone publish failed", e));
-        } else {
-          publishActivity(
-            userId,
-            'weight_milestone',
-            'Weight Milestone Logged ⚖️',
-            `Logged a new weight milestone: ${newWeight} ${units === 'imperial' ? 'lbs' : 'kg'}`,
-            { weight: newWeight, goalWeight, units }
-          ).catch(e => console.error("Weight milestone publish failed", e));
-        }
-      }
-
       ecoStore.setPersonality(coachPersonality);
       try {
         await saveEcosystemState(userId, useEcosystemStore.getState());
@@ -1659,10 +1625,8 @@ export default function UserProfile({ onNotification }) {
           </div>
 
           {/* Level & Streak Quick Stats */}
-          <div className="w-full grid grid-cols-3 gap-2 mt-4">
+          <div className="w-full grid grid-cols-2 gap-2 mt-4">
             {[
-              { label: 'Followers', value: userProfile?.followersCount || 0, icon: Users, color: 'text-white' },
-              { label: 'Following', value: userProfile?.followingCount || 0, icon: User, color: 'text-white' },
               { label: 'Level', value: level, icon: Zap, color: 'text-acid-green' },
               { label: 'Health', value: `${fitnessScore}%`, icon: Activity, color: 'text-acid-green' },
               { label: 'Streak', value: `${ecoStore.streaks?.loginStreak || 1}d`, icon: TrendingUp, color: 'text-blue-400' },
@@ -1797,13 +1761,7 @@ export default function UserProfile({ onNotification }) {
                 </div>
               </div>
 
-              {/* Social Fields */}
-              <div className="space-y-2 pt-2 border-t border-card-border/40">
                 <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className={labelClass}>Website Link</label>
-                    <input type="text" placeholder="https://example.com" value={website} onChange={(e) => setWebsite(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                  </div>
                   <div>
                     <label className={labelClass}>Fitness Level</label>
                     <select value={fitnessLevel} onChange={(e) => setFitnessLevel(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
@@ -1874,7 +1832,6 @@ export default function UserProfile({ onNotification }) {
                     })}
                   </div>
                 </div>
-              </div>
 
               <button type="submit" disabled={saving} className="w-full btn-primary py-2 rounded-lg font-bold text-[10px] uppercase tracking-wider border-none flex items-center justify-center gap-1 cursor-pointer mt-3">
                 {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
@@ -1899,16 +1856,6 @@ export default function UserProfile({ onNotification }) {
                 <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Fitness Level</span>
                 <span className="text-xs font-black text-foreground mt-0.5 block capitalize">{fitnessLevel || 'beginner'}</span>
               </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5 col-span-2">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Social Bio</span>
-                <span className="text-xs font-medium text-foreground/90 mt-0.5 block italic">{bio || 'No bio written yet.'}</span>
-              </div>
-              {website && (
-                <div className="bg-surface/50 border border-card-border rounded-lg p-2.5 col-span-2">
-                  <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Website</span>
-                  <a href={website} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-acid-green mt-0.5 block hover:underline break-all">{website}</a>
-                </div>
-              )}
               {healthInterests.length > 0 && (
                 <div className="bg-surface/50 border border-card-border rounded-lg p-2.5 col-span-2">
                   <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Health Interests</span>

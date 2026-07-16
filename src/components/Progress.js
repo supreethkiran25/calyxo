@@ -212,7 +212,7 @@ export default function Progress({ onNotification }) {
     }
   };
 
-  const handleDownloadSocialCard = () => {
+  const handleDownloadSharingCard = () => {
     const canvas = document.createElement('canvas');
     canvas.width = 600;
     canvas.height = 400;
@@ -278,7 +278,7 @@ export default function Progress({ onNotification }) {
     a.href = url;
     a.download = `${userProfile.nickname || 'calyxo'}_stats_share.png`;
     a.click();
-    if (onNotification) onNotification("Social Card downloaded successfully! 🎨");
+    if (onNotification) onNotification("Sharing Card downloaded successfully! 🎨");
   };
 
   const inputStyle = {
@@ -545,18 +545,18 @@ export default function Progress({ onNotification }) {
                   )}
                 </div>
 
-                {/* Athlete social sharing card watermark generator */}
+                {/* Athlete sharing card watermark generator */}
                 <div className="glass p-6 rounded-2xl border border-card-border shadow-lg flex flex-col justify-between items-start">
                   <div className="space-y-1">
                     <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
                       <Share2 className="w-4 h-4 text-acid-green" />
-                      Athlete Social Sharing Card
+                      Athlete Sharing Card
                     </h3>
-                    <p className="text-muted text-[10.5px] font-medium leading-relaxed">Generate a high-resolution, visually stylized sharing card containing your Calyxo Fitness Score, active streaks, and biometric achievements to download and share on social platforms.</p>
+                    <p className="text-muted text-[10.5px] font-medium leading-relaxed">Generate a high-resolution, visually stylized sharing card containing your Calyxo Fitness Score, active streaks, and biometric achievements to download and share on platforms.</p>
                   </div>
                   
                   <button
-                    onClick={handleDownloadSocialCard}
+                    onClick={handleDownloadSharingCard}
                     className="mt-4 bg-acid-green text-accent-foreground font-extrabold text-[10px] uppercase tracking-wider py-2.5 px-5 rounded-xl transition-all cursor-pointer border-none flex items-center gap-2"
                   >
                     <Download className="w-4 h-4" />

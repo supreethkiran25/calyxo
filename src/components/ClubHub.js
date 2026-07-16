@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, ShieldCheck, Trophy, Target, Search, Plus, Loader2, ArrowRight } from 'lucide-react';
-import { getClubs, createClub, joinClub, leaveClub } from '../lib/socialService';
+import { getClubs, createClub, joinClub, leaveClub } from '../lib/clubService';
 
 export default function ClubHub({ currentUserId }) {
   const [clubs, setClubs] = useState([]);

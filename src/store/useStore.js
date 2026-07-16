@@ -66,7 +66,7 @@ const DEFAULT_USER_PROFILE = {
     dyslexiaFont: false,
     enable3DExperience: true
   },
-  // Social
+
   bio: '',
   website: '',
   coverImage: '',

@@ -7,7 +7,7 @@ import {
   Image as ImageIcon, Video, AlignLeft, Target, Calendar, 
   Users, BarChart2, ChevronLeft, MapPin, Tag, Globe, Lock, Shield
 } from 'lucide-react';
-import { publishActivity } from '../lib/socialService';
+
 import { generateWorkoutPostData, generateMealPostData } from '../lib/postGeneratorService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import AIMagicModal from './AIMagicModal';
@@ -83,17 +83,8 @@ export default function CreatePostModal({ currentUserId, onClose, onNotification
     try {
       const mediaUrls = mediaFiles.filter(m => m.status === 'complete' && m.url).map(m => m.url);
 
-      await publishActivity({
-        userId: currentUserId,
-        type: selectedType.id,
-        title: `${selectedType.label} Update`,
-        content: caption,
-        data: postData,
-        visibility: visibility,
-        mediaUrls: mediaUrls,
-        timestamp: Date.now()
-      });
-      if (onNotification) onNotification('Post published successfully! 🎉');
+      console.log("Posting disabled");
+      if (onNotification) onNotification('Post saved locally (Feed disabled)');
       onClose();
     } catch (err) {
       console.error(err);

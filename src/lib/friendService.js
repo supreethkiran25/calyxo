@@ -10,9 +10,8 @@ import {
 } from "firebase/firestore";
 import { isMockFirebase } from "./dbService";
 import { getUserProfile } from "./dbService";
-import { isBlocked } from "./socialService";
 
-const MOCK_FRIENDS_KEY = "calyxo_social_friends";
+const MOCK_FRIENDS_KEY = "calyxo_friends";
 
 const getMockFriends = () => {
   if (typeof window === 'undefined') return [];
@@ -36,9 +35,6 @@ const saveMockFriends = (data) => {
 export const sendFriendRequest = async (senderId, receiverId) => {
   if (!senderId || !receiverId) throw new Error("Missing sender or receiver ID");
   if (senderId === receiverId) throw new Error("Cannot send request to yourself");
-
-  const blocked = await isBlocked(senderId, receiverId);
-  if (blocked) throw new Error("Action restricted");
 
   const friendObj = {
     senderId,
