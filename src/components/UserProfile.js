@@ -22,7 +22,7 @@ import {
   Shield, FileText, Info, HelpCircle, Key, Cpu, Activity, CreditCard,
   MoreVertical, X, Target, Zap, ChevronRight, TrendingUp, Star
 } from 'lucide-react';
-import MonetizationCenter from './MonetizationCenter';
+
 
 
 const HEALTH_INTERESTS_OPTIONS = [
@@ -2013,7 +2013,7 @@ export default function UserProfile({ onNotification }) {
                       {acc.id === 'notifications' && renderNotificationsForm()}
                       {acc.id === 'privacy' && renderPrivacyForm()}
                       {acc.id === 'security' && renderSecurityForm()}
-                      {acc.id === 'subscription' && <MonetizationCenter onNotification={onNotification} />}
+                      {acc.id === 'subscription' && <div className="text-xs text-muted text-center py-8 font-medium">Subscription management coming soon.</div>}
                       {acc.id === 'data' && renderDataForm()}
                       {acc.id === 'about' && renderAboutForm()}
                     </div>

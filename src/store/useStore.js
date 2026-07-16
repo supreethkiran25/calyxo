@@ -69,10 +69,7 @@ const DEFAULT_USER_PROFILE = {
 
   bio: '',
   website: '',
-  coverImage: '',
-  followersCount: 0,
-  followingCount: 0,
-  isVerified: false
+  coverImage: ''
 };
 
 export const useStore = create((set, get) => ({

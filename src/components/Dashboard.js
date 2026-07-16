@@ -6,7 +6,7 @@ import { useStore } from '../store/useStore';
 import { getWaterIntake, saveWaterIntake, getUserProfile } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { syncAIHealthTwin } from '../lib/aiEcosystemService';
-import { Flame, Droplets, Activity, Dumbbell, Utensils, Star, Sparkles, ChevronRight, Award, Zap, Brain, Moon } from 'lucide-react';
+import { Flame, Droplets, Activity, Dumbbell, Utensils, Star, Sparkles, ChevronRight, Award, Zap, Brain, Moon, BookOpen, Bot, TrendingUp, PieChart } from 'lucide-react';
 import ThreeHealthCore from './ThreeHealthCore';
 
 // ── Calorie donut ring ──────────────────────────────────────────
@@ -280,6 +280,15 @@ export default function Dashboard({ onNotification }) {
 
   const profileCompleteness = calculateCompleteness();
 
+  const QUICK_ACCESS = [
+    { label: 'Workout', icon: <Dumbbell className="w-5 h-5 text-foreground" />, action: () => setActiveTab('workout') },
+    { label: 'Nutrition', icon: <BookOpen className="w-5 h-5 text-foreground" />, action: () => setActiveTab('nutrition') },
+    { label: 'AI Coach', icon: <Bot className="w-5 h-5 text-[var(--color-acid-green)]" />, action: () => setActiveTab('coach'), isPrimary: true },
+    { label: 'Progress', icon: <TrendingUp className="w-5 h-5 text-foreground" />, action: () => setActiveTab('progress') },
+    { label: 'Water', icon: <Droplets className="w-5 h-5 text-blue-400" />, action: () => document.getElementById('water-logger-section')?.scrollIntoView({ behavior: 'smooth' }) },
+    { label: 'Analytics', icon: <PieChart className="w-5 h-5 text-foreground" />, action: () => setActiveTab('progress') }
+  ];
+
   return (
     <div className="space-y-6 w-full select-text pb-20">
       
@@ -354,6 +363,26 @@ export default function Dashboard({ onNotification }) {
               {s.icon}
             </div>
           </div>
+        ))}
+      </div>
+
+      {/* ── Quick Access Cards Grid (Mobile Priority) ── */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 w-full">
+        {QUICK_ACCESS.map((item, idx) => (
+          <button
+            key={idx}
+            onClick={item.action}
+            className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all active:scale-95 cursor-pointer outline-none ${
+              item.isPrimary 
+                ? 'bg-[var(--color-acid-green)]/10 border-[var(--color-acid-green)]/30 hover:bg-[var(--color-acid-green)]/20' 
+                : 'bg-surface border-card-border hover:bg-[var(--card-border)]/50 shadow-sm'
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${item.isPrimary ? 'bg-[var(--color-acid-green)]/20 shadow-inner' : 'bg-black/20'}`}>
+              {item.icon}
+            </div>
+            <span className="text-[10px] font-bold text-foreground uppercase tracking-wider">{item.label}</span>
+          </button>
         ))}
       </div>
       
@@ -449,7 +478,7 @@ export default function Dashboard({ onNotification }) {
         </div>
 
         {/* Daily Hydration Logger */}
-        <div className="glass p-4 sm:p-6 rounded-2xl border border-card-border shadow-md flex flex-col justify-between h-full min-h-[320px]">
+        <div id="water-logger-section" className="glass p-4 sm:p-6 rounded-2xl border border-card-border shadow-md flex flex-col justify-between h-full min-h-[320px]">
           <div>
             <h3 className="text-sm font-extrabold text-foreground uppercase tracking-widest mb-4 flex items-center gap-1.5">
               <Droplets className="w-4 h-4 text-blue-400" />

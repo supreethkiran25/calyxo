@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Dumbbell, Apple, ScanLine, Image as ImageIcon, Users, MessageSquare, TrendingUp, Target } from 'lucide-react';
+import { X, Dumbbell, Apple, ScanLine, TrendingUp, MessageSquare, Droplets, Scale } from 'lucide-react';
 import useCreateHubStore from '../store/useCreateHubStore';
 
 export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
@@ -13,15 +13,13 @@ export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
     { id: 'log_meal', label: 'Log Meal', icon: Apple, color: 'text-green-500', bg: 'bg-green-500/10', section: 'Health' },
     { id: 'scan_food', label: 'Scan Food', icon: ScanLine, color: 'text-orange-500', bg: 'bg-orange-500/10', section: 'Health' },
     { id: 'progress_photo', label: 'Upload Progress', icon: TrendingUp, color: 'text-indigo-500', bg: 'bg-indigo-500/10', section: 'Health' },
-
-    { id: 'create_post', label: 'Create Post', icon: ImageIcon, color: 'text-purple-500', bg: 'bg-purple-500/10', section: 'Social' },
-    { id: 'create_club', label: 'Create Club', icon: Users, color: 'text-pink-500', bg: 'bg-pink-500/10', section: 'Social' },
-    { id: 'start_challenge', label: 'Start Challenge', icon: Target, color: 'text-red-500', bg: 'bg-red-500/10', section: 'Social' },
+    { id: 'log_water', label: 'Log Water', icon: Droplets, color: 'text-cyan-500', bg: 'bg-cyan-500/10', section: 'Health' },
+    { id: 'update_weight', label: 'Update Weight', icon: Scale, color: 'text-amber-500', bg: 'bg-amber-500/10', section: 'Health' },
 
     { id: 'start_chat', label: 'AI Coach Chat', icon: MessageSquare, color: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]/10', section: 'AI' }
   ];
 
-  const sections = ['Health', 'Social', 'AI'];
+  const sections = ['Health', 'AI'];
 
   const handleAction = (id) => {
     setActiveWorkflow(id);

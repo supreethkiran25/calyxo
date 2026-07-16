@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home as HomeIcon, BookOpen, BarChart2, User, Plus, LogOut, Bot, Sparkles, X, TrendingUp, Heart, Users, Grid, ChevronRight, MoreHorizontal, Share2, Search } from 'lucide-react';
+import { Home as HomeIcon, BookOpen, BarChart2, User, Plus, LogOut, Bot, Sparkles, X, TrendingUp, Heart, Grid, ChevronRight, Search, Menu, Dumbbell } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { 
   subscribeToAuth, 
@@ -34,12 +34,10 @@ import WorkoutLoggerModal from '../components/CreateHub/WorkoutLoggerModal';
 import MealLoggerModal from '../components/CreateHub/MealLoggerModal';
 import FoodScannerModal from '../components/CreateHub/FoodScannerModal';
 import ProgressUploadModal from '../components/CreateHub/ProgressUploadModal';
-import CreateClubModal from '../components/CreateHub/CreateClubModal';
-import StartChallengeModal from '../components/CreateHub/StartChallengeModal';
 import AIChatModal from '../components/CreateHub/AIChatModal';
-import CreatePostModal from '../components/CreatePostModal';
 import GlobalSearch from '../components/GlobalSearch';
 import AIWorkspace from '../components/AIWorkspace';
+import MobileDrawerMenu from '../components/MobileDrawerMenu';
 
 // Reusable loader skeleton for lazy-loaded tabs
 function TabSkeleton() {
@@ -66,7 +64,7 @@ const AICoach = dynamic(() => import('../components/AICoach'), { ssr: false, loa
 const UserProfile = dynamic(() => import('../components/UserProfile'), { ssr: false, loading: () => <TabSkeleton /> });
 const Progress = dynamic(() => import('../components/Progress'), { ssr: false, loading: () => <TabSkeleton /> });
 const HealthHub = dynamic(() => import('../components/HealthHub'), { ssr: false, loading: () => <TabSkeleton /> });
-const TrainerEcosystem = dynamic(() => import('../components/TrainerEcosystem'), { ssr: false, loading: () => <TabSkeleton /> });
+
 
 
 const DESKTOP_NAV = [
@@ -92,12 +90,7 @@ const DESKTOP_NAV = [
       { id: 'ai', label: 'AI Workspace', icon: Sparkles },
     ]
   },
-  {
-    group: 'ECOSYSTEM',
-    items: [
-      { id: 'trainerhub', label: 'Trainer Hub', icon: Users, roleGated: true },
-    ]
-  },
+
   {
     group: 'ACCOUNT',
     items: [
@@ -108,9 +101,9 @@ const DESKTOP_NAV = [
 
 const MOBILE_NAV = [
   { id: 'dashboard', label: 'Home', icon: HomeIcon },
-
+  { id: 'nutrition', label: 'Nutrition', icon: BookOpen },
   { id: 'create', label: 'Create', icon: Plus, isCreate: true },
-  { id: 'ai', label: 'AI', icon: Sparkles },
+  { id: 'workout', label: 'Workout', icon: Dumbbell },
   { id: 'profile', label: 'Profile', icon: User },
 ];
 
@@ -137,6 +130,7 @@ export default function Home() {
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
 
   const showNotification = useCallback((msg) => {
@@ -269,16 +263,8 @@ export default function Home() {
       <MealLoggerModal />
       <FoodScannerModal />
       <ProgressUploadModal />
-      <CreateClubModal />
-      <StartChallengeModal />
       <AIChatModal />
-      {activeWorkflow === 'create_post' && (
-        <CreatePostModal 
-          currentUserId={user?.uid} 
-          onClose={() => setActiveWorkflow(null)} 
-          onNotification={setToast} 
-        />
-      )}
+      <MobileDrawerMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
 
       {/* ── Desktop Left Sidebar ── */}
@@ -364,9 +350,15 @@ export default function Home() {
         
         {/* Mobile Header (Hidden on Desktop) */}
         <header className="flex md:hidden justify-between items-center px-5 pb-4 pt-safe-inset border-b border-[var(--card-border)] bg-[var(--background)]/80 backdrop-blur-lg sticky top-0 z-30">
-          <div className="flex items-center gap-2.5">
-            <Logo className="w-7 h-7" glow={false} />
-            <span className="brand-name text-md text-[var(--foreground)]">calyxo</span>
+          <div className="flex items-center gap-1.5">
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-1.5 -ml-1.5 rounded-xl bg-transparent text-[var(--foreground)] cursor-pointer outline-none hover:bg-[var(--surface)] transition-colors mr-0.5"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <Logo className="w-6 h-6" glow={false} />
+            <span className="brand-name text-[15px] text-[var(--foreground)] -ml-0.5 mt-0.5">calyxo</span>
           </div>
 
           <div className="flex items-center gap-2.5">
@@ -427,7 +419,7 @@ export default function Home() {
               {activeTab === 'nutrition' && <FoodTracker onNotification={showNotification} />}
               {activeTab === 'workout' && <WorkoutLogger onNotification={showNotification} />}
               {activeTab === 'progress' && <Progress />}
-              {activeTab === 'trainerhub' && <TrainerEcosystem currentUserId={user.uid} />}
+
 
               {activeTab === 'profile' && <UserProfile />}
             </motion.div>
