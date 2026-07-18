@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
-import { getWaterIntake, saveWaterIntake, getUserProfile } from '../lib/dbService';
+import { getWaterIntake, saveWaterIntake, getUserProfile, getUserConnection, getUserAssignments } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { syncAIHealthTwin } from '../lib/aiEcosystemService';
 import { Flame, Droplets, Activity, Dumbbell, Utensils, Star, Sparkles, ChevronRight, Award, Zap, Brain, Moon, BookOpen, Bot, TrendingUp, PieChart } from 'lucide-react';
@@ -145,6 +145,9 @@ export default function Dashboard({ onNotification }) {
     macros: { protein: 140, carbs: 210, fat: 57 }
   });
 
+  const [connection, setConnection] = useState(null);
+  const [assignments, setAssignments] = useState([]);
+
   useEffect(() => {
     const load = async () => {
       if (!userId) return;
@@ -165,6 +168,14 @@ export default function Dashboard({ onNotification }) {
 
         // Fetch AI Health Twin (Background sync)
         syncAIHealthTwin();
+
+        // Fetch Trainer Connection and Assignments
+        const conn = await getUserConnection(userId);
+        setConnection(conn);
+        if (conn && conn.status === 'active') {
+          const assigns = await getUserAssignments(userId);
+          setAssignments(assigns || []);
+        }
       } catch (err) {
         console.error("Dashboard profile/water loading error", err);
         if (onNotification) onNotification("Error loading profile or water intake logs. Please reload.");
@@ -401,7 +412,7 @@ export default function Dashboard({ onNotification }) {
               AI Health Twin
             </h3>
             
-            <div className="flex items-center gap-6 py-2">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 py-2">
               <div className="relative w-24 h-24 shrink-0 flex items-center justify-center">
                 <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
                   <circle cx="50" cy="50" r="40" fill="none" stroke="var(--card-border)" strokeWidth="8" />
@@ -420,17 +431,17 @@ export default function Dashboard({ onNotification }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-y-3 gap-x-4 flex-1">
+              <div className="grid grid-cols-2 gap-y-3 gap-x-4 flex-1 w-full text-center sm:text-left">
                 <div>
-                  <div className="flex items-center gap-1 text-[9px] text-muted font-bold uppercase tracking-wider"><Activity className="w-3 h-3 text-acid-green"/> Fitness Age</div>
+                  <div className="flex items-center justify-center sm:justify-start gap-1 text-[9px] text-muted font-bold uppercase tracking-wider"><Activity className="w-3 h-3 text-acid-green"/> Fitness Age</div>
                   <div className="text-sm font-black text-foreground">{ecoStore.healthTwin?.fitnessAge || userProfile?.age || 25} yrs</div>
                 </div>
                 <div>
-                  <div className="flex items-center gap-1 text-[9px] text-muted font-bold uppercase tracking-wider"><Zap className="w-3 h-3 text-orange"/> Recovery</div>
+                  <div className="flex items-center justify-center sm:justify-start gap-1 text-[9px] text-muted font-bold uppercase tracking-wider"><Zap className="w-3 h-3 text-orange"/> Recovery</div>
                   <div className="text-sm font-black text-foreground">{ecoStore.healthTwin?.recoveryScore || 85}%</div>
                 </div>
                 <div className="col-span-2">
-                  <div className="flex items-center gap-1 text-[9px] text-muted font-bold uppercase tracking-wider"><Moon className="w-3 h-3 text-blue-400"/> Sleep Debt</div>
+                  <div className="flex items-center justify-center sm:justify-start gap-1 text-[9px] text-muted font-bold uppercase tracking-wider"><Moon className="w-3 h-3 text-blue-400"/> Sleep Debt</div>
                   <div className="text-sm font-black text-foreground">{ecoStore.healthTwin?.sleepDebt || 0} hrs</div>
                 </div>
               </div>
@@ -450,6 +461,87 @@ export default function Dashboard({ onNotification }) {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── My Trainer Card ── */}
+        <div className="glass p-4 sm:p-6 rounded-2xl border border-[var(--card-border)] shadow-md flex flex-col justify-between h-full min-h-[320px]">
+          <div>
+            <SectionHeader title="My Trainer" />
+            {connection && connection.status === 'active' ? (
+              <div className="flex flex-col items-center justify-center text-center h-full py-6">
+                <div className="w-20 h-20 rounded-full bg-surface border-2 border-acid-green overflow-hidden flex items-center justify-center mb-4">
+                  {connection.trainer_profiles?.avatar_url ? (
+                    <img src={connection.trainer_profiles.avatar_url} alt="Trainer" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-3xl">👤</span>
+                  )}
+                </div>
+                <h3 className="text-lg font-black text-foreground">{connection.trainer_profiles?.full_name}</h3>
+                <p className="text-xs text-muted font-bold tracking-wider uppercase mb-4">{connection.trainer_profiles?.archetype}</p>
+                <button 
+                  onClick={() => setActiveTab('trainer-chat')}
+                  className="w-full py-2 bg-acid-green text-black rounded-xl text-xs font-black uppercase tracking-wider hover:brightness-110 transition-all cursor-pointer"
+                >
+                  Message Trainer
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-center h-full py-6">
+                <div className="w-16 h-16 rounded-full bg-surface border border-card-border flex items-center justify-center mb-4 opacity-60">
+                  <span className="text-2xl">🤝</span>
+                </div>
+                <h3 className="text-sm font-bold text-foreground mb-1">No Active Trainer</h3>
+                <p className="text-xs text-muted mb-4">Get a coach to assign your workouts and nutrition.</p>
+                <button 
+                  onClick={() => setActiveTab('find-trainer')}
+                  className="px-6 py-2 border border-acid-green text-acid-green rounded-xl text-xs font-black uppercase tracking-wider hover:bg-acid-green hover:text-black transition-all cursor-pointer"
+                >
+                  Find a Trainer
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Assigned Plans Card ── */}
+        <div className="glass p-4 sm:p-6 rounded-2xl border border-[var(--card-border)] shadow-md flex flex-col justify-between h-full min-h-[320px]">
+          <div>
+            <SectionHeader title="Assigned Plans" />
+            <div className="space-y-3">
+              {!connection || connection.status !== 'active' ? (
+                 <div className="text-center py-10">
+                   <BookOpen className="w-8 h-8 text-muted mx-auto mb-2 opacity-50" />
+                   <p className="text-xs text-muted font-semibold">Connect with a trainer to receive plans.</p>
+                 </div>
+              ) : assignments.length === 0 ? (
+                <div className="text-center py-10">
+                  <BookOpen className="w-8 h-8 text-muted mx-auto mb-2 opacity-50" />
+                  <p className="text-xs text-muted font-semibold">No plans assigned yet</p>
+                </div>
+              ) : assignments.slice(0, 4).map((a, i) => (
+                <div key={i} className="flex justify-between items-center p-3 bg-surface rounded-xl border border-card-border">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-lg border flex items-center justify-center
+                      ${a.plan_type === 'workout_plan' ? 'bg-acid-green/10 border-acid-green/20' : 'bg-orange/10 border-orange/20'}
+                    `}>
+                      {a.plan_type === 'workout_plan' ? <Dumbbell className="w-4 h-4 text-acid-green" /> : <Utensils className="w-4 h-4 text-orange" />}
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-foreground truncate max-w-[120px]">{a.plan_type === 'workout_plan' ? 'Workout Plan' : 'Nutrition Plan'}</div>
+                      <div className="text-[10px] text-muted font-medium mt-0.5">
+                        {a.due_date ? `Due: ${new Date(a.due_date).toLocaleDateString()}` : 'No due date'}
+                      </div>
+                    </div>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${
+                    a.status === 'completed' ? 'bg-acid-green/20 text-acid-green' : 'bg-surface border border-card-border text-muted'
+                  }`}>
+                    {a.status}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

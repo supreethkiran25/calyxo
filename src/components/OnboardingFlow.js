@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, Activity, Sparkles, ChevronRight, ChevronLeft, Heart, Target, Calendar } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { saveUserProfile, saveEcosystemState } from '../lib/dbService';
+import { generateProgram } from '../services/geminiService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 
 const STEPS = [
@@ -200,24 +201,14 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
 
     // Call API helper to compile initial suggested program if available
     try {
-      const response = await fetch('/api/gemini/program', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          profile: profileData,
-          personality: 'motivational'
-        })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.program) {
-          ecoStore.setCoachingPlan(data.program);
-          try {
-            await saveEcosystemState(userId, ecoStore);
-          } catch (e) {
-            console.error("Could not save AI plan during onboarding", e);
-          }
+      const data = await generateProgram({ goal: profileData.goal, userProfile: profileData });
+      if (data) {
+        const coachingPlan = data.program || data;
+        ecoStore.setCoachingPlan(coachingPlan);
+        try {
+          await saveEcosystemState(userId, ecoStore);
+        } catch (e) {
+          console.error("Could not save AI plan during onboarding", e);
         }
       }
     } catch (err) {

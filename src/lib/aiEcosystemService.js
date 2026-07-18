@@ -1,5 +1,6 @@
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
+import { syncHealthTwin } from '../services/geminiService';
 
 export const syncAIHealthTwin = async () => {
   try {
@@ -17,14 +18,9 @@ export const syncAIHealthTwin = async () => {
       activeDeficit: state.userProfile?.goal === 'lose' ? 500 : 0
     };
 
-    const res = await fetch('/api/gemini/twin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    const data = await syncHealthTwin(payload);
 
-    if (res.ok) {
-      const data = await res.json();
+    if (data) {
       useEcosystemStore.getState().updateHealthTwin(data);
       return data;
     } else {

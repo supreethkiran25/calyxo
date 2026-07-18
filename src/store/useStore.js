@@ -178,6 +178,9 @@ export const useStore = create((set, get) => ({
   }),
   resetWaterIntake: () => set({ waterIntake: 0 }),
 
+  // Trainer Data
+  trainerClients: [],
+  setTrainerClients: (clients) => set({ trainerClients: clients }),
   setUserProfile: (profile) => set((state) => ({
     userProfile: profile 
       ? {

@@ -1,53 +1,50 @@
-import { auth, db } from "./firebase";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut as fbSignOut,
-  onAuthStateChanged,
-  GoogleAuthProvider,
-  OAuthProvider,
-  signInWithPopup,
-  setPersistence,
-  browserLocalPersistence,
-  browserSessionPersistence,
-  updateEmail,
-  updatePassword,
-  updateProfile,
-  deleteUser,
-  sendPasswordResetEmail
-} from "firebase/auth";
-import {
-  collection,
-  addDoc,
-  getDocs,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  doc,
-  setDoc,
-  getDoc
-} from "firebase/firestore";
+import { supabase } from "./supabaseClient";
 
-// Helper to determine if Firebase is fully configured or running mock
-export const isMockFirebase = !auth.app.options.apiKey || auth.app.options.apiKey === "mock-api-key";
+// Helper to determine if Supabase is fully configured or running mock
+export const isMockFirebase = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === "https://mock.supabase.co";
 
 const ENCRYPTION_SALT = "calyxo_secure_salt_2026";
 
-export const getCurrentUserId = () => {
+export const getCurrentUserId = async () => {
   if (typeof window === 'undefined') return "";
   if (isMockFirebase) {
     try {
       const mockUserRaw = localStorage.getItem("calyxo_mock_user");
       if (mockUserRaw) {
         const mock = JSON.parse(mockUserRaw);
-        return mock?.uid || "";
+        return mock?.uid || mock?.id || "";
       }
     } catch (e) {}
     return "";
   }
-  return auth?.currentUser?.uid || "";
+  const { data } = await supabase.auth.getUser();
+  return data?.user?.id || "";
 };
+
+export const getCurrentUserIdSync = () => {
+  if (typeof window === 'undefined') return "";
+  if (isMockFirebase) {
+    try {
+      const mockUserRaw = localStorage.getItem("calyxo_mock_user");
+      if (mockUserRaw) {
+        const mock = JSON.parse(mockUserRaw);
+        return mock?.uid || mock?.id || "";
+      }
+    } catch (e) {}
+    return "";
+  }
+  // Fallback for sync contexts, ideally shouldn't be relied on for security
+  // But matches the previous firebase auth.currentUser synchronous behavior somewhat
+  // In Supabase, session is async, but we can try parsing local storage
+  try {
+     const sessionStr = localStorage.getItem(`sb-${import.meta.env.VITE_SUPABASE_URL.split('//')[1].split('.')[0]}-auth-token`);
+     if (sessionStr) {
+       return JSON.parse(sessionStr)?.user?.id || "";
+     }
+  } catch(e) {}
+  return "";
+};
+
 
 export const xorEncrypt = (text, key = ENCRYPTION_SALT) => {
   let result = "";
@@ -89,7 +86,7 @@ export const getSecureItem = (key, keyDerivation = ENCRYPTION_SALT) => {
       return JSON.parse(saved);
     } catch (e) {}
   }
-  const uid = getCurrentUserId();
+  const uid = getCurrentUserIdSync();
   const derivationKey = (keyDerivation === ENCRYPTION_SALT && uid)
     ? `${uid}_${ENCRYPTION_SALT}`
     : keyDerivation;
@@ -99,7 +96,7 @@ export const getSecureItem = (key, keyDerivation = ENCRYPTION_SALT) => {
     try {
       return JSON.parse(decrypted);
     } catch (e) {
-      console.error("Secure parse error", key, e);
+      localStorage.removeItem(key);
     }
   }
   return null;
@@ -108,7 +105,7 @@ export const getSecureItem = (key, keyDerivation = ENCRYPTION_SALT) => {
 export const setSecureItem = (key, val, keyDerivation = ENCRYPTION_SALT) => {
   if (typeof window === 'undefined') return;
   const rawStr = JSON.stringify(val);
-  const uid = getCurrentUserId();
+  const uid = getCurrentUserIdSync();
   const derivationKey = (keyDerivation === ENCRYPTION_SALT && uid)
     ? `${uid}_${ENCRYPTION_SALT}`
     : keyDerivation;
@@ -153,21 +150,23 @@ const saveLocalState = (userId, state) => {
 
 export const signUpUser = async (email, password, remember = true) => {
   if (isMockFirebase) {
-    // Mock Signup
-    const mockUser = { uid: "mock-user-id", email };
+    const mockUser = { id: "mock-user-id", uid: "mock-user-id", email };
     localStorage.setItem("calyxo_mock_user", JSON.stringify(mockUser));
     return mockUser;
   }
-  await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
-  const credential = await createUserWithEmailAndPassword(auth, email, password);
-  return credential.user;
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) throw error;
+  // Shim for firebase `.uid` convention in legacy code
+  if (data.user) {
+    data.user.uid = data.user.id;
+  }
+  return data.user;
 };
 
 export const signInWithUsernameOrEmail = async (identifier, password, remember = true) => {
   let loginEmail = identifier;
 
   if (isMockFirebase) {
-    // Mock Login
     if (!identifier.includes('@')) {
       const usernamesStr = localStorage.getItem("calyxo_mock_usernames");
       if (usernamesStr) {
@@ -179,54 +178,49 @@ export const signInWithUsernameOrEmail = async (identifier, password, remember =
         throw new Error("Username not found");
       }
     }
-    
-    const mockUser = { uid: "mock-user-id", email: loginEmail };
+    const mockUser = { id: "mock-user-id", uid: "mock-user-id", email: loginEmail };
     localStorage.setItem("calyxo_mock_user", JSON.stringify(mockUser));
     return mockUser;
   }
 
-  // Resolve Username to Email
+  // Resolve Username to Email (If usernames table exists in Supabase)
   if (!identifier.includes('@')) {
     const usernameLower = identifier.toLowerCase();
-    const usernameDocRef = doc(db, "usernames", usernameLower);
-    const snap = await getDoc(usernameDocRef);
-    if (!snap.exists()) {
-      throw new Error("Username not found.");
-    }
-    const data = snap.data();
-    if (!data.email) {
-      throw new Error("This username does not have an associated email address.");
+    const { data, error } = await supabase.from('usernames').select('email').eq('id', usernameLower).maybeSingle();
+    if (error || !data?.email) {
+      throw new Error("Username not found or has no associated email address.");
     }
     loginEmail = data.email;
   }
 
-  await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
-  const credential = await signInWithEmailAndPassword(auth, loginEmail, password);
-  return credential.user;
+  const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
+  if (error) throw error;
+  if (data.user) {
+    data.user.uid = data.user.id;
+  }
+  return data.user;
 };
 
 export const signInWithGoogle = async (remember = true) => {
   if (isMockFirebase) {
-    const mockUser = { uid: "mock-google-user", email: "google.tester@calyxo.com", displayName: "Google Tester" };
+    const mockUser = { id: "mock-google-user", uid: "mock-google-user", email: "google.tester@calyxo.com", displayName: "Google Tester" };
     localStorage.setItem("calyxo_mock_user", JSON.stringify(mockUser));
     return mockUser;
   }
-  await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
-  const provider = new GoogleAuthProvider();
-  const credential = await signInWithPopup(auth, provider);
-  return credential.user;
+  const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+  if (error) throw error;
+  return data;
 };
 
 export const signInWithApple = async (remember = true) => {
   if (isMockFirebase) {
-    const mockUser = { uid: "mock-apple-user", email: "apple.tester@calyxo.com", displayName: "Apple Tester" };
+    const mockUser = { id: "mock-apple-user", uid: "mock-apple-user", email: "apple.tester@calyxo.com", displayName: "Apple Tester" };
     localStorage.setItem("calyxo_mock_user", JSON.stringify(mockUser));
     return mockUser;
   }
-  await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
-  const provider = new OAuthProvider("apple.com");
-  const credential = await signInWithPopup(auth, provider);
-  return credential.user;
+  const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'apple' });
+  if (error) throw error;
+  return data;
 };
 
 export const signOutUser = async () => {
@@ -234,7 +228,7 @@ export const signOutUser = async () => {
     localStorage.removeItem("calyxo_mock_user");
     return;
   }
-  await fbSignOut(auth);
+  await supabase.auth.signOut();
 };
 
 export const sendPasswordReset = async (email) => {
@@ -242,12 +236,12 @@ export const sendPasswordReset = async (email) => {
     console.log(`Mock reset password email sent to ${email}`);
     return;
   }
-  await sendPasswordResetEmail(auth, email);
+  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  if (error) throw error;
 };
 
 export const subscribeToAuth = (callback) => {
   if (isMockFirebase) {
-    // Trigger callback with mock user if exists
     let mockUser = null;
     try {
       const mockUserRaw = localStorage.getItem("calyxo_mock_user");
@@ -256,13 +250,23 @@ export const subscribeToAuth = (callback) => {
       console.error("Error parsing mock user", e);
     }
     callback(mockUser);
-
-    // Return a dummy unsubscribe function
     return () => { };
   }
-  return onAuthStateChanged(auth, (user) => {
+  
+  // Immediately call with current session
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    let user = session?.user || null;
+    if (user) user.uid = user.id;
     callback(user);
   });
+
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    let user = session?.user || null;
+    if (user) user.uid = user.id;
+    callback(user);
+  });
+
+  return () => { subscription.unsubscribe(); };
 };
 
 /* ==========================================================================
@@ -274,15 +278,18 @@ export const getFoodLogs = async (userId) => {
     return getLocalState(userId).foodLogs;
   }
   try {
-    const q = query(
-      collection(db, "food_logs"),
-      where("userId", "==", userId),
-      orderBy("timestamp", "desc")
-    );
-    const snap = await getDocs(q);
-    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const { data, error } = await supabase
+      .from("food_logs")
+      .select("*")
+      .eq("userId", userId)
+      .order("timestamp", { ascending: false });
+    if (error) throw error;
+    return data || [];
   } catch (err) {
-    console.error("Firestore getFoodLogs error, falling back to LocalStorage:", err);
+    console.error("Supabase getFoodLogs error, falling back to LocalStorage:", err);
+    console.error("Error name:", err?.name);
+    console.error("Error message:", err?.message);
+    console.error("Error details:", JSON.stringify(err));
     return getLocalState(userId).foodLogs;
   }
 };
@@ -290,7 +297,6 @@ export const getFoodLogs = async (userId) => {
 export const addFoodLog = async (userId, item) => {
   const logItem = { ...item, userId, timestamp: Date.now() };
 
-  // Always write locally as cache
   const state = getLocalState(userId);
   state.foodLogs.push(logItem);
   saveLocalState(userId, state);
@@ -298,16 +304,16 @@ export const addFoodLog = async (userId, item) => {
   if (isMockFirebase || !userId) return logItem;
 
   try {
-    const docRef = await addDoc(collection(db, "food_logs"), logItem);
-    return { id: docRef.id, ...logItem };
+    const { data, error } = await supabase.from("food_logs").insert(logItem).select().single();
+    if (error) throw error;
+    return data;
   } catch (err) {
-    console.error("Firestore addFoodLog error", err);
+    console.error("Supabase addFoodLog error", err);
     return logItem;
   }
 };
 
 export const deleteFoodLog = async (userId, logId) => {
-  // Always filter locally
   const state = getLocalState(userId);
   state.foodLogs = state.foodLogs.filter(x => x.id !== logId && x.timestamp !== logId);
   saveLocalState(userId, state);
@@ -315,9 +321,10 @@ export const deleteFoodLog = async (userId, logId) => {
   if (isMockFirebase || !userId || typeof logId === 'number') return;
 
   try {
-    await deleteDoc(doc(db, "food_logs", logId));
+    const { error } = await supabase.from("food_logs").delete().eq("id", logId);
+    if (error) throw error;
   } catch (err) {
-    console.error("Firestore deleteFoodLog error", err);
+    console.error("Supabase deleteFoodLog error", err);
   }
 };
 
@@ -330,15 +337,18 @@ export const getWorkoutLogs = async (userId) => {
     return getLocalState(userId).workoutLogs;
   }
   try {
-    const q = query(
-      collection(db, "workout_logs"),
-      where("userId", "==", userId),
-      orderBy("timestamp", "desc")
-    );
-    const snap = await getDocs(q);
-    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const { data, error } = await supabase
+      .from("workout_logs")
+      .select("*")
+      .eq("userId", userId)
+      .order("timestamp", { ascending: false });
+    if (error) throw error;
+    return data || [];
   } catch (err) {
-    console.error("Firestore getWorkoutLogs error:", err);
+    console.error("Supabase getWorkoutLogs error:", err);
+    console.error("Error name:", err?.name);
+    console.error("Error message:", err?.message);
+    console.error("Error details:", JSON.stringify(err));
     return getLocalState(userId).workoutLogs;
   }
 };
@@ -353,10 +363,11 @@ export const addWorkoutLog = async (userId, workout) => {
   if (isMockFirebase || !userId) return logItem;
 
   try {
-    const docRef = await addDoc(collection(db, "workout_logs"), logItem);
-    return { id: docRef.id, ...logItem };
+    const { data, error } = await supabase.from("workout_logs").insert(logItem).select().single();
+    if (error) throw error;
+    return data;
   } catch (err) {
-    console.error("Firestore addWorkoutLog error", err);
+    console.error("Supabase addWorkoutLog error", err);
     return logItem;
   }
 };
@@ -370,11 +381,15 @@ export const getWaterIntake = async (userId) => {
     return getLocalState(userId).waterIntake;
   }
   try {
-    const docRef = doc(db, "users_metrics", `${userId}_water`);
-    const snap = await getDoc(docRef);
-    if (snap.exists()) {
-      const data = snap.data();
-      // Check if logged today
+    const { data, error } = await supabase
+      .from("users_metrics")
+      .select("*")
+      .eq("id", `${userId}_water`)
+      .maybeSingle();
+      
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 is not found
+    
+    if (data) {
       const today = new Date().toDateString();
       if (data.date === today) {
         return data.amount;
@@ -395,13 +410,16 @@ export const saveWaterIntake = async (userId, amount) => {
   if (isMockFirebase || !userId) return;
 
   try {
-    await setDoc(doc(db, "users_metrics", `${userId}_water`), {
+    const payload = {
+      id: `${userId}_water`,
       amount,
       date: today,
       userId
-    });
+    };
+    const { error } = await supabase.from("users_metrics").upsert(payload);
+    if (error) throw error;
   } catch (err) {
-    console.error("Firestore saveWaterIntake error", err);
+    console.error("Supabase saveWaterIntake error", err);
   }
 };
 
@@ -414,13 +432,13 @@ export const getWeightLogs = async (userId) => {
     return getLocalState(userId).weightLogs;
   }
   try {
-    const q = query(
-      collection(db, "weight_logs"),
-      where("userId", "==", userId),
-      orderBy("timestamp", "desc")
-    );
-    const snap = await getDocs(q);
-    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).reverse();
+    const { data, error } = await supabase
+      .from("weight_logs")
+      .select("*")
+      .eq("userId", userId)
+      .order("timestamp", { ascending: false });
+    if (error) throw error;
+    return (data || []).reverse();
   } catch (err) {
     return getLocalState(userId).weightLogs;
   }
@@ -446,10 +464,11 @@ export const addWeightLog = async (userId, weightVal, units) => {
   if (isMockFirebase || !userId) return entry;
 
   try {
-    const docRef = await addDoc(collection(db, "weight_logs"), entry);
-    return { id: docRef.id, ...entry };
+    const { data, error } = await supabase.from("weight_logs").insert(entry).select().single();
+    if (error) throw error;
+    return data;
   } catch (err) {
-    console.error("Firestore addWeightLog error", err);
+    console.error("Supabase addWeightLog error", err);
     return entry;
   }
 };
@@ -463,11 +482,18 @@ export const getUserProfile = async (userId) => {
     return getLocalState(userId).userProfile;
   }
   try {
-    const docRef = doc(db, "users_metrics", `${userId}_profile`);
-    const snap = await getDoc(docRef);
-    if (snap.exists()) {
-      return snap.data();
-    }
+    // Note: The original firebase structure stored profile in users_metrics collection under ${userId}_profile.
+    // Since we have user_profiles table from migration, we should use it for standard profile fields,
+    // but the app is expecting the localState object format. We'll continue using users_metrics 
+    // for seamless migration unless we also updated the frontend.
+    const { data, error } = await supabase
+      .from("users_metrics")
+      .select("*")
+      .eq("id", `${userId}_profile`)
+      .maybeSingle();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    if (data) return data;
     return getLocalState(userId).userProfile;
   } catch (err) {
     return getLocalState(userId).userProfile;
@@ -482,12 +508,15 @@ export const saveUserProfile = async (userId, profile) => {
   if (isMockFirebase || !userId) return;
 
   try {
-    await setDoc(doc(db, "users_metrics", `${userId}_profile`), {
+    const payload = {
+      id: `${userId}_profile`,
       ...profile,
       userId
-    });
+    };
+    const { error } = await supabase.from("users_metrics").upsert(payload);
+    if (error) throw error;
   } catch (err) {
-    console.error("Firestore saveUserProfile error", err);
+    console.error("Supabase saveUserProfile error", err);
   }
 };
 
@@ -504,7 +533,6 @@ export const addTrainingLog = async (userId, queryText, responseText, rating) =>
     timestamp: Date.now()
   };
 
-  // Always cache locally in mock local storage mode
   let logs = getSecureItem("calyxo_training_logs", userId || ENCRYPTION_SALT) || [];
   logs.push(logItem);
   setSecureItem("calyxo_training_logs", logs, userId || ENCRYPTION_SALT);
@@ -512,16 +540,16 @@ export const addTrainingLog = async (userId, queryText, responseText, rating) =>
   if (isMockFirebase || !userId) return logItem;
 
   try {
-    const docRef = await addDoc(collection(db, "TrainingLogs"), logItem);
-    return { id: docRef.id, ...logItem };
+    const { data, error } = await supabase.from("TrainingLogs").insert(logItem).select().single();
+    if (error) throw error;
+    return data;
   } catch (err) {
-    console.error("Firestore addTrainingLog error", err);
+    console.error("Supabase addTrainingLog error", err);
     return logItem;
   }
 };
 
 export const getPositiveTrainingLogs = async (userId) => {
-  // Try reading local storage first as a direct source (covers mock mode)
   let localLogs = getSecureItem("calyxo_training_logs", userId || ENCRYPTION_SALT) || [];
   const positiveLocal = localLogs.filter(log => log.rating === 1);
 
@@ -530,16 +558,15 @@ export const getPositiveTrainingLogs = async (userId) => {
   }
 
   try {
-    const q = query(
-      collection(db, "TrainingLogs"),
-      where("userId", "==", userId),
-      where("rating", "==", 1)
-    );
-    const snap = await getDocs(q);
-    const firestoreLogs = snap.docs.map(doc => doc.data());
+    const { data, error } = await supabase
+      .from("TrainingLogs")
+      .select("*")
+      .eq("userId", userId)
+      .eq("rating", 1);
+      
+    if (error) throw error;
 
-    // Merge both sources and deduplicate by timestamp
-    const allLogs = [...firestoreLogs, ...positiveLocal];
+    const allLogs = [...(data || []), ...positiveLocal];
     const seen = new Set();
     return allLogs.filter(item => {
       const key = `${item.timestamp}_${item.user_query}`;
@@ -548,7 +575,7 @@ export const getPositiveTrainingLogs = async (userId) => {
       return true;
     });
   } catch (err) {
-    console.error("Firestore getPositiveTrainingLogs error, using local logs:", err);
+    console.error("Supabase getPositiveTrainingLogs error, using local logs:", err);
     return positiveLocal;
   }
 };
@@ -562,21 +589,23 @@ export const getChatSessions = async (userId) => {
     return getSecureItem("calyxo_chat_sessions", userId || ENCRYPTION_SALT) || [];
   }
   try {
-    const q = query(
-      collection(db, "chat_sessions"),
-      where("userId", "==", userId),
-      orderBy("updatedAt", "desc")
-    );
-    const snap = await getDocs(q);
-    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const { data, error } = await supabase
+      .from("chat_sessions")
+      .select("*")
+      .eq("userId", userId)
+      .order("updatedAt", { ascending: false });
+    if (error) throw error;
+    return data || [];
   } catch (err) {
-    console.error("Firestore getChatSessions error, falling back to local:", err);
+    console.error("Supabase getChatSessions error, falling back to local:", err);
+    console.error("Error name:", err?.name);
+    console.error("Error message:", err?.message);
+    console.error("Error details:", JSON.stringify(err));
     return getSecureItem("calyxo_chat_sessions", userId || ENCRYPTION_SALT) || [];
   }
 };
 
 export const saveChatSession = async (userId, session) => {
-  // Always update locally first
   let localSessions = getSecureItem("calyxo_chat_sessions", userId || ENCRYPTION_SALT) || [];
 
   const idx = localSessions.findIndex(s => s.id === session.id);
@@ -586,23 +615,22 @@ export const saveChatSession = async (userId, session) => {
   } else {
     localSessions.unshift(updatedSession);
   }
-  // Sort local sessions
   localSessions.sort((a, b) => b.updatedAt - a.updatedAt);
   setSecureItem("calyxo_chat_sessions", localSessions, userId || ENCRYPTION_SALT);
 
   if (isMockFirebase || !userId) return updatedSession;
 
   try {
-    await setDoc(doc(db, "chat_sessions", session.id), updatedSession);
+    const { error } = await supabase.from("chat_sessions").upsert(updatedSession);
+    if (error) throw error;
     return updatedSession;
   } catch (err) {
-    console.error("Firestore saveChatSession error", err);
+    console.error("Supabase saveChatSession error", err);
     return updatedSession;
   }
 };
 
 export const deleteChatSession = async (userId, sessionId) => {
-  // Local delete
   let localSessions = getSecureItem("calyxo_chat_sessions", userId || ENCRYPTION_SALT) || [];
   localSessions = localSessions.filter(s => s.id !== sessionId);
   setSecureItem("calyxo_chat_sessions", localSessions, userId || ENCRYPTION_SALT);
@@ -610,9 +638,10 @@ export const deleteChatSession = async (userId, sessionId) => {
   if (isMockFirebase || !userId) return;
 
   try {
-    await deleteDoc(doc(db, "chat_sessions", sessionId));
+    const { error } = await supabase.from("chat_sessions").delete().eq("id", sessionId);
+    if (error) throw error;
   } catch (err) {
-    console.error("Firestore deleteChatSession error", err);
+    console.error("Supabase deleteChatSession error", err);
   }
 };
 
@@ -625,27 +654,31 @@ export const getEcosystemState = async (userId) => {
     return getSecureItem("calyxo_ecosystem_db_state", userId || ENCRYPTION_SALT);
   }
   try {
-    const docRef = doc(db, "users_ecosystem", userId);
-    const snap = await getDoc(docRef);
-    return snap.exists() ? snap.data() : null;
+    const { data, error } = await supabase.from("users_ecosystem").select("*").eq("id", userId).maybeSingle();
+    if (error && error.code !== 'PGRST116') throw error;
+    return data || null;
   } catch (err) {
-    console.error("Firestore getEcosystemState error:", err);
+    console.error("Supabase getEcosystemState error:", err);
+    console.error("Error name:", err?.name);
+    console.error("Error message:", err?.message);
+    console.error("Error details:", JSON.stringify(err));
     return null;
   }
 };
 
 export const saveEcosystemState = async (userId, state) => {
   if (!state || !userId) return;
-  // Clean state to strip any store action functions
   const cleanState = JSON.parse(JSON.stringify(state));
   if (typeof window !== 'undefined') {
     setSecureItem("calyxo_ecosystem_db_state", cleanState, userId || ENCRYPTION_SALT);
   }
   if (isMockFirebase) return;
   try {
-    await setDoc(doc(db, "users_ecosystem", userId), cleanState);
+    const payload = { id: userId, ...cleanState };
+    const { error } = await supabase.from("users_ecosystem").upsert(payload);
+    if (error) throw error;
   } catch (err) {
-    console.error("Firestore saveEcosystemState error:", err);
+    console.error("Supabase saveEcosystemState error:", err);
   }
 };
 
@@ -654,15 +687,15 @@ export const getMealScanLogs = async (userId) => {
     return getSecureItem("calyxo_meal_scans", userId || ENCRYPTION_SALT) || [];
   }
   try {
-    const q = query(
-      collection(db, "meal_scans"),
-      where("userId", "==", userId),
-      orderBy("timestamp", "desc")
-    );
-    const snap = await getDocs(q);
-    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const { data, error } = await supabase
+      .from("meal_scans")
+      .select("*")
+      .eq("userId", userId)
+      .order("timestamp", { ascending: false });
+    if (error) throw error;
+    return data || [];
   } catch (err) {
-    console.error("Firestore getMealScanLogs error:", err);
+    console.error("Supabase getMealScanLogs error:", err);
     return [];
   }
 };
@@ -675,10 +708,11 @@ export const addMealScanLog = async (userId, scanItem) => {
 
   if (isMockFirebase || !userId) return item;
   try {
-    const docRef = await addDoc(collection(db, "meal_scans"), item);
-    return { id: docRef.id, ...item };
+    const { data, error } = await supabase.from("meal_scans").insert(item).select().single();
+    if (error) throw error;
+    return data;
   } catch (err) {
-    console.error("Firestore addMealScanLog error:", err);
+    console.error("Supabase addMealScanLog error:", err);
     return item;
   }
 };
@@ -693,16 +727,14 @@ export const updateUserEmail = async (newEmail) => {
     }
     return;
   }
-  if (auth.currentUser) {
-    await updateEmail(auth.currentUser, newEmail);
-  }
+  const { error } = await supabase.auth.updateUser({ email: newEmail });
+  if (error) throw error;
 };
 
 export const updateUserPassword = async (newPassword) => {
   if (isMockFirebase) return;
-  if (auth.currentUser) {
-    await updatePassword(auth.currentUser, newPassword);
-  }
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
 };
 
 export const updateUserAuthProfile = async (displayName, photoURL) => {
@@ -716,40 +748,23 @@ export const updateUserAuthProfile = async (displayName, photoURL) => {
     }
     return;
   }
-  if (auth.currentUser) {
-    await updateProfile(auth.currentUser, { displayName, photoURL });
-  }
+  const { error } = await supabase.auth.updateUser({ data: { displayName, photoURL } });
+  if (error) throw error;
 };
 
 export const deleteUserAccount = async (userId) => {
   if (!isMockFirebase && userId) {
     try {
-      await deleteDoc(doc(db, "users_metrics", `${userId}_profile`));
-      await deleteDoc(doc(db, "users_metrics", `${userId}_water`));
-      await deleteDoc(doc(db, "users_ecosystem", userId));
-
-      const foodSnap = await getDocs(query(collection(db, "food_logs"), where("userId", "==", userId)));
-      foodSnap.forEach(async (d) => {
-        await deleteDoc(doc(db, "food_logs", d.id));
-      });
-      const workoutSnap = await getDocs(query(collection(db, "workout_logs"), where("userId", "==", userId)));
-      workoutSnap.forEach(async (d) => {
-        await deleteDoc(doc(db, "workout_logs", d.id));
-      });
-      const weightSnap = await getDocs(query(collection(db, "weight_logs"), where("userId", "==", userId)));
-      weightSnap.forEach(async (d) => {
-        await deleteDoc(doc(db, "weight_logs", d.id));
-      });
-      const chatSnap = await getDocs(query(collection(db, "chat_sessions"), where("userId", "==", userId)));
-      chatSnap.forEach(async (d) => {
-        await deleteDoc(doc(db, "chat_sessions", d.id));
-      });
-      const scansSnap = await getDocs(query(collection(db, "meal_scans"), where("userId", "==", userId)));
-      scansSnap.forEach(async (d) => {
-        await deleteDoc(doc(db, "meal_scans", d.id));
-      });
+      await supabase.from("users_metrics").delete().eq("id", `${userId}_profile`);
+      await supabase.from("users_metrics").delete().eq("id", `${userId}_water`);
+      await supabase.from("users_ecosystem").delete().eq("id", userId);
+      await supabase.from("food_logs").delete().eq("userId", userId);
+      await supabase.from("workout_logs").delete().eq("userId", userId);
+      await supabase.from("weight_logs").delete().eq("userId", userId);
+      await supabase.from("chat_sessions").delete().eq("userId", userId);
+      await supabase.from("meal_scans").delete().eq("userId", userId);
     } catch (e) {
-      console.error("Purging Firestore collections error", e);
+      console.error("Purging Supabase collections error", e);
     }
   }
 
@@ -761,8 +776,12 @@ export const deleteUserAccount = async (userId) => {
   localStorage.removeItem("calyxo_training_logs");
   localStorage.removeItem("calyxo_ecosystem_state");
 
-  if (!isMockFirebase && auth.currentUser) {
-    await deleteUser(auth.currentUser);
+  if (!isMockFirebase) {
+    // Note: deleteUser from client requires the user to be recently signed in
+    // Supabase JS client doesn't expose a client-side delete user function like Firebase does.
+    // Only admin can delete user in Supabase, or use a custom Edge Function.
+    // For now, we sign out.
+    await supabase.auth.signOut();
   }
 };
 
@@ -800,10 +819,7 @@ export const clearChatHistory = async (userId) => {
   localStorage.removeItem("calyxo_chat_sessions");
   if (isMockFirebase || !userId) return;
   try {
-    const chatSnap = await getDocs(query(collection(db, "chat_sessions"), where("userId", "==", userId)));
-    chatSnap.forEach(async (d) => {
-      await deleteDoc(doc(db, "chat_sessions", d.id));
-    });
+    await supabase.from("chat_sessions").delete().eq("userId", userId);
   } catch (e) {
     console.error("Clear chat history error", e);
   }
@@ -840,5 +856,271 @@ export const fetchWithRetry = async (url, options = {}, retries = 3, delay = 100
   }
 };
 
+/* ==========================================================================
+   TRAINER API
+   ========================================================================== */
 
+export const getTrainerProfile = async (trainerId) => {
+  if (isMockFirebase || !trainerId) return null;
+  const { data, error } = await supabase.from('trainer_profiles').select('*').eq('id', trainerId).maybeSingle();
+  if (error && error.code !== 'PGRST116') console.error('getTrainerProfile error:', error);
+  return data;
+};
 
+export const upsertTrainerProfile = async (trainerId, profileData) => {
+  if (isMockFirebase || !trainerId) return;
+  const { error } = await supabase.from('trainer_profiles').upsert({ id: trainerId, ...profileData });
+  if (error) console.error('upsertTrainerProfile error:', error);
+};
+
+export const completeTrainerOnboarding = async (trainerId) => {
+  if (isMockFirebase || !trainerId) return;
+  const { error } = await supabase.from('trainer_profiles').update({ onboarding_complete: true }).eq('id', trainerId);
+  if (error) console.error('completeTrainerOnboarding error:', error);
+};
+
+export const requestPTConnection = async (userId, trainerId, method) => {
+  if (isMockFirebase || !userId || !trainerId) return;
+  const { error } = await supabase.from('pt_connections').insert({
+    user_id: userId,
+    trainer_id: trainerId,
+    connection_method: method,
+    status: 'pending'
+  });
+  if (error) console.error('requestPTConnection error:', error);
+};
+
+export const respondToConnection = async (connectionId, status) => {
+  if (isMockFirebase || !connectionId) return;
+  const { error } = await supabase.from('pt_connections').update({ status, responded_at: new Date().toISOString() }).eq('id', connectionId);
+  if (error) console.error('respondToConnection error:', error);
+};
+
+export const getUserConnection = async (userId) => {
+  if (isMockFirebase || !userId) return null;
+  const { data, error } = await supabase.from('pt_connections').select('*').eq('user_id', userId).in('status', ['pending', 'accepted']);
+  if (error) {
+    console.error('getUserConnection error:', error);
+    return null;
+  }
+  const conn = data?.[0] || null;
+  if (conn && conn.trainer_id) {
+    const { data: tp } = await supabase.from('trainer_profiles').select('*').eq('id', conn.trainer_id).maybeSingle();
+    if (tp) conn.trainer_profiles = tp;
+  }
+  return conn;
+};
+
+export const getTrainerClients = async (trainerId) => {
+  if (isMockFirebase || !trainerId) return [];
+  const { data, error } = await supabase.from('pt_connections').select('*').eq('trainer_id', trainerId).eq('status', 'accepted');
+  if (error) {
+    console.error('getTrainerClients error:', error);
+    return [];
+  }
+  if (data && data.length > 0) {
+    const userIds = data.map(d => d.user_id);
+    const { data: usersData } = await supabase.from('user_profiles').select('*').in('id', userIds);
+    if (usersData) {
+      data.forEach(conn => {
+        conn.user_profiles = usersData.find(u => u.id === conn.user_id) || null;
+      });
+    }
+  }
+  return data || [];
+};
+
+export const assignPlan = async (trainerId, userId, planData) => {
+  if (isMockFirebase || !trainerId || !userId) return;
+  const { error } = await supabase.from('trainer_assignments').insert({
+    trainer_id: trainerId,
+    user_id: userId,
+    ...planData
+  });
+  if (error) console.error('assignPlan error:', error);
+};
+
+export const getUserAssignments = async (userId) => {
+  if (isMockFirebase || !userId) return [];
+  const { data, error } = await supabase.from('trainer_assignments').select('*').eq('user_id', userId);
+  if (error) {
+    console.error('getUserAssignments error:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const sendMessage = async (senderId, receiverId, message, senderType) => {
+  if (isMockFirebase || !senderId || !receiverId) return;
+  // senderType should be 'trainer' or 'user'
+  const trainer_id = senderType === 'trainer' ? senderId : receiverId;
+  const user_id = senderType === 'user' ? senderId : receiverId;
+  const { error } = await supabase.from('trainer_messages').insert({
+    trainer_id,
+    user_id,
+    sender: senderType,
+    message
+  });
+  if (error) console.error('sendMessage error:', error);
+};
+
+export const getMessages = async (userId, trainerId) => {
+  if (isMockFirebase || !userId || !trainerId) return [];
+  const { data, error } = await supabase.from('trainer_messages').select('*').eq('user_id', userId).eq('trainer_id', trainerId).order('sent_at', { ascending: true });
+  if (error) {
+    console.error('getMessages error:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const markMessagesRead = async (userId, trainerId) => {
+  if (isMockFirebase || !userId || !trainerId) return;
+  const { error } = await supabase.from('trainer_messages').update({ read: true }).eq('user_id', userId).eq('trainer_id', trainerId);
+  if (error) console.error('markMessagesRead error:', error);
+};
+
+export const getAvailableTrainers = async (filters = {}) => {
+  if (isMockFirebase) return [];
+  let query = supabase.from('trainer_profiles').select('*').eq('onboarding_complete', true);
+  if (filters.specialization) query = query.contains('specializations', [filters.specialization]);
+  if (filters.pricing_tier) query = query.eq('pricing_tier', filters.pricing_tier);
+  
+  const { data, error } = await query;
+  if (error) {
+    console.error('getAvailableTrainers error:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const getTrainerByInviteCode = async (code) => {
+  if (isMockFirebase || !code) return null;
+  const { data, error } = await supabase.from('trainer_profiles').select('*').eq('invite_code', code).maybeSingle();
+  if (error) {
+    if (error.code !== 'PGRST116') console.error('getTrainerByInviteCode error:', error);
+    return null;
+  }
+  return data;
+};
+
+/* ==========================================================================
+   TRAINER EXTENDED SYSTEM API (TASKS, DOCS, ANALYTICS)
+   ========================================================================== */
+
+export const getTrainerAnalytics = async (trainerId) => {
+  if (isMockFirebase || !trainerId) return null;
+  const [connections, assignments, messages] = await Promise.all([
+    supabase.from('pt_connections').select('*', { count: 'exact' }).eq('trainer_id', trainerId).eq('status', 'accepted'),
+    supabase.from('trainer_assignments').select('type', { count: 'exact' }).eq('trainer_id', trainerId),
+    supabase.from('trainer_messages').select('*', { count: 'exact' }).eq('trainer_id', trainerId).eq('sender', 'trainer')
+  ]);
+  
+  return {
+    activeClients: connections.count || 0,
+    workoutPlans: assignments.data?.filter(a => a.type === 'workout_plan').length || 0,
+    mealPlans: assignments.data?.filter(a => a.type === 'meal_plan').length || 0,
+    messagesSent: messages.count || 0
+  };
+};
+
+export const getClientActivityLogs = async (clientId, days = 30) => {
+  if (isMockFirebase || !clientId) return { workouts: [], foods: [] };
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  const cutoff = d.getTime();
+
+  const [workouts, foods] = await Promise.all([
+    supabase.from('workout_logs').select('*').eq('userId', clientId).gte('timestamp', cutoff),
+    supabase.from('food_logs').select('*').eq('userId', clientId).gte('timestamp', cutoff)
+  ]);
+  return { workouts: workouts.data || [], foods: foods.data || [] };
+};
+
+export const getTrainerTasks = async (trainerId) => {
+  if (isMockFirebase || !trainerId) return [];
+  const { data, error } = await supabase.from('trainer_tasks').select('*').eq('trainer_id', trainerId).order('created_at', { ascending: false });
+  if (error) console.error('getTrainerTasks error:', error);
+  return data || [];
+};
+
+export const createTrainerTask = async (taskData) => {
+  if (isMockFirebase) return;
+  const { error } = await supabase.from('trainer_tasks').insert(taskData);
+  if (error) console.error('createTrainerTask error:', error);
+};
+
+export const updateTrainerTaskStatus = async (taskId, status) => {
+  if (isMockFirebase) return;
+  const { error } = await supabase.from('trainer_tasks').update({ status }).eq('id', taskId);
+  if (error) console.error('updateTrainerTaskStatus error:', error);
+};
+
+export const deleteTrainerTask = async (taskId) => {
+  if (isMockFirebase) return;
+  const { error } = await supabase.from('trainer_tasks').delete().eq('id', taskId);
+  if (error) console.error('deleteTrainerTask error:', error);
+};
+
+export const uploadTrainerDocument = async (trainerId, file, meta) => {
+  if (isMockFirebase || !trainerId) return;
+  const filePath = `${trainerId}/${Date.now()}_${file.name}`;
+  const { data: uploadData, error: uploadError } = await supabase.storage.from('trainer-documents').upload(filePath, file);
+  if (uploadError) {
+    console.error('Upload Error:', uploadError);
+    return;
+  }
+  
+  const { data: urlData } = supabase.storage.from('trainer-documents').getPublicUrl(filePath);
+  
+  const docPayload = {
+    trainer_id: trainerId,
+    client_id: meta.clientId || null,
+    file_name: file.name,
+    file_url: urlData.publicUrl,
+    category: meta.category || 'other',
+    file_size: file.size
+  };
+  
+  const { error } = await supabase.from('trainer_documents').insert(docPayload);
+  if (error) console.error('Insert doc metadata error:', error);
+};
+
+export const getTrainerDocuments = async (trainerId) => {
+  if (isMockFirebase || !trainerId) return [];
+  const { data, error } = await supabase.from('trainer_documents').select('*').eq('trainer_id', trainerId).order('created_at', { ascending: false });
+  if (error) console.error('getTrainerDocuments error:', error);
+  return data || [];
+};
+
+export const deleteTrainerDocument = async (docId, fileUrl) => {
+  if (isMockFirebase) return;
+  // delete record
+  await supabase.from('trainer_documents').delete().eq('id', docId);
+  // Optional: delete from storage bucket if you have the file path
+};
+
+export const saveTrainerTemplate = async (trainerId, type, title, content) => {
+  if (isMockFirebase || !trainerId) return;
+  const { error } = await supabase.from('trainer_assignments').insert({
+    trainer_id: trainerId,
+    user_id: null,
+    type,
+    title,
+    content
+  });
+  if (error) console.error('saveTrainerTemplate error:', error);
+};
+
+export const getTrainerTemplates = async (trainerId, type) => {
+  if (isMockFirebase || !trainerId) return [];
+  const { data, error } = await supabase.from('trainer_assignments').select('*').eq('trainer_id', trainerId).is('user_id', null).eq('type', type);
+  if (error) console.error('getTrainerTemplates error:', error);
+  return data || [];
+};
+
+export const getClientFullProfile = async (clientId) => {
+  if (isMockFirebase || !clientId) return null;
+  const profile = await getUserProfile(clientId);
+  return profile;
+};

@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { getFoodLogs, addFoodLog, deleteFoodLog, saveEcosystemState, fetchWithRetry, saveUserProfile } from '../lib/dbService';
+import { searchFood } from '../services/foodService';
+import { scanMealVision, generateGroceryList } from '../services/geminiService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { INDIAN_FOODS } from '../lib/indianFoods';
 import { Plus, Search, BookOpen, Trash2, Camera, Sparkles, Check, X, ShieldAlert, ShoppingBag, Star } from 'lucide-react';
@@ -261,9 +263,8 @@ export default function FoodTracker({ onNotification }) {
     // 3. Attempt search OpenFoodFacts fallback proxy with cleaned query
     let apiResults = [];
     try {
-      const response = await fetch(`/api/food?q=${encodeURIComponent(cleanQuery)}`);
-      if (response.ok) {
-        const data = await response.json();
+      const data = await searchFood(cleanQuery);
+      if (data) {
         const rawProducts = data.products || data.results || [];
         if (rawProducts.length > 0) {
           apiResults = rawProducts.map(r => ({
@@ -510,16 +511,11 @@ export default function FoodTracker({ onNotification }) {
     setScanning(true);
     setScanError(null);
     try {
-      const response = await fetchWithRetry('/api/gemini/vision', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: mealPhoto, userGoal: userProfile?.goal })
-      });
-      if (response.ok) {
-        const data = await response.json();
+      const data = await scanMealVision({ image: mealPhoto, userGoal: userProfile?.goal });
+      if (data) {
         setScanResult(data.scan || data);
       } else {
-        throw new Error(`Server returned code ${response.status}`);
+        throw new Error("Failed to scan meal photo");
       }
     } catch (e) {
       console.error("Meal scan error", e);
@@ -597,13 +593,8 @@ export default function FoodTracker({ onNotification }) {
     if (!ecoStore.coachingPlan) return;
     setGeneratingGrocery(true);
     try {
-      const res = await fetchWithRetry('/api/gemini/grocery', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ program: ecoStore.coachingPlan })
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const data = await generateGroceryList({ program: ecoStore.coachingPlan });
+      if (data && data.grocery) {
         setGroceryList(data.grocery);
         if (onNotification) onNotification("Smart Grocery checklist compiled! 🛒");
       } else {
@@ -1226,7 +1217,7 @@ export default function FoodTracker({ onNotification }) {
                 <div className="border border-dashed border-card-border rounded-xl p-6 flex flex-col items-center justify-center bg-surface/50 h-56 relative overflow-hidden">
                   {mealPhoto ? (
                     <>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      { }
                       <img src={mealPhoto} className="object-cover w-full h-full" alt="Scanned meal photo preview" />
                       <button onClick={() => { setMealPhoto(null); setScanResult(null); setScanError(null); }} className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1.5 text-[8px] font-bold uppercase tracking-wider cursor-pointer">Clear</button>
                     </>

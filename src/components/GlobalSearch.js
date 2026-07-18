@@ -10,7 +10,7 @@ export default function GlobalSearch({ isOpen, onClose }) {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
     } else {
-      setQuery('');
+      setTimeout(() => setQuery(''), 0);
     }
   }, [isOpen]);
 
@@ -87,7 +87,7 @@ export default function GlobalSearch({ isOpen, onClose }) {
           </div>
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-muted">
-            <p className="text-sm font-medium">No results found for "{query}"</p>
+            <p className="text-sm font-medium">No results found for &quot;{query}&quot;</p>
           </div>
         )}
       </div>

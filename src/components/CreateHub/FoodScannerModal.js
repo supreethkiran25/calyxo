@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, ScanLine, Image as ImageIcon, CheckCircle, RefreshCw, Save } from 'lucide-react';
 import useCreateHubStore from '../../store/useCreateHubStore';
 import { addFoodLog, getCurrentUserId } from '../../lib/dbService';
+import { scanMealVision } from '../../services/geminiService';
 import { useEcosystemStore } from '../../store/useEcosystemStore';
 
 export default function FoodScannerModal() {
@@ -35,22 +36,12 @@ export default function FoodScannerModal() {
     setResult(null);
 
     try {
-      const response = await fetch('/api/gemini/vision', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image: base64Image,
-          prompt: "Analyze this image of food. Identify what it is, and provide a realistic estimate of its nutritional value. Return a JSON object ONLY with the following exact keys: 'name' (string), 'calories' (number), 'protein' (number), 'carbs' (number), 'fat' (number)."
-        })
-      });
-
-      if (!response.ok) {
+      const data = await scanMealVision({ image: base64Image });
+      if (!data) {
         console.warn("Vision API returned non-OK status. Falling back.");
         setResult({ name: 'Scanned Food (Offline)', calories: 400, protein: 20, carbs: 45, fat: 15 });
         return;
       }
-      
-      const data = await response.json();
       
       // The route.js endpoint already parses the JSON and returns it.
       // It returns: { foodName, calories, protein, carbs, fat, fiber, sugar, ... }

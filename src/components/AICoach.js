@@ -6,6 +6,7 @@ import { Bot, User, Send, Sparkles, ThumbsUp, ThumbsDown, Plus, Trash2, Menu, X,
 import { motion, AnimatePresence } from 'framer-motion';
 import { addTrainingLog, getPositiveTrainingLogs, getChatSessions, saveChatSession, deleteChatSession, saveEcosystemState, fetchWithRetry } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
+import { generateBriefing, generateProgram, generateGroceryList, chatWithGemini } from '../services/geminiService';
 
 const getTimestamp = () => Date.now();
 
@@ -61,21 +62,16 @@ export default function AICoach({ onNotification, autoFocus = false }) {
     setLoadingBriefing(true);
     setBriefingText('');
     try {
-      const response = await fetch('/api/gemini/briefing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          briefingType: type,
-          userProfile,
-          foodLogs,
-          workoutLogs,
-          weightLogs,
-          waterIntake,
-          healthLogs: ecoStore.healthLogs || {}
-        })
+      const data = await generateBriefing({
+        briefingType: type,
+        userProfile,
+        foodLogs,
+        workoutLogs,
+        weightLogs,
+        waterIntake,
+        healthLogs: ecoStore.healthLogs || {}
       });
-      if (response.ok) {
-        const data = await response.json();
+      if (data && data.report) {
         setBriefingText(data.report);
       } else {
         setBriefingText("### Error ⚠️\nFailed to generate AI report. Please try again.");
@@ -91,13 +87,8 @@ export default function AICoach({ onNotification, autoFocus = false }) {
   const handleGeneratePlan = async () => {
     setGeneratingPlan(true);
     try {
-      const res = await fetchWithRetry('/api/gemini/program', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ goal: selectedGoal, userProfile })
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const data = await generateProgram({ goal: selectedGoal, userProfile });
+      if (data) {
         ecoStore.setCoachingPlan(data);
         try {
           await saveEcosystemState(userId, useEcosystemStore.getState());
@@ -121,13 +112,8 @@ export default function AICoach({ onNotification, autoFocus = false }) {
     if (!ecoStore.coachingPlan) return;
     setGeneratingGrocery(true);
     try {
-      const res = await fetchWithRetry('/api/gemini/grocery', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mealPlan: ecoStore.coachingPlan.mealPlan, preferences: userProfile })
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const data = await generateGroceryList({ mealPlan: ecoStore.coachingPlan.mealPlan, preferences: userProfile });
+      if (data && data.categories) {
         setGroceryList(data.categories);
         if (onNotification) onNotification("Grocery list compiled successfully! 🛒");
       } else {
@@ -148,8 +134,8 @@ export default function AICoach({ onNotification, autoFocus = false }) {
   // Load chat sessions from db on mount
   useEffect(() => {
     const load = async () => {
-      if (userId) {
-        const list = await getChatSessions(userId);
+      if (!userId) return;
+      const list = await getChatSessions(userId);
         setSessions(list || []);
         if (list && list.length > 0) {
           // Auto load the most recent session
@@ -159,7 +145,6 @@ export default function AICoach({ onNotification, autoFocus = false }) {
           setActiveSessionId(null);
           setMessages([WELCOME_MESSAGE]);
         }
-      }
     };
     load();
   }, [userId]);
@@ -289,25 +274,14 @@ export default function AICoach({ onNotification, autoFocus = false }) {
     try {
       const positiveLogs = await getPositiveTrainingLogs(userId);
 
-      const response = await fetchWithRetry('/api/gemini', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          query: userMessageText,
-          context,
-          trainingLogs: positiveLogs,
-          personality: ecoStore.personality,
-          memory: ecoStore.streaks
-        })
+      const resData = await chatWithGemini({
+        query: userMessageText,
+        context,
+        trainingLogs: positiveLogs,
+        personality: ecoStore.personality,
+        memory: ecoStore.streaks
       });
 
-      if (!response.ok) {
-        throw new Error("Could not fetch AI response.");
-      }
-
-      const resData = await response.json();
       textResponse = resData.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I could not generate a response. Please try again.";
       fetchSuccess = true;
     } catch (err) {

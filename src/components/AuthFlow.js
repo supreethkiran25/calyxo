@@ -80,6 +80,8 @@ export default function AuthFlow({ isInitialSignUp = false }) {
         setError("This email address is already in use.");
       } else if (code.includes("auth/invalid-credential") || code.includes("auth/wrong-password") || code.includes("auth/user-not-found")) {
         setError("Invalid credentials. Please check your username/email and password.");
+      } else if (err.message && err.message.toLowerCase().includes("email not confirmed")) {
+        setError("Email not confirmed. Please check your inbox for a confirmation link, or disable 'Confirm Email' in your Supabase Auth settings.");
       } else {
         setError(err.message || "Authentication failed. Try again.");
       }
