@@ -145,9 +145,11 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
 
     const profileData = {
       onboarded: true,
+      role: 'user',
       firstName: firstName || 'Calyxo',
       lastName: lastName || 'Athlete',
       nickname: nickname || firstName || 'Athlete',
+      displayName: `${firstName || 'Calyxo'} ${lastName || 'Athlete'}`.trim(),
       gender,
       dob,
       age: calculatedAge,

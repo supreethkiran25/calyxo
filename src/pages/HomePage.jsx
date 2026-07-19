@@ -72,7 +72,11 @@ export default function HomePage() {
 
   // 4. Authenticated, role='user', but not onboarded -> OnboardingFlow
   if (userProfile.role === 'user' && !userProfile.onboarded) {
-    return <OnboardingFlow onComplete={() => window.location.reload()} />;
+    return <OnboardingFlow onComplete={() => {
+      // Profile was already saved with onboarded:true and role:'user'
+      // Navigate directly to dashboard instead of reloading
+      navigate('/user/dashboard');
+    }} />;
   }
 
   // 5. Trainer -> Redirect

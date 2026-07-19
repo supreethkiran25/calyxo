@@ -512,7 +512,7 @@ export const getUserProfile = async (userId) => {
         height: data.height || extra.height || 175,
         activity: data.activity || extra.activity || 1.55,
         goal: data.goal || extra.goal || 'lose',
-        bio: extra.bio || data.bio || ""
+        bio: ('bio' in extra) ? (extra.bio || "") : ""
       };
     }
     return getLocalState(userId).userProfile;
