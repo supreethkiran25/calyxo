@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { getWaterIntake, saveWaterIntake, getUserProfile, getUserConnection, getUserAssignments } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
@@ -117,6 +118,7 @@ function SectionHeader({ title, onSeeAll }) {
 }
 
 export default function Dashboard({ onNotification }) {
+  const navigate = useNavigate();
   const user = useStore(state => state.user);
   const foodLogs = useStore(state => state.foodLogs);
   const workoutLogs = useStore(state => state.workoutLogs);
@@ -125,7 +127,6 @@ export default function Dashboard({ onNotification }) {
   const setWaterIntake = useStore(state => state.setWaterIntake);
   const addWaterIntakeStore = useStore(state => state.addWaterIntake);
   const setUserProfile = useStore(state => state.setUserProfile);
-  const setActiveTab = useStore(state => state.setActiveTab);
   
   const userId = user?.uid;
   const ecoStore = useEcosystemStore();
@@ -292,12 +293,12 @@ export default function Dashboard({ onNotification }) {
   const profileCompleteness = calculateCompleteness();
 
   const QUICK_ACCESS = [
-    { label: 'Workout', icon: <Dumbbell className="w-5 h-5 text-foreground" />, action: () => setActiveTab('workout') },
-    { label: 'Nutrition', icon: <BookOpen className="w-5 h-5 text-foreground" />, action: () => setActiveTab('nutrition') },
-    { label: 'AI Coach', icon: <Bot className="w-5 h-5 text-[var(--color-acid-green)]" />, action: () => setActiveTab('coach'), isPrimary: true },
-    { label: 'Progress', icon: <TrendingUp className="w-5 h-5 text-foreground" />, action: () => setActiveTab('progress') },
+    { label: 'Workout', icon: <Dumbbell className="w-5 h-5 text-foreground" />, action: () => navigate('/user/workout') },
+    { label: 'Nutrition', icon: <BookOpen className="w-5 h-5 text-foreground" />, action: () => navigate('/user/nutrition') },
+    { label: 'AI Coach', icon: <Bot className="w-5 h-5 text-[var(--color-acid-green)]" />, action: () => navigate('/user/ai'), isPrimary: true },
+    { label: 'Progress', icon: <TrendingUp className="w-5 h-5 text-foreground" />, action: () => navigate('/user/progress') },
     { label: 'Water', icon: <Droplets className="w-5 h-5 text-blue-400" />, action: () => document.getElementById('water-logger-section')?.scrollIntoView({ behavior: 'smooth' }) },
-    { label: 'Analytics', icon: <PieChart className="w-5 h-5 text-foreground" />, action: () => setActiveTab('progress') }
+    { label: 'Analytics', icon: <PieChart className="w-5 h-5 text-foreground" />, action: () => navigate('/user/progress') }
   ];
 
   return (
@@ -349,7 +350,7 @@ export default function Dashboard({ onNotification }) {
             </div>
           </div>
           <button 
-            onClick={() => setActiveTab('profile')}
+            onClick={() => navigate('/user/profile')}
             className="text-[9px] font-extrabold text-accent-foreground bg-acid-green hover:shadow-md px-3.5 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer border-none shrink-0"
           >
             Setup
@@ -481,7 +482,7 @@ export default function Dashboard({ onNotification }) {
                 <h3 className="text-lg font-black text-foreground">{connection.trainer_profiles?.full_name}</h3>
                 <p className="text-xs text-muted font-bold tracking-wider uppercase mb-4">{connection.trainer_profiles?.archetype}</p>
                 <button 
-                  onClick={() => setActiveTab('trainer-chat')}
+                  onClick={() => navigate('/user/trainer')}
                   className="w-full py-2 bg-acid-green text-black rounded-xl text-xs font-black uppercase tracking-wider hover:brightness-110 transition-all cursor-pointer"
                 >
                   Message Trainer
@@ -495,7 +496,7 @@ export default function Dashboard({ onNotification }) {
                 <h3 className="text-sm font-bold text-foreground mb-1">No Active Trainer</h3>
                 <p className="text-xs text-muted mb-4">Get a coach to assign your workouts and nutrition.</p>
                 <button 
-                  onClick={() => setActiveTab('find-trainer')}
+                  onClick={() => navigate('/user/trainer')}
                   className="px-6 py-2 border border-acid-green text-acid-green rounded-xl text-xs font-black uppercase tracking-wider hover:bg-acid-green hover:text-black transition-all cursor-pointer"
                 >
                   Find a Trainer
@@ -552,7 +553,7 @@ export default function Dashboard({ onNotification }) {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">Today&apos;s Nutrition Summary</h2>
               <button 
-                onClick={() => setActiveTab('nutrition')}
+                onClick={() => navigate('/user/nutrition')}
                 className="p-1.5 rounded-lg bg-surface border border-card-border text-[var(--text-muted)] hover:text-foreground cursor-pointer"
               >
                 <Activity className="w-4 h-4" />
@@ -627,7 +628,7 @@ export default function Dashboard({ onNotification }) {
         {/* ── Recent Workouts Card ── */}
         <div className="glass p-4 sm:p-6 rounded-2xl border border-[var(--card-border)] shadow-md flex flex-col justify-between h-full min-h-[320px]">
           <div>
-            <SectionHeader title="Recent Workouts" onSeeAll={() => setActiveTab('workout')} />
+            <SectionHeader title="Recent Workouts" onSeeAll={() => navigate('/user/workout')} />
             
             <div className="space-y-3">
               {recentWorkouts.length === 0 ? (
@@ -657,7 +658,7 @@ export default function Dashboard({ onNotification }) {
         {/* ── Recent Meals Card ── */}
         <div className="glass p-4 sm:p-6 rounded-2xl border border-[var(--card-border)] shadow-md flex flex-col justify-between h-full min-h-[320px]">
           <div>
-            <SectionHeader title="Recent Meals" onSeeAll={() => setActiveTab('nutrition')} />
+            <SectionHeader title="Recent Meals" onSeeAll={() => navigate('/user/nutrition')} />
             
             <div className="space-y-3">
               {recentMeals.length === 0 ? (
@@ -693,7 +694,7 @@ export default function Dashboard({ onNotification }) {
               Biometric Summary Indices
             </h3>
             <button
-              onClick={() => setActiveTab('profile')}
+              onClick={() => navigate('/user/profile')}
               className="text-xs font-bold text-[var(--color-acid-green)] hover:underline background-none border-none cursor-pointer p-0"
             >
               Adjust Biometrics

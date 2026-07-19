@@ -32,7 +32,7 @@ export const fetchTrainerClients = async (trainerId) => {
       name: item.user_profiles?.full_name || 'Unknown',
       username: item.user_profiles?.username || '',
       goal: item.user_profiles?.goal || '',
-      status: item.status === 'active' ? 'ACTIVE' : 'PENDING'
+      status: (item.status === 'active' || item.status === 'accepted') ? 'ACTIVE' : 'PENDING'
     }));
   } catch (err) {
     console.error("fetchTrainerClients error:", err?.message || JSON.stringify(err));
@@ -110,7 +110,7 @@ export const respondToTrainerRequest = async (connectionId, accept) => {
       const { error } = await supabase
         .from("pt_connections")
         .update({
-          status: 'active'
+          status: 'accepted'
         })
         .eq("id", connectionId);
       if (error) throw error;

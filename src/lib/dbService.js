@@ -904,9 +904,12 @@ export const getUserConnection = async (userId) => {
     return null;
   }
   const conn = data?.[0] || null;
-  if (conn && conn.trainer_id) {
-    const { data: tp } = await supabase.from('trainer_profiles').select('*').eq('id', conn.trainer_id).maybeSingle();
-    if (tp) conn.trainer_profiles = tp;
+  if (conn) {
+    if (conn.status === 'accepted') conn.status = 'active';
+    if (conn.trainer_id) {
+      const { data: tp } = await supabase.from('trainer_profiles').select('*').eq('id', conn.trainer_id).maybeSingle();
+      if (tp) conn.trainer_profiles = tp;
+    }
   }
   return conn;
 };

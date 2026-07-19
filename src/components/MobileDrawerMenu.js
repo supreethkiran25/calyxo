@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Bot, Dumbbell, TrendingUp, Droplets, Heart, PieChart, Info, HelpCircle, Shield, FileText, ChevronRight } from 'lucide-react';
 import { useStore } from '../store/useStore';
+import { useNavigate } from 'react-router-dom';
 
 const MENU_ITEMS = [
   {
@@ -25,11 +26,14 @@ const MENU_ITEMS = [
 ];
 
 export default function MobileDrawerMenu({ isOpen, onClose }) {
+  const navigate = useNavigate();
   const { setActiveTab } = useStore();
 
   const handleNavigation = (id) => {
-    if (['coach', 'workout', 'progress', 'healthhub'].includes(id)) {
-      setActiveTab(id);
+    if (id === 'coach') {
+      navigate('/user/ai');
+    } else if (['workout', 'progress', 'healthhub'].includes(id)) {
+      navigate(`/user/${id}`);
     } else {
       console.log('Navigate to static page:', id);
     }

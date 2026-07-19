@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { Bot, User, Send, Sparkles, ThumbsUp, ThumbsDown, Plus, Trash2, Menu, X, MessageSquare, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,6 +19,7 @@ const WELCOME_MESSAGE = {
 };
 
 export default function AICoach({ onNotification, autoFocus = false }) {
+  const navigate = useNavigate();
   const user = useStore(state => state.user);
   const foodLogs = useStore(state => state.foodLogs);
   const workoutLogs = useStore(state => state.workoutLogs);
@@ -532,7 +534,7 @@ export default function AICoach({ onNotification, autoFocus = false }) {
               </p>
               <button
                 type="button"
-                onClick={() => useStore.getState().setActiveTab('profile')}
+                onClick={() => navigate('/user/profile')}
                 className="w-full bg-acid-green text-accent-foreground py-2.5 rounded-xl font-black text-xs uppercase tracking-wider hover:opacity-90 transition-all border-none cursor-pointer"
               >
                 Go to Subscription Plans
