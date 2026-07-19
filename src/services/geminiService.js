@@ -87,45 +87,17 @@ function findFewShotExamples(queryText, logs) {
 
 // Secure proxy helper function
 async function callGeminiAPI(model, payload) {
-  // 1. Try Vercel Serverless Function proxy first (Production/Secure mode)
-  try {
-    const response = await fetch('/api/gemini', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, payload })
-    });
-    
-    if (response.ok) {
-      return await response.json();
-    }
-    
-    // If it's a 404 (local dev running npm run dev without vercel CLI), fall through
-    if (response.status !== 404) {
-      const err = await response.json();
-      throw new Error(err.error?.message || "Gemini server request failed.");
-    }
-  } catch (e) {
-    // Fall through to client direct call during local dev
-  }
-
-  // 2. Direct client fallback (Using local VITE_ variables)
-  const clientApiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!clientApiKey) {
-    throw new Error("No Gemini API key found (VITE_GEMINI_API_KEY or Server GEMINI_API_KEY).");
-  }
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${clientApiKey}`;
-  const response = await fetch(url, {
+  const response = await fetch('/api/gemini', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({ model, payload })
   });
-
+  
   if (!response.ok) {
     const err = await response.json();
-    throw new Error(err.error?.message || "Direct Gemini API call failed.");
+    throw new Error(err.error?.message || "Gemini server request failed.");
   }
-
+  
   return await response.json();
 }
 
