@@ -45,14 +45,13 @@ export default function HomePage() {
 
   const handleRoleSelected = async (role) => {
     try {
-      const updatedProfile = { ...userProfile, role, onboarded: true };
+      const isOnboarded = role === 'trainer'; // Trainer is onboarded immediately; User must complete onboarding flow
+      const updatedProfile = { ...userProfile, role, onboarded: isOnboarded };
       await saveUserProfile(user.uid || user.id, updatedProfile);
       setUserProfile(updatedProfile);
       
       if (role === 'trainer') {
         navigate('/trainer/dashboard');
-      } else {
-        navigate('/user/dashboard');
       }
     } catch (err) {
       console.error("Failed to save role", err);
