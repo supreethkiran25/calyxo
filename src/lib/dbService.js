@@ -482,10 +482,6 @@ export const getUserProfile = async (userId) => {
     return getLocalState(userId).userProfile;
   }
   try {
-    // Note: The original firebase structure stored profile in users_metrics collection under ${userId}_profile.
-    // Since we have user_profiles table from migration, we should use it for standard profile fields,
-    // but the app is expecting the localState object format. We'll continue using users_metrics 
-    // for seamless migration unless we also updated the frontend.
     const { data, error } = await supabase
       .from("users_metrics")
       .select("*")
@@ -493,7 +489,32 @@ export const getUserProfile = async (userId) => {
       .maybeSingle();
     
     if (error && error.code !== 'PGRST116') throw error;
-    if (data) return data;
+    if (data) {
+      let extra = {};
+      if (data.bio) {
+        try {
+          extra = JSON.parse(data.bio);
+        } catch (e) {
+          extra = { bio: data.bio };
+        }
+      }
+      return {
+        ...getLocalState(userId).userProfile,
+        ...data,
+        ...extra,
+        id: data.id,
+        userId: data.userId,
+        displayName: data.displayName || extra.nickname || extra.firstName || '',
+        photoURL: data.photoURL || extra.photoURL || '',
+        gender: data.gender || extra.gender || 'male',
+        age: data.age || extra.age || 25,
+        weight: data.weight || extra.weight || 70,
+        height: data.height || extra.height || 175,
+        activity: data.activity || extra.activity || 1.55,
+        goal: data.goal || extra.goal || 'lose',
+        bio: extra.bio || data.bio || ""
+      };
+    }
     return getLocalState(userId).userProfile;
   } catch (err) {
     return getLocalState(userId).userProfile;
@@ -508,11 +529,45 @@ export const saveUserProfile = async (userId, profile) => {
   if (isMockFirebase || !userId) return;
 
   try {
+    const extraFields = {
+      onboarded: profile.onboarded,
+      dob: profile.dob,
+      units: profile.units,
+      experience: profile.experience,
+      dietPreferences: profile.dietPreferences,
+      allergies: profile.allergies,
+      medicalRestrictions: profile.medicalRestrictions,
+      foodDislikes: profile.foodDislikes,
+      favoriteFoods: profile.favoriteFoods,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      nickname: profile.nickname,
+      role: profile.role,
+      coachPersonality: profile.coachPersonality,
+      responseLength: profile.responseLength,
+      coachingStyle: profile.coachingStyle,
+      motivationLevel: profile.motivationLevel,
+      reminderFrequency: profile.reminderFrequency,
+      notifications: profile.notifications,
+      analyticsTracking: profile.analyticsTracking,
+      bio: profile.bio || ""
+    };
+
     const payload = {
       id: `${userId}_profile`,
-      ...profile,
-      userId
+      userId,
+      displayName: profile.displayName || profile.nickname || 
+        (profile.firstName ? `${profile.firstName} ${profile.lastName || ''}`.trim() : ''),
+      photoURL: profile.photoURL || null,
+      gender: profile.gender || null,
+      age: profile.age ? Number(profile.age) : null,
+      weight: profile.weight ? Number(profile.weight) : null,
+      height: profile.height ? Number(profile.height) : null,
+      activity: profile.activity ? Number(profile.activity) : null,
+      goal: profile.goal || null,
+      bio: JSON.stringify(extraFields)
     };
+
     const { error } = await supabase.from("users_metrics").upsert(payload);
     if (error) throw error;
   } catch (err) {
@@ -656,12 +711,17 @@ export const getEcosystemState = async (userId) => {
   try {
     const { data, error } = await supabase.from("users_ecosystem").select("*").eq("id", userId).maybeSingle();
     if (error && error.code !== 'PGRST116') throw error;
-    return data || null;
+    if (data && data.data) {
+      return {
+        ...data.data,
+        coachingPlan: data.aiCoachPlan || data.data.coachingPlan || null,
+        aiMetrics: data.aiMetrics || data.data.aiMetrics || null,
+        hasCompletedOnboarding: data.hasCompletedOnboarding || data.data.hasCompletedOnboarding || false
+      };
+    }
+    return null;
   } catch (err) {
     console.error("Supabase getEcosystemState error:", err);
-    console.error("Error name:", err?.name);
-    console.error("Error message:", err?.message);
-    console.error("Error details:", JSON.stringify(err));
     return null;
   }
 };
@@ -674,7 +734,13 @@ export const saveEcosystemState = async (userId, state) => {
   }
   if (isMockFirebase) return;
   try {
-    const payload = { id: userId, ...cleanState };
+    const payload = { 
+      id: userId,
+      data: cleanState,
+      aiCoachPlan: cleanState.coachingPlan || null,
+      aiMetrics: cleanState.aiMetrics || null,
+      hasCompletedOnboarding: cleanState.hasCompletedOnboarding || false
+    };
     const { error } = await supabase.from("users_ecosystem").upsert(payload);
     if (error) throw error;
   } catch (err) {
