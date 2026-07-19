@@ -12,6 +12,15 @@ import QuickActionsSheet from '../components/QuickActionsSheet';
 import GlobalSearch from '../components/GlobalSearch';
 import MobileDrawerMenu from '../components/MobileDrawerMenu';
 
+// Create Hub Modals
+import WorkoutLoggerModal from '../components/CreateHub/WorkoutLoggerModal';
+import MealLoggerModal from '../components/CreateHub/MealLoggerModal';
+import FoodScannerModal from '../components/CreateHub/FoodScannerModal';
+import ProgressUploadModal from '../components/CreateHub/ProgressUploadModal';
+import AIChatModal from '../components/CreateHub/AIChatModal';
+import WaterLoggerModal from '../components/CreateHub/WaterLoggerModal';
+import WeightLoggerModal from '../components/CreateHub/WeightLoggerModal';
+
 const DESKTOP_NAV = [
   {
     group: 'HOME',
@@ -208,6 +217,15 @@ export default function UserLayout() {
       </div>
 
       <QuickActionsSheet isOpen={isQuickActionsOpen} onClose={() => setIsQuickActionsOpen(false)} />
+
+      {/* Create Hub Modals */}
+      <WorkoutLoggerModal />
+      <MealLoggerModal />
+      <FoodScannerModal />
+      <ProgressUploadModal />
+      <AIChatModal />
+      <WaterLoggerModal />
+      <WeightLoggerModal />
 
       <MobileDrawerMenu 
         isOpen={isMobileDrawerOpen} 
