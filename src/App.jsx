@@ -22,6 +22,9 @@ const UserAIPage = lazy(() => import('./pages/user/AIPage'));
 const UserProfilePage = lazy(() => import('./pages/user/ProfilePage'));
 const UserTrainerPage = lazy(() => import('./pages/user/TrainerPage'));
 
+// Static Pages
+import { AboutPage, SupportPage, PrivacyPage, TermsPage } from './pages/user/StaticPages';
+
 // Trainer Pages
 const TrainerDashboardPage = lazy(() => import('./pages/trainer/DashboardPage'));
 const TrainerAnalyticsPage = lazy(() => import('./pages/trainer/AnalyticsPage'));
@@ -59,6 +62,10 @@ function App() {
                 <Route path="ai" element={<UserAIPage />} />
                 <Route path="profile" element={<UserProfilePage />} />
                 <Route path="trainer" element={<UserTrainerPage />} />
+                <Route path="about" element={<AboutPage />} />
+                <Route path="support" element={<SupportPage />} />
+                <Route path="privacy" element={<PrivacyPage />} />
+                <Route path="terms" element={<TermsPage />} />
               </Route>
 
               {/* Trainer Routes */}

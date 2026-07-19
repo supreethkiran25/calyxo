@@ -1,8 +1,4 @@
 import exercisesData from '../lib/exercises.json';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 // Helper: extract JSON from possibly-wrapped response
 function extractJSON(text) {
@@ -89,22 +85,54 @@ function findFewShotExamples(queryText, logs) {
   return sorted.slice(0, 3).map(item => item.log);
 }
 
+// Secure proxy helper function
+async function callGeminiAPI(model, payload) {
+  // 1. Try Vercel Serverless Function proxy first (Production/Secure mode)
+  try {
+    const response = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, payload })
+    });
+    
+    if (response.ok) {
+      return await response.json();
+    }
+    
+    // If it's a 404 (local dev running npm run dev without vercel CLI), fall through
+    if (response.status !== 404) {
+      const err = await response.json();
+      throw new Error(err.error?.message || "Gemini server request failed.");
+    }
+  } catch (e) {
+    // Fall through to client direct call during local dev
+  }
+
+  // 2. Direct client fallback (Using local VITE_ variables)
+  const clientApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!clientApiKey) {
+    throw new Error("No Gemini API key found (VITE_GEMINI_API_KEY or Server GEMINI_API_KEY).");
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${clientApiKey}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error?.message || "Direct Gemini API call failed.");
+  }
+
+  return await response.json();
+}
+
 // =====================================================================
 // Main Gemini Chat (replaces /api/gemini)
 // =====================================================================
 export async function chatWithGemini({ query, context, trainingLogs, personality, memory }) {
-  if (!GEMINI_API_KEY) {
-    return {
-      candidates: [{
-        content: {
-          parts: [{
-            text: `### Calyxo Fitness Coach (Demo Mode) 🤖\nNo **GEMINI_API_KEY** was detected.\n\n* **Biometrics Sync Details:** \n  - Goal: ${context.goal || 'lose'}\n  - Current Calorie intake: ${context.consumedCalories || 0} / ${context.targetCalories || 2000} kcal\n  - Water intake: ${context.water || 0} ml\n  - Workouts logged today: ${context.workoutCount || 0} exercises\n\nConfigure the API key in \`.env\` to activate live Gemini coaching.`
-          }]
-        }
-      }]
-    };
-  }
-
   const matchedExamples = findFewShotExamples(query, trainingLogs);
 
   let personalityPrompt = `You speak in a modern, encouraging, and direct tone (frequently utilizing clean formatting, markdown headings, bullet points, and highlighting key terms).`;
@@ -137,21 +165,24 @@ export async function chatWithGemini({ query, context, trainingLogs, personality
     systemPrompt += `\n\n### Few-Shot Training Examples (Highly-Rated Past Interactions):\nHere are some examples of past queries from this user and how they were answered, which were rated highly by the user. Use these as guidelines for your style, content, and formatting:\n${matchedExamples.map((ex, idx) => `\nExample ${idx + 1}:\nUser Query: "${ex.user_query}"\nCalyxo Response:\n"${ex.bot_response}"\n`).join('\n')}`;
   }
 
-  const response = await fetch(GEMINI_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  try {
+    const data = await callGeminiAPI("gemini-2.5-flash", {
       contents: [{ role: 'user', parts: [{ text: query }] }],
       systemInstruction: { parts: [{ text: systemPrompt }] }
-    })
-  });
-
-  if (!response.ok) {
-    const errJson = await response.json();
-    throw new Error(errJson.error?.message || "Gemini API error.");
+    });
+    return data;
+  } catch (err) {
+    console.warn("Gemini API call failed, using demo fallback:", err.message);
+    return {
+      candidates: [{
+        content: {
+          parts: [{
+            text: `### Calyxo Fitness Coach (Demo Mode) 🤖\nNo live API response succeeded.\n\n* **Biometrics Sync Details:** \n  - Goal: ${context.goal || 'lose'}\n  - Current Calorie intake: ${context.consumedCalories || 0} / ${context.targetCalories || 2000} kcal\n  - Water intake: ${context.water || 0} ml\n  - Workouts logged today: ${context.workoutCount || 0} exercises\n\nPlease check your internet connection or configure the API key.`
+          }]
+        }
+      }]
+    };
   }
-
-  return await response.json();
 }
 
 // =====================================================================
@@ -164,12 +195,6 @@ export async function generateBriefing({ briefingType, userProfile, foodLogs, wo
   const currentWeight = weightLogs?.[weightLogs.length - 1]?.weight || userProfile?.weight || 70;
   const sleepHours = healthLogs?.sleep || 7.5;
   const water = waterIntake || 0;
-
-  if (!GEMINI_API_KEY) {
-    return {
-      report: `### Proactive ${briefingType.replace('_', ' ').toUpperCase()} (Demo Mode) 🤖\n\nHere is a personalized analysis based on your recent activity logs:\n\n* **Nutritional Alignment:** You have consumed **${totalCal} kcal** out of your daily target of **${userProfile?.dailyCalories || 2000} kcal**. Protein is currently at **${Math.round(totalProt)}g** (Target: ${userProfile?.proteinTarget || 120}g).\n* **Training & Output:** You have logged **${totalWorkouts}** workout session(s) today.\n* **Recovery Status:** Sleep was logged at **${sleepHours} hours**. To improve recovery, aim to hit at least 8 hours tonight.\n* **Hydration Checklist:** Current water intake is **${water}ml** / ${userProfile?.waterTarget || 2500}ml.\n* **Actionable Recommendation:** Drink another 500ml of water right now and schedule a 20-minute stretching session to relieve muscle tension.`
-    };
-  }
 
   let dynamicContext = `\n- User Profile: ${JSON.stringify(userProfile)}\n- Today's Calorie Intake: ${totalCal} kcal (Target: ${userProfile?.dailyCalories || 2000} kcal)\n- Today's Protein: ${totalProt}g (Target: ${userProfile?.proteinTarget || 120}g)\n- Today's Workouts: ${totalWorkouts} logged\n- Today's Water: ${water} ml (Target: ${userProfile?.waterTarget || 2500} ml)\n- Current Weight: ${currentWeight} kg\n- Latest Sleep Logged: ${sleepHours} hours`;
 
@@ -186,20 +211,18 @@ export async function generateBriefing({ briefingType, userProfile, foodLogs, wo
 
   const systemPrompt = `You are Calyxo, a smart, encouraging, and highly knowledgeable AI fitness & nutrition coach.\nHere is the user's current health biometrics and activity context:\n${dynamicContext}\n\nYour Task:\n${instruction}\n\nFormatting Rules:\n1. Use markdown formatting with clear headings (###), bold text (**), and lists (-).\n2. Avoid generic intros or outtros. Start directly with the briefing content.\n3. Reference their actual metrics (e.g. remaining calories, water intake, sleep) in the text to make it extremely personalized.`;
 
-  const response = await fetch(GEMINI_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
-  });
-
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error?.message || "Gemini Briefing failed.");
+  try {
+    const data = await callGeminiAPI("gemini-2.5-flash", {
+      contents: [{ parts: [{ text: systemPrompt }] }]
+    });
+    const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "Briefing unavailable. Try again.";
+    return { report: textResponse };
+  } catch (err) {
+    console.warn("Briefing generation failed, using fallback report:", err.message);
+    return {
+      report: `### Proactive ${briefingType.replace('_', ' ').toUpperCase()} (Demo Mode) 🤖\n\nHere is a personalized analysis based on your recent activity logs:\n\n* **Nutritional Alignment:** You have consumed **${totalCal} kcal** out of your daily target of **${userProfile?.dailyCalories || 2000} kcal**. Protein is currently at **${Math.round(totalProt)}g** (Target: ${userProfile?.proteinTarget || 120}g).\n* **Training & Output:** You have logged **${totalWorkouts}** workout session(s) today.\n* **Recovery Status:** Sleep was logged at **${sleepHours} hours**. To improve recovery, aim to hit at least 8 hours tonight.\n* **Hydration Checklist:** Current water intake is **${water}ml** / ${userProfile?.waterTarget || 2500}ml.\n* **Actionable Recommendation:** Drink another 500ml of water right now and schedule a 20-minute stretching session to relieve muscle tension.`
+    };
   }
-
-  const data = await response.json();
-  const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "Briefing unavailable. Try again.";
-  return { report: textResponse };
 }
 
 // =====================================================================
@@ -209,7 +232,23 @@ export async function generateGroceryList({ mealPlan, preferences, program }) {
   const actualMealPlan = mealPlan || program?.mealPlan || program;
   const actualPrefs = preferences || program?.preferences;
 
-  if (!GEMINI_API_KEY) {
+  const systemPrompt = `Compile a structured weekly grocery shopping list based on these meal plans: ${JSON.stringify(actualMealPlan)}. \nPreferences: ${JSON.stringify(actualPrefs || {})}.\nCategorize item requirements logically (e.g., Produce, Meats, Grains, Dairy).\nOutput a JSON response conforming strictly to this format:\n{\n  "categories": [\n    { "name": "string", "items": ["string", "string"] }\n  ]\n}\nDo not write markdown quotes or wraps. Return pure JSON.`;
+
+  try {
+    const data = await callGeminiAPI("gemini-2.5-flash", {
+      contents: [{ parts: [{ text: systemPrompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
+    });
+    const parsed = extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
+    
+    if (parsed && parsed.categories && !parsed.grocery) {
+      parsed.grocery = parsed.categories;
+    } else if (parsed && parsed.grocery && !parsed.categories) {
+      parsed.categories = parsed.grocery;
+    }
+    return parsed;
+  } catch (err) {
+    console.warn("Failed to generate grocery list, returning fallback data:", err.message);
     const mockData = {
       categories: [
         { name: "Proteins & Meats", items: ["Organic Chicken Breast (1.5kg)", "Atlantic Salmon Fillets (600g)", "Large Eggs (2 dozen)"] },
@@ -220,32 +259,6 @@ export async function generateGroceryList({ mealPlan, preferences, program }) {
     mockData.grocery = mockData.categories;
     return mockData;
   }
-
-  const systemPrompt = `Compile a structured weekly grocery shopping list based on these meal plans: ${JSON.stringify(actualMealPlan)}. \nPreferences: ${JSON.stringify(actualPrefs || {})}.\nCategorize item requirements logically (e.g., Produce, Meats, Grains, Dairy).\nOutput a JSON response conforming strictly to this format:\n{\n  "categories": [\n    { "name": "string", "items": ["string", "string"] }\n  ]\n}\nDo not write markdown quotes or wraps. Return pure JSON.`;
-
-  const response = await fetch(GEMINI_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: systemPrompt }] }],
-      generationConfig: { responseMimeType: "application/json" }
-    })
-  });
-
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error?.message || "Gemini Grocery request failed.");
-  }
-
-  const data = await response.json();
-  const parsed = extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
-  
-  if (parsed && parsed.categories && !parsed.grocery) {
-    parsed.grocery = parsed.categories;
-  } else if (parsed && parsed.grocery && !parsed.categories) {
-    parsed.categories = parsed.grocery;
-  }
-  return parsed;
 }
 
 // =====================================================================
@@ -265,46 +278,40 @@ export async function generatePostMagic({ media = [], intent = 'caption', style 
     return { inlineData: { mimeType, data } };
   });
 
-  if (!GEMINI_API_KEY) {
-    return {
-      text: `[Mock AI Magic] Applied style: ${style}. Intent: ${intent}. This is a generated placeholder since no API key is provided.`,
-      isMeal: intent === 'meal_analysis',
-      isWorkout: intent === 'workout_analysis',
-      isProgress: intent === 'progress_analysis',
-      suggestedActions: intent === 'meal_analysis' ? ['Log Meal'] : intent === 'workout_analysis' ? ['Save Workout'] : []
-    };
-  }
-
   const systemPrompt = `You are a context-aware AI assistant for a health & fitness platform called Calyxo. \nThe user wants you to: ${intent}. \nTheir requested writing style is: ${style}. \nContext: ${JSON.stringify(context)}.\nCustom instructions: ${customText}.\nIf media is provided, analyze ALL images together and base your response heavily on them.\n\nYou MUST output pure JSON matching this exact schema:\n{\n  "text": "The generated caption, story, or analysis formatted with markdown if necessary.",\n  "isMeal": boolean,\n  "isWorkout": boolean,\n  "isProgress": boolean,\n  "suggestedActions": array of strings\n}`;
 
-  const response = await fetch(GEMINI_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  try {
+    const data = await callGeminiAPI("gemini-2.5-flash", {
       contents: [{ parts: [{ text: systemPrompt }, ...imageParts] }],
       generationConfig: { responseMimeType: "application/json" }
-    })
-  });
-
-  if (!response.ok) {
+    });
+    return extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
+  } catch (err) {
+    console.warn("Post magic generation failed, using fallback:", err.message);
     return {
-      text: `[Mock AI Magic] Applied style: ${style}. Intent: ${intent}. API call failed.`,
+      text: `[Mock AI Magic] Applied style: ${style}. Intent: ${intent}. (Offline mode fallback)`,
       isMeal: intent === 'meal_analysis',
       isWorkout: intent === 'workout_analysis',
       isProgress: intent === 'progress_analysis',
       suggestedActions: intent === 'meal_analysis' ? ['Log Meal'] : intent === 'workout_analysis' ? ['Save Workout'] : []
     };
   }
-
-  const data = await response.json();
-  return extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
 }
 
 // =====================================================================
 // Predict Body Composition (replaces /api/gemini/predict)
 // =====================================================================
 export async function predictBodyComposition({ userProfile, currentWeight, targetCalories, activeDeficit }) {
-  if (!GEMINI_API_KEY) {
+  const systemPrompt = `Analyze the user biometrics and target calorie setup to forecast body composition trends.\nProfile: ${JSON.stringify(userProfile)}, Current Weight: ${currentWeight}, Target Calorie Intake: ${targetCalories}, Expected Deficit: ${activeDeficit || 500} kcal/day.\nCalculate forecast metrics at 30, 60, 90, and 180 days.\nOutput a JSON response conforming strictly to this format:\n{\n  "predictions": [\n    { "day": 30, "weight": number, "fatLoss": number, "muscleGain": number },\n    { "day": 60, "weight": number, "fatLoss": number, "muscleGain": number },\n    { "day": 90, "weight": number, "fatLoss": number, "muscleGain": number },\n    { "day": 180, "weight": number, "fatLoss": number, "muscleGain": number }\n  ],\n  "confidence": number,\n  "reasoning": "string"\n}\nDo not write markdown quotes or wraps. Return pure JSON.`;
+
+  try {
+    const data = await callGeminiAPI("gemini-2.5-flash", {
+      contents: [{ parts: [{ text: systemPrompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
+    });
+    return extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
+  } catch (err) {
+    console.warn("Body composition prediction failed, returning mock:", err.message);
     const w = Number(currentWeight) || 70;
     return {
       predictions: [
@@ -317,32 +324,22 @@ export async function predictBodyComposition({ userProfile, currentWeight, targe
       reasoning: "Steady caloric deficit of ~500 kcal daily ensures consistent fat loss while high-protein intake safeguards existing skeletal muscle mass."
     };
   }
-
-  const systemPrompt = `Analyze the user biometrics and target calorie setup to forecast body composition trends.\nProfile: ${JSON.stringify(userProfile)}, Current Weight: ${currentWeight}, Target Calorie Intake: ${targetCalories}, Expected Deficit: ${activeDeficit || 500} kcal/day.\nCalculate forecast metrics at 30, 60, 90, and 180 days.\nOutput a JSON response conforming strictly to this format:\n{\n  "predictions": [\n    { "day": 30, "weight": number, "fatLoss": number, "muscleGain": number },\n    { "day": 60, "weight": number, "fatLoss": number, "muscleGain": number },\n    { "day": 90, "weight": number, "fatLoss": number, "muscleGain": number },\n    { "day": 180, "weight": number, "fatLoss": number, "muscleGain": number }\n  ],\n  "confidence": number,\n  "reasoning": "string"\n}\nDo not write markdown quotes or wraps. Return pure JSON.`;
-
-  const response = await fetch(GEMINI_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: systemPrompt }] }],
-      generationConfig: { responseMimeType: "application/json" }
-    })
-  });
-
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error?.message || "Gemini Predictions request failed.");
-  }
-
-  const data = await response.json();
-  return extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
 }
 
 // =====================================================================
 // Generate Program (replaces /api/gemini/program)
 // =====================================================================
 export async function generateProgram({ goal, userProfile }) {
-  if (!GEMINI_API_KEY) {
+  const systemPrompt = `Generate a customized 1-week fitness and diet plan. The user goal is "${goal}". \nUser profile: ${JSON.stringify(userProfile)}.\nReturn a JSON object conforming strictly to this format:\n{\n  "goal": "string",\n  "waterTarget": number,\n  "recoveryTarget": "string",\n  "mealPlan": [\n    {\n      "dayName": "Monday",\n      "meals": [\n        { "category": "Breakfast|Lunch|Dinner|Snacks", "name": "string", "calories": number, "protein": number, "carbs": number, "fat": number }\n      ]\n    }\n  ],\n  "workoutPlan": [\n    {\n      "dayName": "Monday",\n      "workout": {\n        "type": "string",\n        "desc": "string",\n        "exercises": [\n          { "name": "string", "details": "string" }\n        ]\n      }\n    }\n  ]\n}\nDo not write markdown quotes or wraps. Return pure JSON.`;
+
+  try {
+    const data = await callGeminiAPI("gemini-2.5-flash", {
+      contents: [{ parts: [{ text: systemPrompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
+    });
+    return extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
+  } catch (err) {
+    console.warn("Failed to generate program, using default local template:", err.message);
     return {
       goal: goal,
       waterTarget: 3200,
@@ -358,46 +355,26 @@ export async function generateProgram({ goal, userProfile }) {
       ]}}]
     };
   }
-
-  const systemPrompt = `Generate a customized 1-week fitness and diet plan. The user goal is "${goal}". \nUser profile: ${JSON.stringify(userProfile)}.\nReturn a JSON object conforming strictly to this format:\n{\n  "goal": "string",\n  "waterTarget": number,\n  "recoveryTarget": "string",\n  "mealPlan": [\n    {\n      "dayName": "Monday",\n      "meals": [\n        { "category": "Breakfast|Lunch|Dinner|Snacks", "name": "string", "calories": number, "protein": number, "carbs": number, "fat": number }\n      ]\n    }\n  ],\n  "workoutPlan": [\n    {\n      "dayName": "Monday",\n      "workout": {\n        "type": "string",\n        "desc": "string",\n        "exercises": [\n          { "name": "string", "details": "string" }\n        ]\n      }\n    }\n  ]\n}\nDo not write markdown quotes or wraps. Return pure JSON.`;
-
-  const response = await fetch(GEMINI_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: systemPrompt }] }],
-      generationConfig: { responseMimeType: "application/json" }
-    })
-  });
-
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error?.message || "Gemini Program request failed.");
-  }
-
-  const data = await response.json();
-  return extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
 }
 
 // =====================================================================
 // Trainer Report (replaces /api/gemini/report)
 // =====================================================================
 export async function generateTrainerReport({ reportType, workouts, foods }) {
-  if (!GEMINI_API_KEY || GEMINI_API_KEY.includes('mock')) {
-    await new Promise(r => setTimeout(r, 1000));
+  const prompt = `\nYou are a professional fitness coach analyzing client data for a trainer.\nGenerate a ${reportType} for this client based on their data from the last 30 days:\n\nWorkout logs: ${JSON.stringify(workouts.map(w => ({ name: w.name, duration: w.duration, timestamp: w.timestamp })))}\nFood logs: ${JSON.stringify(foods.map(f => ({ name: f.name || f.food_name, calories: f.calories, timestamp: f.timestamp })))}\n\nProvide: executive summary, key insights, areas of improvement, recommendations.\nFormat as structured sections with clear headings in markdown.\nKeep it concise and professional.\n`;
+
+  try {
+    const data = await callGeminiAPI("gemini-1.5-flash", {
+      contents: [{ role: "user", parts: [{ text: prompt }] }]
+    });
+    const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "Trainer report unavailable.";
+    return { report: textResponse };
+  } catch (err) {
+    console.warn("Trainer report generation failed, using mock:", err.message);
     return {
       report: `# ${reportType}\n      \n## Executive Summary\nThe client has logged ${workouts.length} workouts and ${foods.length} meals in the past 30 days.\n\n## Key Insights\n- **Consistency**: Client is logging consistently.\n- **Nutrition**: Average calories are tracking to their target.\n\n## Areas of Improvement\n- Consider increasing water intake.\n- Try to add one more resistance session per week.\n\n## Recommendations\n- Continue with current meal plan.\n- Add 15 mins of mobility work on rest days.`
     };
   }
-
-  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-  const prompt = `\nYou are a professional fitness coach analyzing client data for a trainer.\nGenerate a ${reportType} for this client based on their data from the last 30 days:\n\nWorkout logs: ${JSON.stringify(workouts.map(w => ({ name: w.name, duration: w.duration, timestamp: w.timestamp })))}\nFood logs: ${JSON.stringify(foods.map(f => ({ name: f.name || f.food_name, calories: f.calories, timestamp: f.timestamp })))}\n\nProvide: executive summary, key insights, areas of improvement, recommendations.\nFormat as structured sections with clear headings in markdown.\nKeep it concise and professional.\n`;
-
-  const result = await model.generateContent(prompt);
-  const response = await result.response;
-  return { report: response.text() };
 }
 
 // =====================================================================
@@ -421,30 +398,16 @@ export async function syncHealthTwin({ userProfile, metrics, recentLogs, activeD
     };
   };
 
-  if (!GEMINI_API_KEY) {
-    return getMockTwin();
-  }
+  const systemPrompt = `You are Calyxo AI, an advanced Health OS digital twin engine.\nAnalyze the following user data to compute a comprehensive daily health snapshot.\nProfile: ${JSON.stringify(userProfile)}\nCurrent Metrics (BMR, TDEE, etc.): ${JSON.stringify(metrics)}\nRecent Logs (Food, Workout, Sleep, Water): ${JSON.stringify(recentLogs)}\nTarget Deficit: ${activeDeficit || 0} kcal/day.\n\nCalculate and return the following metrics in a pure JSON object:\n{\n  "recoveryScore": number (0-100 based on sleep and workout intensity),\n  "fitnessAge": number (estimated biological age based on activity),\n  "sleepDebt": number (hours),\n  "dailyHealthScore": number (0-100 overall score),\n  "predictedWeight": number (estimated weight in 30 days based on current deficit),\n  "predictedMuscleGain": number (estimated lbs/kg gained in 30 days),\n  "predictedFatLoss": number (estimated lbs/kg lost in 30 days),\n  "calorieForecast": number (recommended intake for tomorrow),\n  "weeklyHealthForecast": "string (short paragraph forecasting the week)",\n  "riskDetection": "string (any overtraining, undereating, or dehydration risks)",\n  "personalizedRecommendations": ["string", "string"]\n}\nDo not write markdown quotes or wraps. Return pure JSON.`;
 
   try {
-    const systemPrompt = `You are Calyxo AI, an advanced Health OS digital twin engine.\nAnalyze the following user data to compute a comprehensive daily health snapshot.\nProfile: ${JSON.stringify(userProfile)}\nCurrent Metrics (BMR, TDEE, etc.): ${JSON.stringify(metrics)}\nRecent Logs (Food, Workout, Sleep, Water): ${JSON.stringify(recentLogs)}\nTarget Deficit: ${activeDeficit || 0} kcal/day.\n\nCalculate and return the following metrics in a pure JSON object:\n{\n  "recoveryScore": number (0-100 based on sleep and workout intensity),\n  "fitnessAge": number (estimated biological age based on activity),\n  "sleepDebt": number (hours),\n  "dailyHealthScore": number (0-100 overall score),\n  "predictedWeight": number (estimated weight in 30 days based on current deficit),\n  "predictedMuscleGain": number (estimated lbs/kg gained in 30 days),\n  "predictedFatLoss": number (estimated lbs/kg lost in 30 days),\n  "calorieForecast": number (recommended intake for tomorrow),\n  "weeklyHealthForecast": "string (short paragraph forecasting the week)",\n  "riskDetection": "string (any overtraining, undereating, or dehydration risks)",\n  "personalizedRecommendations": ["string", "string"]\n}\nDo not write markdown quotes or wraps. Return pure JSON.`;
-
-    const response = await fetch(GEMINI_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: systemPrompt }] }],
-        generationConfig: { responseMimeType: "application/json" }
-      })
+    const data = await callGeminiAPI("gemini-2.5-flash", {
+      contents: [{ parts: [{ text: systemPrompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
     });
-
-    if (!response.ok) {
-      throw new Error("Gemini Twin request failed.");
-    }
-
-    const data = await response.json();
     return extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
   } catch (err) {
-    console.warn("Gemini Twin error (falling back to mock):", err.message);
+    console.warn("Gemini Twin error, falling back to mock:", err.message);
     return getMockTwin();
   }
 }
@@ -461,7 +424,21 @@ export async function scanMealVision({ imageBase64, mimeType, image, userGoal })
     }
   }
 
-  if (!GEMINI_API_KEY) {
+  const systemPrompt = `Analyze the uploaded meal photo. Provide the name of the meal and estimate the nutritional metrics per portion (Calories in kcal, Protein in g, Carbohydrates in g, Fat in g, Fiber in g, Sugar in g). Also calculate a compatibility score from 0-100 based on the user's primary goal: "${userGoal || 'lose'}". Higher protein and fiber fit weight loss/muscle gains better.\nProvide the response strictly in JSON format matching this schema:\n{\n  "foodName": "string",\n  "calories": number,\n  "protein": number,\n  "carbs": number,\n  "fat": number,\n  "fiber": number,\n  "sugar": number,\n  "compatibilityScore": number,\n  "compatibilityReason": "string explanation referencing user's goal",\n  "healthyAlternatives": ["string", "string"]\n}\nDo not return any markdown wraps or comments. Return pure JSON.`;
+
+  try {
+    const data = await callGeminiAPI("gemini-2.5-flash", {
+      contents: [{
+        parts: [
+          { text: systemPrompt },
+          { inlineData: { mimeType: mimeType || 'image/jpeg', data: imageBase64 } }
+        ]
+      }],
+      generationConfig: { responseMimeType: "application/json" }
+    });
+    return extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
+  } catch (err) {
+    console.warn("Vision scanner error, using fallback salmon meal estimation:", err.message);
     return {
       foodName: "Grilled Salmon & Rice (Demo)",
       calories: 520,
@@ -475,28 +452,4 @@ export async function scanMealVision({ imageBase64, mimeType, image, userGoal })
       healthyAlternatives: ["Steamed Cod with Quinoa", "Lemon Herb Grilled Chicken Salad"]
     };
   }
-
-  const systemPrompt = `Analyze the uploaded meal photo. Provide the name of the meal and estimate the nutritional metrics per portion (Calories in kcal, Protein in g, Carbohydrates in g, Fat in g, Fiber in g, Sugar in g). Also calculate a compatibility score from 0-100 based on the user's primary goal: "${userGoal || 'lose'}". Higher protein and fiber fit weight loss/muscle gains better.\nProvide the response strictly in JSON format matching this schema:\n{\n  "foodName": "string",\n  "calories": number,\n  "protein": number,\n  "carbs": number,\n  "fat": number,\n  "fiber": number,\n  "sugar": number,\n  "compatibilityScore": number,\n  "compatibilityReason": "string explanation referencing user's goal",\n  "healthyAlternatives": ["string", "string"]\n}\nDo not return any markdown wraps or comments. Return pure JSON.`;
-
-  const response = await fetch(GEMINI_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{
-        parts: [
-          { text: systemPrompt },
-          { inlineData: { mimeType: mimeType || 'image/jpeg', data: imageBase64 } }
-        ]
-      }],
-      generationConfig: { responseMimeType: "application/json" }
-    })
-  });
-
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error?.message || "Gemini Vision request failed.");
-  }
-
-  const data = await response.json();
-  return extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
 }

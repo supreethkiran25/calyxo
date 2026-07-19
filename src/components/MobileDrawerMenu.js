@@ -32,7 +32,7 @@ export default function MobileDrawerMenu({ isOpen, onClose }) {
   const handleNavigation = (id) => {
     if (id === 'coach') {
       navigate('/user/ai');
-    } else if (['workout', 'progress', 'healthhub'].includes(id)) {
+    } else if (['workout', 'progress', 'healthhub', 'about', 'support', 'privacy', 'terms'].includes(id)) {
       navigate(`/user/${id}`);
     } else {
       console.log('Navigate to static page:', id);
