@@ -200,7 +200,7 @@ export default function ThreeHealthCore() {
   }
 
   return (
-    <div className="w-full h-[400px]">
+    <div className="w-full h-[300px] sm:h-[350px] md:h-[400px]">
       <RadialHealthCore metrics={metrics} hasProAccess={hasProAccess} />
     </div>
   );

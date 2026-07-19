@@ -398,10 +398,8 @@ export default function Dashboard({ onNotification }) {
         ))}
       </div>
       
-      {/* Immersive 3D Experience — hidden on mobile for performance */}
-      <div className="hidden md:block">
-        <ThreeHealthCore />
-      </div>
+      {/* Immersive Health Core Ring */}
+      <ThreeHealthCore />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start w-full">
         
