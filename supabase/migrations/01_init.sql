@@ -24,6 +24,11 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   id uuid references auth.users(id) on delete cascade not null primary key,
   email text not null,
   nickname text,
+  full_name text,
+  display_name text,
+  username text,
+  goal text,
+  "photoURL" text,
   role text default 'USER' not null,
   subscription_plan text default 'FREE' not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
@@ -223,8 +228,8 @@ ALTER TABLE public.trainer_profiles ENABLE ROW LEVEL SECURITY;
 -- 10. PT Connections
 CREATE TABLE IF NOT EXISTS public.pt_connections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  trainer_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+  trainer_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE,
   status TEXT CHECK (status IN ('pending', 'accepted', 'rejected', 'ended')) DEFAULT 'pending',
   connection_method TEXT CHECK (connection_method IN ('request', 'browse', 'invite_code')),
   requested_at TIMESTAMPTZ DEFAULT NOW(),
@@ -412,6 +417,11 @@ ALTER TABLE public.trainer_documents ENABLE ROW LEVEL SECURITY;
 -- 16. Security Policies for All Tables
 
 -- User Profiles
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.user_profiles;
+CREATE POLICY "Users can insert own profile" 
+ON public.user_profiles FOR INSERT 
+WITH CHECK (auth.uid() = id);
+
 DROP POLICY IF EXISTS "Users can view own profile" ON public.user_profiles;
 CREATE POLICY "Users can view own profile" 
 ON public.user_profiles FOR SELECT 
@@ -429,6 +439,18 @@ USING (
       OR 
       (addressee_id = auth.uid() AND requester_id = public.user_profiles.id)
     )
+  )
+);
+
+DROP POLICY IF EXISTS "Users and trainers can view connected profiles" ON public.user_profiles;
+CREATE POLICY "Users and trainers can view connected profiles" 
+ON public.user_profiles FOR SELECT 
+USING (
+  id = auth.uid() 
+  OR EXISTS (
+    SELECT 1 FROM public.pt_connections
+    WHERE (user_id = public.user_profiles.id AND trainer_id = auth.uid() AND status = 'accepted')
+       OR (trainer_id = public.user_profiles.id AND user_id = auth.uid() AND status = 'accepted')
   )
 );
 
@@ -668,3 +690,36 @@ BEGIN
   END IF;
 END;
 $$;
+
+-- 18. Sync Users Metrics Profiles to User Profiles Trigger
+CREATE OR REPLACE FUNCTION public.sync_users_metrics_to_user_profiles()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.id = NEW."userId" || '_profile' THEN
+    INSERT INTO public.user_profiles (id, email, nickname, display_name, full_name, username, goal, "photoURL")
+    VALUES (
+      NEW."userId",
+      COALESCE((SELECT email FROM auth.users WHERE id = NEW."userId"), ''),
+      NEW."displayName",
+      NEW."displayName",
+      NEW."displayName",
+      COALESCE(NEW.website, split_part(COALESCE((SELECT email FROM auth.users WHERE id = NEW."userId"), ''), '@', 1)),
+      NEW.goal,
+      NEW."photoURL"
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      nickname = EXCLUDED.nickname,
+      display_name = EXCLUDED.display_name,
+      full_name = EXCLUDED.full_name,
+      goal = EXCLUDED.goal,
+      "photoURL" = EXCLUDED."photoURL";
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_sync_users_metrics_to_user_profiles ON public.users_metrics;
+CREATE TRIGGER trigger_sync_users_metrics_to_user_profiles
+AFTER INSERT OR UPDATE ON public.users_metrics
+FOR EACH ROW
+EXECUTE FUNCTION public.sync_users_metrics_to_user_profiles();
