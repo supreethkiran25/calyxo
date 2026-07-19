@@ -528,6 +528,26 @@ export const saveUserProfile = async (userId, profile) => {
 
   if (isMockFirebase || !userId) return;
 
+  // Protect role: once assigned, never allow clearing it
+  if (!profile.role) {
+    try {
+      const { data: existing } = await supabase
+        .from("users_metrics")
+        .select("bio")
+        .eq("id", `${userId}_profile`)
+        .maybeSingle();
+      if (existing?.bio) {
+        try {
+          const parsed = JSON.parse(existing.bio);
+          if (parsed.role) {
+            profile.role = parsed.role;
+            profile.onboarded = parsed.onboarded !== false; // preserve onboarded too
+          }
+        } catch (e) { /* bio isn't JSON, ignore */ }
+      }
+    } catch (e) { /* query failed, proceed */ }
+  }
+
   try {
     const extraFields = {
       onboarded: profile.onboarded,

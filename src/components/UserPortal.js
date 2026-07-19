@@ -344,20 +344,6 @@ export default function UserPortal() {
           <div className="flex items-center justify-between border-t border-[var(--card-border)] pt-4 px-2">
             <div className="flex items-center gap-2">
               <ThemeToggle />
-              {!isSidebarCollapsed && (
-                <button 
-                  onClick={() => {
-                    if (window.confirm("Developer Action: Reset your role to test Role Selection again?")) {
-                      saveUserProfile(user?.uid || user?.id, { ...userProfile, role: null, onboarded: false }).then(() => {
-                        window.location.reload();
-                      });
-                    }
-                  }}
-                  className="text-[9px] uppercase tracking-widest text-muted hover:text-white ml-2 cursor-pointer bg-transparent border border-card-border px-2 py-1 rounded"
-                >
-                  Reset Role
-                </button>
-              )}
             </div>
             
             <button
