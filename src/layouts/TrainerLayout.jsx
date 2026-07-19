@@ -120,7 +120,7 @@ export default function TrainerLayout() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        <header className="md:hidden flex items-center justify-between p-4 border-b border-card-border bg-background/80 backdrop-blur-md sticky top-0 z-30">
+        <header className="md:hidden flex items-center justify-between px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] border-b border-card-border bg-background/80 backdrop-blur-md sticky top-0 z-30">
           <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-foreground bg-transparent border-none">
             <Menu className="w-6 h-6" />
           </button>

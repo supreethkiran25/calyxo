@@ -148,7 +148,7 @@ export default function UserLayout() {
       {/* Mobile Header & Content */}
       <div className="flex-1 flex flex-col relative z-10 w-full lg:w-auto h-screen overflow-hidden">
         {/* Mobile Header */}
-        <header className="lg:hidden h-16 border-b border-card-border bg-background/80 backdrop-blur-xl flex items-center justify-between px-4 sticky top-0 z-30">
+        <header className="lg:hidden h-[calc(4rem+env(safe-area-inset-top,0px))] pt-safe border-b border-card-border bg-background/80 backdrop-blur-xl flex items-center justify-between px-4 sticky top-0 z-30">
           <div className="flex items-center gap-3">
             <button onClick={() => setIsMobileDrawerOpen(true)} className="p-2 text-foreground bg-transparent border-none">
               <Menu className="w-6 h-6" />

@@ -69,7 +69,7 @@ export default function LandingPage() {
       <div className="absolute bottom-10 left-[10%] w-[450px] h-[450px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
 
       {/* Navigation Header */}
-      <header className="sticky top-[3px] z-50 bg-[#030303]/80 backdrop-blur-md border-b border-white/5 px-6 py-4 flex justify-between items-center max-w-7xl mx-auto rounded-b-2xl">
+      <header className="sticky top-0 z-50 bg-[#030303]/80 backdrop-blur-md border-b border-white/5 px-6 pb-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] flex justify-between items-center max-w-7xl mx-auto rounded-b-2xl">
         <div className="flex items-center gap-3">
           <Logo className="w-8 h-8 text-[#00F0FF]" glow={true} />
           <span className="brand-name text-lg text-white bg-gradient-to-r from-white to-[#B9B9C7] bg-clip-text text-transparent">calyxo</span>
