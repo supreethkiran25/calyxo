@@ -1,8 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Bot, Dumbbell, TrendingUp, Droplets, Heart, PieChart, Info, HelpCircle, Shield, FileText, ChevronRight } from 'lucide-react';
+import { X, Bot, Dumbbell, TrendingUp, Droplets, Heart, PieChart, Info, HelpCircle, Shield, FileText, ChevronRight, LogOut } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
+import ThemeToggle from './ThemeToggle';
+import { signOutUser } from '../lib/dbService';
 
 const MENU_ITEMS = [
   {
@@ -99,6 +101,26 @@ export default function MobileDrawerMenu({ isOpen, onClose }) {
                   </div>
                 </div>
               ))}
+
+              {/* Theme & Logout */}
+              <div className="mt-auto pt-6 border-t border-[var(--card-border)] flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <ThemeToggle />
+                  <span className="text-xs font-bold text-muted">Theme</span>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (window.confirm('Sign out of Calyxo?')) {
+                      await signOutUser();
+                      window.location.href = '/';
+                    }
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-destructive hover:bg-destructive/10 transition-colors bg-transparent border-none cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="text-xs font-bold">Sign Out</span>
+                </button>
+              </div>
             </div>
           </motion.div>
         </>
