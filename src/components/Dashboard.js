@@ -7,6 +7,7 @@ import { useStore } from '../store/useStore';
 import { getWaterIntake, saveWaterIntake, getUserProfile, getUserConnection, getUserAssignments } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { syncAIHealthTwin } from '../lib/aiEcosystemService';
+import { calculateMacroTargets } from '../utils/macroCalculator';
 import { Flame, Droplets, Activity, Dumbbell, Utensils, Star, Sparkles, ChevronRight, Award, Zap, Brain, Moon, BookOpen, Bot, TrendingUp, PieChart } from 'lucide-react';
 import ThreeHealthCore from './ThreeHealthCore';
 
@@ -186,35 +187,26 @@ export default function Dashboard({ onNotification }) {
   }, [userId, setUserProfile, setWaterIntake, onNotification]);
 
   const recalculateMetrics = useCallback(() => {
-    const rawW = Number(weight) || 70;
-    const rawH = Number(height) || 175;
-    const hm = rawH / 100;
-    const bmi = hm > 0 ? rawW / (hm * hm) : 22.0;
-
-    let bmiStatus = "Normal Weight";
-    if (bmi < 18.5) bmiStatus = "Underweight";
-    else if (bmi >= 25 && bmi < 30) bmiStatus = "Overweight";
-    else if (bmi >= 30) bmiStatus = "Obese";
-
-    const bodyType = bmi < 18.5 ? "Ectomorph" : bmi < 25 ? (bmi < 21 ? "Ectomorph" : "Mesomorph") : "Endomorph";
-    let bmr = gender === 'male' ? (10 * rawW) + (6.25 * rawH) - (5 * age) + 5 : (10 * rawW) + (6.25 * rawH) - (5 * age) - 161;
-    const tdee = bmr * activity;
-    let calGoal = goal === 'lose' ? tdee - 500 : goal === 'gains' ? tdee + 350 : tdee;
-    calGoal = Math.max(calGoal, gender === 'male' ? 1500 : 1200);
-    const protein = Math.min(Math.max(Math.round(rawW * 2.0), 80), 220);
-    const fat = Math.round((calGoal * 0.25) / 9);
-    const carbs = Math.round((calGoal - (protein * 4) - (fat * 9)) / 4);
+    const computed = calculateMacroTargets({
+      weight,
+      height,
+      age,
+      gender,
+      activity,
+      goal,
+      units
+    });
 
     setMetrics({ 
-      bmi: Number(bmi.toFixed(1)), 
-      bmr: Math.round(bmr), 
-      tdee: Math.round(tdee), 
-      calorieGoal: Math.round(calGoal), 
-      bodyType, 
-      bmiStatus, 
-      macros: { protein, carbs, fat } 
+      bmi: computed.bmi, 
+      bmr: computed.bmr, 
+      tdee: computed.tdee, 
+      calorieGoal: computed.calorieGoal, 
+      bodyType: computed.bodyType, 
+      bmiStatus: computed.bmiStatus, 
+      macros: computed.targetMacros 
     });
-  }, [gender, age, weight, height, activity, goal]);
+  }, [gender, age, weight, height, activity, goal, units]);
 
   useEffect(() => { 
     setTimeout(() => {

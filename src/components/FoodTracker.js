@@ -110,10 +110,11 @@ export default function FoodTracker({ onNotification }) {
   const totalConsumedCarbs = todaysFoodLogs.reduce((acc, item) => acc + (Number(item.carbs) || 0), 0);
   const totalConsumedFat = todaysFoodLogs.reduce((acc, item) => acc + (Number(item.fat) || 0), 0);
 
-  const targetCals = userProfile?.calorieGoal || 2000;
-  const targetProt = userProfile?.protein || Math.round((userProfile?.weight || 70) * 2.0);
-  const targetCarbs = userProfile?.carbs || Math.round((targetCals * 0.5) / 4);
-  const targetFat = userProfile?.fat || Math.round((targetCals * 0.25) / 9);
+  const targetCals = userProfile?.calorieGoal || userProfile?.dailyCalories || 2000;
+  const rawWkg = userProfile?.units === 'imperial' ? ((userProfile?.weight || 154) / 2.20462) : (userProfile?.weight || 70);
+  const targetProt = userProfile?.protein || userProfile?.proteinTarget || Math.round(rawWkg * 2.0);
+  const targetCarbs = userProfile?.carbs || userProfile?.targetMacros?.carbs || Math.round((targetCals * 0.5) / 4);
+  const targetFat = userProfile?.fat || userProfile?.targetMacros?.fat || Math.round((targetCals * 0.25) / 9);
 
   // Search & custom logging
   const [queryVal, setQueryVal] = useState('');

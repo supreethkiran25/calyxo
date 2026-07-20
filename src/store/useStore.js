@@ -46,8 +46,13 @@ const DEFAULT_USER_PROFILE = {
   photoURL: '',
   // Health Targets
   dailyCalories: 2000,
+  calorieGoal: 2000,
   waterTarget: 2500,
   proteinTarget: 120,
+  protein: 120,
+  carbs: 230,
+  fat: 65,
+  targetMacros: { protein: 120, carbs: 230, fat: 65 },
   subscriptionPlan: 'FREE',
   // Privacy
   aiDataUsage: true,

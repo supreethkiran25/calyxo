@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
+import { calculateMacroTargets } from '../utils/macroCalculator';
 import { 
   saveUserProfile, 
   signOutUser,
@@ -197,6 +198,8 @@ export default function UserProfile({ onNotification }) {
   const [dailyCalories, setDailyCalories] = useState(2000);
   const [waterTarget, setWaterTarget] = useState(2500);
   const [proteinTarget, setProteinTarget] = useState(120);
+  const [carbsTarget, setCarbsTarget] = useState(230);
+  const [fatTarget, setFatTarget] = useState(65);
   const [weightGoal, setWeightGoal] = useState(70);
 
   // Privacy Settings
@@ -282,9 +285,11 @@ export default function UserProfile({ onNotification }) {
         setAiMemoryEnabled(userProfile.aiMemoryEnabled !== false);
         setNotificationFrequency(userProfile.notificationFrequency || 'daily');
         
-        setDailyCalories(userProfile.dailyCalories || 2000);
+        setDailyCalories(userProfile.dailyCalories || userProfile.calorieGoal || 2000);
         setWaterTarget(userProfile.waterTarget || 2500);
-        setProteinTarget(userProfile.proteinTarget || 120);
+        setProteinTarget(userProfile.proteinTarget || userProfile.protein || 120);
+        setCarbsTarget(userProfile.carbs || userProfile.targetMacros?.carbs || 230);
+        setFatTarget(userProfile.fat || userProfile.targetMacros?.fat || 65);
         setWeightGoal(userProfile.weightGoal || userProfile.goalWeight || 70);
 
         setAiDataUsage(userProfile.aiDataUsage !== false);
@@ -356,12 +361,17 @@ export default function UserProfile({ onNotification }) {
   };
 
   // Recalculate BMI status
-  const hMeter = height / 100;
-  const bmi = hMeter > 0 ? (weight / (hMeter * hMeter)).toFixed(1) : '22.0';
-  let bmiStatus = "Normal Weight";
-  if (bmi < 18.5) bmiStatus = "Underweight";
-  else if (bmi >= 25 && bmi < 30) bmiStatus = "Overweight";
-  else if (bmi >= 30) bmiStatus = "Obese";
+  const currentMacroCalculations = calculateMacroTargets({
+    weight,
+    height,
+    age: ageInput,
+    gender,
+    activity,
+    goal,
+    units
+  });
+  const bmi = currentMacroCalculations.bmi;
+  const bmiStatus = currentMacroCalculations.bmiStatus;
 
   // Calculate Profile Completion %
   const calculateCompleteness = () => {
@@ -484,8 +494,15 @@ export default function UserProfile({ onNotification }) {
       aiMemoryEnabled,
       notificationFrequency,
       dailyCalories: Number(dailyCalories),
+      calorieGoal: Number(dailyCalories),
       waterTarget: Number(waterTarget),
       proteinTarget: Number(proteinTarget),
+      protein: Number(proteinTarget),
+      carbs: Number(carbsTarget),
+      fat: Number(fatTarget),
+      targetMacros: { protein: Number(proteinTarget), carbs: Number(carbsTarget), fat: Number(fatTarget) },
+      bmr: currentMacroCalculations.bmr,
+      tdee: currentMacroCalculations.tdee,
       weightGoal: Number(weightGoal),
       aiDataUsage,
       personalizedRecommendations,
@@ -954,8 +971,7 @@ export default function UserProfile({ onNotification }) {
   const unlockedAchievements = (ecoStore.achievements || []).filter(a => a.unlocked).length;
   const totalAchievements = (ecoStore.achievements || []).length;
   const goalLabel = goal === 'lose' ? 'Weight Loss' : goal === 'gains' ? 'Lean Gains' : 'Maintenance';
-  const mobileHMeter = Number(height) / 100;
-  const mobileBmi = mobileHMeter > 0 ? (Number(weight) / (mobileHMeter * mobileHMeter)).toFixed(1) : '–';
+  const mobileBmi = bmi;
 
   const toggleAccordion = (id) => {
     setOpenAccordion(prev => prev === id ? null : id);
@@ -1970,6 +1986,27 @@ export default function UserProfile({ onNotification }) {
 
           {editSection === 'health' ? (
             <form onSubmit={(e) => { handleSaveAllDetails(e); setEditSection(null); }} className="space-y-2.5">
+              <div className="flex justify-between items-center bg-acid-green/10 border border-acid-green/20 p-2.5 rounded-lg">
+                <div>
+                  <span className="text-xs font-bold text-foreground block">Auto-Calculate Targets</span>
+                  <span className="text-[9px] text-muted block">Compute optimal calories & macros from your biometrics & BMI</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const computed = calculateMacroTargets({ weight, height, age: ageInput, gender, activity, goal, units });
+                    setDailyCalories(computed.calorieGoal);
+                    setProteinTarget(computed.protein);
+                    setCarbsTarget(computed.carbs);
+                    setFatTarget(computed.fat);
+                    if (onNotification) onNotification("Macro targets auto-calculated from your biometrics! 🎯");
+                  }}
+                  className="bg-acid-green text-black px-3 py-1.5 rounded-lg text-[9.5px] font-black uppercase tracking-wider border-none cursor-pointer hover:opacity-90 flex items-center gap-1 shrink-0"
+                >
+                  <Sparkles className="w-3 h-3" /> Auto-Calculate
+                </button>
+              </div>
+
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className={labelClass}>Weight ({units === 'metric' ? 'kg' : 'lbs'})</label>
@@ -1984,6 +2021,7 @@ export default function UserProfile({ onNotification }) {
                   <input type="number" step="0.1" value={goalWeight} onChange={(e) => setGoalWeight(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className={labelClass}>Daily Calories (kcal)</label>
@@ -1994,13 +2032,29 @@ export default function UserProfile({ onNotification }) {
                   <input type="number" value={waterTarget} onChange={(e) => setWaterTarget(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
               </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className={labelClass}>Protein (g)</label>
+                  <input type="number" value={proteinTarget} onChange={(e) => setProteinTarget(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                </div>
+                <div>
+                  <label className={labelClass}>Carbs (g)</label>
+                  <input type="number" value={carbsTarget} onChange={(e) => setCarbsTarget(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                </div>
+                <div>
+                  <label className={labelClass}>Fat (g)</label>
+                  <input type="number" value={fatTarget} onChange={(e) => setFatTarget(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                </div>
+              </div>
+
               <button type="submit" disabled={saving} className="w-full btn-primary py-2 rounded-lg font-bold text-[10px] uppercase tracking-wider border-none flex items-center justify-center gap-1 cursor-pointer">
                 {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
                 Save Targets
               </button>
             </form>
           ) : (
-            <div className="grid grid-cols-2 gap-2.5 pt-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
               <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
                 <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Height & Weight</span>
                 <span className="text-xs font-black text-foreground mt-0.5 block">{height}{units === 'metric' ? 'cm' : 'in'} • {weight}{units === 'metric' ? 'kg' : 'lbs'}</span>
@@ -2014,8 +2068,16 @@ export default function UserProfile({ onNotification }) {
                 <span className="text-xs font-black text-foreground mt-0.5 block">{dailyCalories} kcal</span>
               </div>
               <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Water Target</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{waterTarget} ml</span>
+                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Protein Target</span>
+                <span className="text-xs font-black text-foreground mt-0.5 block">{proteinTarget} g</span>
+              </div>
+              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
+                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Carbs Target</span>
+                <span className="text-xs font-black text-foreground mt-0.5 block">{carbsTarget} g</span>
+              </div>
+              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
+                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Fat Target</span>
+                <span className="text-xs font-black text-foreground mt-0.5 block">{fatTarget} g</span>
               </div>
             </div>
           )}

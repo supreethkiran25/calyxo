@@ -99,8 +99,9 @@ export default function Progress({ onNotification }) {
 
   // Recalculated user metric strategy for deficit/gains calculation
   const metrics = useMemo(() => {
-    const wkg = userProfile?.weight || 70;
-    const hcm = userProfile?.height || 175;
+    const isImp = userProfile?.units === 'imperial';
+    const wkg = isImp ? ((userProfile?.weight || 154) / 2.20462) : (userProfile?.weight || 70);
+    const hcm = isImp ? ((userProfile?.height || 68) * 2.54) : (userProfile?.height || 175);
     const dob = userProfile?.dob || '2001-01-01';
     
     // Compute BMR
