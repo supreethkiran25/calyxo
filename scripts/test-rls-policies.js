@@ -196,6 +196,63 @@ async function runTests() {
     failed++;
   }
 
+  console.log("\n--- 4. ASSIGNED PLANS RLS TESTS ---");
+
+  // Upgrade User A's role to 'trainer' using service role (admin) so RLS role verification succeeds
+  await supabaseAdmin.from('user_profiles').update({ role: 'trainer' }).eq('id', userA.id);
+  
+  // 4a. Trainer (User A) inserts assignment for Client (User B) - should succeed
+  const assignResult = await userA.client.from('assigned_plans').insert({
+    trainer_id: userA.id,
+    client_id: userB.id,
+    plan_type: 'workout',
+    plan_data: { title: 'Test Plan', exercises: [] }
+  }).select().single();
+  assertPass(assignResult, "Trainer (User A) assigns workout plan to Client (User B)");
+
+  const planId = assignResult.data?.id;
+
+  // 4b. Trainer (User A) selects own assignments - should succeed
+  const selectTrainerResult = await userA.client.from('assigned_plans').select().eq('id', planId);
+  if (selectTrainerResult.data && selectTrainerResult.data.length > 0) {
+    console.log(`✅ [PASS] Trainer (User A) can SELECT their own assignments`);
+    passed++;
+  } else {
+    console.error(`❌ [FAIL] Trainer (User A) cannot SELECT their own assignments`);
+    failed++;
+  }
+
+  // 4c. Client (User B) selects assignments assigned to them - should succeed
+  const selectClientResult = await userB.client.from('assigned_plans').select().eq('id', planId);
+  if (selectClientResult.data && selectClientResult.data.length > 0) {
+    console.log(`✅ [PASS] Client (User B) can SELECT assignments assigned to them`);
+    passed++;
+  } else {
+    console.error(`❌ [FAIL] Client (User B) cannot SELECT assignments assigned to them`);
+    failed++;
+  }
+
+  // 4d. Client (User B) attempts to insert assignment - should fail (read-only, never write)
+  const clientInsertResult = await userB.client.from('assigned_plans').insert({
+    trainer_id: userB.id,
+    client_id: userA.id,
+    plan_type: 'workout',
+    plan_data: { title: 'Cheater Plan' }
+  });
+  assertFail(clientInsertResult, "Client (User B) attempts to insert an assignment");
+
+  // 4e. Third party (User C) attempts to select assignment - should fail (hide by RLS / 0 rows)
+  const selectThirdResult = await userC.client.from('assigned_plans').select().eq('id', planId);
+  if (selectThirdResult.error) {
+    assertFail(selectThirdResult, "Third party (User C) attempts to select assignment");
+  } else if (!selectThirdResult.data || selectThirdResult.data.length === 0) {
+    console.log(`✅ [PASS] Third party (User C) cannot SELECT assignment (Hidden by RLS)`);
+    passed++;
+  } else {
+    console.error(`❌ [FAIL] Third party (User C) can SELECT assignment when blocked`);
+    failed++;
+  }
+
   console.log(`\nTests finished: ${passed} passed, ${failed} failed.`);
   
   console.log("Cleaning up test users...");

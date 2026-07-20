@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Scale } from 'lucide-react';
-import useCreateHubStore from '../../store/useCreateHubStore';
+import useQuickActionsStore from '../../store/useQuickActionsStore';
 import { useStore } from '../../store/useStore';
 import { addWeightLog, saveUserProfile } from '../../lib/dbService';
 
 export default function WeightLoggerModal() {
-  const { activeWorkflow, closeWorkflow } = useCreateHubStore();
+  const { activeWorkflow, closeWorkflow } = useQuickActionsStore();
   const user = useStore(state => state.user);
   const userProfile = useStore(state => state.userProfile);
   const addWeightLogStore = useStore(state => state.addWeightLog);

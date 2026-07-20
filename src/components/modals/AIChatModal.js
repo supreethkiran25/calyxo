@@ -1,11 +1,11 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageSquare } from 'lucide-react';
-import useCreateHubStore from '../../store/useCreateHubStore';
+import useQuickActionsStore from '../../store/useQuickActionsStore';
 import AICoach from '../AICoach';
 
 export default function AIChatModal() {
-  const { activeWorkflow, closeWorkflow } = useCreateHubStore();
+  const { activeWorkflow, closeWorkflow } = useQuickActionsStore();
 
   if (activeWorkflow !== 'start_chat') return null;
 

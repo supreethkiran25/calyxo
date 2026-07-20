@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Plus, Trash2, Save, X, Utensils, Search } from 'lucide-react';
+import { assignPlan, getTrainerClients } from '../lib/dbService';
 
 export default function TrainerNutritionBuilder({ user }) {
   const [planName, setPlanName] = useState('');
@@ -15,6 +16,20 @@ export default function TrainerNutritionBuilder({ user }) {
     { id: '3', name: 'Dinner', items: [] },
     { id: '4', name: 'Snacks', items: [] }
   ]);
+  const [clients, setClients] = useState([]);
+  const [selectedClient, setSelectedClient] = useState('');
+  const [isAssigning, setIsAssigning] = useState(false);
+
+  useEffect(() => {
+    if (user?.uid) {
+      getTrainerClients(user.uid).then(data => {
+        if (data && data.length > 0) {
+          setClients(data);
+          setSelectedClient(data[0].id || data[0].user_id);
+        }
+      });
+    }
+  }, [user]);
 
   const [activeMealId, setActiveMealId] = useState(null);
   const [isAddingFood, setIsAddingFood] = useState(false);
@@ -63,10 +78,40 @@ export default function TrainerNutritionBuilder({ user }) {
 
   const totals = calculateTotals();
 
-  const handleSaveTemplate = () => {
+  const handleSaveTemplate = async () => {
     if (!planName) return alert("Plan needs a name");
-    alert(`Nutrition Plan "${planName}" saved successfully!`);
-    setPlanName(''); setNotes('');
+    
+    setIsAssigning(true);
+    try {
+      const planPayload = {
+        type: 'meal_plan',
+        title: planName,
+        content: {
+          notes,
+          targetCalories,
+          targetProtein,
+          targetCarbs,
+          targetFat,
+          meals,
+          totals
+        }
+      };
+
+      if (selectedClient) {
+        await assignPlan(user?.uid, selectedClient, planPayload);
+        alert(`Nutrition Plan "${planName}" assigned successfully to client!`);
+      } else {
+        await assignPlan(user?.uid, user?.uid, planPayload);
+        alert(`Nutrition Plan "${planName}" saved successfully!`);
+      }
+
+      setPlanName(''); setNotes('');
+    } catch (err) {
+      console.error("Assign nutrition plan error:", err);
+      alert("Failed to assign nutrition plan. Please try again.");
+    } finally {
+      setIsAssigning(false);
+    }
   };
 
   return (
@@ -91,6 +136,25 @@ export default function TrainerNutritionBuilder({ user }) {
           <div className="bg-surface border border-card-border p-5 rounded-2xl space-y-4">
             <h3 className="font-bold text-sm uppercase tracking-wider mb-2">Plan Details</h3>
             
+            <div>
+              <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Assign to Client</label>
+              <select
+                value={selectedClient}
+                onChange={(e) => setSelectedClient(e.target.value)}
+                className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-blue-500 text-sm shadow-inner"
+              >
+                {clients.length > 0 ? (
+                  clients.map((c) => (
+                    <option key={c.id || c.user_id} value={c.user_id || c.id}>
+                      {c.displayName || c.name || c.email || `Client ${c.id || c.user_id}`}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">No clients connected (Assign to self)</option>
+                )}
+              </select>
+            </div>
+
             <div>
               <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Plan Name</label>
               <input 

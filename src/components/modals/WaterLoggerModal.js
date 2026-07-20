@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Droplets, Plus } from 'lucide-react';
-import useCreateHubStore from '../../store/useCreateHubStore';
+import useQuickActionsStore from '../../store/useQuickActionsStore';
 import { useStore } from '../../store/useStore';
 import { saveWaterIntake } from '../../lib/dbService';
 
 export default function WaterLoggerModal() {
-  const { activeWorkflow, closeWorkflow } = useCreateHubStore();
+  const { activeWorkflow, closeWorkflow } = useQuickActionsStore();
   const user = useStore(state => state.user);
   const waterIntake = useStore(state => state.waterIntake);
   const addWaterIntakeStore = useStore(state => state.addWaterIntake);

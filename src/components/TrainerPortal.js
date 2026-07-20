@@ -13,9 +13,7 @@ import TrainerAnalytics from './TrainerAnalytics';
 import TrainerReports from './TrainerReports';
 import TrainerDocuments from './TrainerDocuments';
 import ClientCRM from './ClientCRM';
-import TrainerOnboarding from './trainer/TrainerOnboarding';
 import TrainerDashboard from './trainer/TrainerDashboard';
-import { getTrainerProfile } from '../lib/dbService';
 
 export default function TrainerPortal({ user, userProfile, onNotification }) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -24,33 +22,14 @@ export default function TrainerPortal({ user, userProfile, onNotification }) {
   // Clients state for sharing across tabs (CRM, Messages, Appointments)
   const [clients, setClients] = useState([]);
   
-  const [onboardingComplete, setOnboardingComplete] = useState(null);
-  const [loadingProfile, setLoadingProfile] = useState(true);
-
   // Load clients at portal level so they are available to Messages, CRM, etc.
   useEffect(() => {
     if (user?.uid) {
       import('../lib/crmService').then(({ fetchTrainerClients }) => {
         fetchTrainerClients(user.uid).then(data => setClients(data));
       });
-      getTrainerProfile(user.uid).then(profile => {
-        if (profile) {
-          setOnboardingComplete(profile.onboarding_complete);
-        } else {
-          setOnboardingComplete(false);
-        }
-        setLoadingProfile(false);
-      });
     }
   }, [user]);
-
-  if (loadingProfile) {
-    return <div className="min-h-screen bg-background flex items-center justify-center text-foreground font-bold">Loading Profile...</div>;
-  }
-
-  if (!onboardingComplete) {
-    return <TrainerOnboarding onComplete={() => setOnboardingComplete(true)} />;
-  }
 
   const handleLogout = async () => {
     if (window.confirm("Sign out of Calyxo Trainer?")) {

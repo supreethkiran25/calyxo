@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { getWorkoutLogs, addWorkoutLog, saveEcosystemState } from '../lib/dbService';
+import { getWorkoutLogs, addWorkoutLog, saveEcosystemState, getUserAssignments } from '../lib/dbService';
 
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { Plus, Dumbbell, Clock, Edit3, X, Check, Search, Trophy, Activity, Move, PersonStanding, Target, User, Crosshair, Heart, Share2 } from 'lucide-react';
@@ -245,15 +245,65 @@ export default function WorkoutLogger({ onNotification }) {
     }
   };
 
-  // Hydrate Initial Workout state
+  const [assignedPlans, setAssignedPlans] = useState([]);
+
+  // Rest Timer States & Logic
+  const [restSecondsLeft, setRestSecondsLeft] = useState(null);
+  const [restDuration, setRestDuration] = useState(60); // default 60s
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (restSecondsLeft !== null && restSecondsLeft > 0) {
+      timerRef.current = setTimeout(() => {
+        setRestSecondsLeft(prev => prev - 1);
+      }, 1000);
+    } else if (restSecondsLeft === 0) {
+      triggerTimerCompletion();
+      setRestSecondsLeft(null);
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [restSecondsLeft]);
+
+  const triggerTimerCompletion = () => {
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200]);
+    }
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
+      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.3);
+    } catch (e) {
+      console.warn("AudioContext chime failed", e);
+    }
+    if (onNotification) onNotification("Rest time complete! Set starts now. 💪");
+  };
+
+  const handleStartRestTimer = (secs = restDuration) => {
+    setRestSecondsLeft(secs);
+  };
+
+  // Hydrate Initial Workout state & Trainer Assignments
   useEffect(() => {
     const fetchWorkouts = async () => {
       if (!userId) return;
       try {
         const data = await getWorkoutLogs(userId);
         setWorkoutLogs(data || []);
+        
+        const assigns = await getUserAssignments(userId);
+        if (assigns && assigns.length > 0) {
+          const workoutPlans = assigns.filter(a => a.type === 'workout_plan');
+          setAssignedPlans(workoutPlans);
+        }
       } catch (err) {
-        console.error("Error loading workouts log", err);
+        console.error("Error loading workouts log or assignments", err);
         if (onNotification) onNotification("Failed to load workout logs. Please reload.");
       }
     };
@@ -382,6 +432,8 @@ export default function WorkoutLogger({ onNotification }) {
       setExWeight('');
       setExDuration('');
       if (onNotification) onNotification(`Logged exercise: ${workoutItem.name} 🏋️`);
+      // Start rest timer
+      handleStartRestTimer();
     } catch (err) {
       console.error("Failed to log workout to database", err);
       if (onNotification) onNotification("Failed to log workout. Please try again.");
@@ -490,7 +542,58 @@ export default function WorkoutLogger({ onNotification }) {
           
           {/* LOGGER TAB VIEW */}
           {activeSubTab === 'logger' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <div className="space-y-6">
+              {/* ASSIGNED TRAINER WORKOUT PLANS */}
+              {assignedPlans && assignedPlans.length > 0 && (
+                <section className="glass border-acid-green/30 border rounded-2xl p-6 space-y-4 shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-acid-green/10 text-acid-green rounded-xl">
+                        <Dumbbell className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-black text-foreground uppercase tracking-wider">Assigned Coach Workout Plan</h2>
+                        <p className="text-[10px] text-muted font-bold">Assigned directly by your personal trainer</p>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-wider bg-acid-green text-accent-foreground px-2.5 py-1 rounded-lg">Active Plan</span>
+                  </div>
+
+                  {assignedPlans.map((plan, pIdx) => (
+                    <div key={pIdx} className="bg-surface/80 border border-card-border p-4 rounded-xl space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-bold text-sm text-foreground">{plan.title}</h3>
+                          {plan.content?.description && (
+                            <p className="text-xs text-muted mt-0.5">{plan.content.description}</p>
+                          )}
+                        </div>
+                        {plan.content?.duration && (
+                          <span className="text-[10px] font-bold text-muted bg-card-border px-2 py-0.5 rounded">
+                            {plan.content.duration} mins
+                          </span>
+                        )}
+                      </div>
+
+                      {plan.content?.exercises && plan.content.exercises.length > 0 && (
+                        <div className="space-y-2 border-t border-card-border pt-3">
+                          <span className="text-[9px] font-bold text-muted uppercase tracking-wider block">Assigned Exercises</span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {plan.content.exercises.map((ex, eIdx) => (
+                              <div key={eIdx} className="bg-card-bg border border-card-border p-2.5 rounded-lg flex justify-between items-center text-xs">
+                                <span className="font-bold text-foreground">{ex.name}</span>
+                                <span className="text-[10px] text-acid-green font-extrabold">{ex.sets} sets × {ex.reps} reps {ex.weight ? `@ ${ex.weight}kg` : ''}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </section>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               
               {/* Form columns */}
               <div className="space-y-6">
@@ -529,7 +632,8 @@ export default function WorkoutLogger({ onNotification }) {
                               initial={{ opacity: 0, y: 5 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0 }}
-                              className="absolute top-[calc(100%+8px)] left-0 w-full glass rounded-xl border border-card-border z-30 max-h-48 overflow-y-auto shadow-2xl"
+                              className="absolute top-[calc(100%+8px)] left-0 w-full bg-surface border border-card-border z-50 rounded-2xl max-h-56 overflow-y-auto shadow-2xl"
+                              style={{ backgroundColor: 'var(--secondary, #12121A)', opacity: 1 }}
                             >
                               {searchResults.map((item, idx) => (
                                 <div 
@@ -752,7 +856,7 @@ export default function WorkoutLogger({ onNotification }) {
                                 {ex.image || globalImageCache.get(ex.name) ? (
                                   <img src={ex.image || globalImageCache.get(ex.name)} alt={ex.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
                                 ) : null}
-                                <FallbackIcon category={ex.category || 'Strength'} muscleGroup={ex.muscleGroup || exercisesData.find(l => l.name === ex.name)?.muscle_group || exercisesData.find(l => l.name === ex.name)?.body_part} className={`w-4 h-4 text-muted ${(ex.image || globalImageCache.get(ex.name)) ? 'hidden' : ''}`} />
+                                <FallbackIcon category={ex.category || 'Strength'} muscleGroup={ex.muscleGroup} className={`w-4 h-4 text-muted ${(ex.image || globalImageCache.get(ex.name)) ? 'hidden' : ''}`} />
                               </div>
                               <span className="font-semibold text-foreground truncate">{ex.name}</span>
                             </div>
@@ -764,6 +868,7 @@ export default function WorkoutLogger({ onNotification }) {
                   )}
                 </section>
               </div>
+            </div>
             </div>
           )}
 
@@ -1438,6 +1543,96 @@ export default function WorkoutLogger({ onNotification }) {
                 </button>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* FLOATING REST TIMER */}
+      <AnimatePresence>
+        {restSecondsLeft !== null && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 50 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 50 }}
+            className="fixed bottom-6 right-6 z-50 glass p-5 rounded-2xl border border-card-border/80 shadow-2xl flex items-center gap-5 max-w-sm"
+          >
+            {/* Circular Progress Ring */}
+            <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="28"
+                  className="stroke-card-border/30 fill-transparent"
+                  strokeWidth="4"
+                />
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="28"
+                  className="stroke-acid-green fill-transparent transition-all duration-1000 ease-linear"
+                  strokeWidth="4"
+                  strokeDasharray={2 * Math.PI * 28}
+                  strokeDashoffset={2 * Math.PI * 28 - (restSecondsLeft / restDuration) * 2 * Math.PI * 28}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center flex-col">
+                <span className="text-xs font-black text-foreground leading-none">{restSecondsLeft}s</span>
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h4 className="text-[10px] font-black uppercase text-acid-green tracking-wider">Rest Timer</h4>
+                  <p className="text-[9px] text-muted font-semibold">Catch your breath</p>
+                </div>
+                <button
+                  onClick={() => setRestSecondsLeft(null)}
+                  className="p-1 rounded-lg hover:bg-white/10 text-muted hover:text-foreground transition-colors cursor-pointer border-none bg-transparent"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Adjust Duration buttons */}
+              <div className="flex gap-1.5">
+                {[30, 60, 90, 120].map(dur => (
+                  <button
+                    key={dur}
+                    onClick={() => {
+                      setRestDuration(dur);
+                      setRestSecondsLeft(dur);
+                    }}
+                    className={`px-2 py-1 text-[9px] font-bold rounded-lg border transition-all cursor-pointer ${
+                      restDuration === dur 
+                        ? 'bg-acid-green text-accent-foreground border-acid-green' 
+                        : 'bg-surface/50 border-card-border text-muted hover:text-foreground'
+                    }`}
+                  >
+                    {dur}s
+                  </button>
+                ))}
+              </div>
+
+              {/* Quick Actions */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setRestSecondsLeft(prev => prev + 30)}
+                  className="flex-1 px-3 py-1.5 bg-surface border border-card-border text-[9px] font-bold text-foreground rounded-lg hover:border-acid-green transition-colors cursor-pointer"
+                >
+                  +30s
+                </button>
+                <button
+                  onClick={() => setRestSecondsLeft(null)}
+                  className="flex-1 px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 text-[9px] font-bold text-rose-500 rounded-lg hover:bg-rose-500/20 transition-colors cursor-pointer"
+                >
+                  Skip
+                </button>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

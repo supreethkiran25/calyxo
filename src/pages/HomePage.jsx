@@ -28,12 +28,6 @@ export default function HomePage() {
         const profile = await getUserProfile(authUser.uid || authUser.id);
         setUserProfile(profile || { onboarded: false });
         setLoading(false);
-        // Redirect logic
-        if (profile?.role === 'trainer') {
-          navigate('/trainer/dashboard');
-        } else if (profile?.role === 'user' && profile?.onboarded) {
-          navigate('/user/dashboard');
-        }
       } else {
         setUserProfile({ onboarded: false });
         setLoading(false);
@@ -41,11 +35,11 @@ export default function HomePage() {
     });
 
     return () => unsubscribe();
-  }, [setUser, initializeTheme, setUserProfile, navigate]);
+  }, [setUser, initializeTheme, setUserProfile]);
 
   const handleRoleSelected = async (role) => {
     try {
-      const isOnboarded = role === 'trainer'; // Trainer is onboarded immediately; User must complete onboarding flow
+      const isOnboarded = role === 'trainer';
       const updatedProfile = { ...userProfile, role, onboarded: isOnboarded };
       await saveUserProfile(user.uid || user.id, updatedProfile);
       setUserProfile(updatedProfile);
@@ -62,28 +56,6 @@ export default function HomePage() {
   // 1. Loading State
   if (loading) return <LaunchScreen isLoading={loading} />;
 
-  // 2. Unauthenticated -> Landing
-  if (!user) return <LandingPage />;
-
-  // 3. Authenticated but no role assigned -> Role Selection
-  if (!userProfile?.role) {
-    return <RoleSelection user={user} onRoleSelected={handleRoleSelected} />;
-  }
-
-  // 4. Authenticated, role='user', but not onboarded -> OnboardingFlow
-  if (userProfile.role === 'user' && !userProfile.onboarded) {
-    return <OnboardingFlow onComplete={() => {
-      // Profile was already saved with onboarded:true and role:'user'
-      // Navigate directly to dashboard instead of reloading
-      navigate('/user/dashboard');
-    }} />;
-  }
-
-  // 5. Trainer -> Redirect
-  if (userProfile.role === 'trainer') {
-    return <LaunchScreen isLoading={true} />;
-  }
-
-  // 6. User -> Redirect
-  return <LaunchScreen isLoading={true} />;
+  // 2. Render Landing Page at root /
+  return <LandingPage />;
 }

@@ -1,13 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, ScanLine, Image as ImageIcon, CheckCircle, RefreshCw, Save } from 'lucide-react';
-import useCreateHubStore from '../../store/useCreateHubStore';
+import useQuickActionsStore from '../../store/useQuickActionsStore';
 import { addFoodLog, getCurrentUserId } from '../../lib/dbService';
 import { scanMealVision } from '../../services/geminiService';
 import { useEcosystemStore } from '../../store/useEcosystemStore';
 
 export default function FoodScannerModal() {
-  const { activeWorkflow, closeWorkflow, setActiveWorkflow } = useCreateHubStore();
+  const { activeWorkflow, closeWorkflow, setActiveWorkflow } = useQuickActionsStore();
   const { addXP, updateStreaks } = useEcosystemStore();
   
   const [image, setImage] = useState(null);

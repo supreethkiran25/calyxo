@@ -160,6 +160,14 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
       goal,
       units,
       experience,
+      // Calculated Macro Targets & Metrology
+      bmr: Math.round(bmr),
+      tdee: Math.round(tdee),
+      calorieGoal: Math.round(calorieGoal),
+      protein: Math.round(protein),
+      carbs: Math.round(carbs),
+      fat: Math.round(fat),
+      targetMacros: { protein, carbs, fat },
       // Dietary
       dietPreferences,
       allergies,

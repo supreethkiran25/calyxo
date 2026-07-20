@@ -1,10 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Dumbbell, Apple, ScanLine, TrendingUp, MessageSquare, Droplets, Scale } from 'lucide-react';
-import useCreateHubStore from '../store/useCreateHubStore';
+import useQuickActionsStore from '../store/useQuickActionsStore';
 
 export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
-  const setActiveWorkflow = useCreateHubStore((state) => state.setActiveWorkflow);
+  const setActiveWorkflow = useQuickActionsStore((state) => state.setActiveWorkflow);
 
   if (!isOpen) return null;
 

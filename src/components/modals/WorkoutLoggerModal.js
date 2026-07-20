@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Dumbbell, Clock, Flame, Save, RefreshCw } from 'lucide-react';
-import useCreateHubStore from '../../store/useCreateHubStore';
+import useQuickActionsStore from '../../store/useQuickActionsStore';
 import { useEcosystemStore } from '../../store/useEcosystemStore';
 import { addWorkoutLog, getCurrentUserId } from '../../lib/dbService';
 
 export default function WorkoutLoggerModal() {
-  const { activeWorkflow, closeWorkflow } = useCreateHubStore();
+  const { activeWorkflow, closeWorkflow } = useQuickActionsStore();
   const { addXP, updateStreaks } = useEcosystemStore();
   
   const [workoutName, setWorkoutName] = useState('');

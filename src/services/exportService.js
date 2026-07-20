@@ -2,13 +2,12 @@
 // Runs entirely client-side now
 
 import { supabase } from '../lib/supabaseClient';
-
-const isMockFirebase = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === "https://mock.supabase.co";
+import { isMockMode } from '../lib/dbService';
 
 export async function exportTrainingLogs() {
   let logs = [];
 
-  if (!isMockFirebase) {
+  if (!isMockMode) {
     const { data, error } = await supabase.from('TrainingLogs').select('*').eq('rating', 1);
     if (error) throw error;
     logs = data || [];

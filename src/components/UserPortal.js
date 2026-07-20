@@ -14,7 +14,7 @@ import {
   getWaterIntake
 } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
-import useCreateHubStore from '../store/useCreateHubStore';
+import useQuickActionsStore from '../store/useQuickActionsStore';
 
 // Component imports
 import Logo from '../components/Logo';
@@ -26,11 +26,11 @@ import OnboardingFlow from '../components/OnboardingFlow';
 import LandingPage from '../components/LandingPage';
 import BackgroundEffects from '../components/BackgroundEffects';
 import QuickActionsSheet from '../components/QuickActionsSheet';
-import WorkoutLoggerModal from '../components/CreateHub/WorkoutLoggerModal';
-import MealLoggerModal from '../components/CreateHub/MealLoggerModal';
-import FoodScannerModal from '../components/CreateHub/FoodScannerModal';
-import ProgressUploadModal from '../components/CreateHub/ProgressUploadModal';
-import AIChatModal from '../components/CreateHub/AIChatModal';
+import WorkoutLoggerModal from '../components/modals/WorkoutLoggerModal';
+import MealLoggerModal from '../components/modals/MealLoggerModal';
+import FoodScannerModal from '../components/modals/FoodScannerModal';
+import ProgressUploadModal from '../components/modals/ProgressUploadModal';
+import AIChatModal from '../components/modals/AIChatModal';
 import GlobalSearch from '../components/GlobalSearch';
 import AIWorkspace from '../components/AIWorkspace';
 import MobileDrawerMenu from '../components/MobileDrawerMenu';
@@ -122,7 +122,7 @@ export default function UserPortal() {
 
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
-  const { activeWorkflow, setActiveWorkflow } = useCreateHubStore();
+  const { activeWorkflow, setActiveWorkflow } = useQuickActionsStore();
   
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);

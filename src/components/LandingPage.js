@@ -3,16 +3,31 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Activity, Shield, Zap, Heart, Bot, ArrowRight, X, Play, Cpu, ChevronRight, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Logo from './Logo';
 import AuthFlow from './AuthFlow';
+import { useStore } from '../store/useStore';
 
 export default function LandingPage() {
+  const navigate = useNavigate();
+  const user = useStore(state => state.user);
+  const userProfile = useStore(state => state.userProfile);
+
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
   
   // Scroll Sync states
   const [scrollProgress, setScrollProgress] = useState(0);
   const [scrollRotation, setScrollRotation] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  const goToDashboard = () => {
+    if (userProfile?.role === 'trainer') {
+      navigate('/trainer/dashboard');
+    } else {
+      navigate('/user/dashboard');
+    }
+  };
 
   const openAuth = (mode) => {
     setAuthMode(mode);
@@ -32,6 +47,9 @@ export default function LandingPage() {
       
       // 2. Interactive scroll-linked rotation multiplier
       setScrollRotation(scrolled * 0.25);
+
+      // 3. Transparent to Solid Glass Navbar on Scroll
+      setIsScrolled(scrolled > 30);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -55,7 +73,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030303] text-[#f3f4f6] relative overflow-y-auto selection:bg-[#10B981] selection:text-white font-sans">
+    <div className="min-h-screen bg-[#030303] text-[#f3f4f6] relative overflow-y-auto selection:bg-[#10B981] selection:text-white font-sans pt-16">
       
       {/* ── Scroll Progress Indicator Bar (Scroll Sync) ── */}
       <div 
@@ -68,220 +86,183 @@ export default function LandingPage() {
       <div className="absolute top-1/3 right-[5%] w-[500px] h-[500px] bg-gradient-to-bl from-violet-600/10 to-transparent rounded-full blur-[130px] pointer-events-none"></div>
       <div className="absolute bottom-10 left-[10%] w-[450px] h-[450px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
 
-      {/* Navigation Header */}
-      <header className="sticky top-0 z-50 bg-[#030303]/80 backdrop-blur-md border-b border-white/5 px-6 pb-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] flex justify-between items-center max-w-7xl mx-auto rounded-b-2xl">
-        <div className="flex items-center gap-3">
-          <Logo className="w-8 h-8 text-[#00F0FF]" glow={true} />
-          <span className="brand-name text-lg text-white bg-gradient-to-r from-white to-[#B9B9C7] bg-clip-text text-transparent">calyxo</span>
-        </div>
-        <div className="flex items-center gap-6">
-          <button 
-            onClick={() => openAuth('login')}
-            className="text-xs font-black uppercase tracking-wider text-[#B9B9C7] hover:text-white transition-colors cursor-pointer"
-          >
-            Login
-          </button>
-          <button 
-            onClick={() => openAuth('signup')}
-            className="px-5 py-2.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-[10px] font-bold uppercase tracking-wider shadow-lg hover:shadow-[#10B981]/25 transition-all duration-300 cursor-pointer border-none"
-          >
-            Get Started
-          </button>
+      {/* Fixed Transparent to Glass Navbar on Scroll */}
+      <header 
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-3 sm:px-6 ${
+          isScrolled 
+            ? 'bg-[#030303]/90 backdrop-blur-md border-b border-white/10 shadow-2xl py-3' 
+            : 'bg-transparent border-b border-transparent py-4 sm:py-5'
+        }`}
+      >
+        <div className="max-w-7xl mx-auto w-full flex justify-between items-center">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <Logo className="w-7 h-7 sm:w-8 sm:h-8 text-[#00F0FF]" glow={true} />
+            <span className="brand-name text-base sm:text-lg text-white bg-gradient-to-r from-white to-[#B9B9C7] bg-clip-text text-transparent">calyxo</span>
+          </div>
+          <div className="flex items-center gap-1.5 sm:gap-4">
+            {user && (
+              <button 
+                onClick={goToDashboard}
+                className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer border border-white/10 flex items-center gap-1 sm:gap-2 whitespace-nowrap"
+              >
+                <span className="hidden xs:inline sm:inline">Go to</span> Dashboard
+                <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              </button>
+            )}
+            <button 
+              onClick={() => openAuth('login')}
+              className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#B9B9C7] hover:text-white transition-colors cursor-pointer px-1.5 py-1.5 whitespace-nowrap"
+            >
+              Login
+            </button>
+            <button 
+              onClick={() => openAuth('signup')}
+              className="px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider shadow-lg hover:shadow-[#10B981]/25 transition-all duration-300 cursor-pointer border-none whitespace-nowrap shrink-0"
+            >
+              Get Started
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-6 pt-24 pb-20 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-        
-        {/* Left Column: Headline */}
-        <motion.div 
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="lg:col-span-7 space-y-6 text-left"
-        >
+      {/* Full Hero Section with Background Photo & Heavy Black Layered Gradients */}
+      <section className="relative w-full overflow-hidden border-b border-white/10 min-h-screen flex items-center justify-center">
+        {/* Full-width Background Image Layer */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="/hero section.png" 
+            alt="Calyxo AI Health Operating System Hero Background" 
+            className="w-full h-full object-cover object-[70%_center] sm:object-center opacity-85 brightness-105 saturate-[1.15]"
+          />
+          {/* Subtle Dark Layered Gradients for high image visibility */}
+          {/* 1. Light Bottom Fade to section transition */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/40 to-transparent z-10 pointer-events-none"></div>
+          {/* 2. Soft Left Vignette for Text Contrast */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#030303]/90 via-[#030303]/60 sm:via-[#030303]/40 to-transparent z-10 pointer-events-none"></div>
+          {/* 3. Header Blend */}
+          <div className="absolute top-0 left-0 right-0 h-28 bg-gradient-to-b from-[#030303]/90 to-transparent z-10 pointer-events-none"></div>
+          {/* 4. Ambient Glow */}
+          <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[500px] h-[300px] bg-gradient-to-tr from-[#10B981]/15 via-[#00F0FF]/10 to-transparent rounded-full blur-[100px] z-10 pointer-events-none"></div>
+        </div>
+
+        {/* Hero Content Grid (On top of background & dark gradient layers) */}
+        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-12 sm:pb-16 w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          
+          {/* Left Column: Headline & Action Buttons */}
           <motion.div 
-            variants={itemVariants}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#10B981]/10 border border-[#10B981]/20 text-[#00F0FF] text-[10px] font-bold uppercase tracking-wider"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="lg:col-span-7 space-y-4 sm:space-y-6 text-left"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            AI-POWERED HEALTH OPERATING SYSTEM
-          </motion.div>
-
-          <motion.h1 
-            variants={itemVariants}
-            className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight text-white leading-[1.05]"
-          >
-            ENGINEERED FOR <br />
-            <span className="bg-gradient-to-r from-[#00F0FF] via-[#34D399] to-[#10B981] bg-clip-text text-transparent drop-shadow-sm">
-              MAX PERFORMANCE
-            </span>
-          </motion.h1>
-
-          <motion.p 
-            variants={itemVariants}
-            className="text-sm sm:text-lg text-[#B9B9C7] max-w-xl font-medium leading-relaxed"
-          >
-            Calyxo is an immersive health operating system merging automated biometrics, real-time nutrition calculations, structured workouts, and proactive AI coaching.
-          </motion.p>
-
-          <motion.div 
-            variants={itemVariants}
-            className="flex flex-col sm:flex-row justify-start items-center gap-4 pt-4 w-full"
-          >
-            <button 
-              onClick={() => openAuth('signup')}
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-xs font-black uppercase tracking-wider shadow-lg hover:shadow-[#10B981]/40 flex items-center justify-center gap-2 group cursor-pointer transition-all duration-300 border-none"
+            <motion.div 
+              variants={itemVariants}
+              className="inline-flex items-center gap-2 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-[#10B981]/15 border border-[#10B981]/30 backdrop-blur-md text-[#00F0FF] text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-lg"
             >
-              Start Free Trial
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-            <button 
-              onClick={() => openAuth('login')}
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors border border-white/10"
+              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              AI-POWERED HEALTH OPERATING SYSTEM
+            </motion.div>
+
+            <motion.h1 
+              variants={itemVariants}
+              className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight text-white leading-[1.05] drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]"
             >
-              <Play className="w-3.5 h-3.5 fill-current text-[#00F0FF]" />
-              Watch Demo
-            </button>
-          </motion.div>
-        </motion.div>
+              ENGINEERED FOR <br />
+              <span className="bg-gradient-to-r from-[#00F0FF] via-[#34D399] to-[#10B981] bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(0,240,255,0.4)]">
+                MAX PERFORMANCE
+              </span>
+            </motion.h1>
 
-        {/* Right Column: BIG Interactive Scroll-Linked 3D Shield Core */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-          className="lg:col-span-5 flex justify-center items-center relative"
-        >
-          {/* Main Core Container: Styled larger to fit "Big 3D" requests */}
+            <motion.p 
+              variants={itemVariants}
+              className="text-xs sm:text-base lg:text-lg text-[#D1D5DB] max-w-xl font-medium leading-relaxed drop-shadow-md"
+            >
+              Calyxo is an immersive health operating system merging automated biometrics, real-time nutrition calculations, structured workouts, and proactive AI coaching.
+            </motion.p>
+
+            <motion.div 
+              variants={itemVariants}
+              className="flex flex-col sm:flex-row justify-start items-center gap-3 sm:gap-4 pt-2 w-full"
+            >
+              <button 
+                onClick={() => openAuth('signup')}
+                className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-xs font-black uppercase tracking-wider shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:shadow-[#10B981]/60 flex items-center justify-center gap-2 group cursor-pointer transition-all duration-300 border-none"
+              >
+                Start Free Trial
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
+              <button 
+                onClick={() => openAuth('login')}
+                className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors border border-white/20 shadow-lg"
+              >
+                <Play className="w-3.5 h-3.5 fill-current text-[#00F0FF]" />
+                Watch Demo
+              </button>
+            </motion.div>
+          </motion.div>
+
+          {/* Right Column: Floating Sleek HUD Cards Floating over the Photo */}
           <motion.div 
-            whileHover={{ y: -8, scale: 1.015 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="w-full aspect-square max-w-[500px] relative flex items-center justify-center bg-[#09090D]/30 rounded-3xl border border-white/5 backdrop-blur-2xl shadow-3xl p-8 overflow-visible"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1, delay: 0.2 }}
+            className="lg:col-span-5 flex flex-col gap-2.5 sm:gap-3.5 relative justify-center w-full max-w-md mx-auto lg:max-w-none"
           >
-            
-            {/* Outer radial glows behind core */}
-            <div className="absolute w-[280px] h-[280px] rounded-full bg-[#10B981]/15 blur-[70px] pointer-events-none z-0"></div>
-            <div className="absolute w-[180px] h-[180px] rounded-full bg-[#00F0FF]/10 blur-[50px] pointer-events-none z-0"></div>
-            
-            {/* Animated Rotating SVG Core */}
-            <svg viewBox="0 0 200 200" className="w-full h-full relative z-10 select-none overflow-visible">
-              <defs>
-                <linearGradient id="shield-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#00F0FF" />
-                  <stop offset="50%" stopColor="#38BDF8" />
-                  <stop offset="100%" stopColor="#10B981" />
-                </linearGradient>
-                <filter id="core-glow">
-                  <feGaussianBlur stdDeviation="9" result="coloredBlur"/>
-                  <feMerge>
-                    <feMergeNode in="coloredBlur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                  </feMerge>
-                </filter>
-              </defs>
+            {/* Card 1: AI Coach Status */}
+            <motion.div 
+              whileHover={{ scale: 1.02, y: -2 }}
+              className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-black/60 border border-white/15 backdrop-blur-xl shadow-2xl flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-[#00F0FF]/15 border border-[#00F0FF]/30 flex items-center justify-center text-[#00F0FF] shrink-0">
+                  <Bot className="w-4 h-4 sm:w-5 sm:h-5" />
+                </div>
+                <div>
+                  <span className="text-[8px] sm:text-[9px] text-[#9CA3AF] font-bold uppercase tracking-wider block">AI Coach Status</span>
+                  <span className="text-xs sm:text-sm font-black text-white flex items-center gap-1.5 sm:gap-2">
+                    ACTIVE BRIEFING <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#10B981] animate-pulse"></span>
+                  </span>
+                </div>
+              </div>
+              <span className="text-[9px] sm:text-xs font-bold text-[#00F0FF] bg-[#00F0FF]/10 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-[#00F0FF]/20 shrink-0">98% SYNC</span>
+            </motion.div>
 
-              {/* 1. Outer Ring (Slow clockwise dashed ring, synced with scroll rotation) */}
-              <circle 
-                cx="100" cy="100" r="92" 
-                stroke="rgba(255,255,255,0.06)" 
-                strokeWidth="1.5" 
-                fill="none" 
-              />
-              <circle 
-                cx="100" cy="100" r="92" 
-                stroke="url(#shield-grad)" 
-                strokeWidth="1.8" 
-                strokeDasharray="20 160 40 100" 
-                fill="none" 
-                style={{ transform: `rotate(${scrollRotation * 0.4}deg)` }}
-                className="origin-center transition-transform duration-200"
-              />
+            {/* Card 2: Biometric Performance Core */}
+            <motion.div 
+              whileHover={{ scale: 1.02, y: -2 }}
+              className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-black/60 border border-white/15 backdrop-blur-xl shadow-2xl flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-[#10B981]/15 border border-[#10B981]/30 flex items-center justify-center text-[#10B981] shrink-0">
+                  <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
+                </div>
+                <div>
+                  <span className="text-[8px] sm:text-[9px] text-[#9CA3AF] font-bold uppercase tracking-wider block">Readiness Score</span>
+                  <span className="text-xs sm:text-sm font-black text-white">94% OPTIMAL RECOVERY</span>
+                </div>
+              </div>
+              <span className="text-[9px] sm:text-xs font-bold text-[#10B981] bg-[#10B981]/10 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-[#10B981]/20 shrink-0">PEAK STATE</span>
+            </motion.div>
 
-              {/* 2. Middle Ring (Medium counter-clockwise dashed circuit) */}
-              <circle 
-                cx="100" cy="100" r="76" 
-                stroke="rgba(0,240,255,0.08)" 
-                strokeWidth="1" 
-                fill="none" 
-              />
-              <circle 
-                cx="100" cy="100" r="76" 
-                stroke="url(#shield-grad)" 
-                strokeWidth="2.5" 
-                strokeDasharray="50 90 20 50" 
-                fill="none" 
-                style={{ transform: `rotate(${-scrollRotation * 0.7}deg)` }}
-                className="origin-center opacity-85 transition-transform duration-200"
-              />
-
-              {/* 3. Inner Geometry (Rotating triangles/hex) */}
-              <circle 
-                cx="100" cy="100" r="60" 
-                stroke="rgba(255,255,255,0.03)" 
-                strokeWidth="1" 
-                fill="none" 
-              />
-              <polygon 
-                points="100,43 151,130 49,130" 
-                stroke="rgba(16,185,129,0.25)" 
-                strokeWidth="1.5" 
-                fill="none"
-                style={{ transform: `rotate(${scrollRotation * 1.1}deg)` }}
-                className="origin-center transition-transform duration-200"
-              />
-              <polygon 
-                points="100,157 151,70 49,70" 
-                stroke="rgba(0,240,255,0.2)" 
-                strokeWidth="1" 
-                fill="none"
-                style={{ transform: `rotate(${-scrollRotation * 1.4}deg)` }}
-                className="origin-center transition-transform duration-200"
-              />
-
-              {/* 4. Central Pulse Orb Shield */}
-              <g className="animate-[pulse_3.5s_ease-in-out_infinite] origin-center">
-                <circle 
-                  cx="100" cy="100" r="32" 
-                  fill="url(#shield-grad)" 
-                  className="opacity-15"
-                  filter="url(#core-glow)"
-                />
-                <circle 
-                  cx="100" cy="100" r="22" 
-                  fill="url(#shield-grad)" 
-                  className="opacity-60"
-                  filter="url(#core-glow)"
-                />
-                <path 
-                  d="M100,87 C93.5,87 89,91.5 89,97.5 L89,105 C89,113.5 100,119 100,119 C100,119 111,113.5 111,105 L111,97.5 C111,91.5 106.5,87 100,87 Z" 
-                  fill="#ffffff" 
-                  className="drop-shadow-[0_2px_10px_rgba(0,240,255,0.65)]"
-                />
-              </g>
-            </svg>
-
-            {/* Floating Glass Telemetry Elements */}
-            <div className="absolute top-10 left-[-20px] bg-[#0F0F15]/85 border border-white/10 backdrop-blur-xl rounded-2xl px-4 py-2.5 text-left z-20 shadow-2xl animate-[bounce_4.5s_ease-in-out_infinite]">
-              <span className="text-[9px] text-[#B9B9C7] font-bold uppercase tracking-wider block">Coaching Score</span>
-              <span className="text-sm font-extrabold text-white flex items-center gap-1.5">
-                94% <span className="text-[9px] text-[#00F0FF] font-semibold">OPTIMAL</span>
-              </span>
-            </div>
-
-            <div className="absolute bottom-14 right-[-20px] bg-[#0F0F15]/85 border border-white/10 backdrop-blur-xl rounded-2xl px-4 py-2.5 text-left z-20 shadow-2xl animate-[bounce_5.5s_ease-in-out_infinite_delayed]">
-              <span className="text-[9px] text-[#B9B9C7] font-bold uppercase tracking-wider block">Bio Sync status</span>
-              <span className="text-sm font-extrabold text-white flex items-center gap-1">
-                ⚡ SECURE
-              </span>
-            </div>
-
-            <div className="absolute bottom-6 left-12 bg-[#0F0F15]/85 border border-white/10 backdrop-blur-xl rounded-xl px-3.5 py-2 text-[8px] font-black text-[#00F0FF] tracking-widest uppercase z-20 shadow-lg">
-              🔥 STREAK: 12 DAYS
-            </div>
+            {/* Card 3: Gamified Compliance */}
+            <motion.div 
+              whileHover={{ scale: 1.02, y: -2 }}
+              className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-black/60 border border-white/15 backdrop-blur-xl shadow-2xl flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
+                  <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
+                </div>
+                <div>
+                  <span className="text-[8px] sm:text-[9px] text-[#9CA3AF] font-bold uppercase tracking-wider block">Compliance Streak</span>
+                  <span className="text-xs sm:text-sm font-black text-white">12 DAYS ACTIVE 🔥</span>
+                </div>
+              </div>
+              <span className="text-[9px] sm:text-xs font-bold text-purple-300 bg-purple-500/10 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-purple-500/20 shrink-0">+1,450 XP</span>
+            </motion.div>
           </motion.div>
-        </motion.div>
 
+        </div>
       </section>
 
       {/* Trust & Highlights Section (Scroll Sync Trigger) */}

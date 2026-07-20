@@ -1,13 +1,33 @@
 import { supabase } from "./supabaseClient";
 
+const getEnvVal = (key) => {
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta && import.meta.env) {
+      if (import.meta.env[key]) return import.meta.env[key];
+      if (import.meta.env[`VITE_${key}`]) return import.meta.env[`VITE_${key}`];
+      if (import.meta.env[`NEXT_PUBLIC_${key}`]) return import.meta.env[`NEXT_PUBLIC_${key}`];
+    }
+  } catch (e) {}
+  try {
+    if (typeof process !== 'undefined' && process && process.env) {
+      if (process.env[key]) return process.env[key];
+      if (process.env[`VITE_${key}`]) return process.env[`VITE_${key}`];
+      if (process.env[`NEXT_PUBLIC_${key}`]) return process.env[`NEXT_PUBLIC_${key}`];
+    }
+  } catch (e) {}
+  return undefined;
+};
+
+const activeSupabaseUrl = getEnvVal('SUPABASE_URL') || 'https://nwcatvlfoayzrwatvyrf.supabase.co';
+
 // Helper to determine if Supabase is fully configured or running mock
-export const isMockFirebase = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === "https://mock.supabase.co";
+export const isMockMode = !activeSupabaseUrl || activeSupabaseUrl === "https://mock.supabase.co";
 
 const ENCRYPTION_SALT = "calyxo_secure_salt_2026";
 
 export const getCurrentUserId = async () => {
   if (typeof window === 'undefined') return "";
-  if (isMockFirebase) {
+  if (isMockMode) {
     try {
       const mockUserRaw = localStorage.getItem("calyxo_mock_user");
       if (mockUserRaw) {
@@ -23,7 +43,7 @@ export const getCurrentUserId = async () => {
 
 export const getCurrentUserIdSync = () => {
   if (typeof window === 'undefined') return "";
-  if (isMockFirebase) {
+  if (isMockMode) {
     try {
       const mockUserRaw = localStorage.getItem("calyxo_mock_user");
       if (mockUserRaw) {
@@ -33,11 +53,11 @@ export const getCurrentUserIdSync = () => {
     } catch (e) {}
     return "";
   }
-  // Fallback for sync contexts, ideally shouldn't be relied on for security
-  // But matches the previous firebase auth.currentUser synchronous behavior somewhat
-  // In Supabase, session is async, but we can try parsing local storage
+  // Fallback for sync contexts
   try {
-     const sessionStr = localStorage.getItem(`sb-${import.meta.env.VITE_SUPABASE_URL.split('//')[1].split('.')[0]}-auth-token`);
+     const url = activeSupabaseUrl;
+     const projectRef = url.includes('//') ? url.split('//')[1].split('.')[0] : 'nwcatvlfoayzrwatvyrf';
+     const sessionStr = localStorage.getItem(`sb-${projectRef}-auth-token`);
      if (sessionStr) {
        return JSON.parse(sessionStr)?.user?.id || "";
      }
@@ -149,7 +169,7 @@ const saveLocalState = (userId, state) => {
    ========================================================================== */
 
 export const signUpUser = async (email, password, remember = true) => {
-  if (isMockFirebase) {
+  if (isMockMode) {
     const mockUser = { id: "mock-user-id", uid: "mock-user-id", email };
     localStorage.setItem("calyxo_mock_user", JSON.stringify(mockUser));
     return mockUser;
@@ -166,7 +186,7 @@ export const signUpUser = async (email, password, remember = true) => {
 export const signInWithUsernameOrEmail = async (identifier, password, remember = true) => {
   let loginEmail = identifier;
 
-  if (isMockFirebase) {
+  if (isMockMode) {
     if (!identifier.includes('@')) {
       const usernamesStr = localStorage.getItem("calyxo_mock_usernames");
       if (usernamesStr) {
@@ -202,29 +222,39 @@ export const signInWithUsernameOrEmail = async (identifier, password, remember =
 };
 
 export const signInWithGoogle = async (remember = true) => {
-  if (isMockFirebase) {
+  if (isMockMode) {
     const mockUser = { id: "mock-google-user", uid: "mock-google-user", email: "google.tester@calyxo.com", displayName: "Google Tester" };
     localStorage.setItem("calyxo_mock_user", JSON.stringify(mockUser));
     return mockUser;
   }
-  const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}`
+    }
+  });
   if (error) throw error;
   return data;
 };
 
 export const signInWithApple = async (remember = true) => {
-  if (isMockFirebase) {
+  if (isMockMode) {
     const mockUser = { id: "mock-apple-user", uid: "mock-apple-user", email: "apple.tester@calyxo.com", displayName: "Apple Tester" };
     localStorage.setItem("calyxo_mock_user", JSON.stringify(mockUser));
     return mockUser;
   }
-  const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'apple' });
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'apple',
+    options: {
+      redirectTo: `${window.location.origin}`
+    }
+  });
   if (error) throw error;
   return data;
 };
 
 export const signOutUser = async () => {
-  if (isMockFirebase) {
+  if (isMockMode) {
     localStorage.removeItem("calyxo_mock_user");
     return;
   }
@@ -232,7 +262,7 @@ export const signOutUser = async () => {
 };
 
 export const sendPasswordReset = async (email) => {
-  if (isMockFirebase) {
+  if (isMockMode) {
     console.log(`Mock reset password email sent to ${email}`);
     return;
   }
@@ -241,7 +271,7 @@ export const sendPasswordReset = async (email) => {
 };
 
 export const subscribeToAuth = (callback) => {
-  if (isMockFirebase) {
+  if (isMockMode) {
     let mockUser = null;
     try {
       const mockUserRaw = localStorage.getItem("calyxo_mock_user");
@@ -274,7 +304,7 @@ export const subscribeToAuth = (callback) => {
    ========================================================================== */
 
 export const getFoodLogs = async (userId) => {
-  if (isMockFirebase || !userId) {
+  if (isMockMode || !userId) {
     return getLocalState(userId).foodLogs;
   }
   try {
@@ -301,7 +331,7 @@ export const addFoodLog = async (userId, item) => {
   state.foodLogs.push(logItem);
   saveLocalState(userId, state);
 
-  if (isMockFirebase || !userId) return logItem;
+  if (isMockMode || !userId) return logItem;
 
   try {
     const { data, error } = await supabase.from("food_logs").insert(logItem).select().single();
@@ -318,7 +348,7 @@ export const deleteFoodLog = async (userId, logId) => {
   state.foodLogs = state.foodLogs.filter(x => x.id !== logId && x.timestamp !== logId);
   saveLocalState(userId, state);
 
-  if (isMockFirebase || !userId || typeof logId === 'number') return;
+  if (isMockMode || !userId || typeof logId === 'number') return;
 
   try {
     const { error } = await supabase.from("food_logs").delete().eq("id", logId);
@@ -333,7 +363,7 @@ export const deleteFoodLog = async (userId, logId) => {
    ========================================================================== */
 
 export const getWorkoutLogs = async (userId) => {
-  if (isMockFirebase || !userId) {
+  if (isMockMode || !userId) {
     return getLocalState(userId).workoutLogs;
   }
   try {
@@ -360,7 +390,7 @@ export const addWorkoutLog = async (userId, workout) => {
   state.workoutLogs.push(logItem);
   saveLocalState(userId, state);
 
-  if (isMockFirebase || !userId) return logItem;
+  if (isMockMode || !userId) return logItem;
 
   try {
     const { data, error } = await supabase.from("workout_logs").insert(logItem).select().single();
@@ -377,7 +407,7 @@ export const addWorkoutLog = async (userId, workout) => {
    ========================================================================== */
 
 export const getWaterIntake = async (userId) => {
-  if (isMockFirebase || !userId) {
+  if (isMockMode || !userId) {
     return getLocalState(userId).waterIntake;
   }
   try {
@@ -407,7 +437,7 @@ export const saveWaterIntake = async (userId, amount) => {
   state.waterIntake = amount;
   saveLocalState(userId, state);
 
-  if (isMockFirebase || !userId) return;
+  if (isMockMode || !userId) return;
 
   try {
     const payload = {
@@ -428,7 +458,7 @@ export const saveWaterIntake = async (userId, amount) => {
    ========================================================================== */
 
 export const getWeightLogs = async (userId) => {
-  if (isMockFirebase || !userId) {
+  if (isMockMode || !userId) {
     return getLocalState(userId).weightLogs;
   }
   try {
@@ -461,7 +491,7 @@ export const addWeightLog = async (userId, weightVal, units) => {
   }
   saveLocalState(userId, state);
 
-  if (isMockFirebase || !userId) return entry;
+  if (isMockMode || !userId) return entry;
 
   try {
     const { data, error } = await supabase.from("weight_logs").insert(entry).select().single();
@@ -478,7 +508,7 @@ export const addWeightLog = async (userId, weightVal, units) => {
    ========================================================================== */
 
 export const getUserProfile = async (userId) => {
-  if (isMockFirebase || !userId) {
+  if (isMockMode || !userId) {
     return getLocalState(userId).userProfile;
   }
   try {
@@ -526,7 +556,7 @@ export const saveUserProfile = async (userId, profile) => {
   state.userProfile = profile;
   saveLocalState(userId, state);
 
-  if (isMockFirebase || !userId) return;
+  if (isMockMode || !userId) return;
 
   // Protect role: once assigned, never allow clearing it
   if (!profile.role) {
@@ -612,7 +642,7 @@ export const addTrainingLog = async (userId, queryText, responseText, rating) =>
   logs.push(logItem);
   setSecureItem("calyxo_training_logs", logs, userId || ENCRYPTION_SALT);
 
-  if (isMockFirebase || !userId) return logItem;
+  if (isMockMode || !userId) return logItem;
 
   try {
     const { data, error } = await supabase.from("TrainingLogs").insert(logItem).select().single();
@@ -628,7 +658,7 @@ export const getPositiveTrainingLogs = async (userId) => {
   let localLogs = getSecureItem("calyxo_training_logs", userId || ENCRYPTION_SALT) || [];
   const positiveLocal = localLogs.filter(log => log.rating === 1);
 
-  if (isMockFirebase || !userId) {
+  if (isMockMode || !userId) {
     return positiveLocal;
   }
 
@@ -660,7 +690,7 @@ export const getPositiveTrainingLogs = async (userId) => {
    ========================================================================== */
 
 export const getChatSessions = async (userId) => {
-  if (isMockFirebase || !userId) {
+  if (isMockMode || !userId) {
     return getSecureItem("calyxo_chat_sessions", userId || ENCRYPTION_SALT) || [];
   }
   try {
@@ -693,7 +723,7 @@ export const saveChatSession = async (userId, session) => {
   localSessions.sort((a, b) => b.updatedAt - a.updatedAt);
   setSecureItem("calyxo_chat_sessions", localSessions, userId || ENCRYPTION_SALT);
 
-  if (isMockFirebase || !userId) return updatedSession;
+  if (isMockMode || !userId) return updatedSession;
 
   try {
     const { error } = await supabase.from("chat_sessions").upsert(updatedSession);
@@ -710,7 +740,7 @@ export const deleteChatSession = async (userId, sessionId) => {
   localSessions = localSessions.filter(s => s.id !== sessionId);
   setSecureItem("calyxo_chat_sessions", localSessions, userId || ENCRYPTION_SALT);
 
-  if (isMockFirebase || !userId) return;
+  if (isMockMode || !userId) return;
 
   try {
     const { error } = await supabase.from("chat_sessions").delete().eq("id", sessionId);
@@ -725,7 +755,7 @@ export const deleteChatSession = async (userId, sessionId) => {
    ========================================================================== */
 
 export const getEcosystemState = async (userId) => {
-  if (isMockFirebase || !userId) {
+  if (isMockMode || !userId) {
     return getSecureItem("calyxo_ecosystem_db_state", userId || ENCRYPTION_SALT);
   }
   try {
@@ -752,7 +782,7 @@ export const saveEcosystemState = async (userId, state) => {
   if (typeof window !== 'undefined') {
     setSecureItem("calyxo_ecosystem_db_state", cleanState, userId || ENCRYPTION_SALT);
   }
-  if (isMockFirebase) return;
+  if (isMockMode) return;
   try {
     const payload = { 
       id: userId,
@@ -769,7 +799,7 @@ export const saveEcosystemState = async (userId, state) => {
 };
 
 export const getMealScanLogs = async (userId) => {
-  if (isMockFirebase || !userId) {
+  if (isMockMode || !userId) {
     return getSecureItem("calyxo_meal_scans", userId || ENCRYPTION_SALT) || [];
   }
   try {
@@ -792,7 +822,7 @@ export const addMealScanLog = async (userId, scanItem) => {
   local.unshift(item);
   setSecureItem("calyxo_meal_scans", local, userId || ENCRYPTION_SALT);
 
-  if (isMockFirebase || !userId) return item;
+  if (isMockMode || !userId) return item;
   try {
     const { data, error } = await supabase.from("meal_scans").insert(item).select().single();
     if (error) throw error;
@@ -804,7 +834,7 @@ export const addMealScanLog = async (userId, scanItem) => {
 };
 
 export const updateUserEmail = async (newEmail) => {
-  if (isMockFirebase) {
+  if (isMockMode) {
     const mockUserRaw = localStorage.getItem("calyxo_mock_user");
     if (mockUserRaw) {
       const mockUser = JSON.parse(mockUserRaw);
@@ -818,13 +848,13 @@ export const updateUserEmail = async (newEmail) => {
 };
 
 export const updateUserPassword = async (newPassword) => {
-  if (isMockFirebase) return;
+  if (isMockMode) return;
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw error;
 };
 
 export const updateUserAuthProfile = async (displayName, photoURL) => {
-  if (isMockFirebase) {
+  if (isMockMode) {
     const mockUserRaw = localStorage.getItem("calyxo_mock_user");
     if (mockUserRaw) {
       const mockUser = JSON.parse(mockUserRaw);
@@ -839,7 +869,7 @@ export const updateUserAuthProfile = async (displayName, photoURL) => {
 };
 
 export const deleteUserAccount = async (userId) => {
-  if (!isMockFirebase && userId) {
+  if (!isMockMode && userId) {
     try {
       await supabase.from("users_metrics").delete().eq("id", `${userId}_profile`);
       await supabase.from("users_metrics").delete().eq("id", `${userId}_water`);
@@ -862,7 +892,7 @@ export const deleteUserAccount = async (userId) => {
   localStorage.removeItem("calyxo_training_logs");
   localStorage.removeItem("calyxo_ecosystem_state");
 
-  if (!isMockFirebase) {
+  if (!isMockMode) {
     // Note: deleteUser from client requires the user to be recently signed in
     // Supabase JS client doesn't expose a client-side delete user function like Firebase does.
     // Only admin can delete user in Supabase, or use a custom Edge Function.
@@ -903,7 +933,7 @@ export const exportAccountData = async (userId) => {
 
 export const clearChatHistory = async (userId) => {
   localStorage.removeItem("calyxo_chat_sessions");
-  if (isMockFirebase || !userId) return;
+  if (isMockMode || !userId) return;
   try {
     await supabase.from("chat_sessions").delete().eq("userId", userId);
   } catch (e) {
@@ -947,26 +977,26 @@ export const fetchWithRetry = async (url, options = {}, retries = 3, delay = 100
    ========================================================================== */
 
 export const getTrainerProfile = async (trainerId) => {
-  if (isMockFirebase || !trainerId) return null;
+  if (isMockMode || !trainerId) return null;
   const { data, error } = await supabase.from('trainer_profiles').select('*').eq('id', trainerId).maybeSingle();
   if (error && error.code !== 'PGRST116') console.error('getTrainerProfile error:', error);
   return data;
 };
 
 export const upsertTrainerProfile = async (trainerId, profileData) => {
-  if (isMockFirebase || !trainerId) return;
+  if (isMockMode || !trainerId) return;
   const { error } = await supabase.from('trainer_profiles').upsert({ id: trainerId, ...profileData });
   if (error) console.error('upsertTrainerProfile error:', error);
 };
 
 export const completeTrainerOnboarding = async (trainerId) => {
-  if (isMockFirebase || !trainerId) return;
+  if (isMockMode || !trainerId) return;
   const { error } = await supabase.from('trainer_profiles').update({ onboarding_complete: true }).eq('id', trainerId);
   if (error) console.error('completeTrainerOnboarding error:', error);
 };
 
 export const requestPTConnection = async (userId, trainerId, method) => {
-  if (isMockFirebase || !userId || !trainerId) return;
+  if (isMockMode || !userId || !trainerId) return;
   const { error } = await supabase.from('pt_connections').insert({
     user_id: userId,
     trainer_id: trainerId,
@@ -977,13 +1007,13 @@ export const requestPTConnection = async (userId, trainerId, method) => {
 };
 
 export const respondToConnection = async (connectionId, status) => {
-  if (isMockFirebase || !connectionId) return;
+  if (isMockMode || !connectionId) return;
   const { error } = await supabase.from('pt_connections').update({ status, responded_at: new Date().toISOString() }).eq('id', connectionId);
   if (error) console.error('respondToConnection error:', error);
 };
 
 export const getUserConnection = async (userId) => {
-  if (isMockFirebase || !userId) return null;
+  if (isMockMode || !userId) return null;
   const { data, error } = await supabase.from('pt_connections').select('*').eq('user_id', userId).in('status', ['pending', 'accepted']);
   if (error) {
     console.error('getUserConnection error:', error);
@@ -1001,7 +1031,7 @@ export const getUserConnection = async (userId) => {
 };
 
 export const getTrainerClients = async (trainerId) => {
-  if (isMockFirebase || !trainerId) return [];
+  if (isMockMode || !trainerId) return [];
   const { data, error } = await supabase.from('pt_connections').select('*').eq('trainer_id', trainerId).eq('status', 'accepted');
   if (error) {
     console.error('getTrainerClients error:', error);
@@ -1020,27 +1050,50 @@ export const getTrainerClients = async (trainerId) => {
 };
 
 export const assignPlan = async (trainerId, userId, planData) => {
-  if (isMockFirebase || !trainerId || !userId) return;
-  const { error } = await supabase.from('trainer_assignments').insert({
-    trainer_id: trainerId,
-    user_id: userId,
-    ...planData
-  });
-  if (error) console.error('assignPlan error:', error);
+  const planType = planData.type === 'workout_plan' ? 'workout' : 'nutrition';
+  const { data, error } = await supabase
+    .from('assigned_plans')
+    .insert({
+      trainer_id: trainerId,
+      client_id: userId,
+      plan_type: planType,
+      plan_data: { title: planData.title, ...planData.content },
+      status: 'active'
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('assignPlan error:', error);
+    throw error;
+  }
+  return data;
 };
 
 export const getUserAssignments = async (userId) => {
-  if (isMockFirebase || !userId) return [];
-  const { data, error } = await supabase.from('trainer_assignments').select('*').eq('user_id', userId);
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from('assigned_plans')
+    .select('*')
+    .eq('client_id', userId)
+    .eq('status', 'active');
+
   if (error) {
     console.error('getUserAssignments error:', error);
     return [];
   }
-  return data || [];
+
+  return (data || []).map(row => ({
+    id: row.id,
+    type: row.plan_type === 'workout' ? 'workout_plan' : 'meal_plan',
+    title: row.plan_data?.title || 'Untitled Plan',
+    content: { ...row.plan_data },
+    assigned_at: row.assigned_at
+  }));
 };
 
 export const sendMessage = async (senderId, receiverId, message, senderType) => {
-  if (isMockFirebase || !senderId || !receiverId) return;
+  if (isMockMode || !senderId || !receiverId) return;
   // senderType should be 'trainer' or 'user'
   const trainer_id = senderType === 'trainer' ? senderId : receiverId;
   const user_id = senderType === 'user' ? senderId : receiverId;
@@ -1054,7 +1107,7 @@ export const sendMessage = async (senderId, receiverId, message, senderType) => 
 };
 
 export const getMessages = async (userId, trainerId) => {
-  if (isMockFirebase || !userId || !trainerId) return [];
+  if (isMockMode || !userId || !trainerId) return [];
   const { data, error } = await supabase.from('trainer_messages').select('*').eq('user_id', userId).eq('trainer_id', trainerId).order('sent_at', { ascending: true });
   if (error) {
     console.error('getMessages error:', error);
@@ -1064,13 +1117,13 @@ export const getMessages = async (userId, trainerId) => {
 };
 
 export const markMessagesRead = async (userId, trainerId) => {
-  if (isMockFirebase || !userId || !trainerId) return;
+  if (isMockMode || !userId || !trainerId) return;
   const { error } = await supabase.from('trainer_messages').update({ read: true }).eq('user_id', userId).eq('trainer_id', trainerId);
   if (error) console.error('markMessagesRead error:', error);
 };
 
 export const getAvailableTrainers = async (filters = {}) => {
-  if (isMockFirebase) return [];
+  if (isMockMode) return [];
   let query = supabase.from('trainer_profiles').select('*').eq('onboarding_complete', true);
   if (filters.specialization) query = query.contains('specializations', [filters.specialization]);
   if (filters.pricing_tier) query = query.eq('pricing_tier', filters.pricing_tier);
@@ -1084,7 +1137,7 @@ export const getAvailableTrainers = async (filters = {}) => {
 };
 
 export const getTrainerByInviteCode = async (code) => {
-  if (isMockFirebase || !code) return null;
+  if (isMockMode || !code) return null;
   const { data, error } = await supabase.from('trainer_profiles').select('*').eq('invite_code', code).maybeSingle();
   if (error) {
     if (error.code !== 'PGRST116') console.error('getTrainerByInviteCode error:', error);
@@ -1098,7 +1151,7 @@ export const getTrainerByInviteCode = async (code) => {
    ========================================================================== */
 
 export const getTrainerAnalytics = async (trainerId) => {
-  if (isMockFirebase || !trainerId) return null;
+  if (isMockMode || !trainerId) return null;
   const [connections, assignments, messages] = await Promise.all([
     supabase.from('pt_connections').select('*', { count: 'exact' }).eq('trainer_id', trainerId).eq('status', 'accepted'),
     supabase.from('trainer_assignments').select('type', { count: 'exact' }).eq('trainer_id', trainerId),
@@ -1114,7 +1167,7 @@ export const getTrainerAnalytics = async (trainerId) => {
 };
 
 export const getClientActivityLogs = async (clientId, days = 30) => {
-  if (isMockFirebase || !clientId) return { workouts: [], foods: [] };
+  if (isMockMode || !clientId) return { workouts: [], foods: [] };
   const d = new Date();
   d.setDate(d.getDate() - days);
   const cutoff = d.getTime();
@@ -1127,32 +1180,32 @@ export const getClientActivityLogs = async (clientId, days = 30) => {
 };
 
 export const getTrainerTasks = async (trainerId) => {
-  if (isMockFirebase || !trainerId) return [];
+  if (isMockMode || !trainerId) return [];
   const { data, error } = await supabase.from('trainer_tasks').select('*').eq('trainer_id', trainerId).order('created_at', { ascending: false });
   if (error) console.error('getTrainerTasks error:', error);
   return data || [];
 };
 
 export const createTrainerTask = async (taskData) => {
-  if (isMockFirebase) return;
+  if (isMockMode) return;
   const { error } = await supabase.from('trainer_tasks').insert(taskData);
   if (error) console.error('createTrainerTask error:', error);
 };
 
 export const updateTrainerTaskStatus = async (taskId, status) => {
-  if (isMockFirebase) return;
+  if (isMockMode) return;
   const { error } = await supabase.from('trainer_tasks').update({ status }).eq('id', taskId);
   if (error) console.error('updateTrainerTaskStatus error:', error);
 };
 
 export const deleteTrainerTask = async (taskId) => {
-  if (isMockFirebase) return;
+  if (isMockMode) return;
   const { error } = await supabase.from('trainer_tasks').delete().eq('id', taskId);
   if (error) console.error('deleteTrainerTask error:', error);
 };
 
 export const uploadTrainerDocument = async (trainerId, file, meta) => {
-  if (isMockFirebase || !trainerId) return;
+  if (isMockMode || !trainerId) return;
   const filePath = `${trainerId}/${Date.now()}_${file.name}`;
   const { data: uploadData, error: uploadError } = await supabase.storage.from('trainer-documents').upload(filePath, file);
   if (uploadError) {
@@ -1176,21 +1229,21 @@ export const uploadTrainerDocument = async (trainerId, file, meta) => {
 };
 
 export const getTrainerDocuments = async (trainerId) => {
-  if (isMockFirebase || !trainerId) return [];
+  if (isMockMode || !trainerId) return [];
   const { data, error } = await supabase.from('trainer_documents').select('*').eq('trainer_id', trainerId).order('created_at', { ascending: false });
   if (error) console.error('getTrainerDocuments error:', error);
   return data || [];
 };
 
 export const deleteTrainerDocument = async (docId, fileUrl) => {
-  if (isMockFirebase) return;
+  if (isMockMode) return;
   // delete record
   await supabase.from('trainer_documents').delete().eq('id', docId);
   // Optional: delete from storage bucket if you have the file path
 };
 
 export const saveTrainerTemplate = async (trainerId, type, title, content) => {
-  if (isMockFirebase || !trainerId) return;
+  if (isMockMode || !trainerId) return;
   const { error } = await supabase.from('trainer_assignments').insert({
     trainer_id: trainerId,
     user_id: null,
@@ -1202,14 +1255,14 @@ export const saveTrainerTemplate = async (trainerId, type, title, content) => {
 };
 
 export const getTrainerTemplates = async (trainerId, type) => {
-  if (isMockFirebase || !trainerId) return [];
+  if (isMockMode || !trainerId) return [];
   const { data, error } = await supabase.from('trainer_assignments').select('*').eq('trainer_id', trainerId).is('user_id', null).eq('type', type);
   if (error) console.error('getTrainerTemplates error:', error);
   return data || [];
 };
 
 export const getClientFullProfile = async (clientId) => {
-  if (isMockFirebase || !clientId) return null;
+  if (isMockMode || !clientId) return null;
   const profile = await getUserProfile(clientId);
   return profile;
 };

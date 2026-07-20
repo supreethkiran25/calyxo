@@ -12,14 +12,14 @@ import QuickActionsSheet from '../components/QuickActionsSheet';
 import GlobalSearch from '../components/GlobalSearch';
 import MobileDrawerMenu from '../components/MobileDrawerMenu';
 
-// Create Hub Modals
-import WorkoutLoggerModal from '../components/CreateHub/WorkoutLoggerModal';
-import MealLoggerModal from '../components/CreateHub/MealLoggerModal';
-import FoodScannerModal from '../components/CreateHub/FoodScannerModal';
-import ProgressUploadModal from '../components/CreateHub/ProgressUploadModal';
-import AIChatModal from '../components/CreateHub/AIChatModal';
-import WaterLoggerModal from '../components/CreateHub/WaterLoggerModal';
-import WeightLoggerModal from '../components/CreateHub/WeightLoggerModal';
+// Quick Action Modals
+import WorkoutLoggerModal from '../components/modals/WorkoutLoggerModal';
+import MealLoggerModal from '../components/modals/MealLoggerModal';
+import FoodScannerModal from '../components/modals/FoodScannerModal';
+import ProgressUploadModal from '../components/modals/ProgressUploadModal';
+import AIChatModal from '../components/modals/AIChatModal';
+import WaterLoggerModal from '../components/modals/WaterLoggerModal';
+import WeightLoggerModal from '../components/modals/WeightLoggerModal';
 
 const DESKTOP_NAV = [
   {
@@ -111,13 +111,19 @@ export default function UserLayout() {
                     <Link
                       key={item.id}
                       to={item.href}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all cursor-pointer border-none ${
+                      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-sm font-bold transition-all cursor-pointer border-none group ${
                         isActive 
                           ? 'bg-acid-green/10 text-acid-green' 
                           : 'bg-transparent text-muted hover:bg-surface hover:text-foreground'
                       }`}
                     >
-                      <Icon className="w-5 h-5" />
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+                        isActive
+                          ? 'bg-acid-green/20 text-acid-green shadow-sm shadow-acid-green/20'
+                          : 'bg-surface/60 text-muted-foreground group-hover:bg-surface group-hover:text-foreground'
+                      }`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
                       {item.label}
                     </Link>
                   );

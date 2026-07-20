@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Apple, Camera, Save, RefreshCw, Search } from 'lucide-react';
-import useCreateHubStore from '../../store/useCreateHubStore';
+import useQuickActionsStore from '../../store/useQuickActionsStore';
 import { useEcosystemStore } from '../../store/useEcosystemStore';
 import { addFoodLog, getCurrentUserId } from '../../lib/dbService';
 
 export default function MealLoggerModal() {
-  const { activeWorkflow, closeWorkflow, setActiveWorkflow } = useCreateHubStore();
+  const { activeWorkflow, closeWorkflow, setActiveWorkflow } = useQuickActionsStore();
   const { addXP, updateStreaks } = useEcosystemStore();
   const inputRef = useRef(null);
 

@@ -1,4 +1,4 @@
-import { isMockFirebase } from './dbService';
+import { isMockMode } from './dbService';
 import { supabase } from './supabaseClient';
 
 /* ==========================================================================
@@ -6,7 +6,7 @@ import { supabase } from './supabaseClient';
    ========================================================================== */
 
 export const fetchTrainerClients = async (trainerId) => {
-  if (isMockFirebase || !trainerId) return [];
+  if (isMockMode || !trainerId) return [];
   try {
     const { data, error } = await supabase
       .from("pt_connections")
@@ -41,7 +41,7 @@ export const fetchTrainerClients = async (trainerId) => {
 };
 
 export const inviteClientByUsernameOrEmail = async (trainerId, identifier) => {
-  if (isMockFirebase || !trainerId) return { error: "Local DB only" };
+  if (isMockMode || !trainerId) return { error: "Local DB only" };
   try {
     // 1. Find the user
     let query = supabase.from("user_profiles").select("id").limit(1);
@@ -79,7 +79,7 @@ export const inviteClientByUsernameOrEmail = async (trainerId, identifier) => {
 };
 
 export const fetchClientTrainerRequests = async (clientId) => {
-  if (isMockFirebase || !clientId) return [];
+  if (isMockMode || !clientId) return [];
   try {
     const { data, error } = await supabase
       .from("pt_connections")
@@ -104,7 +104,7 @@ export const fetchClientTrainerRequests = async (clientId) => {
 };
 
 export const respondToTrainerRequest = async (connectionId, accept) => {
-  if (isMockFirebase) return { success: true };
+  if (isMockMode) return { success: true };
   try {
     if (accept) {
       const { error } = await supabase

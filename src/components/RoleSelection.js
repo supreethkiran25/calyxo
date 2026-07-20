@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { User, Users, ArrowRight, Activity, ShieldCheck } from 'lucide-react';
 
-export default function RoleSelection({ user, onRoleSelected, isMockFirebase }) {
+export default function RoleSelection({ user, onRoleSelected, isMockMode }) {
   const [loadingRole, setLoadingRole] = useState(null);
 
   const handleSelectRole = async (role) => {

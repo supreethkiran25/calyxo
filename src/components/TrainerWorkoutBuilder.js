@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Dumbbell, Plus, Trash2, Save, X, Settings2, Clock, Zap } from 'lucide-react';
+import { Dumbbell, Plus, Trash2, Save, X, Settings2, Clock, Zap, Send } from 'lucide-react';
+import { assignPlan, getTrainerClients } from '../lib/dbService';
 
 export default function TrainerWorkoutBuilder({ user }) {
   const [workoutName, setWorkoutName] = useState('');
@@ -10,6 +11,20 @@ export default function TrainerWorkoutBuilder({ user }) {
   const [duration, setDuration] = useState('45');
   const [exercises, setExercises] = useState([]);
   const [isAddingExercise, setIsAddingExercise] = useState(false);
+  const [clients, setClients] = useState([]);
+  const [selectedClient, setSelectedClient] = useState('');
+  const [isAssigning, setIsAssigning] = useState(false);
+
+  useEffect(() => {
+    if (user?.uid) {
+      getTrainerClients(user.uid).then(data => {
+        if (data && data.length > 0) {
+          setClients(data);
+          setSelectedClient(data[0].id || data[0].user_id);
+        }
+      });
+    }
+  }, [user]);
 
   // Exercise Form State
   const [exName, setExName] = useState('');
@@ -41,17 +56,42 @@ export default function TrainerWorkoutBuilder({ user }) {
     setExercises(exercises.filter(e => e.id !== id));
   };
 
-  const handleSaveTemplate = () => {
+  const handleSaveTemplate = async () => {
     if (!workoutName) return alert("Workout needs a name");
     if (exercises.length === 0) return alert("Add at least one exercise");
     
-    // In a real app, this would push to Supabase
-    alert(`Workout Template "${workoutName}" saved successfully!`);
-    
-    // Reset form
-    setWorkoutName('');
-    setDescription('');
-    setExercises([]);
+    setIsAssigning(true);
+    try {
+      const planPayload = {
+        type: 'workout_plan',
+        title: workoutName,
+        content: {
+          description,
+          category,
+          difficulty,
+          duration,
+          exercises
+        }
+      };
+
+      if (selectedClient) {
+        await assignPlan(user?.uid, selectedClient, planPayload);
+        alert(`Workout Plan "${workoutName}" assigned successfully to client!`);
+      } else {
+        await assignPlan(user?.uid, user?.uid, planPayload);
+        alert(`Workout Plan "${workoutName}" saved successfully!`);
+      }
+      
+      // Reset form
+      setWorkoutName('');
+      setDescription('');
+      setExercises([]);
+    } catch (err) {
+      console.error("Assign workout plan error:", err);
+      alert("Failed to assign workout plan. Please try again.");
+    } finally {
+      setIsAssigning(false);
+    }
   };
 
   return (
@@ -76,6 +116,25 @@ export default function TrainerWorkoutBuilder({ user }) {
           <div className="bg-surface border border-card-border p-5 rounded-2xl space-y-4">
             <h3 className="font-bold text-sm uppercase tracking-wider mb-2">Workout Details</h3>
             
+            <div>
+              <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Assign to Client</label>
+              <select
+                value={selectedClient}
+                onChange={(e) => setSelectedClient(e.target.value)}
+                className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-blue-500 text-sm shadow-inner"
+              >
+                {clients.length > 0 ? (
+                  clients.map((c) => (
+                    <option key={c.id || c.user_id} value={c.user_id || c.id}>
+                      {c.displayName || c.name || c.email || `Client ${c.id || c.user_id}`}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">No clients connected (Assign to self)</option>
+                )}
+              </select>
+            </div>
+
             <div>
               <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Workout Name</label>
               <input 

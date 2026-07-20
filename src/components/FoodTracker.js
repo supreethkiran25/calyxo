@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../store/useStore';
-import { getFoodLogs, addFoodLog, deleteFoodLog, saveEcosystemState, fetchWithRetry, saveUserProfile } from '../lib/dbService';
+import { getFoodLogs, addFoodLog, deleteFoodLog, saveEcosystemState, fetchWithRetry, saveUserProfile, getUserAssignments } from '../lib/dbService';
 import { searchFood } from '../services/foodService';
 import { scanMealVision, generateGroceryList } from '../services/geminiService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
@@ -105,7 +105,15 @@ export default function FoodTracker({ onNotification }) {
 
   const todaysFoodLogs = foodLogs.filter(x => isToday(x.timestamp));
 
-  const [activeSubTab, setActiveSubTab] = useState('diary');
+  const totalConsumedCals = todaysFoodLogs.reduce((acc, item) => acc + (Number(item.calories) || 0), 0);
+  const totalConsumedProt = todaysFoodLogs.reduce((acc, item) => acc + (Number(item.protein) || 0), 0);
+  const totalConsumedCarbs = todaysFoodLogs.reduce((acc, item) => acc + (Number(item.carbs) || 0), 0);
+  const totalConsumedFat = todaysFoodLogs.reduce((acc, item) => acc + (Number(item.fat) || 0), 0);
+
+  const targetCals = userProfile?.calorieGoal || 2000;
+  const targetProt = userProfile?.protein || Math.round((userProfile?.weight || 70) * 2.0);
+  const targetCarbs = userProfile?.carbs || Math.round((targetCals * 0.5) / 4);
+  const targetFat = userProfile?.fat || Math.round((targetCals * 0.25) / 9);
 
   // Search & custom logging
   const [queryVal, setQueryVal] = useState('');
@@ -185,6 +193,9 @@ export default function FoodTracker({ onNotification }) {
   const [scanResult, setScanResult] = useState(null);
   const [scanError, setScanError] = useState(null);
 
+  // Navigation Sub-tab state
+  const [activeSubTab, setActiveSubTab] = useState('diary');
+
   // Weekly planner
   const [activeDay, setActiveDay] = useState(0);
   const [weeklyPlanner, setWeeklyPlanner] = useState(INITIAL_DIET_PLANNER);
@@ -198,15 +209,23 @@ export default function FoodTracker({ onNotification }) {
   const [generatingGrocery, setGeneratingGrocery] = useState(false);
   const [groceryList, setGroceryList] = useState(null);
 
-  // Load food logs
+  const [assignedMealPlans, setAssignedMealPlans] = useState([]);
+
+  // Load food logs & Trainer Assignments
   useEffect(() => {
     const fetchLogs = async () => {
       if (!userId) return;
       try {
         const logs = await getFoodLogs(userId);
         setFoodLogs(logs || []);
+
+        const assigns = await getUserAssignments(userId);
+        if (assigns && assigns.length > 0) {
+          const mealPlans = assigns.filter(a => a.type === 'meal_plan');
+          setAssignedMealPlans(mealPlans);
+        }
       } catch (err) {
-        console.error("Fetch food logs failed", err);
+        console.error("Fetch food logs or assignments failed", err);
         if (onNotification) onNotification("Failed to load food logs. Please reload.");
       }
     };
@@ -228,6 +247,7 @@ export default function FoodTracker({ onNotification }) {
     if (val.trim().length < 2) {
       setSearchResults([]);
       setParsedPortion(null);
+      setShowDropdown(false);
       return;
     }
 
@@ -298,7 +318,7 @@ export default function FoodTracker({ onNotification }) {
     }
 
     setSearchResults(uniqueMerged.slice(0, 10));
-    setShowDropdown(true);
+    setShowDropdown(uniqueMerged.length > 0);
   };
 
   // Debounce search catalog
@@ -316,12 +336,14 @@ export default function FoodTracker({ onNotification }) {
     } else {
       setPortion(100);
     }
+    setSearchResults([]);
     setQueryVal('');
     setShowDropdown(false);
   };
 
   const quickLogFood = async (e, food) => {
     e.stopPropagation();
+    const activePortion = parsedPortion || 100;
     if (isNaN(activePortion) || activePortion <= 0 || activePortion > 5000) {
       if (onNotification) onNotification("Portion weight must be between 1 and 5000g.");
       return;
@@ -336,18 +358,27 @@ export default function FoodTracker({ onNotification }) {
       fat: Number((food.fat * ratio).toFixed(1)),
       fiber: Number(((food.fiber || 0) * ratio).toFixed(1)),
       sugar: Number(((food.sugar || 0) * ratio).toFixed(1)),
-      portionWeight: activePortion
+      portionWeight: activePortion,
+      timestamp: new Date().toISOString()
     };
 
     try {
-      const saved = await addFoodLog(userId, logItem);
-      addFoodLogStore(saved);
+      let saved = null;
+      if (userId) {
+        saved = await addFoodLog(userId, logItem);
+      }
+      addFoodLogStore(saved || { ...logItem, id: Date.now().toString() });
+      setSearchResults([]);
       setQueryVal('');
       setShowDropdown(false);
       if (onNotification) onNotification(`Logged ${activePortion}g ${logItem.name} 🍽️`);
     } catch (err) {
       console.error("Quick log food database write failure", err);
-      if (onNotification) onNotification("Failed to save food log. Please try again.");
+      addFoodLogStore({ ...logItem, id: Date.now().toString() });
+      setSearchResults([]);
+      setQueryVal('');
+      setShowDropdown(false);
+      if (onNotification) onNotification(`Logged ${activePortion}g ${logItem.name} 🍽️`);
     }
   };
 
@@ -696,7 +727,69 @@ export default function FoodTracker({ onNotification }) {
           
           {/* FOOD DIARY SUB-TAB */}
           {activeSubTab === 'diary' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <div className="space-y-6">
+              {/* ASSIGNED TRAINER MEAL PLANS */}
+              {assignedMealPlans && assignedMealPlans.length > 0 && (
+                <section className="glass border-acid-green/30 border rounded-2xl p-6 space-y-4 shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-acid-green/10 text-acid-green rounded-xl">
+                        <BookOpen className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-black text-foreground uppercase tracking-wider">Assigned Coach Meal Plan</h2>
+                        <p className="text-[10px] text-muted font-bold">Prescribed directly by your nutritionist/coach</p>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-wider bg-acid-green text-accent-foreground px-2.5 py-1 rounded-lg">Active Plan</span>
+                  </div>
+
+                  {assignedMealPlans.map((plan, pIdx) => (
+                    <div key={pIdx} className="bg-surface/80 border border-card-border p-4 rounded-xl space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-bold text-sm text-foreground">{plan.title}</h3>
+                          {plan.content?.notes && (
+                            <p className="text-xs text-muted mt-0.5">{plan.content.notes}</p>
+                          )}
+                        </div>
+                        {plan.content?.targetCalories && (
+                          <span className="text-[10px] font-bold text-acid-green bg-acid-green/10 px-2 py-0.5 rounded border border-acid-green/20">
+                            Target: {plan.content.targetCalories} kcal
+                          </span>
+                        )}
+                      </div>
+
+                      {plan.content?.meals && plan.content.meals.length > 0 && (
+                        <div className="space-y-3 border-t border-card-border pt-3">
+                          <span className="text-[9px] font-bold text-muted uppercase tracking-wider block">Prescribed Meals</span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {plan.content.meals.map((m, mIdx) => (
+                              <div key={mIdx} className="bg-card-bg border border-card-border p-3 rounded-lg space-y-1">
+                                <span className="text-xs font-bold text-foreground block">{m.name}</span>
+                                {m.items && m.items.length > 0 ? (
+                                  <div className="space-y-0.5">
+                                    {m.items.map((it, iIdx) => (
+                                      <div key={iIdx} className="text-[10px] text-muted flex justify-between">
+                                        <span>• {it.name}</span>
+                                        <span className="font-semibold text-foreground">{it.calories} kcal</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] text-muted italic">No custom items specified</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </section>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               
               {/* Log meal search column */}
               <div className="space-y-6">
@@ -711,6 +804,11 @@ export default function FoodTracker({ onNotification }) {
                         type="text"
                         value={queryVal}
                         onChange={(e) => setQueryVal(e.target.value)}
+                        onFocus={() => {
+                          if (searchResults.length > 0 && queryVal.trim().length >= 2) {
+                            setShowDropdown(true);
+                          }
+                        }}
                         placeholder="Search oats, chicken breast, paneer..."
                         className="w-full bg-[var(--input-bg)] border border-card-border focus:border-acid-green rounded-2xl pl-12 pr-5 py-3.5 text-sm text-foreground focus:outline-none shadow-inner"
                         autoComplete="off"
@@ -723,7 +821,8 @@ export default function FoodTracker({ onNotification }) {
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0 }}
-                          className="absolute top-[calc(100%+8px)] left-0 w-full glass rounded-xl border border-card-border z-30 max-h-60 overflow-y-auto shadow-2xl"
+                          className="absolute top-[calc(100%+8px)] left-0 w-full bg-surface border border-card-border z-50 rounded-2xl max-h-64 overflow-y-auto shadow-2xl"
+                          style={{ backgroundColor: 'var(--secondary, #12121A)', opacity: 1 }}
                         >
                           {searchResults.map((item, idx) => (
                             <div 
@@ -760,15 +859,6 @@ export default function FoodTracker({ onNotification }) {
                                         : 'text-muted'
                                     }`} 
                                   />
-                                </button>
-
-                                <button
-                                  onClick={(e) => quickLogFood(e, item)}
-                                  className="bg-acid-green text-accent-foreground rounded-lg px-2 py-1.5 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer border-none shadow-sm hover:scale-105 active:scale-95 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                                  title={`Quick log ${parsedPortion || 100}g`}
-                                >
-                                  <Plus className="w-3.5 h-3.5" />
-                                  <span>{parsedPortion || 100}g</span>
                                 </button>
                               </div>
                             </div>
@@ -1046,8 +1136,44 @@ export default function FoodTracker({ onNotification }) {
                 })()}
               </div>
 
-              {/* Right Column: Logged Intake Timeline list */}
+              {/* Right Column: Macro Progress & Logged Intake Timeline */}
               <div className="space-y-6">
+                {/* Daily Macro Targets Card */}
+                <section className="glass rounded-2xl p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">Today's Macro Targets</h2>
+                    <span className="text-[10px] font-bold text-acid-green bg-acid-green/10 px-2 py-0.5 rounded-full border border-acid-green/20">
+                      {totalConsumedCals} / {targetCals} kcal
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-surface border border-card-border p-3 rounded-xl flex flex-col">
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Protein</span>
+                      <span className="text-sm font-black text-acid-green mt-1">{totalConsumedProt.toFixed(0)} / {targetProt}g</span>
+                      <div className="w-full bg-card-border h-1.5 rounded-full mt-2 overflow-hidden">
+                        <div className="bg-acid-green h-full rounded-full" style={{ width: `${Math.min(100, (totalConsumedProt / (targetProt || 1)) * 100)}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="bg-surface border border-card-border p-3 rounded-xl flex flex-col">
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Carbs</span>
+                      <span className="text-sm font-black text-amber-500 mt-1">{totalConsumedCarbs.toFixed(0)} / {targetCarbs}g</span>
+                      <div className="w-full bg-card-border h-1.5 rounded-full mt-2 overflow-hidden">
+                        <div className="bg-amber-500 h-full rounded-full" style={{ width: `${Math.min(100, (totalConsumedCarbs / (targetCarbs || 1)) * 100)}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="bg-surface border border-card-border p-3 rounded-xl flex flex-col">
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Fats</span>
+                      <span className="text-sm font-black text-rose-500 mt-1">{totalConsumedFat.toFixed(0)} / {targetFat}g</span>
+                      <div className="w-full bg-card-border h-1.5 rounded-full mt-2 overflow-hidden">
+                        <div className="bg-rose-500 h-full rounded-full" style={{ width: `${Math.min(100, (totalConsumedFat / (targetFat || 1)) * 100)}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
                 <section className="glass rounded-2xl p-6">
                   <h2 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4">Logged Intake Timeline</h2>
                   <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
@@ -1074,6 +1200,7 @@ export default function FoodTracker({ onNotification }) {
                   </div>
                 </section>
               </div>
+            </div>
             </div>
           )}
 

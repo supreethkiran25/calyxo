@@ -3,12 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Shield, Eye, EyeOff, Check } from 'lucide-react';
-import { signUpUser, signInWithUsernameOrEmail, signInWithGoogle, signInWithApple, sendPasswordReset } from '../lib/dbService';
+import { useNavigate } from 'react-router-dom';
+import { signUpUser, signInWithUsernameOrEmail, signInWithGoogle, signInWithApple, sendPasswordReset, getUserProfile } from '../lib/dbService';
 import { useStore } from '../store/useStore';
 import Logo from './Logo';
 
 export default function AuthFlow({ isInitialSignUp = false }) {
+  const navigate = useNavigate();
   const setUser = useStore((state) => state.setUser);
+  const setUserProfile = useStore((state) => state.setUserProfile);
   const [isSignUp, setIsSignUp] = useState(isInitialSignUp);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,6 +26,19 @@ export default function AuthFlow({ isInitialSignUp = false }) {
   const [forgotError, setForgotError] = useState('');
   const [forgotSuccess, setForgotSuccess] = useState('');
   const [cooldown, setCooldown] = useState(0);
+
+  const redirectAfterAuth = async (authUser) => {
+    setUser(authUser);
+    if (authUser) {
+      const profile = await getUserProfile(authUser.uid || authUser.id);
+      setUserProfile(profile || { onboarded: false });
+      if (profile?.role === 'trainer') {
+        navigate('/trainer/dashboard');
+      } else {
+        navigate('/user/dashboard');
+      }
+    }
+  };
 
   useEffect(() => {
     let timer;
@@ -70,7 +86,7 @@ export default function AuthFlow({ isInitialSignUp = false }) {
       } else {
         user = await signInWithUsernameOrEmail(email, password, rememberMe);
       }
-      setUser(user);
+      await redirectAfterAuth(user);
     } catch (err) {
       console.error("Auth action failed", err);
       const code = err.code || "";
@@ -100,7 +116,7 @@ export default function AuthFlow({ isInitialSignUp = false }) {
       } else if (providerName === 'apple') {
         user = await signInWithApple(rememberMe);
       }
-      setUser(user);
+      await redirectAfterAuth(user);
     } catch (err) {
       console.error(`${providerName} login failed`, err);
       setError(err.message || `${providerName} Sign-In aborted.`);

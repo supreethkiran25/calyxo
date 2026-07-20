@@ -1,12 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, TrendingUp, Camera, Save, RefreshCw, Ruler, Scale } from 'lucide-react';
-import useCreateHubStore from '../../store/useCreateHubStore';
+import useQuickActionsStore from '../../store/useQuickActionsStore';
 import { useEcosystemStore } from '../../store/useEcosystemStore';
 import { getCurrentUserId } from '../../lib/dbService';
 
 export default function ProgressUploadModal() {
-  const { activeWorkflow, closeWorkflow } = useCreateHubStore();
+  const { activeWorkflow, closeWorkflow } = useQuickActionsStore();
   const { addXP, updateStreaks } = useEcosystemStore();
   
   const [weight, setWeight] = useState('');

@@ -4,10 +4,9 @@ import { Users, Activity, FileText, Calendar, Settings, Menu, X, LogOut, Dumbbel
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import Logo from '../components/Logo';
 import ThemeToggle from '../components/ThemeToggle';
-import { signOutUser, getTrainerProfile } from '../lib/dbService';
+import { signOutUser } from '../lib/dbService';
 import { fetchTrainerClients } from '../lib/crmService';
 import { useStore } from '../store/useStore';
-import TrainerOnboarding from '../components/trainer/TrainerOnboarding';
 
 export default function TrainerLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -17,30 +16,11 @@ export default function TrainerLayout() {
   const user = useStore(state => state.user);
   const setTrainerClients = useStore(state => state.setTrainerClients);
   
-  const [onboardingComplete, setOnboardingComplete] = useState(null);
-  const [loadingProfile, setLoadingProfile] = useState(true);
-
   useEffect(() => {
     if (user?.uid) {
       fetchTrainerClients(user.uid).then(data => setTrainerClients(data || []));
-      getTrainerProfile(user.uid).then(profile => {
-        if (profile) {
-          setOnboardingComplete(profile.onboarding_complete);
-        } else {
-          setOnboardingComplete(false);
-        }
-        setLoadingProfile(false);
-      });
     }
   }, [user, setTrainerClients]);
-
-  if (loadingProfile) {
-    return <div className="min-h-screen bg-background flex items-center justify-center text-foreground font-bold">Loading Profile...</div>;
-  }
-
-  if (!onboardingComplete) {
-    return <TrainerOnboarding onComplete={() => setOnboardingComplete(true)} />;
-  }
 
   const handleLogout = async () => {
     if (window.confirm("Sign out of Calyxo Trainer?")) {
@@ -99,11 +79,17 @@ export default function TrainerLayout() {
                 key={item.id}
                 to={item.href}
                 onClick={() => setIsSidebarOpen(false)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-colors cursor-pointer border-none ${
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl font-bold text-sm transition-all cursor-pointer border-none group ${
                   isActive ? 'bg-blue-500/10 text-blue-500' : 'bg-transparent text-muted hover:bg-surface hover:text-foreground'
                 }`}
               >
-                <Icon className="w-5 h-5" />
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+                  isActive
+                    ? 'bg-blue-500/20 text-blue-500 shadow-sm shadow-blue-500/20'
+                    : 'bg-surface/60 text-muted-foreground group-hover:bg-surface group-hover:text-foreground'
+                }`}>
+                  <Icon className="w-4 h-4" />
+                </div>
                 {item.label}
               </Link>
             )
