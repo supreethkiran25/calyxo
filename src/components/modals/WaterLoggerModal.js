@@ -225,6 +225,7 @@ export default function WaterLoggerModal() {
                     type="number"
                     placeholder="e.g. 350"
                     value={customAmount}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => setCustomAmount(e.target.value.replace(/^0+(?=\d)/, ''))}
                     className="flex-1 bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-cyan-400 text-xs font-bold shadow-inner"
                   />

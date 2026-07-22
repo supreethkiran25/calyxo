@@ -325,9 +325,10 @@ export default function MealLoggerModal() {
                     min="0.1" 
                     step="0.5"
                     value={quantity}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => {
                       const clean = e.target.value.replace(/^0+(?=\d)/, '');
-                      setQuantity(clean === '' ? '' : Number(clean));
+                      setQuantity(clean);
                     }}
                     className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-green-500 text-sm font-black text-center shadow-inner"
                   />
@@ -368,6 +369,7 @@ export default function MealLoggerModal() {
                 type="number" 
                 placeholder="Auto-calculated (e.g. 250)"
                 value={calories}
+                onFocus={(e) => e.target.select()}
                 onChange={(e) => setCalories(e.target.value.replace(/^0+(?=\d)/, ''))}
                 className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2.5 rounded-xl focus:outline-none focus:border-green-500 text-xl font-black shadow-inner"
               />
@@ -381,6 +383,7 @@ export default function MealLoggerModal() {
                   type="number" 
                   placeholder="20"
                   value={protein}
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setProtein(e.target.value.replace(/^0+(?=\d)/, ''))}
                   className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-2 rounded-lg focus:outline-none focus:border-green-500 text-xs font-bold text-center"
                 />
@@ -391,6 +394,7 @@ export default function MealLoggerModal() {
                   type="number" 
                   placeholder="30"
                   value={carbs}
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setCarbs(e.target.value.replace(/^0+(?=\d)/, ''))}
                   className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-2 rounded-lg focus:outline-none focus:border-green-500 text-xs font-bold text-center"
                 />
@@ -401,6 +405,7 @@ export default function MealLoggerModal() {
                   type="number" 
                   placeholder="8"
                   value={fat}
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setFat(e.target.value.replace(/^0+(?=\d)/, ''))}
                   className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-2 rounded-lg focus:outline-none focus:border-green-500 text-xs font-bold text-center"
                 />

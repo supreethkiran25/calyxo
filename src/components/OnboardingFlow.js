@@ -423,8 +423,9 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                     <input 
                       type="number" 
                       value={weight} 
-                      onChange={(e) => setWeight(Number(e.target.value))} 
-                      className="bg-[var(--input)] text-center text-foreground border border-card-border px-2 py-3 rounded-xl focus:outline-none focus:border-acid-green text-sm"
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setWeight(e.target.value.replace(/^0+(?=\d)/, ''))} 
+                      className="bg-[var(--input)] text-center text-foreground border border-card-border px-2 py-3 rounded-xl focus:outline-none focus:border-acid-green text-sm font-bold"
                     />
                   </div>
                   <div className="flex flex-col space-y-1.5">
@@ -432,8 +433,9 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                     <input 
                       type="number" 
                       value={height} 
-                      onChange={(e) => setHeight(Number(e.target.value))} 
-                      className="bg-[var(--input)] text-center text-foreground border border-card-border px-2 py-3 rounded-xl focus:outline-none focus:border-acid-green text-sm"
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setHeight(e.target.value.replace(/^0+(?=\d)/, ''))} 
+                      className="bg-[var(--input)] text-center text-foreground border border-card-border px-2 py-3 rounded-xl focus:outline-none focus:border-acid-green text-sm font-bold"
                     />
                   </div>
                   <div className="flex flex-col space-y-1.5">
@@ -441,8 +443,9 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                     <input 
                       type="number" 
                       value={goalWeight} 
-                      onChange={(e) => setGoalWeight(Number(e.target.value))} 
-                      className="bg-[var(--input)] text-center text-foreground border border-card-border px-2 py-3 rounded-xl focus:outline-none focus:border-acid-green text-sm"
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setGoalWeight(e.target.value.replace(/^0+(?=\d)/, ''))} 
+                      className="bg-[var(--input)] text-center text-foreground border border-card-border px-2 py-3 rounded-xl focus:outline-none focus:border-acid-green text-sm font-bold"
                     />
                   </div>
                 </div>

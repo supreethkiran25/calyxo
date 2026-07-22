@@ -81,6 +81,7 @@ export default function WeightLoggerModal() {
                 step="0.1"
                 placeholder={units === 'metric' ? 'e.g. 72.5' : 'e.g. 160.0'}
                 value={weightInput}
+                onFocus={(e) => e.target.select()}
                 onChange={(e) => setWeightInput(e.target.value.replace(/^0+(?=\d)/, ''))}
                 className="w-full bg-[var(--input)] text-foreground border border-card-border px-4 py-3 rounded-xl focus:outline-none focus:border-amber-500 text-sm outline-none"
                 required

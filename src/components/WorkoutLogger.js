@@ -807,6 +807,7 @@ export default function WorkoutLogger({ onNotification }) {
                         <input 
                           type="number"
                           value={exSets}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => setExSets(e.target.value.replace(/^0+(?=\d)/, ''))}
                           placeholder="4"
                           className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
@@ -818,6 +819,7 @@ export default function WorkoutLogger({ onNotification }) {
                         <input 
                           type="number"
                           value={exReps}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => setExReps(e.target.value.replace(/^0+(?=\d)/, ''))}
                           placeholder="10"
                           className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
@@ -829,6 +831,7 @@ export default function WorkoutLogger({ onNotification }) {
                         <input 
                           type="number"
                           value={exWeight}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => setExWeight(e.target.value.replace(/^0+(?=\d)/, ''))}
                           placeholder="kg"
                           className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
@@ -840,6 +843,7 @@ export default function WorkoutLogger({ onNotification }) {
                         <input 
                           type="number"
                           value={exDuration}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => setExDuration(e.target.value.replace(/^0+(?=\d)/, ''))}
                           placeholder="mins"
                           className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"

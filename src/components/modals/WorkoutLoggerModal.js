@@ -501,9 +501,10 @@ export default function WorkoutLoggerModal() {
                         <input 
                           type="number" 
                           value={ex.sets}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => {
                             const clean = e.target.value.replace(/^0+(?=\d)/, '');
-                            handleUpdateExercise(ex.id, 'sets', clean === '' ? '' : Number(clean));
+                            handleUpdateExercise(ex.id, 'sets', clean);
                           }}
                           className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-blue-500 text-xs font-bold text-center"
                         />
@@ -513,9 +514,10 @@ export default function WorkoutLoggerModal() {
                         <input 
                           type="number" 
                           value={ex.reps}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => {
                             const clean = e.target.value.replace(/^0+(?=\d)/, '');
-                            handleUpdateExercise(ex.id, 'reps', clean === '' ? '' : Number(clean));
+                            handleUpdateExercise(ex.id, 'reps', clean);
                           }}
                           className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-blue-500 text-xs font-bold text-center"
                         />
@@ -525,9 +527,10 @@ export default function WorkoutLoggerModal() {
                         <input 
                           type="number" 
                           value={ex.weight}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => {
                             const clean = e.target.value.replace(/^0+(?=\d)/, '');
-                            handleUpdateExercise(ex.id, 'weight', clean === '' ? '' : Number(clean));
+                            handleUpdateExercise(ex.id, 'weight', clean);
                           }}
                           className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-blue-500 text-xs font-bold text-center"
                         />

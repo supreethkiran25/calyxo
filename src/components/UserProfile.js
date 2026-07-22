@@ -1929,41 +1929,41 @@ export default function UserProfile({ onNotification }) {
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className={labelClass}>Weight ({units === 'metric' ? 'kg' : 'lbs'})</label>
-                  <input type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                  <input type="number" step="0.1" value={weight} onFocus={(e) => e.target.select()} onChange={(e) => setWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
                 <div>
                   <label className={labelClass}>Height ({units === 'metric' ? 'cm' : 'in'})</label>
-                  <input type="number" value={height} onChange={(e) => setHeight(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                  <input type="number" value={height} onFocus={(e) => e.target.select()} onChange={(e) => setHeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
                 <div>
                   <label className={labelClass}>Goal Weight</label>
-                  <input type="number" step="0.1" value={goalWeight} onChange={(e) => setGoalWeight(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                  <input type="number" step="0.1" value={goalWeight} onFocus={(e) => e.target.select()} onChange={(e) => setGoalWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className={labelClass}>Daily Calories (kcal)</label>
-                  <input type="number" value={dailyCalories} onChange={(e) => setDailyCalories(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                  <input type="number" value={dailyCalories} onFocus={(e) => e.target.select()} onChange={(e) => setDailyCalories(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
                 <div>
                   <label className={labelClass}>Water Target (ml)</label>
-                  <input type="number" value={waterTarget} onChange={(e) => setWaterTarget(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                  <input type="number" value={waterTarget} onFocus={(e) => e.target.select()} onChange={(e) => setWaterTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className={labelClass}>Protein (g)</label>
-                  <input type="number" value={proteinTarget} onChange={(e) => setProteinTarget(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                  <input type="number" value={proteinTarget} onFocus={(e) => e.target.select()} onChange={(e) => setProteinTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
                 <div>
                   <label className={labelClass}>Carbs (g)</label>
-                  <input type="number" value={carbsTarget} onChange={(e) => setCarbsTarget(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                  <input type="number" value={carbsTarget} onFocus={(e) => e.target.select()} onChange={(e) => setCarbsTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
                 <div>
                   <label className={labelClass}>Fat (g)</label>
-                  <input type="number" value={fatTarget} onChange={(e) => setFatTarget(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                  <input type="number" value={fatTarget} onFocus={(e) => e.target.select()} onChange={(e) => setFatTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
               </div>
 
