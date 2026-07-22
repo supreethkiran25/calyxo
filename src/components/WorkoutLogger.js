@@ -2,10 +2,21 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { getWorkoutLogs, addWorkoutLog, saveEcosystemState, getUserAssignments } from '../lib/dbService';
+import { 
+  getWorkoutLogs, 
+  addWorkoutLog, 
+  updateWorkoutLog, 
+  deleteWorkoutLog, 
+  saveEcosystemState, 
+  getUserAssignments 
+} from '../lib/dbService';
 
 import { useEcosystemStore } from '../store/useEcosystemStore';
-import { Plus, Dumbbell, Clock, Edit3, X, Check, Search, Trophy, Activity, Move, PersonStanding, Target, User, Crosshair, Heart, Share2 } from 'lucide-react';
+import { 
+  Plus, Dumbbell, Clock, Edit3, X, Check, Search, Trophy, Activity, Move, 
+  PersonStanding, Target, User, Crosshair, Heart, Share2, ChevronLeft, ChevronRight, 
+  Calendar, Trash2, Edit2, Play
+} from 'lucide-react';
 
 const globalImageCache = new Map();
 const activeFetches = new Set();
@@ -120,23 +131,48 @@ const FallbackIcon = ({ category, muscleGroup, className }) => {
 export default function WorkoutLogger({ onNotification }) {
   const user = useStore(state => state.user);
   const workoutLogs = useStore(state => state.workoutLogs);
-  
-  // Helper to check if a timestamp is today (12am to 12am)
-  const isToday = (timestamp) => {
-    if (!timestamp) return false;
-    const d = new Date(timestamp);
-    const today = new Date();
-    return d.getDate() === today.getDate() &&
-           d.getMonth() === today.getMonth() &&
-           d.getFullYear() === today.getFullYear();
-  };
-
-  const todaysWorkoutLogs = workoutLogs.filter(x => isToday(x.timestamp));
-
   const setWorkoutLogs = useStore(state => state.setWorkoutLogs);
   const addWorkoutLogStore = useStore(state => state.addWorkoutLog);
+  const updateWorkoutLogStore = useStore(state => state.updateWorkoutLog);
+  const deleteWorkoutLogStore = useStore(state => state.deleteWorkoutLog);
   const userId = user?.uid;
   const ecoStore = useEcosystemStore();
+
+  // Date Calendar History State
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+
+  const isDateSelected = (timestamp, dateStr) => {
+    if (!timestamp) return false;
+    const d = new Date(timestamp);
+    if (isNaN(d.getTime())) return false;
+    const dStr = d.toISOString().split('T')[0];
+    return dStr === dateStr;
+  };
+
+  const selectedDateWorkoutLogs = workoutLogs.filter(x => isDateSelected(x.timestamp, selectedDate));
+
+  const handlePrevDate = () => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() - 1);
+    setSelectedDate(d.toISOString().split('T')[0]);
+  };
+
+  const handleNextDate = () => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + 1);
+    setSelectedDate(d.toISOString().split('T')[0]);
+  };
+
+  const handleTodayDate = () => {
+    setSelectedDate(new Date().toISOString().split('T')[0]);
+  };
+
+  const formatDisplayDate = (dateStr) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (dateStr === todayStr) return "Today";
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString("en-US", { weekday: 'short', month: 'short', day: 'numeric' });
+  };
 
   const [activeSubTab, setActiveSubTab] = useState('logger');
 
@@ -169,8 +205,6 @@ export default function WorkoutLogger({ onNotification }) {
     setImageTick(t => t + 1);
   };
 
-
-
   // Autocomplete search states
   const [exQuery, setExQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -187,9 +221,19 @@ export default function WorkoutLogger({ onNotification }) {
   const [exDuration, setExDuration] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Weekly Planner states
+  // Edit Log State
+  const [editingLog, setEditingLog] = useState(null);
+
+  // Weekly Planner states (Persistent via localStorage)
   const [activeDay, setActiveDay] = useState(0);
-  const [splits, setSplits] = useState(INITIAL_WORKOUT_SPLITS);
+  const [splits, setSplits] = useState(() => {
+    try {
+      const saved = localStorage.getItem('calyxo_user_workout_splits');
+      return saved ? JSON.parse(saved) : INITIAL_WORKOUT_SPLITS;
+    } catch (e) {
+      return INITIAL_WORKOUT_SPLITS;
+    }
+  });
   const [editingSplit, setEditingSplit] = useState(false);
   const [editRoutineFields, setEditRoutineFields] = useState({ type: '', desc: '', exercises: [] });
 
@@ -203,18 +247,43 @@ export default function WorkoutLogger({ onNotification }) {
   const [libLimit, setLibLimit] = useState(24);
   const [selectedExercise, setSelectedExercise] = useState(null);
 
+  const handleOpenExerciseDetail = (ex) => {
+    const match = exercisesData.find(x => x.name.toLowerCase() === (ex.name || '').toLowerCase());
+    if (match) {
+      setSelectedExercise(match);
+    } else {
+      setSelectedExercise({
+        id: ex.id || Date.now(),
+        name: ex.name,
+        category: ex.category || 'Strength',
+        target: ex.target || ex.muscleGroup || 'Full Body',
+        body_part: ex.body_part || ex.muscleGroup || 'General',
+        equipment: ex.equipment || 'Free Weights',
+        caloriesEstimate: ex.caloriesEstimate || 8,
+        difficulty: ex.difficulty || 'intermediate',
+        image: ex.image,
+        gif_url: ex.gif_url || ex.image || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80',
+        instruction_steps: ex.instruction_steps || [
+          "Position yourself with posture tall and core braced.",
+          "Perform movement with controlled cadence through full range of motion.",
+          "Exhale at apex of contraction and slowly return to starting position."
+        ]
+      });
+    }
+  };
+
   useEffect(() => {
-    todaysWorkoutLogs.forEach(log => {
+    selectedDateWorkoutLogs.forEach(log => {
       if (!log.image && !globalImageCache.has(log.name)) {
         fetchImageForExercise(log.name);
       }
     });
-    splits[activeDay].workout.exercises.forEach(ex => {
+    splits[activeDay]?.workout?.exercises?.forEach(ex => {
       if (!ex.image && !globalImageCache.has(ex.name)) {
         fetchImageForExercise(ex.name);
       }
     });
-  }, [todaysWorkoutLogs, splits, activeDay]);
+  }, [selectedDateWorkoutLogs, splits, activeDay]);
 
   const [selectedSoreness, setSelectedSoreness] = useState(5);
   const [selectedFatigue, setSelectedFatigue] = useState(5);
@@ -238,7 +307,6 @@ export default function WorkoutLogger({ onNotification }) {
       if (onNotification) onNotification("Recovery metrics logged successfully! 🧘");
     } catch (err) {
       console.error("Save recovery log failed", err);
-      // Revert store state
       ecoStore.syncEcosystemState({ healthLogs: prevHealth });
       if (prevScore) ecoStore.updateFitnessScore(prevScore);
       if (onNotification) onNotification("Failed to save recovery metrics. Please try again.");
@@ -249,7 +317,7 @@ export default function WorkoutLogger({ onNotification }) {
 
   // Rest Timer States & Logic
   const [restSecondsLeft, setRestSecondsLeft] = useState(null);
-  const [restDuration, setRestDuration] = useState(60); // default 60s
+  const [restDuration, setRestDuration] = useState(60);
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -275,7 +343,7 @@ export default function WorkoutLogger({ onNotification }) {
       oscillator.connect(gainNode);
       gainNode.connect(audioCtx.destination);
       oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
       gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
       oscillator.start();
       oscillator.stop(audioCtx.currentTime + 0.3);
@@ -353,7 +421,6 @@ export default function WorkoutLogger({ onNotification }) {
     setShowDropdown(true);
   };
 
-  // wger API Search Debouncer (kept for local search trigger)
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       handleSearch(exQuery);
@@ -373,7 +440,6 @@ export default function WorkoutLogger({ onNotification }) {
     e.preventDefault();
     setLoading(true);
 
-    // Bounds Validations
     if (!exName.trim() || exName.length > 50) {
       if (onNotification) onNotification("Workout exercise name must be under 50 characters.");
       setLoading(false);
@@ -409,6 +475,13 @@ export default function WorkoutLogger({ onNotification }) {
       }
     }
 
+    // Set selected Date timestamp if not today
+    let logTimestamp = Date.now();
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (selectedDate !== todayStr) {
+      logTimestamp = new Date(selectedDate + "T12:00:00").getTime();
+    }
+
     const workoutItem = {
       name: exName.trim(),
       category: exCategory,
@@ -416,15 +489,14 @@ export default function WorkoutLogger({ onNotification }) {
       sets: exCategory === 'Cardio' ? 0 : sets,
       reps: exCategory === 'Cardio' ? 0 : reps,
       weight: exCategory === 'Cardio' ? 0 : weight,
-      duration: exCategory === 'Cardio' ? duration : 0
+      duration: exCategory === 'Cardio' ? duration : 0,
+      timestamp: logTimestamp
     };
 
     try {
       const saved = await addWorkoutLog(userId, workoutItem);
       addWorkoutLogStore(saved);
       
-      // Publishing removed
-      // Clear form
       setExName('');
       setExImage(null);
       setExSets('');
@@ -432,7 +504,6 @@ export default function WorkoutLogger({ onNotification }) {
       setExWeight('');
       setExDuration('');
       if (onNotification) onNotification(`Logged exercise: ${workoutItem.name} 🏋️`);
-      // Start rest timer
       handleStartRestTimer();
     } catch (err) {
       console.error("Failed to log workout to database", err);
@@ -442,6 +513,40 @@ export default function WorkoutLogger({ onNotification }) {
     }
   };
 
+  // Edit Workout History Log
+  const handleSaveEditedWorkoutLog = async () => {
+    if (!editingLog) return;
+    try {
+      const updated = await updateWorkoutLog(userId, editingLog.id, {
+        name: editingLog.name,
+        category: editingLog.category,
+        sets: Number(editingLog.sets) || 0,
+        reps: Number(editingLog.reps) || 0,
+        weight: Number(editingLog.weight) || 0,
+        duration: Number(editingLog.duration) || 0
+      });
+      updateWorkoutLogStore(updated);
+      setEditingLog(null);
+      if (onNotification) onNotification("Workout entry updated! ✏️");
+    } catch (err) {
+      console.error("Failed to edit workout log", err);
+      if (onNotification) onNotification("Failed to edit workout log.");
+    }
+  };
+
+  // Delete Workout History Log
+  const handleDeleteWorkoutLog = async (logId) => {
+    try {
+      await deleteWorkoutLog(userId, logId);
+      deleteWorkoutLogStore(logId);
+      if (onNotification) onNotification("Workout log deleted.");
+    } catch (err) {
+      console.error("Failed to delete workout log", err);
+      if (onNotification) onNotification("Failed to delete workout log.");
+    }
+  };
+
+  // Weekly Splits editing & persistence
   const handleStartEditSplit = () => {
     const activeSplit = splits[activeDay].workout;
     setEditRoutineFields({
@@ -452,6 +557,23 @@ export default function WorkoutLogger({ onNotification }) {
     setEditingSplit(true);
   };
 
+  const handleAddExerciseToSplit = () => {
+    setEditRoutineFields({
+      ...editRoutineFields,
+      exercises: [
+        ...editRoutineFields.exercises,
+        { name: "New Exercise", details: "3 sets × 10 reps" }
+      ]
+    });
+  };
+
+  const handleRemoveExerciseFromSplit = (index) => {
+    setEditRoutineFields({
+      ...editRoutineFields,
+      exercises: editRoutineFields.exercises.filter((_, i) => i !== index)
+    });
+  };
+
   const handleSaveSplitEdit = () => {
     const updatedSplits = [...splits];
     updatedSplits[activeDay].workout = {
@@ -460,22 +582,18 @@ export default function WorkoutLogger({ onNotification }) {
       exercises: editRoutineFields.exercises.map(x => ({ ...x }))
     };
     setSplits(updatedSplits);
+    try {
+      localStorage.setItem('calyxo_user_workout_splits', JSON.stringify(updatedSplits));
+    } catch (e) {
+      console.error("Failed to save splits to localStorage", e);
+    }
     setEditingSplit(false);
-    if (onNotification) onNotification("Suggested workout split updated.");
+    if (onNotification) onNotification("Suggested workout split updated & saved!");
   };
 
   const favoriteExercises = useStore(state => state.favoriteExercises || []);
   const toggleFavoriteExercise = useStore(state => state.toggleFavoriteExercise);
-  const recentlyViewedExercises = useStore(state => state.recentlyViewedExercises || []);
-  const addRecentlyViewedExercise = useStore(state => state.addRecentlyViewedExercise);
 
-  // Derive unique categories for select list
-  const uniqueBodyParts = Array.from(new Set(exercisesData.map(e => e.body_part))).filter(Boolean).sort();
-  const uniqueTargets = Array.from(new Set(exercisesData.map(e => e.target))).filter(Boolean).sort();
-  const uniqueEquipments = Array.from(new Set(exercisesData.map(e => e.equipment))).filter(Boolean).sort();
-  const uniqueCategories = Array.from(new Set(exercisesData.map(e => e.category))).filter(Boolean).sort();
-
-  // Filter exercises
   const filteredExercises = exercisesData.filter(ex => {
     const matchesSearch = !libQuery.trim() || 
       ex.name.toLowerCase().includes(libQuery.toLowerCase()) ||
@@ -488,14 +606,12 @@ export default function WorkoutLogger({ onNotification }) {
     const matchesTarget = libTarget === 'all' || ex.target === libTarget;
     const matchesEquipment = libEquipment === 'all' || ex.equipment === libEquipment;
     const matchesCategory = libCategory === 'all' || ex.category === libCategory;
-    const matchesFavorite = !libOnlyFavorites || favoriteExercises.includes(ex.id);
+    const matchesFavorites = !libOnlyFavorites || favoriteExercises.includes(ex.id);
 
-    return matchesSearch && matchesBodyPart && matchesTarget && matchesEquipment && matchesCategory && matchesFavorite;
+    return matchesSearch && matchesBodyPart && matchesTarget && matchesEquipment && matchesCategory && matchesFavorites;
   });
 
-  const visibleExercises = filteredExercises.slice(0, libLimit);
-
-  const inputStyle = "w-full bg-[var(--input)] border border-card-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner";
+  const inputStyle = "w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner";
 
   return (
     <div className="space-y-6">
@@ -543,55 +659,53 @@ export default function WorkoutLogger({ onNotification }) {
           {/* LOGGER TAB VIEW */}
           {activeSubTab === 'logger' && (
             <div className="space-y-6">
-              {/* ASSIGNED TRAINER WORKOUT PLANS */}
-              {assignedPlans && assignedPlans.length > 0 && (
-                <section className="glass border-acid-green/30 border rounded-2xl p-6 space-y-4 shadow-xl">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-acid-green/10 text-acid-green rounded-xl">
-                        <Dumbbell className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h2 className="text-sm font-black text-foreground uppercase tracking-wider">Assigned Coach Workout Plan</h2>
-                        <p className="text-[10px] text-muted font-bold">Assigned directly by your personal trainer</p>
-                      </div>
-                    </div>
-                    <span className="text-[9px] font-black uppercase tracking-wider bg-acid-green text-accent-foreground px-2.5 py-1 rounded-lg">Active Plan</span>
+
+              {/* DATE SELECTION CALENDAR BAR */}
+              <div className="glass border border-card-border rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-md">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-acid-green" />
+                  <span className="text-xs font-bold text-foreground uppercase tracking-wider">Workout Date History</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={handlePrevDate}
+                    className="p-1.5 rounded-lg bg-surface border border-card-border hover:border-acid-green text-muted hover:text-foreground transition-colors cursor-pointer"
+                    title="Previous Day"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+
+                  <div className="relative flex items-center bg-[var(--input)] border border-card-border px-3 py-1.5 rounded-xl">
+                    <input 
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      className="bg-transparent text-xs font-bold text-foreground focus:outline-none cursor-pointer"
+                    />
+                    <span className="ml-2 text-[10px] font-extrabold text-acid-green uppercase">
+                      ({formatDisplayDate(selectedDate)})
+                    </span>
                   </div>
 
-                  {assignedPlans.map((plan, pIdx) => (
-                    <div key={pIdx} className="bg-surface/80 border border-card-border p-4 rounded-xl space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-bold text-sm text-foreground">{plan.title}</h3>
-                          {plan.content?.description && (
-                            <p className="text-xs text-muted mt-0.5">{plan.content.description}</p>
-                          )}
-                        </div>
-                        {plan.content?.duration && (
-                          <span className="text-[10px] font-bold text-muted bg-card-border px-2 py-0.5 rounded">
-                            {plan.content.duration} mins
-                          </span>
-                        )}
-                      </div>
+                  <button 
+                    onClick={handleNextDate}
+                    className="p-1.5 rounded-lg bg-surface border border-card-border hover:border-acid-green text-muted hover:text-foreground transition-colors cursor-pointer"
+                    title="Next Day"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
 
-                      {plan.content?.exercises && plan.content.exercises.length > 0 && (
-                        <div className="space-y-2 border-t border-card-border pt-3">
-                          <span className="text-[9px] font-bold text-muted uppercase tracking-wider block">Assigned Exercises</span>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {plan.content.exercises.map((ex, eIdx) => (
-                              <div key={eIdx} className="bg-card-bg border border-card-border p-2.5 rounded-lg flex justify-between items-center text-xs">
-                                <span className="font-bold text-foreground">{ex.name}</span>
-                                <span className="text-[10px] text-acid-green font-extrabold">{ex.sets} sets × {ex.reps} reps {ex.weight ? `@ ${ex.weight}kg` : ''}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </section>
-              )}
+                  <button 
+                    onClick={handleTodayDate}
+                    className="px-2.5 py-1.5 rounded-xl bg-acid-green text-accent-foreground text-[10px] font-black uppercase tracking-wider cursor-pointer border-none"
+                  >
+                    Today
+                  </button>
+                </div>
+              </div>
+
+
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               
@@ -599,7 +713,7 @@ export default function WorkoutLogger({ onNotification }) {
               <div className="space-y-6">
                 <section className="glass rounded-2xl p-6">
                   <h2 className="text-xs font-bold text-foreground uppercase tracking-wider mb-1">Log Exercise Sets</h2>
-                  <p className="text-muted text-[10px] uppercase font-bold tracking-wider mb-4">Select items and specify targets</p>
+                  <p className="text-muted text-[10px] uppercase font-bold tracking-wider mb-4">Select items and specify targets ({formatDisplayDate(selectedDate)})</p>
 
                   <form onSubmit={handleWorkoutSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -642,11 +756,15 @@ export default function WorkoutLogger({ onNotification }) {
                                   className="px-4 py-2.5 border-b border-card-border last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-acid-green hover:text-accent-foreground transition-colors gap-3"
                                 >
                                   <div className="flex items-center gap-3 min-w-0">
-                                    <div className="w-10 h-10 rounded-md bg-surface/50 border border-card-border/50 flex items-center justify-center shrink-0 overflow-hidden">
-                                      {item.image || globalImageCache.get(item.name) ? (
-                                        <img src={item.image || globalImageCache.get(item.name)} alt={item.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+                                    <div 
+                                      onClick={(e) => { e.stopPropagation(); handleOpenExerciseDetail(item); }}
+                                      className="w-10 h-10 rounded-md bg-surface/50 border border-card-border/50 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                                      title="Click to view GIF"
+                                    >
+                                      {item.gif_url || item.image || globalImageCache.get(item.name) ? (
+                                        <img src={item.gif_url || item.image || globalImageCache.get(item.name)} alt={item.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
                                       ) : null}
-                                      <FallbackIcon category={item.category} muscleGroup={item.muscleGroup || LOCAL_EXERCISES.find(l => l.name === item.name)?.muscleGroup} className={`w-4 h-4 text-muted ${(item.image || globalImageCache.get(item.name)) ? 'hidden' : ''}`} />
+                                      <FallbackIcon category={item.category} muscleGroup={item.muscleGroup} className="w-4 h-4 text-muted" />
                                     </div>
                                     <span className="text-xs font-semibold truncate">{item.name}</span>
                                   </div>
@@ -689,7 +807,7 @@ export default function WorkoutLogger({ onNotification }) {
                         <input 
                           type="number"
                           value={exSets}
-                          onChange={(e) => setExSets(e.target.value)}
+                          onChange={(e) => setExSets(e.target.value.replace(/^0+(?=\d)/, ''))}
                           placeholder="4"
                           className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
                           disabled={exCategory === "Cardio"}
@@ -700,7 +818,7 @@ export default function WorkoutLogger({ onNotification }) {
                         <input 
                           type="number"
                           value={exReps}
-                          onChange={(e) => setExReps(e.target.value)}
+                          onChange={(e) => setExReps(e.target.value.replace(/^0+(?=\d)/, ''))}
                           placeholder="10"
                           className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
                           disabled={exCategory === "Cardio"}
@@ -711,7 +829,7 @@ export default function WorkoutLogger({ onNotification }) {
                         <input 
                           type="number"
                           value={exWeight}
-                          onChange={(e) => setExWeight(e.target.value)}
+                          onChange={(e) => setExWeight(e.target.value.replace(/^0+(?=\d)/, ''))}
                           placeholder="kg"
                           className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
                           disabled={exCategory === "Cardio"}
@@ -722,7 +840,7 @@ export default function WorkoutLogger({ onNotification }) {
                         <input 
                           type="number"
                           value={exDuration}
-                          onChange={(e) => setExDuration(e.target.value)}
+                          onChange={(e) => setExDuration(e.target.value.replace(/^0+(?=\d)/, ''))}
                           placeholder="mins"
                           className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
                           disabled={exCategory !== "Cardio"}
@@ -742,46 +860,76 @@ export default function WorkoutLogger({ onNotification }) {
 
                 {/* Logged Workouts timeline logs list */}
                 <section className="glass rounded-2xl p-6">
-                  <h2 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4">Logged Workouts History</h2>
-                  <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                    {todaysWorkoutLogs && todaysWorkoutLogs.length > 0 ? (
-                      todaysWorkoutLogs.map((item, idx) => (
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">Logged Workouts History</h2>
+                    <span className="text-[10px] font-bold text-acid-green">{selectedDateWorkoutLogs.length} Sessions Logged</span>
+                  </div>
+
+                  <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                    {selectedDateWorkoutLogs && selectedDateWorkoutLogs.length > 0 ? (
+                      selectedDateWorkoutLogs.map((item, idx) => (
                         <div key={idx} className="flex justify-between items-center bg-surface/50 border border-card-border px-4 py-3 rounded-xl gap-3">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-8 h-8 rounded border border-card-border/50 bg-black/20 flex items-center justify-center shrink-0 overflow-hidden">
+                            <div 
+                              onClick={() => handleOpenExerciseDetail(item)}
+                              className="w-9 h-9 rounded border border-card-border/50 bg-black/20 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                              title="Click photo to view GIF animation"
+                            >
                               {item.image || globalImageCache.get(item.name) ? (
                                 <img src={item.image || globalImageCache.get(item.name)} alt={item.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
                               ) : null}
-                              <FallbackIcon category={item.category} muscleGroup={item.muscleGroup || exercisesData.find(l => l.name === item.name)?.muscle_group || exercisesData.find(l => l.name === item.name)?.body_part} className={`w-4 h-4 text-muted ${(item.image || globalImageCache.get(item.name)) ? 'hidden' : ''}`} />
+                              <FallbackIcon category={item.category} muscleGroup={item.muscleGroup} className="w-4 h-4 text-muted" />
                             </div>
                             <div className="flex flex-col min-w-0">
-                              <span className="text-xs font-bold text-foreground truncate">{item.name}</span>
+                              <span className="text-xs font-bold text-foreground truncate hover:text-acid-green cursor-pointer" onClick={() => handleOpenExerciseDetail(item)}>{item.name}</span>
                               <span className="text-[9px] text-muted mt-0.5 font-medium truncate">Category: {item.category}</span>
                             </div>
                           </div>
-                          <div className="text-xs font-bold text-acid-green shrink-0">
-                            {item.category === "Cardio" ? (
-                              <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {item.duration} Mins</span>
-                            ) : (
-                              `${item.sets} Sets × ${item.reps} Reps (${item.weight}kg)`
-                            )}
+
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-xs font-bold text-acid-green text-right">
+                              {item.category === "Cardio" ? (
+                                <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {item.duration} Mins</span>
+                              ) : (
+                                `${item.sets} Sets × ${item.reps} Reps (${item.weight}kg)`
+                              )}
+                            </div>
+
+                            <button 
+                              onClick={() => setEditingLog({ ...item })}
+                              className="p-1 rounded text-muted hover:text-acid-green transition-colors cursor-pointer border-none bg-transparent"
+                              title="Edit Log"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+
+                            <button 
+                              onClick={() => handleDeleteWorkoutLog(item.id)}
+                              className="p-1 rounded text-muted hover:text-destructive transition-colors cursor-pointer border-none bg-transparent"
+                              title="Delete Log"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </div>
                       ))
                     ) : (
                       <div className="text-center text-xs text-muted py-8 font-medium">
-                        No workouts logged today.
+                        No workouts logged on {formatDisplayDate(selectedDate)}.
                       </div>
                     )}
                   </div>
                 </section>
               </div>
 
-              {/* Right Column: Suggested Splits */}
+              {/* Right Column: Weekly Splits */}
               <div className="space-y-6">
                 <section className="glass rounded-2xl p-6">
-                  <h2 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4">Weekly Splits Template Planner</h2>
-                  
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">Weekly Splits Template Planner</h2>
+                    <span className="text-[9px] text-acid-green font-bold uppercase tracking-wider bg-acid-green/10 px-2 py-0.5 rounded border border-acid-green/20">Editable & Saved</span>
+                  </div>
+
                   <div className="flex gap-1.5 overflow-x-auto pb-3 border-b border-card-border mb-4 scrollbar-none">
                     {splits.map((day, idx) => (
                       <button 
@@ -813,7 +961,12 @@ export default function WorkoutLogger({ onNotification }) {
                       </div>
                       
                       <div className="space-y-3 pt-2">
-                        <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Recommended Exercises</span>
+                        <div className="flex justify-between items-center">
+                          <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Recommended Exercises</span>
+                          <button onClick={handleAddExerciseToSplit} className="text-[9px] text-acid-green font-bold uppercase flex items-center gap-1 cursor-pointer bg-none border-none">
+                            <Plus className="w-3 h-3" /> Add Exercise
+                          </button>
+                        </div>
                         {editRoutineFields.exercises.map((ex, i) => (
                           <div key={i} className="flex gap-2 items-center">
                             <input type="text" value={ex.name} onChange={(e) => {
@@ -826,13 +979,16 @@ export default function WorkoutLogger({ onNotification }) {
                               nextEx[i].details = e.target.value;
                               setEditRoutineFields({ ...editRoutineFields, exercises: nextEx });
                             }} placeholder="Sets/Reps" className="bg-[var(--input)] border border-card-border rounded-xl px-2.5 py-1.5 text-xs text-foreground w-28 focus:outline-none" />
+                            <button onClick={() => handleRemoveExerciseFromSplit(i)} className="text-destructive p-1 cursor-pointer bg-none border-none">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         ))}
                       </div>
 
                       <div className="flex justify-end gap-2 pt-2 border-t border-card-border">
                         <button onClick={() => setEditingSplit(false)} className="text-[10px] text-muted py-1.5 px-3 bg-surface border border-card-border rounded-lg flex items-center gap-1 cursor-pointer"><X className="w-3.5 h-3.5" /> Cancel</button>
-                        <button onClick={handleSaveSplitEdit} className="text-[10px] text-accent-foreground bg-acid-green py-1.5 px-4 rounded-lg font-bold flex items-center gap-1 cursor-pointer border-none"><Check className="w-3.5 h-3.5" /> Save</button>
+                        <button onClick={handleSaveSplitEdit} className="text-[10px] text-accent-foreground bg-acid-green py-1.5 px-4 rounded-lg font-bold flex items-center gap-1 cursor-pointer border-none"><Check className="w-3.5 h-3.5" /> Save Split</button>
                       </div>
                     </div>
                   ) : (
@@ -841,24 +997,28 @@ export default function WorkoutLogger({ onNotification }) {
                         <span className="text-[9px] text-acid-green font-bold uppercase tracking-wider">Routine Split Type</span>
                         <button onClick={handleStartEditSplit} className="text-[9px] text-muted hover:text-foreground cursor-pointer flex items-center gap-1 font-bold uppercase tracking-wider bg-transparent border-none">
                           <Edit3 className="w-3 h-3" />
-                          Edit Routine
+                          Edit Split
                         </button>
                       </div>
-                      <h3 className="text-xs font-bold text-foreground">{splits[activeDay].workout.type}</h3>
-                      <p className="text-[10.5px] text-muted mt-1 leading-relaxed">{splits[activeDay].workout.desc}</p>
+                      <h3 className="text-xs font-bold text-foreground">{splits[activeDay]?.workout?.type}</h3>
+                      <p className="text-[10.5px] text-muted mt-1 leading-relaxed">{splits[activeDay]?.workout?.desc}</p>
                       
                       <div className="mt-4 border-t border-card-border pt-3 space-y-3">
-                        <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Exercises Recommended:</span>
-                        {splits[activeDay].workout.exercises.map((ex, i) => (
+                        <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Exercises Recommended (Tap photo for GIF):</span>
+                        {splits[activeDay]?.workout?.exercises?.map((ex, i) => (
                           <div key={i} className="flex justify-between items-center text-xs gap-3">
                             <div className="flex items-center gap-2 min-w-0">
-                              <div className="w-8 h-8 rounded border border-card-border/50 bg-black/20 flex items-center justify-center shrink-0 overflow-hidden">
+                              <div 
+                                onClick={() => handleOpenExerciseDetail(ex)}
+                                className="w-8 h-8 rounded border border-card-border/50 bg-black/20 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                                title="Click to view GIF animation"
+                              >
                                 {ex.image || globalImageCache.get(ex.name) ? (
                                   <img src={ex.image || globalImageCache.get(ex.name)} alt={ex.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
                                 ) : null}
-                                <FallbackIcon category={ex.category || 'Strength'} muscleGroup={ex.muscleGroup} className={`w-4 h-4 text-muted ${(ex.image || globalImageCache.get(ex.name)) ? 'hidden' : ''}`} />
+                                <FallbackIcon category={ex.category || 'Strength'} muscleGroup={ex.muscleGroup} className="w-4 h-4 text-muted" />
                               </div>
-                              <span className="font-semibold text-foreground truncate">{ex.name}</span>
+                              <span className="font-semibold text-foreground truncate cursor-pointer hover:text-acid-green" onClick={() => handleOpenExerciseDetail(ex)}>{ex.name}</span>
                             </div>
                             <span className="text-muted text-[11px] shrink-0 text-right max-w-[120px] sm:max-w-[160px] md:max-w-none">{ex.details}</span>
                           </div>
@@ -875,7 +1035,6 @@ export default function WorkoutLogger({ onNotification }) {
           {/* LIBRARY TAB VIEW */}
           {activeSubTab === 'library' && (
             <div className="space-y-6">
-              {/* Search & Toggle row */}
               <div className="glass rounded-2xl p-5 flex flex-col gap-4">
                 <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
                   <div className="relative flex-1 flex items-center">
@@ -885,7 +1044,7 @@ export default function WorkoutLogger({ onNotification }) {
                       value={libQuery}
                       onChange={(e) => {
                         setLibQuery(e.target.value);
-                        setLibLimit(24); // reset limit on search
+                        setLibLimit(24);
                       }}
                       placeholder="Search exercises by name, muscle, equipment..."
                       className="w-full bg-[var(--input)] border border-card-border focus:border-acid-green rounded-xl pl-11 pr-4 py-3 text-sm text-foreground focus:outline-none shadow-inner"
@@ -899,501 +1058,170 @@ export default function WorkoutLogger({ onNotification }) {
                       </button>
                     )}
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1 border-t border-card-border/50">
+                  <select 
+                    value={libBodyPart} 
+                    onChange={(e) => { setLibBodyPart(e.target.value); setLibLimit(24); }}
+                    className="bg-[var(--input)] text-foreground border border-card-border rounded-xl px-3 py-2 text-xs focus:outline-none"
+                  >
+                    <option value="all">All Body Parts</option>
+                    {Array.from(new Set(exercisesData.map(e => e.body_part))).filter(Boolean).map(bp => (
+                      <option key={bp} value={bp}>{bp}</option>
+                    ))}
+                  </select>
+
+                  <select 
+                    value={libTarget} 
+                    onChange={(e) => { setLibTarget(e.target.value); setLibLimit(24); }}
+                    className="bg-[var(--input)] text-foreground border border-card-border rounded-xl px-3 py-2 text-xs focus:outline-none"
+                  >
+                    <option value="all">All Target Muscles</option>
+                    {Array.from(new Set(exercisesData.map(e => e.target))).filter(Boolean).map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+
+                  <select 
+                    value={libEquipment} 
+                    onChange={(e) => { setLibEquipment(e.target.value); setLibLimit(24); }}
+                    className="bg-[var(--input)] text-foreground border border-card-border rounded-xl px-3 py-2 text-xs focus:outline-none"
+                  >
+                    <option value="all">All Equipment</option>
+                    {Array.from(new Set(exercisesData.map(e => e.equipment))).filter(Boolean).map(eq => (
+                      <option key={eq} value={eq}>{eq}</option>
+                    ))}
+                  </select>
+
                   <button
-                    onClick={() => {
-                      setLibOnlyFavorites(prev => !prev);
-                      setLibLimit(24);
-                    }}
-                    className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 border transition-all cursor-pointer ${
-                      libOnlyFavorites
-                        ? 'bg-acid-green text-accent-foreground border-acid-green'
+                    onClick={() => setLibOnlyFavorites(!libOnlyFavorites)}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                      libOnlyFavorites 
+                        ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' 
                         : 'bg-surface border-card-border text-muted hover:text-foreground'
                     }`}
                   >
-                    <Heart className={`w-4 h-4 ${libOnlyFavorites ? 'fill-current' : ''}`} />
-                    <span>Favorites {favoriteExercises.length > 0 ? `(${favoriteExercises.length})` : ''}</span>
+                    <Heart className={`w-3.5 h-3.5 ${libOnlyFavorites ? 'fill-rose-400' : ''}`} />
+                    Favorites ({favoriteExercises.length})
                   </button>
-                </div>
-
-                {/* Filters grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Body Part</label>
-                    <select
-                      value={libBodyPart}
-                      onChange={(e) => { setLibBodyPart(e.target.value); setLibLimit(24); }}
-                      className="bg-[var(--input)] border border-card-border text-xs rounded-xl px-3 py-2.5 text-foreground focus:outline-none focus:border-acid-green cursor-pointer"
-                    >
-                      <option value="all">All Body Parts</option>
-                      {uniqueBodyParts.map(bp => (
-                        <option key={bp} value={bp}>{bp.charAt(0).toUpperCase() + bp.slice(1)}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Target Muscle</label>
-                    <select
-                      value={libTarget}
-                      onChange={(e) => { setLibTarget(e.target.value); setLibLimit(24); }}
-                      className="bg-[var(--input)] border border-card-border text-xs rounded-xl px-3 py-2.5 text-foreground focus:outline-none focus:border-acid-green cursor-pointer"
-                    >
-                      <option value="all">All Muscles</option>
-                      {uniqueTargets.map(t => (
-                        <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Equipment</label>
-                    <select
-                      value={libEquipment}
-                      onChange={(e) => { setLibEquipment(e.target.value); setLibLimit(24); }}
-                      className="bg-[var(--input)] border border-card-border text-xs rounded-xl px-3 py-2.5 text-foreground focus:outline-none focus:border-acid-green cursor-pointer"
-                    >
-                      <option value="all">All Equipment</option>
-                      {uniqueEquipments.map(eq => (
-                        <option key={eq} value={eq}>{eq.charAt(0).toUpperCase() + eq.slice(1)}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Category</label>
-                    <select
-                      value={libCategory}
-                      onChange={(e) => { setLibCategory(e.target.value); setLibLimit(24); }}
-                      className="bg-[var(--input)] border border-card-border text-xs rounded-xl px-3 py-2.5 text-foreground focus:outline-none focus:border-acid-green cursor-pointer"
-                    >
-                      <option value="all">All Categories</option>
-                      {uniqueCategories.map(c => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
               </div>
 
-              {/* Exercises Grid */}
-              {visibleExercises.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {visibleExercises.map((ex) => {
-                    const isFav = favoriteExercises.includes(ex.id);
-                    return (
-                      <div
-                        key={ex.id}
-                        onClick={() => {
-                          setSelectedExercise(ex);
-                          addRecentlyViewedExercise(ex.id);
-                        }}
-                        className="bg-surface border border-card-border p-3.5 rounded-xl cursor-pointer hover:border-acid-green hover:shadow-[0_0_12px_rgba(204,255,0,0.1)] transition-all flex flex-col justify-between h-56 relative group overflow-hidden"
-                      >
-                        <div className="w-full h-32 rounded-lg overflow-hidden border border-card-border/50 bg-black/25 flex items-center justify-center relative">
-                          <img
-                            src={ex.image}
-                            alt={ex.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            loading="lazy"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
-                            }}
-                          />
-                          <div className="hidden absolute inset-0 flex items-center justify-center bg-black/20 text-muted">
-                            <FallbackIcon category={ex.category} muscleGroup={ex.muscle_group || ex.body_part} className="w-6 h-6" />
-                          </div>
-
-                          {/* Difficulty indicator badge */}
-                          <span className={`absolute bottom-2 left-2 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
-                            ex.difficulty === 'beginner' 
-                              ? 'bg-success/20 text-success border-success/30' 
-                              : ex.difficulty === 'intermediate'
-                              ? 'bg-warning/20 text-warning border-warning/30'
-                              : 'bg-destructive/20 text-destructive border-destructive/30'
-                          }`}>
-                            {ex.difficulty}
-                          </span>
-
-                          {/* Favorite toggle button */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavoriteExercise(ex.id);
-                            }}
-                            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 hover:bg-black/75 border border-white/10 flex items-center justify-center text-white cursor-pointer transition-colors active:scale-95"
-                          >
-                            <Heart className={`w-3.5 h-3.5 ${isFav ? 'text-destructive fill-destructive' : 'text-white'}`} />
-                          </button>
-                        </div>
-
-                        <div className="mt-2.5 flex-1 flex flex-col justify-between">
-                          <h3 className="text-xs font-black text-foreground leading-tight line-clamp-2 uppercase tracking-wide">
-                            {ex.name}
-                          </h3>
-                          <div className="text-[8px] text-muted font-bold uppercase tracking-widest mt-1 flex justify-between items-center border-t border-card-border/30 pt-1.5">
-                            <span>{ex.target}</span>
-                            <span className="text-acid-green">{ex.equipment}</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-16 glass rounded-2xl">
-                  <Dumbbell className="w-8 h-8 mx-auto text-muted mb-2 animate-pulse" />
-                  <span className="text-xs font-bold text-muted uppercase tracking-wider block">No exercises match your filters</span>
-                  <button 
-                    onClick={() => {
-                      setLibQuery('');
-                      setLibBodyPart('all');
-                      setLibTarget('all');
-                      setLibEquipment('all');
-                      setLibCategory('all');
-                      setLibOnlyFavorites(false);
-                      setLibLimit(24);
-                    }}
-                    className="mt-4 text-[10px] uppercase font-black tracking-wider text-acid-green hover:underline cursor-pointer bg-transparent border-none"
+              {/* Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredExercises.slice(0, libLimit).map((ex) => (
+                  <div
+                    key={ex.id}
+                    onClick={() => handleOpenExerciseDetail(ex)}
+                    className="glass border border-card-border rounded-2xl p-4 flex flex-col justify-between hover:border-acid-green/40 transition-all cursor-pointer group shadow-sm relative overflow-hidden"
                   >
-                    Reset All Filters
-                  </button>
-                </div>
-              )}
+                    <div className="relative w-full h-40 bg-black/40 rounded-xl overflow-hidden mb-3 border border-card-border/50">
+                      <img 
+                        src={ex.gif_url || ex.image} 
+                        alt={ex.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          e.target.src = ex.image;
+                        }}
+                      />
+                      <div className="absolute top-2 right-2 bg-black/60 px-2 py-0.5 rounded text-[8px] font-black uppercase text-acid-green tracking-wider">
+                        GIF
+                      </div>
+                    </div>
 
-              {/* Load More Button */}
-              {filteredExercises.length > visibleExercises.length && (
-                <div className="flex justify-center pt-4">
+                    <div>
+                      <h3 className="text-xs font-bold text-foreground group-hover:text-acid-green transition-colors truncate">
+                        {ex.name}
+                      </h3>
+                      <p className="text-[10px] text-muted font-medium mt-0.5">
+                        Target: <span className="text-foreground">{ex.target}</span>
+                      </p>
+                    </div>
+
+                    <div className="flex justify-between items-center mt-3 pt-2 border-t border-card-border/40 text-[9px] font-bold text-muted uppercase">
+                      <span>{ex.equipment}</span>
+                      <span className="text-acid-green">View GIF →</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {filteredExercises.length > libLimit && (
+                <div className="text-center pt-4">
                   <button
                     onClick={() => setLibLimit(prev => prev + 24)}
-                    className="px-6 py-3 rounded-xl border border-card-border bg-surface hover:border-acid-green hover:text-foreground text-muted text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(204,255,0,0.1)] active:scale-[0.98]"
+                    className="px-6 py-3 bg-surface border border-card-border hover:border-acid-green rounded-xl text-xs font-black uppercase tracking-wider text-foreground cursor-pointer transition-colors"
                   >
-                    Load More Exercises ({filteredExercises.length - visibleExercises.length} Remaining)
+                    Load More Exercises ({filteredExercises.length - libLimit} remaining)
                   </button>
                 </div>
               )}
             </div>
-          )}
-
-          {/* CHALLENGES TAB VIEW */}
-          {activeSubTab === 'challenges' && (
-            <div className="max-w-xl mx-auto">
-              <section className="glass rounded-2xl p-6">
-                <h2 className="text-xs font-bold text-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                  <Trophy className="w-5 h-5 text-acid-green" />
-                  Active Arena Targets
-                </h2>
-                <p className="text-muted text-[10px] uppercase font-bold tracking-wider mb-5">Join global milestones and trace conditioning milestones</p>
-
-                <div className="space-y-4">
-                  {ecoStore.activeChallenges?.map((challenge) => {
-                    const hasStarted = challenge.progress > 0 || challenge.completed;
-                    const percent = Math.min(100, Math.round((challenge.progress / challenge.targetVal) * 100));
-                    
-                    return (
-                      <div key={challenge.id} className="bg-surface border border-card-border p-4 rounded-xl space-y-3">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="text-xs font-bold text-foreground">{challenge.name}</h4>
-                            <p className="text-[10px] text-muted font-medium mt-0.5">{challenge.target}</p>
-                          </div>
-                          {challenge.completed ? (
-                            <span className="text-[9px] font-bold text-acid-green bg-acid-green/10 border border-acid-green/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                              Completed 🎉
-                            </span>
-                          ) : !hasStarted ? (
-                            <button
-                               onClick={async () => {
-                                 ecoStore.updateChallengeProgress(challenge.id, 1);
-                                 try {
-                                   await saveEcosystemState(userId, useEcosystemStore.getState());
-                                   if (onNotification) onNotification(`Joined Challenge: ${challenge.name}! 🚀`);
-                                 } catch (err) {
-                                   console.error("Join challenge error", err);
-                                   if (onNotification) onNotification("Failed to join challenge. Please try again.");
-                                 }
-                               }}
-                               className="text-[9px] font-extrabold text-accent-foreground bg-acid-green hover:shadow-md px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer border-none"
-                             >
-                              Join
-                            </button>
-                          ) : (
-                            <span className="text-[10px] font-bold text-acid-green">
-                              {percent}%
-                            </span>
-                          )}
-                        </div>
-
-                        {hasStarted && (
-                          <div className="space-y-2">
-                            <div className="w-full bg-[var(--input)] rounded-full h-1.5 overflow-hidden border border-card-border">
-                              <div 
-                                className="bg-acid-green h-full rounded-full transition-all duration-500" 
-                                style={{ width: `${percent}%` }}
-                              />
-                            </div>
-
-                            <div className="flex justify-between items-center text-[10px] text-muted">
-                              <span>Progress: <strong className="text-foreground">{challenge.progress}</strong> / {challenge.targetVal} {challenge.unit}</span>
-                              
-                              {!challenge.completed && (
-                                <div className="flex items-center gap-1.5">
-                                  <input 
-                                    type="number"
-                                    placeholder="+ amount"
-                                    id={`input-${challenge.id}`}
-                                    className="w-16 bg-[var(--input)] border border-card-border rounded px-1.5 py-0.5 text-center text-xs text-foreground focus:outline-none focus:border-acid-green"
-                                    onKeyDown={async (e) => {
-                                      if (e.key === 'Enter') {
-                                        const val = Number(e.target.value);
-                                        if (val > 0) {
-                                          ecoStore.updateChallengeProgress(challenge.id, val);
-                                          try {
-                                            await saveEcosystemState(userId, useEcosystemStore.getState());
-                                            const nextState = useEcosystemStore.getState();
-                                            const updated = nextState.activeChallenges.find(c => c.id === challenge.id);
-                                            if (updated?.completed) {
-                                              ecoStore.unlockAchievement('first_workout');
-                                              try {
-                                                await saveEcosystemState(userId, useEcosystemStore.getState());
-                                              } catch (e) {}
-                                              if (onNotification) onNotification(`Challenge Completed: ${challenge.name}! 🏆`);
-                                            } else {
-                                              if (onNotification) onNotification(`Logged progress: +${val} to ${challenge.name}`);
-                                            }
-                                            e.target.value = '';
-                                          } catch (err) {
-                                            console.error("Save challenge progress error", err);
-                                            ecoStore.updateChallengeProgress(challenge.id, -val); // Revert
-                                            if (onNotification) onNotification("Failed to log progress. Please try again.");
-                                          }
-                                        }
-                                      }
-                                    }}
-                                  />
-                                  <button
-                                    onClick={async () => {
-                                      const inputEl = document.getElementById(`input-${challenge.id}`);
-                                      const val = Number(inputEl?.value);
-                                      if (val > 0) {
-                                        ecoStore.updateChallengeProgress(challenge.id, val);
-                                        try {
-                                          await saveEcosystemState(userId, useEcosystemStore.getState());
-                                          const nextState = useEcosystemStore.getState();
-                                          const updated = nextState.activeChallenges.find(c => c.id === challenge.id);
-                                          if (updated?.completed) {
-                                            ecoStore.unlockAchievement('first_workout');
-                                            try {
-                                              await saveEcosystemState(userId, useEcosystemStore.getState());
-                                            } catch (e) {}
-                                            if (onNotification) onNotification(`Challenge Completed: ${challenge.name}! 🏆`);
-                                          } else {
-                                            if (onNotification) onNotification(`Logged progress: +${val} to ${challenge.name}`);
-                                          }
-                                          if (inputEl) inputEl.value = '';
-                                        } catch (err) {
-                                          console.error("Save challenge progress click error", err);
-                                          ecoStore.updateChallengeProgress(challenge.id, -val); // Revert
-                                          if (onNotification) onNotification("Failed to log progress. Please try again.");
-                                        }
-                                      }
-                                    }}
-                                    className="bg-surface border border-card-border hover:border-acid-green text-foreground px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer"
-                                  >
-                                    Add
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            </div>
-          )}
-
-          {activeSubTab === 'analytics' && (
-            (() => {
-              // 1. Calculate PRs
-              const prMap = {};
-              workoutLogs.forEach(log => {
-                if (log.category === 'Strength' && log.weight) {
-                  const name = log.name.trim();
-                  const weight = Number(log.weight);
-                  if (!prMap[name] || weight > prMap[name]) {
-                    prMap[name] = weight;
-                  }
-                }
-              });
-
-              // 2. Calculate Volume
-              const totalVolume = workoutLogs.reduce((acc, log) => {
-                if (log.category === 'Strength' && log.sets && log.reps && log.weight) {
-                  return acc + (Number(log.sets) * Number(log.reps) * Number(log.weight));
-                }
-                return acc;
-              }, 0);
-
-              const templates = [
-                {
-                  name: "Push Day Power",
-                  exercises: [
-                    { name: "Flat Bench Press", sets: 4, reps: 8, weight: 60, category: "Strength" },
-                    { name: "Overhead Press", sets: 3, reps: 10, weight: 40, category: "Strength" }
-                  ]
-                },
-                {
-                  name: "Pull Day Hypertrophy",
-                  exercises: [
-                    { name: "Lat Pulldown", sets: 4, reps: 10, weight: 55, category: "Strength" },
-                    { name: "Bicep Curls", sets: 3, reps: 12, weight: 12, category: "Strength" }
-                  ]
-                },
-                {
-                  name: "Leg Day Compound",
-                  exercises: [
-                    { name: "Barbell Back Squats", sets: 4, reps: 8, weight: 80, category: "Strength" },
-                    { name: "Leg Press", sets: 3, reps: 10, weight: 120, category: "Strength" }
-                  ]
-                }
-              ];
-
-              const loadTemplate = (temp) => {
-                const first = temp.exercises[0];
-                setExName(first.name);
-                setExSets(first.sets);
-                setExReps(first.reps);
-                setExWeight(first.weight);
-                setExCategory(first.category);
-                setActiveSubTab('logger');
-                if (onNotification) onNotification(`Loaded template: ${temp.name}. Feel free to customize and save!`);
-              };
-
-              return (
-                <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-6">
-                  <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
-                    
-                    {/* Left Column: PRs & Volume */}
-                    <div className="space-y-6">
-                      {/* PRs Card */}
-                      <div className="glass p-5 rounded-2xl border border-card-border shadow-md">
-                        <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5 mb-4">
-                          <Trophy className="w-4 h-4 text-yellow-500 fill-current" />
-                          Personal Records (PRs)
-                        </h3>
-                        {Object.keys(prMap).length > 0 ? (
-                          <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
-                            {Object.entries(prMap).map(([name, weight]) => (
-                              <div key={name} className="flex justify-between items-center bg-surface/50 border border-card-border p-3 rounded-xl">
-                                <span className="text-xs font-semibold text-foreground">{name}</span>
-                                <span className="text-xs font-black text-acid-green">{weight} kg</span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-muted italic">Log strength exercises to establish your PR leaderboard.</p>
-                        )}
-                      </div>
-
-                      {/* Volume Tracker */}
-                      <div className="glass p-5 rounded-2xl border border-card-border shadow-md">
-                        <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                          <Dumbbell className="w-4 h-4 text-acid-green" />
-                          Weight Volume Tracked
-                        </h3>
-                        <p className="text-[10px] text-muted font-semibold uppercase tracking-wider mb-4">Cumulative Training Volume</p>
-                        <div className="bg-surface/50 border border-card-border p-4 rounded-xl text-center">
-                          <span className="text-2xl font-black text-foreground block">{totalVolume.toLocaleString()} kg</span>
-                          <span className="text-[9px] text-muted font-bold block mt-1 uppercase tracking-wider">Total sets × reps × weight lifted</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right Column: Templates & Recovery */}
-                    <div className="space-y-6">
-                      {/* Workout Templates */}
-                      <div className="glass p-5 rounded-2xl border border-card-border shadow-md">
-                        <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5 mb-4">
-                          <Clock className="w-4 h-4 text-acid-green" />
-                          Workout Templates
-                        </h3>
-                        <div className="space-y-3">
-                          {templates.map(temp => (
-                            <div key={temp.name} className="bg-surface/50 border border-card-border p-3 rounded-xl flex justify-between items-center">
-                              <div>
-                                <h4 className="text-xs font-bold text-foreground">{temp.name}</h4>
-                                <p className="text-[9px] text-muted font-bold mt-0.5 uppercase tracking-wider">
-                                  {temp.exercises.map(x => x.name).join(' · ')}
-                                </p>
-                              </div>
-                              <button
-                                onClick={() => loadTemplate(temp)}
-                                className="bg-acid-green text-accent-foreground text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg cursor-pointer border-none"
-                              >
-                                Load
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Recovery & Soreness Input */}
-                      <div className="glass p-5 rounded-2xl border border-card-border shadow-md space-y-4">
-                        <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                          🧘 Daily Recovery Status
-                        </h3>
-                        
-                        <div className="space-y-3">
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-[9px] text-muted font-bold uppercase tracking-wider">
-                              <span>Muscle Soreness</span>
-                              <span className="text-acid-green">{selectedSoreness}/10</span>
-                            </div>
-                            <input 
-                              type="range" min="1" max="10" 
-                              value={selectedSoreness} 
-                              onChange={(e) => setSelectedSoreness(Number(e.target.value))}
-                              className="w-full accent-acid-green cursor-pointer"
-                            />
-                          </div>
-
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-[9px] text-muted font-bold uppercase tracking-wider">
-                              <span>Central Fatigue</span>
-                              <span className="text-acid-green">{selectedFatigue}/10</span>
-                            </div>
-                            <input 
-                              type="range" min="1" max="10" 
-                              value={selectedFatigue} 
-                              onChange={(e) => setSelectedFatigue(Number(e.target.value))}
-                              className="w-full accent-acid-green cursor-pointer"
-                            />
-                          </div>
-
-                          <button
-                            onClick={handleSaveRecovery}
-                            className="w-full bg-acid-green text-accent-foreground font-black text-[10px] uppercase tracking-wider py-2.5 rounded-xl cursor-pointer border-none shadow-sm mt-2"
-                          >
-                            Log Recovery Metrics
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-              );
-            })()
           )}
 
         </motion.div>
       </AnimatePresence>
 
-      {/* EXERCISE DETAIL MODAL */}
+      {/* EDIT WORKOUT LOG MODAL */}
+      <AnimatePresence>
+        {editingLog && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setEditingLog(null)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-surface border border-card-border rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4 z-10">
+              <div className="flex justify-between items-center border-b border-card-border pb-3">
+                <h3 className="text-sm font-black uppercase text-foreground">Edit Workout Log</h3>
+                <button onClick={() => setEditingLog(null)} className="p-1 text-muted hover:text-foreground cursor-pointer bg-none border-none"><X className="w-4 h-4" /></button>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[9px] font-bold text-muted uppercase block mb-1">Exercise Name</label>
+                  <input type="text" value={editingLog.name} onChange={(e) => setEditingLog({ ...editingLog, name: e.target.value })} className={inputStyle} />
+                </div>
+                
+                <div>
+                  <label className="text-[9px] font-bold text-muted uppercase block mb-1">Category</label>
+                  <select value={editingLog.category} onChange={(e) => setEditingLog({ ...editingLog, category: e.target.value })} className={inputStyle}>
+                    <option value="Strength">Strength</option>
+                    <option value="Cardio">Cardio / HIIT</option>
+                    <option value="Hypertrophy">Hypertrophy</option>
+                  </select>
+                </div>
+
+                {editingLog.category === 'Cardio' ? (
+                  <div>
+                    <label className="text-[9px] font-bold text-muted uppercase block mb-1">Duration (Mins)</label>
+                    <input type="number" value={editingLog.duration} onChange={(e) => setEditingLog({ ...editingLog, duration: Number(e.target.value) })} className={inputStyle} />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="text-[9px] font-bold text-muted uppercase block mb-1">Sets</label>
+                      <input type="number" value={editingLog.sets} onChange={(e) => setEditingLog({ ...editingLog, sets: Number(e.target.value) })} className={inputStyle} />
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-bold text-muted uppercase block mb-1">Reps</label>
+                      <input type="number" value={editingLog.reps} onChange={(e) => setEditingLog({ ...editingLog, reps: Number(e.target.value) })} className={inputStyle} />
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-bold text-muted uppercase block mb-1">Weight (kg)</label>
+                      <input type="number" value={editingLog.weight} onChange={(e) => setEditingLog({ ...editingLog, weight: Number(e.target.value) })} className={inputStyle} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-card-border">
+                <button onClick={() => setEditingLog(null)} className="px-4 py-2 bg-surface border border-card-border rounded-xl text-xs font-bold text-muted cursor-pointer">Cancel</button>
+                <button onClick={handleSaveEditedWorkoutLog} className="px-4 py-2 bg-acid-green text-accent-foreground font-bold text-xs rounded-xl cursor-pointer border-none shadow-sm">Save Changes</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* EXERCISE DETAIL & GIF MODAL */}
       <AnimatePresence>
         {selectedExercise && (
           <motion.div
@@ -1411,20 +1239,16 @@ export default function WorkoutLogger({ onNotification }) {
               className="bg-surface border border-card-border w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl relative"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header / Media Carousel Section */}
-              <div className="relative w-full h-64 md:h-80 bg-black/45 flex items-center justify-center overflow-hidden border-b border-card-border">
-                {/* Auto playing looping GIF */}
+              <div className="relative w-full h-64 md:h-80 bg-black flex items-center justify-center overflow-hidden border-b border-card-border">
                 <img 
-                  src={selectedExercise.gif_url} 
+                  src={selectedExercise.gif_url || selectedExercise.image} 
                   alt={`${selectedExercise.name} Animation`}
                   className="w-full h-full object-contain"
                   onError={(e) => {
-                    // Fallback to static image if GIF fails to load
-                    e.target.src = selectedExercise.image;
+                    e.target.src = selectedExercise.image || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80';
                   }}
                 />
 
-                {/* Favorite Button on top-right */}
                 <button
                   onClick={() => toggleFavoriteExercise(selectedExercise.id)}
                   className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/60 hover:bg-black/85 border border-white/10 flex items-center justify-center text-white cursor-pointer active:scale-95 transition-all"
@@ -1432,7 +1256,6 @@ export default function WorkoutLogger({ onNotification }) {
                   <Heart className={`w-4 h-4 ${favoriteExercises.includes(selectedExercise.id) ? 'text-destructive fill-destructive' : 'text-white'}`} />
                 </button>
 
-                {/* Close Button on top-left */}
                 <button
                   onClick={() => setSelectedExercise(null)}
                   className="absolute top-4 left-4 w-9 h-9 rounded-full bg-black/60 hover:bg-black/85 border border-white/10 flex items-center justify-center text-white cursor-pointer active:scale-95 transition-all"
@@ -1441,7 +1264,6 @@ export default function WorkoutLogger({ onNotification }) {
                 </button>
               </div>
 
-              {/* Detail Content */}
               <div className="p-6 space-y-5 max-h-[calc(100vh-24rem)] overflow-y-auto">
                 <div className="flex justify-between items-start gap-4">
                   <div>
@@ -1449,35 +1271,24 @@ export default function WorkoutLogger({ onNotification }) {
                       {selectedExercise.name}
                     </h2>
                     <span className="text-[9px] font-extrabold text-acid-green uppercase tracking-widest mt-1 block">
-                      Targeting {selectedExercise.target} ({selectedExercise.body_part})
+                      Targeting {selectedExercise.target || selectedExercise.muscle_group} ({selectedExercise.body_part})
                     </span>
                   </div>
 
-                  <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border shrink-0 ${
-                    selectedExercise.difficulty === 'beginner' 
-                      ? 'bg-success/20 text-success border-success/30' 
-                      : selectedExercise.difficulty === 'intermediate'
-                      ? 'bg-warning/20 text-warning border-warning/30'
-                      : 'bg-destructive/20 text-destructive border-destructive/30'
-                  }`}>
-                    {selectedExercise.difficulty}
+                  <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border shrink-0 bg-acid-green/10 text-acid-green border-acid-green/30">
+                    {selectedExercise.difficulty || 'Intermediate'}
                   </span>
                 </div>
 
-                {/* Badges / Meta row */}
                 <div className="flex flex-wrap gap-2 pt-1 border-t border-card-border/40">
                   <div className="bg-surface/50 border border-card-border/60 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-muted">
-                    Equipment: <span className="text-foreground">{selectedExercise.equipment}</span>
+                    Equipment: <span className="text-foreground">{selectedExercise.equipment || 'Free Weights'}</span>
                   </div>
                   <div className="bg-surface/50 border border-card-border/60 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-muted">
-                    Muscle Group: <span className="text-foreground">{selectedExercise.muscle_group}</span>
-                  </div>
-                  <div className="bg-surface/50 border border-card-border/60 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-muted">
-                    Burn Est: <span className="text-acid-green">{selectedExercise.caloriesEstimate} kcal/min</span>
+                    Burn Est: <span className="text-acid-green">{selectedExercise.caloriesEstimate || 8} kcal/min</span>
                   </div>
                 </div>
 
-                {/* Step-by-Step Instructions */}
                 <div className="space-y-2.5">
                   <h3 className="text-xs font-black text-foreground uppercase tracking-wider">Instructions</h3>
                   <ol className="space-y-2 list-decimal list-inside pr-2">
@@ -1488,53 +1299,17 @@ export default function WorkoutLogger({ onNotification }) {
                     ))}
                   </ol>
                 </div>
-
-                {/* Secondary Muscles involved */}
-                {selectedExercise.secondary_muscles && selectedExercise.secondary_muscles.length > 0 && (
-                  <div className="space-y-1.5 pt-3 border-t border-card-border/40">
-                    <h3 className="text-[10px] font-black text-muted uppercase tracking-wider">Secondary Muscles Involved</h3>
-                    <div className="flex flex-wrap gap-1.5">
-                      {selectedExercise.secondary_muscles.map((mus) => (
-                        <span key={mus} className="bg-black/20 border border-card-border/50 px-2 py-0.5 rounded text-[8px] font-bold text-muted uppercase">
-                          {mus}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* Modal Actions Footer */}
               <div className="bg-surface/80 border-t border-card-border p-4 flex gap-3 justify-end items-center">
                 <button
                   onClick={() => {
-                    // Quick share mock trigger
-                    if (navigator.share) {
-                      navigator.share({
-                        title: selectedExercise.name,
-                        text: `Check out the ${selectedExercise.name} exercise on Calyxo!`,
-                        url: window.location.href,
-                      }).catch(console.error);
-                    } else {
-                      navigator.clipboard.writeText(`Calyxo Exercise: ${selectedExercise.name} targeting ${selectedExercise.target}`);
-                      if (onNotification) onNotification("Exercise details copied to clipboard!");
-                    }
-                  }}
-                  className="px-4 py-2.5 rounded-xl border border-card-border bg-surface hover:text-foreground text-muted text-xs font-black uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-colors"
-                >
-                  <Share2 className="w-3.5 h-3.5" />
-                  <span>Share</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    // Populate logger fields and close detail page
                     setExName(selectedExercise.name);
                     setExCategory(selectedExercise.category || 'Strength');
                     setExImage(selectedExercise.image || null);
                     setSelectedExercise(null);
                     setActiveSubTab('logger');
-                    if (onNotification) onNotification(`${selectedExercise.name} loaded into Logger! specify sets and log.`);
+                    if (onNotification) onNotification(`${selectedExercise.name} loaded into Logger!`);
                   }}
                   className="px-5 py-2.5 rounded-xl bg-acid-green text-accent-foreground font-black text-xs uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all shadow-md hover:shadow-[0_0_12px_rgba(204,255,0,0.15)] border-none"
                 >
@@ -1547,95 +1322,6 @@ export default function WorkoutLogger({ onNotification }) {
         )}
       </AnimatePresence>
 
-      {/* FLOATING REST TIMER */}
-      <AnimatePresence>
-        {restSecondsLeft !== null && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 50 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 50 }}
-            className="fixed bottom-6 right-6 z-50 glass p-5 rounded-2xl border border-card-border/80 shadow-2xl flex items-center gap-5 max-w-sm"
-          >
-            {/* Circular Progress Ring */}
-            <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="28"
-                  className="stroke-card-border/30 fill-transparent"
-                  strokeWidth="4"
-                />
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="28"
-                  className="stroke-acid-green fill-transparent transition-all duration-1000 ease-linear"
-                  strokeWidth="4"
-                  strokeDasharray={2 * Math.PI * 28}
-                  strokeDashoffset={2 * Math.PI * 28 - (restSecondsLeft / restDuration) * 2 * Math.PI * 28}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center flex-col">
-                <span className="text-xs font-black text-foreground leading-none">{restSecondsLeft}s</span>
-              </div>
-            </div>
-
-            {/* Controls */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h4 className="text-[10px] font-black uppercase text-acid-green tracking-wider">Rest Timer</h4>
-                  <p className="text-[9px] text-muted font-semibold">Catch your breath</p>
-                </div>
-                <button
-                  onClick={() => setRestSecondsLeft(null)}
-                  className="p-1 rounded-lg hover:bg-white/10 text-muted hover:text-foreground transition-colors cursor-pointer border-none bg-transparent"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Adjust Duration buttons */}
-              <div className="flex gap-1.5">
-                {[30, 60, 90, 120].map(dur => (
-                  <button
-                    key={dur}
-                    onClick={() => {
-                      setRestDuration(dur);
-                      setRestSecondsLeft(dur);
-                    }}
-                    className={`px-2 py-1 text-[9px] font-bold rounded-lg border transition-all cursor-pointer ${
-                      restDuration === dur 
-                        ? 'bg-acid-green text-accent-foreground border-acid-green' 
-                        : 'bg-surface/50 border-card-border text-muted hover:text-foreground'
-                    }`}
-                  >
-                    {dur}s
-                  </button>
-                ))}
-              </div>
-
-              {/* Quick Actions */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setRestSecondsLeft(prev => prev + 30)}
-                  className="flex-1 px-3 py-1.5 bg-surface border border-card-border text-[9px] font-bold text-foreground rounded-lg hover:border-acid-green transition-colors cursor-pointer"
-                >
-                  +30s
-                </button>
-                <button
-                  onClick={() => setRestSecondsLeft(null)}
-                  className="flex-1 px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 text-[9px] font-bold text-rose-500 rounded-lg hover:bg-rose-500/20 transition-colors cursor-pointer"
-                >
-                  Skip
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

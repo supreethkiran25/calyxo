@@ -17,15 +17,12 @@ import {
   clearAIMemory,
   saveEcosystemState
 } from '../lib/dbService';
-import { fetchClientTrainerRequests, respondToTrainerRequest } from '../lib/crmService';
 import { 
   User, Users, Mail, Lock, ShieldAlert, Award, RefreshCw, LogOut, CheckCircle, 
   Settings, Heart, Sparkles, Bell, Database, Trash2, Download, Eye, EyeOff,
   Shield, FileText, Info, HelpCircle, Key, Cpu, Activity, CreditCard,
   MoreVertical, X, Target, Zap, ChevronRight, TrendingUp, Star
 } from 'lucide-react';
-
-
 
 const HEALTH_INTERESTS_OPTIONS = [
   "Weight Loss",
@@ -38,84 +35,6 @@ const HEALTH_INTERESTS_OPTIONS = [
   "Vegan Nutrition",
   "General Wellness"
 ];
-
-const CoachingManager = ({ userId }) => {
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadRequests = async () => {
-      setLoading(true);
-      const data = await fetchClientTrainerRequests(userId);
-      setRequests(data);
-      setLoading(false);
-    };
-
-    if (userId) loadRequests();
-  }, [userId]);
-
-  const handleRespond = async (id, accept) => {
-    await respondToTrainerRequest(id, accept);
-    // Since loadRequests is now inside useEffect, we should just update state locally or trigger a reload.
-    // Or just fetch directly here.
-    const data = await fetchClientTrainerRequests(userId);
-    setRequests(data);
-  };
-
-  const pending = requests.filter(r => !r.can_view_workouts);
-  const active = requests.filter(r => r.can_view_workouts);
-
-  if (loading) return <div className="p-8 text-center text-muted">Loading...</div>;
-
-  return (
-    <div className="space-y-4">
-      {active.length > 0 ? (
-        <div className="space-y-3">
-          <h4 className="text-xs font-bold text-muted uppercase tracking-wider mb-2">My Trainer</h4>
-          {active.map(req => (
-            <div key={req.id} className="bg-surface border border-card-border p-4 rounded-xl flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-500/20 text-blue-500 rounded-full flex items-center justify-center font-bold">
-                  {req.user_profiles?.display_name?.charAt(0) || 'T'}
-                </div>
-                <div>
-                  <h4 className="font-bold text-foreground">{req.user_profiles?.display_name}</h4>
-                  <p className="text-xs text-muted">@{req.user_profiles?.username}</p>
-                </div>
-              </div>
-              <button onClick={() => handleRespond(req.id, false)} className="text-[10px] font-bold text-destructive bg-destructive/10 px-3 py-1.5 rounded uppercase tracking-wider border-none cursor-pointer">Disconnect</button>
-            </div>
-          ))}
-        </div>
-      ) : pending.length > 0 ? (
-        <div className="space-y-3">
-          <h4 className="text-xs font-bold text-muted uppercase tracking-wider mb-2">Pending Requests</h4>
-          {pending.map(req => (
-            <div key={req.id} className="bg-surface border border-card-border p-4 rounded-xl flex items-center justify-between">
-              <div>
-                <h4 className="font-bold text-foreground">{req.user_profiles?.display_name}</h4>
-                <p className="text-xs text-muted">Wants to be your trainer</p>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => handleRespond(req.id, true)} className="text-[10px] font-bold text-white bg-blue-500 px-3 py-1.5 rounded uppercase tracking-wider border-none cursor-pointer">Accept</button>
-                <button onClick={() => handleRespond(req.id, false)} className="text-[10px] font-bold text-foreground bg-surface border border-card-border px-3 py-1.5 rounded uppercase tracking-wider cursor-pointer">Decline</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center p-8 text-center border border-dashed border-card-border rounded-xl">
-          <Users className="w-12 h-12 text-muted mb-4 opacity-50" />
-          <h4 className="text-base font-bold text-foreground mb-2">Find a Trainer</h4>
-          <p className="text-sm text-muted mb-6 max-w-sm">Connect with a professional coach to receive custom workouts, meal plans, and track your progress together.</p>
-          <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 px-6 rounded-xl text-sm flex items-center gap-2 border-none cursor-pointer shadow-lg shadow-blue-500/20">
-            Provide your Username: {userId ? "Athlete" : ""}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
 
 export default function UserProfile({ onNotification }) {
   const user = useStore(state => state.user);
@@ -1659,7 +1578,7 @@ export default function UserProfile({ onNotification }) {
           {legalSubTab === 'privacy_policy' ? (
             <div className="space-y-1.5">
               <span className="font-bold text-foreground block">Privacy Policy</span>
-              <p>Your fitness logs and chat metrics with Calyxo Coach AI (Gemini APIs) are stored securely in your localized Firebase Firestore vault. We prioritize data safety and GDPR compliance. No telemetry data is distributed to commercial advertising networks.</p>
+              <p>Your fitness logs and chat metrics with Calyxo Coach AI (Gemini APIs) are stored securely in your localized cloud database. We prioritize data safety and GDPR compliance. No telemetry data is distributed to commercial advertising networks.</p>
             </div>
           ) : (
             <div className="space-y-1.5">

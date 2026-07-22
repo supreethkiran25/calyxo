@@ -196,7 +196,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
     ecoStore.updateFitnessScore({ dailyScore: 75, weeklyScore: 75 });
 
     try {
-      // Save profile to Firestore / Local cache
+      // Save profile to Supabase / Local cache
       await saveUserProfile(userId, profileData);
       await saveEcosystemState(userId, ecoStore);
     } catch (err) {

@@ -152,6 +152,9 @@ export const useStore = create((set, get) => ({
     useEcosystemStore.getState().addXP(50);
     return { foodLogs: [logItem, ...state.foodLogs] };
   }),
+  updateFoodLog: (logId, updatedData) => set((state) => ({
+    foodLogs: state.foodLogs.map(x => (x.id === logId || x.timestamp === logId) ? { ...x, ...updatedData } : x)
+  })),
   deleteFoodLog: (logId) => set((state) => ({
     foodLogs: state.foodLogs.filter((x) => x.id !== logId && x.timestamp !== logId)
   })),
@@ -162,6 +165,12 @@ export const useStore = create((set, get) => ({
     useEcosystemStore.getState().addXP(100);
     return { workoutLogs: [workout, ...state.workoutLogs] };
   }),
+  updateWorkoutLog: (logId, updatedData) => set((state) => ({
+    workoutLogs: state.workoutLogs.map(x => (x.id === logId || x.timestamp === logId) ? { ...x, ...updatedData } : x)
+  })),
+  deleteWorkoutLog: (logId) => set((state) => ({
+    workoutLogs: state.workoutLogs.filter((x) => x.id !== logId && x.timestamp !== logId)
+  })),
 
   setWeightLogs: (weightLogs) => set({ weightLogs }),
   addWeightLog: (entry) => set((state) => {

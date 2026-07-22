@@ -170,14 +170,6 @@ export default function Dashboard({ onNotification }) {
 
         // Fetch AI Health Twin (Background sync)
         syncAIHealthTwin();
-
-        // Fetch Trainer Connection and Assignments
-        const conn = await getUserConnection(userId);
-        setConnection(conn);
-        if (conn && conn.status === 'active') {
-          const assigns = await getUserAssignments(userId);
-          setAssignments(assigns || []);
-        }
       } catch (err) {
         console.error("Dashboard profile/water loading error", err);
         if (onNotification) onNotification("Error loading profile or water intake logs. Please reload.");
@@ -456,85 +448,42 @@ export default function Dashboard({ onNotification }) {
           </div>
         </div>
 
-        {/* ── My Trainer Card ── */}
+        {/* AI Daily Intelligence Card */}
         <div className="glass p-4 sm:p-6 rounded-2xl border border-[var(--card-border)] shadow-md flex flex-col justify-between h-full min-h-[320px]">
           <div>
-            <SectionHeader title="My Trainer" />
-            {connection && connection.status === 'active' ? (
-              <div className="flex flex-col items-center justify-center text-center h-full py-6">
-                <div className="w-20 h-20 rounded-full bg-surface border-2 border-acid-green overflow-hidden flex items-center justify-center mb-4">
-                  {connection.trainer_profiles?.avatar_url ? (
-                    <img src={connection.trainer_profiles.avatar_url} alt="Trainer" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-3xl">👤</span>
-                  )}
+            <SectionHeader title="AI Daily Intelligence" />
+            <div className="space-y-3 mt-4">
+              <div className="p-3.5 bg-surface/80 rounded-xl border border-card-border flex items-start gap-3">
+                <div className="p-2 bg-acid-green/10 text-acid-green rounded-lg shrink-0 mt-0.5">
+                  <Sparkles className="w-4 h-4" />
                 </div>
-                <h3 className="text-lg font-black text-foreground">{connection.trainer_profiles?.full_name}</h3>
-                <p className="text-xs text-muted font-bold tracking-wider uppercase mb-4">{connection.trainer_profiles?.archetype}</p>
-                <button 
-                  onClick={() => navigate('/user/trainer')}
-                  className="w-full py-2 bg-acid-green text-black rounded-xl text-xs font-black uppercase tracking-wider hover:brightness-110 transition-all cursor-pointer"
-                >
-                  Message Trainer
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center text-center h-full py-6">
-                <div className="w-16 h-16 rounded-full bg-surface border border-card-border flex items-center justify-center mb-4 opacity-60">
-                  <span className="text-2xl">🤝</span>
+                <div>
+                  <div className="text-xs font-black text-foreground">Metabolic Target</div>
+                  <p className="text-[11px] text-muted font-medium mt-0.5 leading-snug">
+                    Your daily calorie deficit target is set for optimal fat oxidation. Hydrate consistently today.
+                  </p>
                 </div>
-                <h3 className="text-sm font-bold text-foreground mb-1">No Active Trainer</h3>
-                <p className="text-xs text-muted mb-4">Get a coach to assign your workouts and nutrition.</p>
-                <button 
-                  onClick={() => navigate('/user/trainer')}
-                  className="px-6 py-2 border border-acid-green text-acid-green rounded-xl text-xs font-black uppercase tracking-wider hover:bg-acid-green hover:text-black transition-all cursor-pointer"
-                >
-                  Find a Trainer
-                </button>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* ── Assigned Plans Card ── */}
-        <div className="glass p-4 sm:p-6 rounded-2xl border border-[var(--card-border)] shadow-md flex flex-col justify-between h-full min-h-[320px]">
-          <div>
-            <SectionHeader title="Assigned Plans" />
-            <div className="space-y-3">
-              {!connection || connection.status !== 'active' ? (
-                 <div className="text-center py-10">
-                   <BookOpen className="w-8 h-8 text-muted mx-auto mb-2 opacity-50" />
-                   <p className="text-xs text-muted font-semibold">Connect with a trainer to receive plans.</p>
-                 </div>
-              ) : assignments.length === 0 ? (
-                <div className="text-center py-10">
-                  <BookOpen className="w-8 h-8 text-muted mx-auto mb-2 opacity-50" />
-                  <p className="text-xs text-muted font-semibold">No plans assigned yet</p>
+              <div className="p-3.5 bg-surface/80 rounded-xl border border-card-border flex items-start gap-3">
+                <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg shrink-0 mt-0.5">
+                  <Zap className="w-4 h-4" />
                 </div>
-              ) : assignments.slice(0, 4).map((a, i) => (
-                <div key={i} className="flex justify-between items-center p-3 bg-surface rounded-xl border border-card-border">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-lg border flex items-center justify-center
-                      ${a.plan_type === 'workout_plan' ? 'bg-acid-green/10 border-acid-green/20' : 'bg-orange/10 border-orange/20'}
-                    `}>
-                      {a.plan_type === 'workout_plan' ? <Dumbbell className="w-4 h-4 text-acid-green" /> : <Utensils className="w-4 h-4 text-orange" />}
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-foreground truncate max-w-[120px]">{a.plan_type === 'workout_plan' ? 'Workout Plan' : 'Nutrition Plan'}</div>
-                      <div className="text-[10px] text-muted font-medium mt-0.5">
-                        {a.due_date ? `Due: ${new Date(a.due_date).toLocaleDateString()}` : 'No due date'}
-                      </div>
-                    </div>
-                  </div>
-                  <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${
-                    a.status === 'completed' ? 'bg-acid-green/20 text-acid-green' : 'bg-surface border border-card-border text-muted'
-                  }`}>
-                    {a.status}
-                  </span>
+                <div>
+                  <div className="text-xs font-black text-foreground">Recovery & Readiness</div>
+                  <p className="text-[11px] text-muted font-medium mt-0.5 leading-snug">
+                    Muscle recovery score is 92%. Excellent condition for upper body power or HIIT training.
+                  </p>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
+          <button 
+            onClick={() => navigate('/user/ai')}
+            className="w-full py-2.5 mt-4 bg-acid-green/10 hover:bg-acid-green/20 text-acid-green border border-acid-green/30 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
+          >
+            Open AI Workspace →
+          </button>
         </div>
 
         {/* ── Today's Summary Card (Spans 2 columns on desktop) ── */}
@@ -569,17 +518,17 @@ export default function Dashboard({ onNotification }) {
             </h3>
             
             <div className="flex gap-4 items-center mb-4">
-              <div className="relative w-16 h-36 bg-surface border border-card-border rounded-2xl overflow-hidden shadow-inner flex flex-col justify-end">
+              <div className="relative w-16 h-36 border-2 border-cyan-400/40 bg-black/40 rounded-2xl overflow-hidden shadow-[0_0_15px_rgba(6,182,212,0.2)] flex flex-col justify-end">
                 <motion.div
                   initial={{ height: 0 }}
                   animate={{ height: `${waterPct}%` }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
-                  className="w-full rounded-b-xl animate-water"
-                  style={{
-                    background: 'linear-gradient(to top, var(--blue-theme), var(--color-blue))',
-                  }}
-                />
-                <div className="absolute inset-0 flex items-center justify-center text-center font-black text-xs text-foreground drop-shadow-sm select-none">
+                  transition={{ duration: 1, ease: [0.34, 1.56, 0.64, 1] }}
+                  className="w-full relative bg-gradient-to-t from-blue-700 via-cyan-500 to-cyan-400"
+                >
+                  <div className="absolute -top-2 left-0 w-[200%] h-4 bg-cyan-300/50 rounded-[40%] animate-liquid-wave-1 pointer-events-none" />
+                  <div className="absolute bottom-1 left-3 w-1.5 h-1.5 rounded-full bg-white/60 animate-bubble-1" />
+                </motion.div>
+                <div className="absolute inset-0 flex items-center justify-center text-center font-black text-xs text-white drop-shadow-md select-none z-10">
                   {Math.round(waterPct)}%
                 </div>
               </div>

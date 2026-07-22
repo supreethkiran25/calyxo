@@ -22,11 +22,7 @@ export default function LandingPage() {
   const [isScrolled, setIsScrolled] = useState(false);
 
   const goToDashboard = () => {
-    if (userProfile?.role === 'trainer') {
-      navigate('/trainer/dashboard');
-    } else {
-      navigate('/user/dashboard');
-    }
+    navigate('/user/dashboard');
   };
 
   const openAuth = (mode) => {

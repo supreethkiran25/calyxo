@@ -37,8 +37,8 @@ export default function ProgressUploadModal() {
     setIsSaving(true);
     
     try {
-      // Simulate API/Firestore call for now
-      // Here you would upload `photo` to Firebase Storage and save the metrics to Firestore
+      // Simulate API call for now
+      // Here you would upload `photo` to Cloud Storage and save metrics to database
       await new Promise(resolve => setTimeout(resolve, 1200));
       
       addXP(100); 

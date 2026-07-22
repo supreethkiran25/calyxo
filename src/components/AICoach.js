@@ -96,7 +96,7 @@ export default function AICoach({ onNotification, autoFocus = false }) {
           await saveEcosystemState(userId, useEcosystemStore.getState());
           if (onNotification) onNotification("AI Program Plan generated successfully! 🤖");
         } catch (dbErr) {
-          console.error("Failed to sync AI plan to Firestore", dbErr);
+          console.error("Failed to sync AI plan to database", dbErr);
           if (onNotification) onNotification("AI Plan generated but failed to sync online.");
         }
       } else {

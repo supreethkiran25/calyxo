@@ -15,7 +15,6 @@ import MobileDrawerMenu from '../components/MobileDrawerMenu';
 // Quick Action Modals
 import WorkoutLoggerModal from '../components/modals/WorkoutLoggerModal';
 import MealLoggerModal from '../components/modals/MealLoggerModal';
-import FoodScannerModal from '../components/modals/FoodScannerModal';
 import ProgressUploadModal from '../components/modals/ProgressUploadModal';
 import AIChatModal from '../components/modals/AIChatModal';
 import WaterLoggerModal from '../components/modals/WaterLoggerModal';
@@ -47,7 +46,6 @@ const DESKTOP_NAV = [
     group: 'ACCOUNT',
     items: [
       { id: 'profile', href: '/user/profile', label: 'Profile', icon: User },
-      { id: 'trainer', href: '/user/trainer', label: 'My Coach', icon: Users },
     ]
   },
   {
@@ -234,7 +232,6 @@ export default function UserLayout() {
       {/* Create Hub Modals */}
       <WorkoutLoggerModal />
       <MealLoggerModal />
-      <FoodScannerModal />
       <ProgressUploadModal />
       <AIChatModal />
       <WaterLoggerModal />

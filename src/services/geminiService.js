@@ -87,18 +87,24 @@ function findFewShotExamples(queryText, logs) {
 
 // Secure proxy helper function
 async function callGeminiAPI(model, payload) {
-  const response = await fetch('/api/gemini', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model, payload })
-  });
+  const apiKey = (typeof process !== 'undefined' && process.env?.VITE_GEMINI_API_KEY) || 
+                 (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY);
   
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error?.message || "Gemini server request failed.");
+  if (apiKey) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      throw new Error(`Gemini API request failed: ${res.statusText}`);
+    }
+    return await res.json();
   }
-  
-  return await response.json();
+
+  // Graceful fallback for local dev when backend proxy is not present
+  throw new Error("Local AI twin mode (No remote API key set)");
 }
 
 // =====================================================================

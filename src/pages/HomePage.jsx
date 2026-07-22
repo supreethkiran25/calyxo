@@ -6,7 +6,6 @@ import { useNavigate } from 'react-router-dom';
 import LaunchScreen from '../components/LaunchScreen';
 import LandingPage from '../components/LandingPage';
 import OnboardingFlow from '../components/OnboardingFlow';
-import RoleSelection from '../components/RoleSelection';
 
 export default function HomePage() {
   const [loading, setLoading] = useState(true);
@@ -21,7 +20,6 @@ export default function HomePage() {
   useEffect(() => {
     initializeTheme();
     
-    // Global Auth Subscription
     const unsubscribe = subscribeToAuth(async (authUser) => {
       setUser(authUser);
       if (authUser) {
@@ -37,25 +35,35 @@ export default function HomePage() {
     return () => unsubscribe();
   }, [setUser, initializeTheme, setUserProfile]);
 
-  const handleRoleSelected = async (role) => {
+  const handleOnboardingComplete = async (onboardingData) => {
     try {
-      const isOnboarded = role === 'trainer';
-      const updatedProfile = { ...userProfile, role, onboarded: isOnboarded };
+      const updatedProfile = { 
+        ...userProfile, 
+        ...onboardingData, 
+        onboarded: true, 
+        role: 'user' 
+      };
       await saveUserProfile(user.uid || user.id, updatedProfile);
       setUserProfile(updatedProfile);
-      
-      if (role === 'trainer') {
-        navigate('/trainer/dashboard');
-      }
+      navigate('/user/dashboard');
     } catch (err) {
-      console.error("Failed to save role", err);
-      throw err;
+      console.error("Failed to save onboarding data:", err);
     }
   };
 
-  // 1. Loading State
-  if (loading) return <LaunchScreen isLoading={loading} />;
+  if (loading) {
+    return <LaunchScreen isLoading={true} />;
+  }
 
-  // 2. Render Landing Page at root /
+  // If user is authenticated
+  if (user) {
+    if (!userProfile?.onboarded) {
+      return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+    }
+    navigate('/user/dashboard');
+    return <LaunchScreen isLoading={false} />;
+  }
+
+  // Guest view
   return <LandingPage />;
 }

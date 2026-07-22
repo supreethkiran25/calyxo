@@ -28,7 +28,6 @@ import BackgroundEffects from '../components/BackgroundEffects';
 import QuickActionsSheet from '../components/QuickActionsSheet';
 import WorkoutLoggerModal from '../components/modals/WorkoutLoggerModal';
 import MealLoggerModal from '../components/modals/MealLoggerModal';
-import FoodScannerModal from '../components/modals/FoodScannerModal';
 import ProgressUploadModal from '../components/modals/ProgressUploadModal';
 import AIChatModal from '../components/modals/AIChatModal';
 import GlobalSearch from '../components/GlobalSearch';
@@ -54,14 +53,12 @@ function TabSkeleton() {
 }
 
 const Dashboard = lazy(() => import('../components/Dashboard'));
-const TrainerDashboard = lazy(() => import('../components/TrainerDashboard'));
 const FoodTracker = lazy(() => import('../components/FoodTracker'));
 const WorkoutLogger = lazy(() => import('../components/WorkoutLogger'));
 const AICoach = lazy(() => import('../components/AICoach'));
 const UserProfile = lazy(() => import('../components/UserProfile'));
 const Progress = lazy(() => import('../components/Progress'));
 const HealthHub = lazy(() => import('../components/HealthHub'));
-const TrainerConnect = lazy(() => import('../components/TrainerConnect'));
 
 const DESKTOP_NAV = [
   {
@@ -274,7 +271,6 @@ export default function UserPortal() {
       {/* Create Hub Modals */}
       <WorkoutLoggerModal />
       <MealLoggerModal />
-      <FoodScannerModal />
       <ProgressUploadModal />
       <AIChatModal />
       <MobileDrawerMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
@@ -426,15 +422,12 @@ export default function UserPortal() {
             >
               <Suspense fallback={<TabSkeleton />}>
                 {activeTab === 'dashboard' && <Dashboard onNotification={showNotification} />}
-                {activeTab === 'trainer' && <TrainerDashboard userId={user?.id || user?.uid} />}
                 {activeTab === 'coach' && <AICoach onNotification={showNotification} />}
                 {activeTab === 'ai' && <AIWorkspace onNotification={showNotification} />}
                 {activeTab === 'healthhub' && <HealthHub onNotification={showNotification} />}
                 {activeTab === 'nutrition' && <FoodTracker onNotification={showNotification} />}
                 {activeTab === 'workout' && <WorkoutLogger onNotification={showNotification} />}
                 {activeTab === 'progress' && <Progress />}
-                {activeTab === 'trainer_connect' && <TrainerConnect />}
-
                 {activeTab === 'profile' && <UserProfile />}
               </Suspense>
             </motion.div>

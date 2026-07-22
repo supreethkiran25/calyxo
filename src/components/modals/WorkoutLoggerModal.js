@@ -1,61 +1,283 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Dumbbell, Clock, Flame, Save, RefreshCw } from 'lucide-react';
+import { X, Plus, Dumbbell, Clock, Flame, Save, RefreshCw, Search } from 'lucide-react';
 import useQuickActionsStore from '../../store/useQuickActionsStore';
 import { useEcosystemStore } from '../../store/useEcosystemStore';
+import { useStore } from '../../store/useStore';
 import { addWorkoutLog, getCurrentUserId } from '../../lib/dbService';
+import exercisesData from '../../lib/exercises.json';
+
+// Smart multi-tier exercise image & GIF resolver
+export const getExerciseImage = (item) => {
+  if (!item) return 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&auto=format&fit=crop&q=80';
+
+  if (item.gif_url && typeof item.gif_url === 'string' && item.gif_url.startsWith('http')) return item.gif_url;
+  if (item.image && typeof item.image === 'string' && item.image.startsWith('http')) return item.image;
+
+  if (item.id) {
+    const cleanId = String(item.id).padStart(4, '0');
+    return `https://v2.exercisedb.io/image/${cleanId}`;
+  }
+
+  const name = (item.name || '').toLowerCase();
+  const target = (item.target || item.body_part || '').toLowerCase();
+
+  if (name.includes('incline') && name.includes('barbell'))
+    return 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&auto=format&fit=crop&q=80';
+  if (name.includes('incline') && name.includes('dumbbell'))
+    return 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&auto=format&fit=crop&q=80';
+  if (name.includes('incline') && name.includes('fly'))
+    return 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&auto=format&fit=crop&q=80';
+  if (name.includes('close grip'))
+    return 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&auto=format&fit=crop&q=80';
+  if (name.includes('reverse'))
+    return 'https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?w=400&auto=format&fit=crop&q=80';
+  if (name.includes('squat'))
+    return 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=400&auto=format&fit=crop&q=80';
+  if (name.includes('deadlift'))
+    return 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&auto=format&fit=crop&q=80';
+  if (name.includes('pull') || name.includes('row'))
+    return 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=400&auto=format&fit=crop&q=80';
+  if (name.includes('curl') || name.includes('bicep'))
+    return 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&auto=format&fit=crop&q=80';
+  if (name.includes('shoulder') || name.includes('press'))
+    return 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=400&auto=format&fit=crop&q=80';
+
+  if (target.includes('chest')) return 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&auto=format&fit=crop&q=80';
+  if (target.includes('back')) return 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=400&auto=format&fit=crop&q=80';
+  if (target.includes('leg')) return 'https://images.unsplash.com/photo-1434596922112-19c563067271?w=400&auto=format&fit=crop&q=80';
+
+  return 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&auto=format&fit=crop&q=80';
+};
+
+// Fallback image generator based on string hash
+const getDistinctFallback = (nameStr) => {
+  const photos = [
+    'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?w=400&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=400&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=400&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=400&auto=format&fit=crop&q=80'
+  ];
+  let hash = 0;
+  for (let i = 0; i < (nameStr || '').length; i++) {
+    hash = (nameStr.charCodeAt(i) + (hash << 5) - hash);
+  }
+  const idx = Math.abs(hash) % photos.length;
+  return photos[idx];
+};
+
+// Fuzzy match algorithm for typos like "inclince" vs "incline"
+const isFuzzyMatch = (searchToken, textWord) => {
+  const s = searchToken.toLowerCase();
+  const t = textWord.toLowerCase();
+  if (t.includes(s) || s.includes(t)) return true;
+  
+  if (Math.abs(s.length - t.length) > 3) return false;
+  
+  let diff = 0;
+  let i = 0, j = 0;
+  while (i < s.length && j < t.length) {
+    if (s[i] !== t[j]) {
+      diff++;
+      if (diff > 2) return false;
+    }
+    i++;
+    j++;
+  }
+  return true;
+};
+
+const POPULAR_ROUTINES = [
+  "Push Day (Chest, Shoulders & Triceps)",
+  "Pull Day (Back, Biceps & Rear Delts)",
+  "Leg Day (Quads, Hamstrings & Calves)",
+  "Upper Body Power Routine",
+  "Full Body HIIT & Conditioning"
+];
 
 export default function WorkoutLoggerModal() {
   const { activeWorkflow, closeWorkflow } = useQuickActionsStore();
   const { addXP, updateStreaks } = useEcosystemStore();
-  
+  const addWorkoutLogStore = useStore(state => state.addWorkoutLog);
+  const workoutNameInputRef = useRef(null);
+
   const [workoutName, setWorkoutName] = useState('');
   const [exercises, setExercises] = useState([]);
   const [duration, setDuration] = useState(45);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Top search suggestions
+  const [showTopDropdown, setShowTopDropdown] = useState(false);
+  const [topSearchMatches, setTopSearchMatches] = useState([]);
+  const topDropdownRef = useRef(null);
+
+  // Exercise row autocomplete state
+  const [activeExIdSearch, setActiveExIdSearch] = useState(null);
+  const [exerciseSuggestions, setExerciseSuggestions] = useState([]);
+
+  useEffect(() => {
+    if (activeWorkflow === 'log_workout') {
+      if (exercises.length === 0) {
+        setExercises([{ id: Date.now(), name: '', sets: 3, reps: 10, weight: 0, category: 'Strength' }]);
+      }
+      if (workoutNameInputRef.current) {
+        setTimeout(() => workoutNameInputRef.current?.focus(), 100);
+      }
+    }
+  }, [activeWorkflow]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (topDropdownRef.current && !topDropdownRef.current.contains(e.target)) {
+        setShowTopDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   if (activeWorkflow !== 'log_workout') return null;
 
-  const handleAddExercise = () => {
-    setExercises([...exercises, { id: Date.now(), name: '', sets: 3, reps: 10, weight: 0 }]);
+  // Typo-tolerant multi-word search matching (handles "inclince" -> "incline")
+  const matchExercise = (exItem, tokens) => {
+    const words = `${exItem.name} ${exItem.body_part || ''} ${exItem.target || ''} ${exItem.equipment || ''} ${exItem.category || ''}`
+      .toLowerCase()
+      .split(/[\s\-_,()]+/);
+      
+    const fullText = words.join(' ');
+
+    return tokens.every(token => {
+      if (fullText.includes(token)) return true;
+      return words.some(w => isFuzzyMatch(token, w));
+    });
   };
 
+  // Search in "SEARCH ROUTINE OR EXERCISE NAME" box
+  const handleTopSearchChange = (val) => {
+    setWorkoutName(val);
+    const q = val.toLowerCase().trim();
+    if (!q) {
+      setTopSearchMatches([]);
+      setShowTopDropdown(false);
+      return;
+    }
+
+    const tokens = q.split(/\s+/).filter(Boolean);
+
+    // Routine matches
+    const routineMatches = POPULAR_ROUTINES.filter(r =>
+      tokens.every(token => {
+        const rLower = r.toLowerCase();
+        return rLower.includes(token) || rLower.split(/\s+/).some(w => isFuzzyMatch(token, w));
+      })
+    ).map(r => ({
+      type: 'routine',
+      name: r
+    }));
+
+    // Full Exercise Dataset matches with typo tolerance
+    const exMatches = exercisesData.filter(x => matchExercise(x, tokens)).slice(0, 8).map(x => ({
+      type: 'exercise',
+      ...x
+    }));
+
+    const combined = [...routineMatches, ...exMatches];
+    setTopSearchMatches(combined);
+    setShowTopDropdown(combined.length > 0);
+  };
+
+  const selectTopSearchMatch = (item) => {
+    if (item.type === 'routine') {
+      setWorkoutName(item.name);
+    } else {
+      setWorkoutName(prev => prev || item.name);
+      setExercises(prev => {
+        if (prev.length === 1 && !prev[0].name) {
+          return [{ id: prev[0].id, name: item.name, sets: 3, reps: 10, weight: 0, category: item.category || 'Strength' }];
+        }
+        return [...prev, { id: Date.now(), name: item.name, sets: 3, reps: 10, weight: 0, category: item.category || 'Strength' }];
+      });
+    }
+    setShowTopDropdown(false);
+  };
+
+  const handleAddExercise = () => {
+    const newId = Date.now();
+    setExercises([...exercises, { id: newId, name: '', sets: 3, reps: 10, weight: 0, category: 'Strength' }]);
+    setActiveExIdSearch(null);
+    setExerciseSuggestions([]);
+  };
+
+  // Search in Exercise row input
   const handleUpdateExercise = (id, field, value) => {
     setExercises(exercises.map(ex => ex.id === id ? { ...ex, [field]: value } : ex));
+    if (field === 'name') {
+      const q = value.toLowerCase().trim();
+      if (!q) {
+        setExerciseSuggestions([]);
+        setActiveExIdSearch(null);
+      } else {
+        const tokens = q.split(/\s+/).filter(Boolean);
+        const matches = exercisesData.filter(x => matchExercise(x, tokens)).slice(0, 8);
+        setExerciseSuggestions(matches);
+        setActiveExIdSearch(id);
+      }
+    }
+  };
+
+  const selectExerciseSuggestion = (exId, suggestedEx) => {
+    setExercises(exercises.map(ex => ex.id === exId ? {
+      ...ex,
+      name: suggestedEx.name,
+      category: suggestedEx.category || 'Strength'
+    } : ex));
+    setActiveExIdSearch(null);
+    setExerciseSuggestions([]);
   };
 
   const handleRemoveExercise = (id) => {
     setExercises(exercises.filter(ex => ex.id !== id));
+    if (activeExIdSearch === id) {
+      setActiveExIdSearch(null);
+    }
   };
 
   const handleSave = async () => {
-    if (!workoutName || exercises.length === 0) return;
+    const validExercises = exercises.filter(ex => ex.name.trim().length > 0);
+    if (validExercises.length === 0) return;
     
-    const uid = getCurrentUserId();
-    if (!uid) {
-      console.error("No user ID found.");
-      return;
-    }
-
+    const uid = await getCurrentUserId();
     setIsSaving(true);
     
     try {
-      const workoutData = {
-        name: workoutName,
-        duration,
-        calories: Math.round(duration * 7.5),
-        exercises
-      };
+      const logPromises = validExercises.map(ex => {
+        const workoutData = {
+          name: ex.name.trim() || workoutName.trim() || "Workout Exercise",
+          category: ex.category || 'Strength',
+          sets: Number(ex.sets) || 1,
+          reps: Number(ex.reps) || 10,
+          weight: Number(ex.weight) || 0,
+          duration: Number(duration) || 30,
+          timestamp: Date.now()
+        };
+        return addWorkoutLog(uid, workoutData);
+      });
 
-      await addWorkoutLog(uid, workoutData);
+      const savedLogs = await Promise.all(logPromises);
+      savedLogs.forEach(saved => {
+        if (saved) addWorkoutLogStore(saved);
+      });
       
-      // Update ecosystem store
-      addXP(150); // Award XP for logging workout
+      addXP(150);
       updateStreaks();
       
-      // Close modal
+      setWorkoutName('');
+      setExercises([]);
       closeWorkflow();
-      
     } catch (error) {
       console.error("Error saving workout:", error);
     } finally {
@@ -75,16 +297,16 @@ export default function WorkoutLoggerModal() {
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
+          exit={{ opacity: 0, scale: 1 }}
           className="relative w-full max-w-2xl bg-surface border border-card-border rounded-3xl p-6 shadow-2xl flex flex-col max-h-[90vh]"
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-              <Dumbbell className="w-5 h-5 text-blue-500" /> Log Workout
+              <Dumbbell className="w-5 h-5 text-blue-500" /> Log Workout Session
             </h2>
             <button 
               onClick={closeWorkflow}
-              className="p-2 rounded-full bg-[var(--input)] text-muted hover:text-foreground transition-colors"
+              className="p-2 rounded-full bg-[var(--input)] text-muted hover:text-foreground transition-colors cursor-pointer border-none"
             >
               <X className="w-5 h-5" />
             </button>
@@ -92,29 +314,91 @@ export default function WorkoutLoggerModal() {
 
           <div className="overflow-y-auto flex-1 pr-2 custom-scrollbar space-y-6">
             
-            {/* Basic Info */}
+            {/* Top Search Input: Handles Typos (e.g. inclince -> incline) */}
             <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-muted uppercase tracking-wider mb-1.5 block">Workout Name</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Upper Body Power" 
-                  value={workoutName}
-                  onChange={(e) => setWorkoutName(e.target.value)}
-                  className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-blue-500 text-sm shadow-inner"
-                />
+              <div ref={topDropdownRef} className="relative">
+                <label className="text-xs font-bold text-muted uppercase tracking-wider mb-1.5 block">
+                  Search Routine or Exercise Name
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                  <input 
+                    ref={workoutNameInputRef}
+                    type="text" 
+                    placeholder="Type exercise (e.g. Incline Dumbbell Press, Squat)..." 
+                    value={workoutName}
+                    onChange={(e) => handleTopSearchChange(e.target.value)}
+                    className="w-full bg-[var(--input)] text-foreground border border-card-border pl-10 pr-3 py-2.5 rounded-xl focus:outline-none focus:border-blue-500 text-sm shadow-inner font-bold"
+                  />
+                </div>
+
+                {/* Top Search Matches */}
+                <AnimatePresence>
+                  {showTopDropdown && topSearchMatches.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute top-full left-0 right-0 mt-1 bg-surface border border-card-border rounded-2xl shadow-2xl z-50 overflow-hidden max-h-64 overflow-y-auto"
+                    >
+                      <div className="px-3 py-1.5 bg-surface/80 border-b border-card-border text-[9px] font-black uppercase tracking-wider text-muted flex justify-between">
+                        <span>Exercise Dataset Matches (Click to Add)</span>
+                        <span className="text-blue-400">Library Previews</span>
+                      </div>
+                      {topSearchMatches.map((item, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => selectTopSearchMatch(item)}
+                          className="px-3.5 py-2.5 hover:bg-blue-500/10 hover:text-blue-400 cursor-pointer flex justify-between items-center text-xs border-b border-card-border/40 last:border-b-0 group/item"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            {item.type === 'exercise' ? (
+                              <img 
+                                src={getExerciseImage(item)} 
+                                alt={item.name} 
+                                className="w-11 h-11 rounded-lg object-cover border border-card-border shrink-0 bg-black/30"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = getDistinctFallback(item.name);
+                                }}
+                              />
+                            ) : (
+                              <div className="w-11 h-11 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center shrink-0 text-blue-400 font-bold">
+                                🏋️
+                              </div>
+                            )}
+
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-bold text-foreground truncate group-hover/item:text-blue-400">{item.name}</span>
+                              <span className="text-[9.5px] text-muted truncate font-medium">
+                                {item.type === 'exercise' ? `Target: ${item.target || item.body_part || 'Full Body'} (${item.category || 'Strength'})` : 'Workout Routine'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <span className="text-[9px] text-blue-500 font-extrabold uppercase shrink-0 ml-2 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-md">
+                            {item.type === 'exercise' ? '+ Add' : 'Select'}
+                          </span>
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-muted uppercase tracking-wider mb-1.5 block flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> Duration (min)
+                    <Clock className="w-3 h-3 text-blue-400" /> Duration (min)
                   </label>
                   <input 
                     type="number" 
                     value={duration}
-                    onChange={(e) => setDuration(Number(e.target.value))}
-                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-blue-500 text-sm shadow-inner"
+                    onChange={(e) => {
+                      const clean = e.target.value.replace(/^0+(?=\d)/, '');
+                      setDuration(clean === '' ? '' : Number(clean));
+                    }}
+                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-blue-500 text-sm shadow-inner font-bold"
                   />
                 </div>
                 <div>
@@ -124,8 +408,8 @@ export default function WorkoutLoggerModal() {
                   <input 
                     type="number" 
                     disabled
-                    value={Math.round(duration * 7.5)} // Rough estimation
-                    className="w-full bg-[var(--input)]/50 text-muted border border-card-border px-3 py-2 rounded-xl text-sm shadow-inner cursor-not-allowed"
+                    value={Math.round(duration * 7.5)}
+                    className="w-full bg-[var(--input)]/50 text-muted border border-card-border px-3 py-2 rounded-xl text-sm shadow-inner cursor-not-allowed font-bold"
                   />
                 </div>
               </div>
@@ -135,73 +419,129 @@ export default function WorkoutLoggerModal() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-foreground">Exercises</h3>
+                <span className="text-[10px] text-muted font-bold">Search any exercise with image preview</span>
               </div>
               
-              {exercises.length === 0 ? (
-                <div className="text-center py-8 border border-dashed border-card-border rounded-xl bg-surface/30">
-                  <Dumbbell className="w-8 h-8 text-muted mx-auto mb-2 opacity-50" />
-                  <p className="text-xs text-muted font-medium">No exercises added yet.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {exercises.map((ex, index) => (
-                    <div key={ex.id} className="p-3 border border-card-border rounded-xl bg-surface/50 space-y-3 relative group">
+              <div className="space-y-4">
+                {exercises.map((ex, index) => (
+                  <div key={ex.id} className="p-3.5 border border-card-border rounded-2xl bg-surface/50 space-y-3 relative group">
+                    {exercises.length > 1 && (
                       <button 
                         onClick={() => handleRemoveExercise(ex.id)}
-                        className="absolute right-2 top-2 p-1 rounded-full bg-destructive/10 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute right-3 top-3 p-1 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer border-none"
+                        title="Remove Exercise"
                       >
-                        <X className="w-3 h-3" />
+                        <X className="w-3.5 h-3.5" />
                       </button>
-                      
-                      <div>
+                    )}
+                    
+                    <div className="relative">
+                      <label className="text-[9px] font-bold text-muted uppercase block mb-1">
+                        Exercise #{index + 1} Name
+                      </label>
+                      <div className="relative flex items-center">
+                        <Search className="absolute left-2.5 w-3.5 h-3.5 text-muted" />
                         <input 
                           type="text" 
-                          placeholder="Exercise Name (e.g. Bench Press)" 
+                          placeholder="Type exercise name (Incline Bench, Squat, Curl)..." 
                           value={ex.name}
                           onChange={(e) => handleUpdateExercise(ex.id, 'name', e.target.value)}
-                          className="w-full bg-transparent text-foreground border-b border-card-border/50 px-1 py-1 focus:outline-none focus:border-blue-500 text-sm font-bold"
+                          className="w-full bg-[var(--input)] text-foreground border border-card-border pl-8 pr-3 py-2 rounded-xl focus:outline-none focus:border-blue-500 text-xs font-bold shadow-inner"
                         />
                       </div>
-                      
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <label className="text-[9px] font-bold text-muted uppercase block mb-1">Sets</label>
-                          <input 
-                            type="number" 
-                            value={ex.sets}
-                            onChange={(e) => handleUpdateExercise(ex.id, 'sets', Number(e.target.value))}
-                            className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-blue-500 text-xs"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[9px] font-bold text-muted uppercase block mb-1">Reps</label>
-                          <input 
-                            type="number" 
-                            value={ex.reps}
-                            onChange={(e) => handleUpdateExercise(ex.id, 'reps', Number(e.target.value))}
-                            className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-blue-500 text-xs"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[9px] font-bold text-muted uppercase block mb-1">Weight (lbs)</label>
-                          <input 
-                            type="number" 
-                            value={ex.weight}
-                            onChange={(e) => handleUpdateExercise(ex.id, 'weight', Number(e.target.value))}
-                            className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-blue-500 text-xs"
-                          />
-                        </div>
+
+                      {/* Exercise Row Suggestions Dropdown */}
+                      <AnimatePresence>
+                        {activeExIdSearch === ex.id && exerciseSuggestions.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute top-full left-0 right-0 mt-1 bg-surface border border-card-border rounded-2xl shadow-2xl z-50 overflow-hidden max-h-60 overflow-y-auto"
+                          >
+                            <div className="px-3 py-1.5 bg-surface/80 border-b border-card-border text-[9px] font-black uppercase tracking-wider text-muted">
+                              Exercise Library Matches (Image Preview)
+                            </div>
+                            {exerciseSuggestions.map((item, idx) => (
+                              <div
+                                key={idx}
+                                onClick={() => selectExerciseSuggestion(ex.id, item)}
+                                className="px-3 py-2.5 hover:bg-blue-500/10 hover:text-blue-400 cursor-pointer flex justify-between items-center text-xs border-b border-card-border/40 last:border-b-0 group/item"
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <img 
+                                    src={getExerciseImage(item)} 
+                                    alt={item.name} 
+                                    className="w-11 h-11 rounded-lg object-cover border border-card-border shrink-0 bg-black/30"
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.src = getDistinctFallback(item.name);
+                                    }}
+                                  />
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="font-bold text-foreground truncate group-hover/item:text-blue-400">{item.name}</span>
+                                    <span className="text-[9.5px] text-muted truncate font-medium">
+                                      Target: {item.target || item.body_part || 'Full Body'} ({item.category || 'Strength'})
+                                    </span>
+                                  </div>
+                                </div>
+                                <span className="text-[9px] text-blue-500 font-extrabold uppercase shrink-0 ml-2 bg-blue-500/10 border border-blue-500/20 px-2 py-1 rounded-md">
+                                  Select
+                                </span>
+                              </div>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-[9px] font-bold text-muted uppercase block mb-1">Sets</label>
+                        <input 
+                          type="number" 
+                          value={ex.sets}
+                          onChange={(e) => {
+                            const clean = e.target.value.replace(/^0+(?=\d)/, '');
+                            handleUpdateExercise(ex.id, 'sets', clean === '' ? '' : Number(clean));
+                          }}
+                          className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-blue-500 text-xs font-bold text-center"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-bold text-muted uppercase block mb-1">Reps</label>
+                        <input 
+                          type="number" 
+                          value={ex.reps}
+                          onChange={(e) => {
+                            const clean = e.target.value.replace(/^0+(?=\d)/, '');
+                            handleUpdateExercise(ex.id, 'reps', clean === '' ? '' : Number(clean));
+                          }}
+                          className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-blue-500 text-xs font-bold text-center"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-bold text-muted uppercase block mb-1">Weight (kg)</label>
+                        <input 
+                          type="number" 
+                          value={ex.weight}
+                          onChange={(e) => {
+                            const clean = e.target.value.replace(/^0+(?=\d)/, '');
+                            handleUpdateExercise(ex.id, 'weight', clean === '' ? '' : Number(clean));
+                          }}
+                          className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-blue-500 text-xs font-bold text-center"
+                        />
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
               
               <button 
                 onClick={handleAddExercise}
-                className="w-full py-2.5 border border-dashed border-blue-500/50 hover:border-blue-500 bg-blue-500/5 hover:bg-blue-500/10 text-blue-500 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                className="w-full py-3 border border-dashed border-blue-500/50 hover:border-blue-500 bg-blue-500/5 hover:bg-blue-500/10 text-blue-500 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
-                <Plus className="w-4 h-4" /> Add Exercise
+                <Plus className="w-4 h-4" /> Add Another Exercise
               </button>
             </div>
             
@@ -210,8 +550,8 @@ export default function WorkoutLoggerModal() {
           <div className="pt-4 border-t border-card-border mt-2">
             <button 
               onClick={handleSave}
-              disabled={isSaving || !workoutName || exercises.length === 0}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              disabled={isSaving || exercises.filter(e => e.name.trim()).length === 0}
+              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-colors cursor-pointer border-none shadow-lg"
             >
               {isSaving ? (
                 <>
@@ -219,7 +559,7 @@ export default function WorkoutLoggerModal() {
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4" /> Save Workout
+                  <Save className="w-4 h-4" /> Save Workout Session Log
                 </>
               )}
             </button>

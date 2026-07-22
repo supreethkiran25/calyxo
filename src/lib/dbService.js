@@ -176,7 +176,7 @@ export const signUpUser = async (email, password, remember = true) => {
   }
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) throw error;
-  // Shim for firebase `.uid` convention in legacy code
+  // Shim for .uid property convention compatibility
   if (data.user) {
     data.user.uid = data.user.id;
   }
@@ -358,6 +358,21 @@ export const deleteFoodLog = async (userId, logId) => {
   }
 };
 
+export const updateFoodLog = async (userId, logId, updatedItem) => {
+  const state = getLocalState(userId);
+  state.foodLogs = state.foodLogs.map(x => (x.id === logId || x.timestamp === logId) ? { ...x, ...updatedItem } : x);
+  saveLocalState(userId, state);
+
+  if (isMockMode || !userId) return;
+
+  try {
+    const { error } = await supabase.from("food_logs").update(updatedItem).eq("id", logId);
+    if (error) throw error;
+  } catch (err) {
+    console.error("Supabase updateFoodLog error", err);
+  }
+};
+
 /* ==========================================================================
    WORKOUT LOGGING API
    ========================================================================== */
@@ -384,7 +399,7 @@ export const getWorkoutLogs = async (userId) => {
 };
 
 export const addWorkoutLog = async (userId, workout) => {
-  const logItem = { ...workout, userId, timestamp: Date.now() };
+  const logItem = { ...workout, userId, timestamp: workout.timestamp || Date.now() };
 
   const state = getLocalState(userId);
   state.workoutLogs.push(logItem);
@@ -399,6 +414,36 @@ export const addWorkoutLog = async (userId, workout) => {
   } catch (err) {
     console.error("Supabase addWorkoutLog error", err);
     return logItem;
+  }
+};
+
+export const updateWorkoutLog = async (userId, logId, updatedItem) => {
+  const state = getLocalState(userId);
+  state.workoutLogs = state.workoutLogs.map(x => (x.id === logId || x.timestamp === logId) ? { ...x, ...updatedItem } : x);
+  saveLocalState(userId, state);
+
+  if (isMockMode || !userId) return;
+
+  try {
+    const { error } = await supabase.from("workout_logs").update(updatedItem).eq("id", logId);
+    if (error) throw error;
+  } catch (err) {
+    console.error("Supabase updateWorkoutLog error", err);
+  }
+};
+
+export const deleteWorkoutLog = async (userId, logId) => {
+  const state = getLocalState(userId);
+  state.workoutLogs = state.workoutLogs.filter(x => x.id !== logId && x.timestamp !== logId);
+  saveLocalState(userId, state);
+
+  if (isMockMode || !userId) return;
+
+  try {
+    const { error } = await supabase.from("workout_logs").delete().eq("id", logId);
+    if (error) throw error;
+  } catch (err) {
+    console.error("Supabase deleteWorkoutLog error", err);
   }
 };
 
@@ -894,7 +939,7 @@ export const deleteUserAccount = async (userId) => {
 
   if (!isMockMode) {
     // Note: deleteUser from client requires the user to be recently signed in
-    // Supabase JS client doesn't expose a client-side delete user function like Firebase does.
+    // Supabase JS client doesn't expose a client-side delete user function.
     // Only admin can delete user in Supabase, or use a custom Edge Function.
     // For now, we sign out.
     await supabase.auth.signOut();

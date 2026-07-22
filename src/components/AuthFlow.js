@@ -32,11 +32,7 @@ export default function AuthFlow({ isInitialSignUp = false }) {
     if (authUser) {
       const profile = await getUserProfile(authUser.uid || authUser.id);
       setUserProfile(profile || { onboarded: false });
-      if (profile?.role === 'trainer') {
-        navigate('/trainer/dashboard');
-      } else {
-        navigate('/user/dashboard');
-      }
+      navigate('/user/dashboard');
     }
   };
 

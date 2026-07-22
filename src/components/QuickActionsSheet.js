@@ -11,7 +11,6 @@ export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
   const actions = [
     { id: 'log_workout', label: 'Log Workout', icon: Dumbbell, color: 'text-blue-500', bg: 'bg-blue-500/10', section: 'Health' },
     { id: 'log_meal', label: 'Log Meal', icon: Apple, color: 'text-green-500', bg: 'bg-green-500/10', section: 'Health' },
-    { id: 'scan_food', label: 'Scan Food', icon: ScanLine, color: 'text-orange-500', bg: 'bg-orange-500/10', section: 'Health' },
     { id: 'progress_photo', label: 'Upload Progress', icon: TrendingUp, color: 'text-indigo-500', bg: 'bg-indigo-500/10', section: 'Health' },
     { id: 'log_water', label: 'Log Water', icon: Droplets, color: 'text-cyan-500', bg: 'bg-cyan-500/10', section: 'Health' },
     { id: 'update_weight', label: 'Update Weight', icon: Scale, color: 'text-amber-500', bg: 'bg-amber-500/10', section: 'Health' },
