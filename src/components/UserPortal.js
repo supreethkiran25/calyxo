@@ -190,7 +190,7 @@ export default function UserPortal() {
       await signOutUser();
       resetStore();
       useEcosystemStore.getState().resetEcosystemStore();
-      showNotification("Signed out successfully.");
+      window.location.href = '/';
     }
   };
 

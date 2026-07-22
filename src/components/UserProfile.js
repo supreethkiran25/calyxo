@@ -290,7 +290,7 @@ export default function UserProfile({ onNotification }) {
       await signOutUser();
       resetStore();
       ecoStore.resetEcosystemStore();
-      if (onNotification) onNotification("Signed out successfully.");
+      window.location.href = '/';
     }
   };
 
@@ -1930,13 +1930,39 @@ export default function UserProfile({ onNotification }) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     const computed = calculateMacroTargets({ weight, height, age: ageInput, gender, activity, goal, units });
                     setDailyCalories(computed.calorieGoal);
                     setProteinTarget(computed.protein);
                     setCarbsTarget(computed.carbs);
                     setFatTarget(computed.fat);
-                    if (onNotification) onNotification("Macro targets auto-calculated from your biometrics! 🎯");
+                    // Save immediately with the new computed values
+                    const updatedProfile = {
+                      ...userProfile,
+                      dailyCalories: computed.calorieGoal,
+                      calorieGoal: computed.calorieGoal,
+                      proteinTarget: computed.protein,
+                      protein: computed.protein,
+                      carbs: computed.carbs,
+                      fat: computed.fat,
+                      targetMacros: { protein: computed.protein, carbs: computed.carbs, fat: computed.fat },
+                      bmr: computed.bmr,
+                      tdee: computed.tdee,
+                      weight: Number(weight),
+                      height: Number(height),
+                      age: Number(ageInput),
+                      gender,
+                      activity: Number(activity),
+                      goal,
+                      units
+                    };
+                    updateUserProfile(updatedProfile);
+                    try {
+                      await saveUserProfile(userId, updatedProfile);
+                      if (onNotification) onNotification(`Macro targets calculated & saved! 🎯 ${computed.calorieGoal} kcal | ${computed.protein}g protein`);
+                    } catch (err) {
+                      if (onNotification) onNotification("Macro targets calculated! Click Save to persist.");
+                    }
                   }}
                   className="bg-acid-green text-black px-3 py-1.5 rounded-lg text-[9.5px] font-black uppercase tracking-wider border-none cursor-pointer hover:opacity-90 flex items-center gap-1 shrink-0"
                 >
