@@ -49,7 +49,7 @@ export default function ThreeHealthCore() {
       endColor: "#10b981",
       glow: "#ccff00",
       r: 125,
-      strokeWidth: 10
+      strokeWidth: 12
     },
     {
       id: 'hydration',
@@ -63,8 +63,8 @@ export default function ThreeHealthCore() {
       startColor: "#00f2fe",
       endColor: "#4facfe",
       glow: "#00f2fe",
-      r: 110,
-      strokeWidth: 9.5
+      r: 105,
+      strokeWidth: 11
     },
     {
       id: 'protein',
@@ -78,53 +78,8 @@ export default function ThreeHealthCore() {
       startColor: "#ff4e50",
       endColor: "#f9d423",
       glow: "#ff4e50",
-      r: 96,
-      strokeWidth: 9
-    },
-    {
-      id: 'steps',
-      label: "Steps",
-      raw: totalSteps,
-      target: stepsTarget,
-      unit: "steps",
-      icon: <Footprints className="w-3.5 h-3.5 text-[#b224ef]" />,
-      progress: Math.min(1, Math.max(0, totalSteps / stepsTarget)),
-      gradientId: "grad-steps",
-      startColor: "#b224ef",
-      endColor: "#7579ff",
-      glow: "#b224ef",
-      r: 83,
-      strokeWidth: 8.5
-    },
-    {
-      id: 'sleep',
-      label: "Sleep",
-      raw: sleepHours,
-      target: sleepTarget,
-      unit: "hrs",
-      icon: <Moon className="w-3.5 h-3.5 text-[#00c6ff]" />,
-      progress: Math.min(1, Math.max(0, sleepHours / sleepTarget)),
-      gradientId: "grad-sleep",
-      startColor: "#00c6ff",
-      endColor: "#0072ff",
-      glow: "#00c6ff",
-      r: 71,
-      strokeWidth: 8
-    },
-    {
-      id: 'recovery',
-      label: "Recovery",
-      raw: recoveryScore,
-      target: recoveryTarget,
-      unit: "%",
-      icon: <Activity className="w-3.5 h-3.5 text-[#f857a6]" />,
-      progress: Math.min(1, Math.max(0, recoveryScore / recoveryTarget)),
-      gradientId: "grad-recovery",
-      startColor: "#f857a6",
-      endColor: "#ff5858",
-      glow: "#f857a6",
-      r: 59,
-      strokeWidth: 7.5
+      r: 85,
+      strokeWidth: 10
     }
   ];
 
