@@ -69,7 +69,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030303] text-[#f3f4f6] relative overflow-y-auto selection:bg-[#10B981] selection:text-white font-sans pt-16">
+    <div className="min-h-screen bg-[#030303] text-[#f3f4f6] relative overflow-x-hidden w-full max-w-full selection:bg-[#10B981] selection:text-white font-sans pt-16">
       
       {/* ── Scroll Progress Indicator Bar (Scroll Sync) ── */}
       <div 
@@ -77,43 +77,45 @@ export default function LandingPage() {
         style={{ width: `${scrollProgress}%` }}
       />
 
-      {/* Background glowing gradients (Argus style) */}
-      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-tr from-[#10B981]/15 to-[#00F0FF]/5 rounded-full blur-[140px] pointer-events-none"></div>
-      <div className="absolute top-1/3 right-[5%] w-[500px] h-[500px] bg-gradient-to-bl from-violet-600/10 to-transparent rounded-full blur-[130px] pointer-events-none"></div>
-      <div className="absolute bottom-10 left-[10%] w-[450px] h-[450px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+      {/* Background glowing gradients contained inside overflow-hidden wrapper */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-0 left-1/4 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-gradient-to-tr from-[#10B981]/15 to-[#00F0FF]/5 rounded-full blur-[100px] sm:blur-[140px]"></div>
+        <div className="absolute top-1/3 right-[5%] w-[250px] sm:w-[500px] h-[250px] sm:h-[500px] bg-gradient-to-bl from-violet-600/10 to-transparent rounded-full blur-[90px] sm:blur-[130px]"></div>
+        <div className="absolute bottom-10 left-[10%] w-[200px] sm:w-[450px] h-[200px] sm:h-[450px] bg-blue-500/5 rounded-full blur-[80px] sm:blur-[120px]"></div>
+      </div>
 
       {/* Fixed Transparent to Glass Navbar on Scroll */}
       <header 
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-3 sm:px-6 ${
           isScrolled 
-            ? 'bg-[#030303]/90 backdrop-blur-md border-b border-white/10 shadow-2xl py-3' 
-            : 'bg-transparent border-b border-transparent py-4 sm:py-5'
+            ? 'bg-[#030303]/90 backdrop-blur-md border-b border-white/10 shadow-2xl py-2.5 sm:py-3' 
+            : 'bg-transparent border-b border-transparent py-3 sm:py-5'
         }`}
       >
-        <div className="max-w-7xl mx-auto w-full flex justify-between items-center">
+        <div className="max-w-7xl mx-auto w-full flex justify-between items-center gap-2">
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <Logo className="w-7 h-7 sm:w-8 sm:h-8 text-[#00F0FF]" glow={true} />
-            <span className="brand-name text-base sm:text-lg text-white bg-gradient-to-r from-white to-[#B9B9C7] bg-clip-text text-transparent">calyxo</span>
+            <Logo className="w-6 h-6 sm:w-8 sm:h-8 text-[#00F0FF]" glow={true} />
+            <span className="brand-name text-sm sm:text-lg text-white bg-gradient-to-r from-white to-[#B9B9C7] bg-clip-text text-transparent">calyxo</span>
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {user && (
               <button 
                 onClick={goToDashboard}
-                className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer border border-white/10 flex items-center gap-1 sm:gap-2 whitespace-nowrap"
+                className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer border border-white/10 flex items-center gap-1 whitespace-nowrap shrink-0"
               >
-                <span className="hidden xs:inline sm:inline">Go to</span> Dashboard
-                <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span>Dashboard</span>
+                <ArrowRight className="w-3 h-3" />
               </button>
             )}
             <button 
               onClick={() => openAuth('login')}
-              className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#B9B9C7] hover:text-white transition-colors cursor-pointer px-1.5 py-1.5 whitespace-nowrap"
+              className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#B9B9C7] hover:text-white transition-colors cursor-pointer px-1.5 py-1 whitespace-nowrap shrink-0"
             >
               Login
             </button>
             <button 
               onClick={() => openAuth('signup')}
-              className="px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider shadow-lg hover:shadow-[#10B981]/25 transition-all duration-300 cursor-pointer border-none whitespace-nowrap shrink-0"
+              className="px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider shadow-lg hover:shadow-[#10B981]/25 transition-all duration-300 cursor-pointer border-none whitespace-nowrap shrink-0"
             >
               Get Started
             </button>
@@ -122,23 +124,17 @@ export default function LandingPage() {
       </header>
 
       {/* Full Hero Section with Background Photo & Heavy Black Layered Gradients */}
-      <section className="relative w-full overflow-hidden border-b border-white/10 min-h-screen flex items-center justify-center">
+      <section className="relative w-full overflow-hidden border-b border-white/10 min-h-[90vh] sm:min-h-screen flex items-center justify-center">
         {/* Full-width Background Image Layer */}
         <div className="absolute inset-0 z-0">
           <img 
             src="/hero section.png" 
             alt="Calyxo AI Health Operating System Hero Background" 
-            className="w-full h-full object-cover object-[70%_center] sm:object-center opacity-85 brightness-105 saturate-[1.15]"
+            className="w-full h-full object-cover object-center opacity-85 brightness-105 saturate-[1.15]"
           />
-          {/* Subtle Dark Layered Gradients for high image visibility */}
-          {/* 1. Light Bottom Fade to section transition */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/40 to-transparent z-10 pointer-events-none"></div>
-          {/* 2. Soft Left Vignette for Text Contrast */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#030303]/90 via-[#030303]/60 sm:via-[#030303]/40 to-transparent z-10 pointer-events-none"></div>
-          {/* 3. Header Blend */}
-          <div className="absolute top-0 left-0 right-0 h-28 bg-gradient-to-b from-[#030303]/90 to-transparent z-10 pointer-events-none"></div>
-          {/* 4. Ambient Glow */}
-          <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[500px] h-[300px] bg-gradient-to-tr from-[#10B981]/15 via-[#00F0FF]/10 to-transparent rounded-full blur-[100px] z-10 pointer-events-none"></div>
+          {/* Layered Gradients for clear text readability across all screen sizes */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/60 to-[#030303]/40 z-10 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#030303]/80 via-transparent to-[#030303]/80 z-10 pointer-events-none"></div>
         </div>
 
         {/* Hero Content Grid (On top of background & dark gradient layers) */}
