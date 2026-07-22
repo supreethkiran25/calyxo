@@ -196,7 +196,7 @@ export default function UserProfile({ onNotification }) {
         setAnimationIntensity(appState.animationIntensity || 'medium');
         setPerformanceMode(appState.performanceMode || 'auto');
         setReduceMotionState(!!appState.reduceMotion);
-        setThemeMode(appState.themeMode || useStore.getState().theme || 'light');
+        setThemeMode(useStore.getState().theme || appState.themeMode || 'light');
         setLargeTextMode(!!appState.largeTextMode);
         setHighContrastMode(!!appState.highContrastMode);
         setDyslexiaFont(!!appState.dyslexiaFont);
@@ -899,7 +899,10 @@ export default function UserProfile({ onNotification }) {
             <button
               key={themeOpt.id}
               type="button"
-              onClick={() => setThemeMode(themeOpt.id)}
+              onClick={() => {
+                setThemeMode(themeOpt.id);
+                useStore.getState().setTheme(themeOpt.id);
+              }}
               className={`py-2 px-1 rounded-lg border text-[8.5px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                 themeMode === themeOpt.id || (themeOpt.id === 'obsidian' && themeMode === 'dark')
                   ? 'bg-acid-green border-acid-green text-accent-foreground shadow-sm'

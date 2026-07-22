@@ -80,7 +80,7 @@ const DEFAULT_USER_PROFILE = {
 export const useStore = create((set, get) => ({
   user: null,
   activeTab: 'dashboard',
-  theme: 'dark', // Default to dark Obsidian theme
+  theme: typeof window !== 'undefined' ? (localStorage.getItem('calyxo_theme') || 'light') : 'light',
   
   // Data State
   foodLogs: [],
@@ -115,7 +115,7 @@ export const useStore = create((set, get) => ({
       if (theme === 'dark' || theme === 'obsidian') {
         root.classList.add('dark');
         root.setAttribute('data-theme', 'obsidian');
-        localStorage.setItem('calyxo_theme', theme);
+        localStorage.setItem('calyxo_theme', 'obsidian');
       } else if (theme === 'solarized') {
         root.setAttribute('data-theme', 'solarized');
         localStorage.setItem('calyxo_theme', 'solarized');
@@ -127,7 +127,16 @@ export const useStore = create((set, get) => ({
         localStorage.setItem('calyxo_theme', 'light');
       }
     }
-    set({ theme });
+    set((state) => ({
+      theme,
+      userProfile: {
+        ...state.userProfile,
+        appearance: {
+          ...(state.userProfile?.appearance || {}),
+          themeMode: theme
+        }
+      }
+    }));
   },
 
   toggleTheme: () => {
@@ -138,10 +147,8 @@ export const useStore = create((set, get) => ({
 
   initializeTheme: () => {
     if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('calyxo_theme');
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const themeToSet = savedTheme || (systemPrefersDark ? 'obsidian' : 'light');
-      get().setTheme(themeToSet);
+      const savedTheme = localStorage.getItem('calyxo_theme') || 'light';
+      get().setTheme(savedTheme);
     }
   },
 
