@@ -247,7 +247,20 @@ export default function WorkoutLoggerModal() {
   };
 
   const handleSave = async () => {
-    const validExercises = exercises.filter(ex => ex.name.trim().length > 0);
+    let validExercises = exercises.filter(ex => ex.name && ex.name.trim().length > 0);
+    
+    // If no exercise row is filled, but top workoutName search box is filled, use workoutName as exercise
+    if (validExercises.length === 0 && workoutName.trim().length > 0) {
+      validExercises = [{
+        id: Date.now(),
+        name: workoutName.trim(),
+        sets: 3,
+        reps: 10,
+        weight: 0,
+        category: 'Strength'
+      }];
+    }
+
     if (validExercises.length === 0) return;
     
     const uid = await getCurrentUserId();
@@ -257,11 +270,16 @@ export default function WorkoutLoggerModal() {
       const logPromises = validExercises.map(ex => {
         const workoutData = {
           name: ex.name.trim() || workoutName.trim() || "Workout Exercise",
-          category: ex.category || 'Strength',
+          category: ex.category || ex.body_part || 'Strength',
           sets: Number(ex.sets) || 1,
           reps: Number(ex.reps) || 10,
           weight: Number(ex.weight) || 0,
           duration: Number(duration) || 30,
+          image: ex.image || null,
+          gif_url: ex.gif_url || null,
+          target: ex.target || null,
+          body_part: ex.body_part || null,
+          equipment: ex.equipment || null,
           timestamp: Date.now()
         };
         return addWorkoutLog(uid, workoutData);
@@ -566,7 +584,7 @@ export default function WorkoutLoggerModal() {
           <div className="pt-4 border-t border-card-border mt-2">
             <button 
               onClick={handleSave}
-              disabled={isSaving || exercises.filter(e => e.name.trim()).length === 0}
+              disabled={isSaving || (!workoutName.trim() && exercises.filter(e => e.name && e.name.trim()).length === 0)}
               className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-colors cursor-pointer border-none shadow-lg"
             >
               {isSaving ? (

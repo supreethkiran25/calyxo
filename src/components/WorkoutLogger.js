@@ -442,30 +442,30 @@ export default function WorkoutLogger({ onNotification }) {
       return;
     }
 
-    const sets = exSets ? Number(exSets) : 0;
-    const reps = exReps ? Number(exReps) : 0;
+    const sets = exSets && Number(exSets) > 0 ? Number(exSets) : 3;
+    const reps = exReps && Number(exReps) > 0 ? Number(exReps) : 10;
     const weight = exWeight ? Number(exWeight) : 0;
     const duration = exDuration ? Number(exDuration) : 0;
 
     if (exCategory === 'Cardio') {
-      if (isNaN(duration) || duration < 1 || duration > 480) {
+      if (isNaN(duration) || duration < 0 || duration > 480) {
         if (onNotification) onNotification("Cardio duration must be between 1 and 480 minutes.");
         setLoading(false);
         return;
       }
     } else {
-      if (isNaN(sets) || sets < 1 || sets > 20) {
-        if (onNotification) onNotification("Workout sets must be between 1 and 20.");
+      if (isNaN(sets) || sets < 1 || sets > 100) {
+        if (onNotification) onNotification("Workout sets must be between 1 and 100.");
         setLoading(false);
         return;
       }
-      if (isNaN(reps) || reps < 1 || reps > 200) {
-        if (onNotification) onNotification("Workout reps must be between 1 and 200.");
+      if (isNaN(reps) || reps < 1 || reps > 500) {
+        if (onNotification) onNotification("Workout reps must be between 1 and 500.");
         setLoading(false);
         return;
       }
-      if (isNaN(weight) || weight < 0 || weight > 1000) {
-        if (onNotification) onNotification("Workout weight must be between 0 and 1000.");
+      if (isNaN(weight) || weight < 0 || weight > 2000) {
+        if (onNotification) onNotification("Workout weight must be between 0 and 2000.");
         setLoading(false);
         return;
       }
