@@ -86,7 +86,7 @@ export default function UserLayout() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex overflow-hidden relative">
+    <div className="min-h-[100dvh] bg-background text-foreground flex overflow-hidden relative">
       {bgEffects && <BackgroundEffects />}
       <GlobalSearch isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 
@@ -150,78 +150,78 @@ export default function UserLayout() {
       </aside>
 
       {/* Mobile Header & Content */}
-      <div className="flex-1 flex flex-col relative z-10 w-full lg:w-auto h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col relative z-10 w-full lg:w-auto h-[100dvh] overflow-hidden">
         {/* Mobile Header */}
-        <header className="lg:hidden h-[calc(4rem+env(safe-area-inset-top,0px))] pt-safe border-b border-card-border bg-background/80 backdrop-blur-xl flex items-center justify-between px-4 sticky top-0 z-30">
+        <header className="lg:hidden h-[calc(3.5rem+env(safe-area-inset-top,0px))] pt-safe border-b border-card-border bg-background/90 backdrop-blur-xl flex items-center justify-between px-4 sticky top-0 z-30 shrink-0">
           <div className="flex items-center gap-3">
-            <button onClick={() => setIsMobileDrawerOpen(true)} className="p-2 text-foreground bg-transparent border-none">
+            <button onClick={() => setIsMobileDrawerOpen(true)} className="p-2 text-foreground bg-transparent border-none cursor-pointer">
               <Menu className="w-6 h-6" />
             </button>
             <Logo className="w-6 h-6 text-acid-green" glow={true} />
             <span className="font-black text-lg tracking-tight">calyxo</span>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setIsSearchOpen(true)} className="p-2 text-foreground bg-transparent border-none">
+            <button onClick={() => setIsSearchOpen(true)} className="p-2 text-foreground bg-transparent border-none cursor-pointer">
               <Search className="w-5 h-5" />
             </button>
           </div>
         </header>
 
         {/* Dynamic Content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden relative scrollbar-hide pb-24 lg:pb-8">
-          <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden relative scrollbar-hide pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8">
+          <div className="max-w-7xl mx-auto w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
             <Outlet />
           </div>
         </main>
         {/* Mobile Bottom Navigation */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/90 backdrop-blur-xl border-t border-card-border z-30 px-2 pb-safe">
-          <div className="flex items-center justify-around h-16">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-2xl border-t border-card-border z-30 px-2 pb-safe shadow-2xl">
+          <div className="flex items-center justify-around h-16 max-w-md mx-auto">
             <Link
               to="/user/dashboard"
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none ${
-                pathname === '/user/dashboard' ? 'text-acid-green' : 'text-muted hover:text-foreground'
+                pathname === '/user/dashboard' ? 'text-acid-green font-black' : 'text-muted hover:text-foreground'
               }`}
             >
               <HomeIcon className="w-5 h-5" />
-              <span className="text-[9px] font-bold tracking-wide">Home</span>
+              <span className="text-[9.5px] tracking-wide">Home</span>
             </Link>
             <Link
               to="/user/nutrition"
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none ${
-                pathname === '/user/nutrition' ? 'text-acid-green' : 'text-muted hover:text-foreground'
+                pathname === '/user/nutrition' ? 'text-acid-green font-black' : 'text-muted hover:text-foreground'
               }`}
             >
               <BookOpen className="w-5 h-5" />
-              <span className="text-[9px] font-bold tracking-wide">Nutrition</span>
+              <span className="text-[9.5px] tracking-wide">Nutrition</span>
             </Link>
             
-            {/* Create Button */}
+            {/* Quick Create Action Button */}
             <button
               onClick={() => setIsQuickActionsOpen(true)}
-              className="flex flex-col items-center justify-center -mt-6 border-none bg-transparent outline-none cursor-pointer"
+              className="flex flex-col items-center justify-center -mt-5 border-none bg-transparent outline-none cursor-pointer group"
             >
-              <div className="w-12 h-12 rounded-full bg-acid-green text-black flex items-center justify-center shadow-lg shadow-acid-green/30 active:scale-95 transition-transform">
-                <span className="text-2xl font-bold">+</span>
+              <div className="w-12 h-12 rounded-full bg-acid-green text-black flex items-center justify-center shadow-lg shadow-acid-green/40 active:scale-90 group-hover:scale-105 transition-all">
+                <Plus className="w-6 h-6 stroke-[3]" />
               </div>
             </button>
 
             <Link
               to="/user/workout"
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none ${
-                pathname === '/user/workout' ? 'text-acid-green' : 'text-muted hover:text-foreground'
+                pathname === '/user/workout' ? 'text-acid-green font-black' : 'text-muted hover:text-foreground'
               }`}
             >
               <BarChart2 className="w-5 h-5" />
-              <span className="text-[9px] font-bold tracking-wide">Workout</span>
+              <span className="text-[9.5px] tracking-wide">Workout</span>
             </Link>
             <Link
               to="/user/profile"
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none ${
-                pathname === '/user/profile' ? 'text-acid-green' : 'text-muted hover:text-foreground'
+                pathname === '/user/profile' ? 'text-acid-green font-black' : 'text-muted hover:text-foreground'
               }`}
             >
               <User className="w-5 h-5" />
-              <span className="text-[9px] font-bold tracking-wide">Profile</span>
+              <span className="text-[9.5px] tracking-wide">Profile</span>
             </Link>
           </div>
         </nav>
