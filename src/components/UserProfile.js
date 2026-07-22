@@ -196,7 +196,7 @@ export default function UserProfile({ onNotification }) {
         setAnimationIntensity(appState.animationIntensity || 'medium');
         setPerformanceMode(appState.performanceMode || 'auto');
         setReduceMotionState(!!appState.reduceMotion);
-        setThemeMode(appState.themeMode || 'system');
+        setThemeMode(appState.themeMode || useStore.getState().theme || 'light');
         setLargeTextMode(!!appState.largeTextMode);
         setHighContrastMode(!!appState.highContrastMode);
         setDyslexiaFont(!!appState.dyslexiaFont);
@@ -252,23 +252,7 @@ export default function UserProfile({ onNotification }) {
     }
   }, [largeTextMode, highContrastMode, dyslexiaFont]);
 
-  // Handle system theme / custom modes
-  useEffect(() => {
-    const store = useStore.getState();
-    if (themeMode === 'system') {
-      if (typeof window !== 'undefined') {
-        const mq = window.matchMedia('(prefers-color-scheme: dark)');
-        const checkTheme = (e) => {
-          store.setTheme(e.matches ? 'obsidian' : 'light');
-        };
-        store.setTheme(mq.matches ? 'obsidian' : 'light');
-        mq.addEventListener('change', checkTheme);
-        return () => mq.removeEventListener('change', checkTheme);
-      }
-    } else {
-      store.setTheme(themeMode);
-    }
-  }, [themeMode]);
+
 
   const handleLogout = async () => {
     if (window.confirm("Sign out of Calyxo?")) {
