@@ -2,8 +2,15 @@ import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { syncHealthTwin } from '../services/geminiService';
 
-export const syncAIHealthTwin = async () => {
+let lastSyncTime = 0;
+const SYNC_THROTTLE_MS = 15 * 60 * 1000; // 15 minutes throttle
+
+export const syncAIHealthTwin = async (force = false) => {
   try {
+    if (!force && Date.now() - lastSyncTime < SYNC_THROTTLE_MS) {
+      return useEcosystemStore.getState().healthTwin;
+    }
+
     const state = useStore.getState();
     const ecoState = useEcosystemStore.getState();
 
@@ -18,17 +25,16 @@ export const syncAIHealthTwin = async () => {
       activeDeficit: state.userProfile?.goal === 'lose' ? 500 : 0
     };
 
+    lastSyncTime = Date.now();
     const data = await syncHealthTwin(payload);
 
     if (data) {
       useEcosystemStore.getState().updateHealthTwin(data);
       return data;
     } else {
-      console.warn("Failed to sync AI Health Twin (Backend Error or High Demand)");
       return null;
     }
   } catch (err) {
-    console.error("AI Ecosystem Sync Error:", err);
     return null;
   }
 };

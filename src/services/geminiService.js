@@ -85,26 +85,39 @@ function findFewShotExamples(queryText, logs) {
   return sorted.slice(0, 3).map(item => item.log);
 }
 
+// Rate limit cooldown manager (5 minute cooldown after 429)
+let lastRateLimitTime = 0;
+const RATE_LIMIT_COOLDOWN_MS = 5 * 60 * 1000;
+
 // Secure proxy helper function
 async function callGeminiAPI(model, payload) {
   const apiKey = (typeof process !== 'undefined' && process.env?.VITE_GEMINI_API_KEY) || 
                  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY);
   
-  if (apiKey) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) {
-      throw new Error(`Gemini API request failed: ${res.statusText}`);
-    }
-    return await res.json();
+  if (!apiKey) {
+    throw new Error("Local AI twin mode (No remote API key set)");
   }
 
-  // Graceful fallback for local dev when backend proxy is not present
-  throw new Error("Local AI twin mode (No remote API key set)");
+  if (Date.now() - lastRateLimitTime < RATE_LIMIT_COOLDOWN_MS) {
+    throw new Error("Gemini API rate limit cooldown active; using local offline twin");
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    if (res.status === 429) {
+      lastRateLimitTime = Date.now();
+      throw new Error("Gemini API 429 (Too Many Requests)");
+    }
+    throw new Error(`Gemini API request failed: ${res.status} ${res.statusText}`);
+  }
+
+  return await res.json();
 }
 
 // =====================================================================
