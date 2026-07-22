@@ -23,6 +23,7 @@ const activeFetches = new Set();
 import { motion, AnimatePresence } from 'framer-motion';
 
 import exercisesData from '../lib/exercises.json';
+import { searchAndRankExercises } from '../utils/exerciseSearch';
 
 const INITIAL_WORKOUT_SPLITS = [
   {
@@ -390,17 +391,12 @@ export default function WorkoutLogger({ onNotification }) {
   }, []);
 
   const handleSearch = async (val) => {
-    if (val.trim().length < 2) {
+    if (!val || val.trim().length < 2) {
       setSearchResults([]);
       return;
     }
 
-    const matches = exercisesData
-      .filter(x => 
-        x.name.toLowerCase().includes(val.toLowerCase()) ||
-        (x.body_part || '').toLowerCase().includes(val.toLowerCase()) ||
-        (x.target || '').toLowerCase().includes(val.toLowerCase())
-      )
+    const matches = searchAndRankExercises(val, exercisesData)
       .map(x => ({
         id: x.id,
         name: x.name,
@@ -417,7 +413,7 @@ export default function WorkoutLogger({ onNotification }) {
         difficulty: x.difficulty
       }));
 
-    setSearchResults(matches.slice(0, 8));
+    setSearchResults(matches.slice(0, 10));
     setShowDropdown(true);
   };
 
@@ -594,21 +590,16 @@ export default function WorkoutLogger({ onNotification }) {
   const favoriteExercises = useStore(state => state.favoriteExercises || []);
   const toggleFavoriteExercise = useStore(state => state.toggleFavoriteExercise);
 
-  const filteredExercises = exercisesData.filter(ex => {
-    const matchesSearch = !libQuery.trim() || 
-      ex.name.toLowerCase().includes(libQuery.toLowerCase()) ||
-      (ex.body_part || '').toLowerCase().includes(libQuery.toLowerCase()) ||
-      (ex.target || '').toLowerCase().includes(libQuery.toLowerCase()) ||
-      (ex.equipment || '').toLowerCase().includes(libQuery.toLowerCase()) ||
-      (ex.category || '').toLowerCase().includes(libQuery.toLowerCase());
+  const baseLibraryList = libQuery.trim() ? searchAndRankExercises(libQuery, exercisesData) : exercisesData;
 
-    const matchesBodyPart = libBodyPart === 'all' || ex.body_part === libBodyPart;
-    const matchesTarget = libTarget === 'all' || ex.target === libTarget;
-    const matchesEquipment = libEquipment === 'all' || ex.equipment === libEquipment;
-    const matchesCategory = libCategory === 'all' || ex.category === libCategory;
+  const filteredExercises = baseLibraryList.filter(ex => {
+    const matchesBodyPart = libBodyPart === 'all' || (ex.body_part || '').toLowerCase() === libBodyPart.toLowerCase();
+    const matchesTarget = libTarget === 'all' || (ex.target || '').toLowerCase() === libTarget.toLowerCase();
+    const matchesEquipment = libEquipment === 'all' || (ex.equipment || '').toLowerCase() === libEquipment.toLowerCase();
+    const matchesCategory = libCategory === 'all' || (ex.category || '').toLowerCase() === libCategory.toLowerCase();
     const matchesFavorites = !libOnlyFavorites || favoriteExercises.includes(ex.id);
 
-    return matchesSearch && matchesBodyPart && matchesTarget && matchesEquipment && matchesCategory && matchesFavorites;
+    return matchesBodyPart && matchesTarget && matchesEquipment && matchesCategory && matchesFavorites;
   });
 
   const inputStyle = "w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner";

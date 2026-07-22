@@ -4,8 +4,8 @@ import { X, Plus, Dumbbell, Clock, Flame, Save, RefreshCw, Search } from 'lucide
 import useQuickActionsStore from '../../store/useQuickActionsStore';
 import { useEcosystemStore } from '../../store/useEcosystemStore';
 import { useStore } from '../../store/useStore';
-import { addWorkoutLog, getCurrentUserId } from '../../lib/dbService';
 import exercisesData from '../../lib/exercises.json';
+import { searchAndRankExercises, isFuzzyMatch } from '../../utils/exerciseSearch';
 
 // Smart multi-tier exercise image & GIF resolver
 export const getExerciseImage = (item) => {
@@ -70,26 +70,7 @@ const getDistinctFallback = (nameStr) => {
   return photos[idx];
 };
 
-// Fuzzy match algorithm for typos like "inclince" vs "incline"
-const isFuzzyMatch = (searchToken, textWord) => {
-  const s = searchToken.toLowerCase();
-  const t = textWord.toLowerCase();
-  if (t.includes(s) || s.includes(t)) return true;
-  
-  if (Math.abs(s.length - t.length) > 3) return false;
-  
-  let diff = 0;
-  let i = 0, j = 0;
-  while (i < s.length && j < t.length) {
-    if (s[i] !== t[j]) {
-      diff++;
-      if (diff > 2) return false;
-    }
-    i++;
-    j++;
-  }
-  return true;
-};
+
 
 const POPULAR_ROUTINES = [
   "Push Day (Chest, Shoulders & Triceps)",
@@ -168,23 +149,8 @@ export default function WorkoutLoggerModal() {
 
     const tokens = q.split(/\s+/).filter(Boolean);
 
-    // Full Exercise Dataset matches with typo tolerance & smart relevance sorting
-    let exMatches = exercisesData.filter(x => matchExercise(x, tokens));
-    exMatches.sort((a, b) => {
-      const aName = (a.name || '').toLowerCase();
-      const bName = (b.name || '').toLowerCase();
-      const aExact = aName === q;
-      const bExact = bName === q;
-      if (aExact && !bExact) return -1;
-      if (!aExact && bExact) return 1;
-
-      const aStart = aName.startsWith(q);
-      const bStart = bName.startsWith(q);
-      if (aStart && !bStart) return -1;
-      if (!aStart && bStart) return 1;
-
-      return 0;
-    });
+    // Full Exercise Dataset matches with smart relevance ranking
+    const exMatches = searchAndRankExercises(val, exercisesData);
 
     const exMapped = exMatches.slice(0, 15).map(x => ({
       type: 'exercise',
@@ -251,18 +217,8 @@ export default function WorkoutLoggerModal() {
         setExerciseSuggestions([]);
         setActiveExIdSearch(null);
       } else {
-        const tokens = q.split(/\s+/).filter(Boolean);
-        let matches = exercisesData.filter(x => matchExercise(x, tokens));
-        matches.sort((a, b) => {
-          const aName = (a.name || '').toLowerCase();
-          const bName = (b.name || '').toLowerCase();
-          const aStart = aName.startsWith(q);
-          const bStart = bName.startsWith(q);
-          if (aStart && !bStart) return -1;
-          if (!aStart && bStart) return 1;
-          return 0;
-        });
-        setExerciseSuggestions(matches.slice(0, 12));
+        const matches = searchAndRankExercises(value, exercisesData);
+        setExerciseSuggestions(matches.slice(0, 15));
         setActiveExIdSearch(id);
       }
     }
