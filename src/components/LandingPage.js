@@ -69,11 +69,11 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030303] text-[#f3f4f6] relative overflow-x-hidden w-full max-w-full selection:bg-[#10B981] selection:text-white font-sans pt-16">
+    <div className="min-h-screen bg-[#030303] text-[#f3f4f6] relative overflow-x-hidden w-full max-w-full selection:bg-[#10B981] selection:text-white font-sans pt-[calc(4rem+env(safe-area-inset-top,0px))]">
       
       {/* ── Scroll Progress Indicator Bar (Scroll Sync) ── */}
       <div 
-        className="fixed top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#00F0FF] via-[#34D399] to-[#10B981] z-50 origin-left transition-all duration-100"
+        className="fixed top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#00F0FF] via-[#34D399] to-[#10B981] z-[60] origin-left transition-all duration-100"
         style={{ width: `${scrollProgress}%` }}
       />
 
@@ -84,12 +84,12 @@ export default function LandingPage() {
         <div className="absolute bottom-10 left-[10%] w-[200px] sm:w-[450px] h-[200px] sm:h-[450px] bg-blue-500/5 rounded-full blur-[80px] sm:blur-[120px]"></div>
       </div>
 
-      {/* Fixed Transparent to Glass Navbar on Scroll */}
+      {/* Fixed Transparent to Glass Navbar on Scroll with Safe Area Status Bar Support */}
       <header 
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-3 sm:px-6 ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-3.5 sm:px-6 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] ${
           isScrolled 
-            ? 'bg-[#030303]/90 backdrop-blur-md border-b border-white/10 shadow-2xl py-2.5 sm:py-3' 
-            : 'bg-transparent border-b border-transparent py-3 sm:py-5'
+            ? 'bg-[#030303]/90 backdrop-blur-md border-b border-white/10 shadow-2xl pb-2.5 sm:pb-3' 
+            : 'bg-transparent border-b border-transparent pb-3 sm:pb-5'
         }`}
       >
         <div className="max-w-7xl mx-auto w-full flex justify-between items-center gap-2">
