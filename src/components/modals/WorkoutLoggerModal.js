@@ -11,8 +11,8 @@ import exercisesData from '../../lib/exercises.json';
 export const getExerciseImage = (item) => {
   if (!item) return 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&auto=format&fit=crop&q=80';
 
-  if (item.gif_url && typeof item.gif_url === 'string' && item.gif_url.startsWith('http')) return item.gif_url;
-  if (item.image && typeof item.image === 'string' && item.image.startsWith('http')) return item.image;
+  if (item.gif_url && typeof item.gif_url === 'string' && item.gif_url.trim().length > 0) return item.gif_url;
+  if (item.image && typeof item.image === 'string' && item.image.trim().length > 0) return item.image;
 
   if (item.id) {
     const cleanId = String(item.id).padStart(4, '0');
@@ -168,7 +168,30 @@ export default function WorkoutLoggerModal() {
 
     const tokens = q.split(/\s+/).filter(Boolean);
 
-    // Routine matches
+    // Full Exercise Dataset matches with typo tolerance & smart relevance sorting
+    let exMatches = exercisesData.filter(x => matchExercise(x, tokens));
+    exMatches.sort((a, b) => {
+      const aName = (a.name || '').toLowerCase();
+      const bName = (b.name || '').toLowerCase();
+      const aExact = aName === q;
+      const bExact = bName === q;
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+
+      const aStart = aName.startsWith(q);
+      const bStart = bName.startsWith(q);
+      if (aStart && !bStart) return -1;
+      if (!aStart && bStart) return 1;
+
+      return 0;
+    });
+
+    const exMapped = exMatches.slice(0, 15).map(x => ({
+      type: 'exercise',
+      ...x
+    }));
+
+    // Routine matches (placed AFTER exercise matches so dataset items with GIFs appear at top!)
     const routineMatches = POPULAR_ROUTINES.filter(r =>
       tokens.every(token => {
         const rLower = r.toLowerCase();
@@ -179,13 +202,7 @@ export default function WorkoutLoggerModal() {
       name: r
     }));
 
-    // Full Exercise Dataset matches with typo tolerance
-    const exMatches = exercisesData.filter(x => matchExercise(x, tokens)).slice(0, 8).map(x => ({
-      type: 'exercise',
-      ...x
-    }));
-
-    const combined = [...routineMatches, ...exMatches];
+    const combined = [...exMapped, ...routineMatches];
     setTopSearchMatches(combined);
     setShowTopDropdown(combined.length > 0);
   };
@@ -196,10 +213,23 @@ export default function WorkoutLoggerModal() {
     } else {
       setWorkoutName(prev => prev || item.name);
       setExercises(prev => {
+        const newExItem = {
+          id: Date.now(),
+          name: item.name,
+          sets: 3,
+          reps: 10,
+          weight: 0,
+          category: item.category || item.body_part || 'Strength',
+          image: item.image,
+          gif_url: item.gif_url,
+          target: item.target,
+          body_part: item.body_part,
+          equipment: item.equipment
+        };
         if (prev.length === 1 && !prev[0].name) {
-          return [{ id: prev[0].id, name: item.name, sets: 3, reps: 10, weight: 0, category: item.category || 'Strength' }];
+          return [{ ...prev[0], ...newExItem }];
         }
-        return [...prev, { id: Date.now(), name: item.name, sets: 3, reps: 10, weight: 0, category: item.category || 'Strength' }];
+        return [...prev, newExItem];
       });
     }
     setShowTopDropdown(false);
@@ -222,8 +252,17 @@ export default function WorkoutLoggerModal() {
         setActiveExIdSearch(null);
       } else {
         const tokens = q.split(/\s+/).filter(Boolean);
-        const matches = exercisesData.filter(x => matchExercise(x, tokens)).slice(0, 8);
-        setExerciseSuggestions(matches);
+        let matches = exercisesData.filter(x => matchExercise(x, tokens));
+        matches.sort((a, b) => {
+          const aName = (a.name || '').toLowerCase();
+          const bName = (b.name || '').toLowerCase();
+          const aStart = aName.startsWith(q);
+          const bStart = bName.startsWith(q);
+          if (aStart && !bStart) return -1;
+          if (!aStart && bStart) return 1;
+          return 0;
+        });
+        setExerciseSuggestions(matches.slice(0, 12));
         setActiveExIdSearch(id);
       }
     }
@@ -233,7 +272,12 @@ export default function WorkoutLoggerModal() {
     setExercises(exercises.map(ex => ex.id === exId ? {
       ...ex,
       name: suggestedEx.name,
-      category: suggestedEx.category || 'Strength'
+      category: suggestedEx.category || suggestedEx.body_part || 'Strength',
+      image: suggestedEx.image,
+      gif_url: suggestedEx.gif_url,
+      target: suggestedEx.target,
+      body_part: suggestedEx.body_part,
+      equipment: suggestedEx.equipment
     } : ex));
     setActiveExIdSearch(null);
     setExerciseSuggestions([]);
@@ -436,18 +480,31 @@ export default function WorkoutLoggerModal() {
                     )}
                     
                     <div className="relative">
-                      <label className="text-[9px] font-bold text-muted uppercase block mb-1">
-                        Exercise #{index + 1} Name
-                      </label>
-                      <div className="relative flex items-center">
-                        <Search className="absolute left-2.5 w-3.5 h-3.5 text-muted" />
-                        <input 
-                          type="text" 
-                          placeholder="Type exercise name (Incline Bench, Squat, Curl)..." 
-                          value={ex.name}
-                          onChange={(e) => handleUpdateExercise(ex.id, 'name', e.target.value)}
-                          className="w-full bg-[var(--input)] text-foreground border border-card-border pl-8 pr-3 py-2 rounded-xl focus:outline-none focus:border-blue-500 text-xs font-bold shadow-inner"
+                      <div className="flex items-center gap-3 mb-2">
+                        <img 
+                          src={getExerciseImage(ex)} 
+                          alt={ex.name || `Exercise ${index + 1}`} 
+                          className="w-12 h-12 rounded-xl object-cover border border-card-border shrink-0 bg-black/30 shadow-sm"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = getDistinctFallback(ex.name);
+                          }}
                         />
+                        <div className="flex-1 min-w-0">
+                          <label className="text-[9px] font-bold text-muted uppercase block mb-1">
+                            Exercise #{index + 1} Name {ex.target ? `• ${ex.target}` : ''}
+                          </label>
+                          <div className="relative flex items-center">
+                            <Search className="absolute left-2.5 w-3.5 h-3.5 text-muted" />
+                            <input 
+                              type="text" 
+                              placeholder="Type exercise name (e.g. 3/4 sit-up, Incline Bench, Squat)..." 
+                              value={ex.name}
+                              onChange={(e) => handleUpdateExercise(ex.id, 'name', e.target.value)}
+                              className="w-full bg-[var(--input)] text-foreground border border-card-border pl-8 pr-3 py-2 rounded-xl focus:outline-none focus:border-blue-500 text-xs font-bold shadow-inner"
+                            />
+                          </div>
+                        </div>
                       </div>
 
                       {/* Exercise Row Suggestions Dropdown */}

@@ -265,16 +265,21 @@ export default function Dashboard({ onNotification }) {
   const waterGoal = 3000;
   const waterPct = Math.min((waterIntake / waterGoal) * 100, 100);
 
-  // Calculate Profile Completeness %
-  const calculateCompleteness = () => {
-    const fields = [userProfile.firstName, userProfile.lastName, userProfile.nickname, userProfile.dob, userProfile.allergies, userProfile.foodDislikes, userProfile.favoriteFoods];
-    const filled = fields.filter(x => x && x.toString().trim().length > 0).length;
-    const dietFilled = userProfile.dietPreferences?.length > 0 ? 1 : 0;
-    const photoFilled = userProfile.photoURL ? 1 : 0;
-    return Math.round(((filled + dietFilled + photoFilled) / 9) * 100);
+  const getSetupChecklist = () => {
+    return [
+      { key: 'name', label: 'Display Name', done: !!(userProfile.firstName || userProfile.nickname || user?.displayName) },
+      { key: 'biometrics', label: 'Height & Weight', done: !!(userProfile.weight && userProfile.height) },
+      { key: 'targetWeight', label: 'Target Weight', done: !!(userProfile.goalWeight || userProfile.weightGoal) },
+      { key: 'calories', label: 'Calorie Target', done: !!(userProfile.dailyCalories || userProfile.calorieGoal) },
+      { key: 'diet', label: 'Diet Preferences', done: !!(userProfile.dietPreferences && userProfile.dietPreferences.length > 0) },
+      { key: 'photo', label: 'Profile Photo', done: !!userProfile.photoURL }
+    ];
   };
 
-  const profileCompleteness = calculateCompleteness();
+  const setupChecklist = getSetupChecklist();
+  const completedCount = setupChecklist.filter(x => x.done).length;
+  const profileCompleteness = Math.round((completedCount / setupChecklist.length) * 100);
+  const pendingItems = setupChecklist.filter(x => !x.done).map(x => x.label);
 
   const QUICK_ACCESS = [
     { label: 'Workout', icon: <Dumbbell className="w-5 h-5 text-foreground" />, action: () => navigate('/user/workout') },
@@ -322,22 +327,49 @@ export default function Dashboard({ onNotification }) {
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-acid-green/10 border border-acid-green/20 rounded-2xl p-4 flex items-center justify-between shadow-sm"
+          className="bg-acid-green/10 border border-acid-green/20 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-acid-green/10 flex items-center justify-center text-acid-green text-sm shrink-0">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-acid-green/20 flex items-center justify-center text-acid-green text-lg shrink-0 mt-0.5">
               ⚡
             </div>
-            <div>
-              <span className="text-xs font-bold text-foreground block">Complete your fitness profile ({profileCompleteness}%)</span>
-              <span className="text-[10px] text-muted block mt-0.5">Tell us more about your health and coach preferences to enable tailored insights.</span>
+            <div className="space-y-1.5 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs sm:text-sm font-black text-foreground uppercase tracking-wider">
+                  Complete Profile Setup ({profileCompleteness}%)
+                </span>
+                <span className="text-[9px] font-extrabold uppercase bg-acid-green/20 text-acid-green px-2 py-0.5 rounded-full border border-acid-green/30">
+                  {completedCount}/{setupChecklist.length} Setup
+                </span>
+              </div>
+              
+              <p className="text-xs text-muted leading-relaxed">
+                <strong className="text-foreground">Required to unlock personalized AI targets:</strong> {pendingItems.length > 0 ? pendingItems.join(', ') : 'All fields ready!'}
+              </p>
+
+              <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                {setupChecklist.map((item, idx) => (
+                  <span
+                    key={idx}
+                    className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md border flex items-center gap-1 ${
+                      item.done
+                        ? 'bg-acid-green/10 border-acid-green/30 text-acid-green'
+                        : 'bg-surface border-card-border text-muted-foreground'
+                    }`}
+                  >
+                    {item.done ? '✓' : '+'} {item.label}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
+
           <button 
             onClick={() => navigate('/user/profile')}
-            className="text-[9px] font-extrabold text-accent-foreground bg-acid-green hover:shadow-md px-3.5 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer border-none shrink-0"
+            className="w-full sm:w-auto text-xs font-black text-accent-foreground bg-acid-green hover:shadow-lg hover:shadow-acid-green/20 px-5 py-2.5 rounded-xl uppercase tracking-widest cursor-pointer border-none shrink-0 transition-all flex items-center justify-center gap-1.5"
           >
-            Setup
+            <span>Finish Setup</span>
+            <ChevronRight className="w-4 h-4" />
           </button>
         </motion.div>
       )}
