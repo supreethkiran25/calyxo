@@ -349,23 +349,29 @@ export default function Dashboard({ onNotification }) {
 
               <div className="flex items-center gap-1.5 flex-wrap pt-1">
                 {setupChecklist.map((item, idx) => (
-                  <span
+                  <button
                     key={idx}
-                    className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md border flex items-center gap-1 ${
+                    type="button"
+                    onClick={() => navigate(`/user/profile?section=${item.key}`)}
+                    className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md border flex items-center gap-1 cursor-pointer transition-all ${
                       item.done
-                        ? 'bg-acid-green/10 border-acid-green/30 text-acid-green'
-                        : 'bg-surface border-card-border text-muted-foreground'
+                        ? 'bg-acid-green/10 border-acid-green/30 text-acid-green hover:bg-acid-green/20'
+                        : 'bg-surface border-card-border text-foreground hover:border-acid-green hover:bg-acid-green/10'
                     }`}
                   >
                     {item.done ? '✓' : '+'} {item.label}
-                  </span>
+                  </button>
                 ))}
               </div>
             </div>
           </div>
 
           <button 
-            onClick={() => navigate('/user/profile')}
+            onClick={() => {
+              const firstPending = setupChecklist.find(x => !x.done);
+              const targetKey = firstPending ? firstPending.key : 'biometrics';
+              navigate(`/user/profile?section=${targetKey}`);
+            }}
             className="w-full sm:w-auto text-xs font-black text-accent-foreground bg-acid-green hover:shadow-lg hover:shadow-acid-green/20 px-5 py-2.5 rounded-xl uppercase tracking-widest cursor-pointer border-none shrink-0 transition-all flex items-center justify-center gap-1.5"
           >
             <span>Finish Setup</span>

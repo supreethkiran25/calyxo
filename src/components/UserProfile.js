@@ -252,6 +252,37 @@ export default function UserProfile({ onNotification }) {
     }
   }, [largeTextMode, highContrastMode, dyslexiaFont]);
 
+  // Handle URL section redirect when finishing setup from dashboard
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const section = params.get('section');
+      if (section) {
+        if (section === 'name' || section === 'biometrics' || section === 'photo') {
+          setEditSection('profile');
+        } else if (section === 'targetWeight' || section === 'calories' || section === 'health') {
+          setEditSection('health');
+        } else if (section === 'diet') {
+          setActivePanel('account');
+          setOpenAccordion('dietary');
+          setAdvancedOpen(true);
+        }
+
+        setTimeout(() => {
+          const targetEl = document.getElementById(`setup-field-${section}`) || document.getElementById(`setup-section-${section}`);
+          if (targetEl) {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (targetEl.tagName === 'INPUT' || targetEl.tagName === 'SELECT' || targetEl.tagName === 'TEXTAREA') {
+              targetEl.focus();
+            }
+            targetEl.classList.add('ring-2', 'ring-acid-green');
+            setTimeout(() => targetEl.classList.remove('ring-2', 'ring-acid-green'), 2500);
+          }
+        }, 400);
+      }
+    }
+  }, []);
+
 
 
   const handleLogout = async () => {
@@ -1728,7 +1759,7 @@ export default function UserProfile({ onNotification }) {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className={labelClass}>First Name</label>
-                  <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                  <input id="setup-field-name" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
                 <div>
                   <label className={labelClass}>Last Name</label>
@@ -1916,7 +1947,7 @@ export default function UserProfile({ onNotification }) {
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className={labelClass}>Weight ({units === 'metric' ? 'kg' : 'lbs'})</label>
-                  <input type="number" step="0.1" value={weight} onFocus={(e) => e.target.select()} onChange={(e) => setWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                  <input id="setup-field-biometrics" type="number" step="0.1" value={weight} onFocus={(e) => e.target.select()} onChange={(e) => setWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
                 <div>
                   <label className={labelClass}>Height ({units === 'metric' ? 'cm' : 'in'})</label>
@@ -1924,14 +1955,14 @@ export default function UserProfile({ onNotification }) {
                 </div>
                 <div>
                   <label className={labelClass}>Goal Weight</label>
-                  <input type="number" step="0.1" value={goalWeight} onFocus={(e) => e.target.select()} onChange={(e) => setGoalWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                  <input id="setup-field-targetWeight" type="number" step="0.1" value={goalWeight} onFocus={(e) => e.target.select()} onChange={(e) => setGoalWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className={labelClass}>Daily Calories (kcal)</label>
-                  <input type="number" value={dailyCalories} onFocus={(e) => e.target.select()} onChange={(e) => setDailyCalories(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                  <input id="setup-field-calories" type="number" value={dailyCalories} onFocus={(e) => e.target.select()} onChange={(e) => setDailyCalories(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
                 <div>
                   <label className={labelClass}>Water Target (ml)</label>
