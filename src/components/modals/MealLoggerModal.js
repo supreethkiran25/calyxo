@@ -8,20 +8,20 @@ import { addFoodLog, getCurrentUserId } from '../../lib/dbService';
 import { INDIAN_FOODS } from '../../lib/indianFoods';
 
 const FOODS_CATALOG = [
-  { name: "Chicken Biryani", unitType: "bowl", baseWeight: 300, calories: 420, protein: 28, carbs: 48, fat: 14 },
-  { name: "Masala Dosa", unitType: "piece", baseWeight: 120, calories: 250, protein: 5, carbs: 42, fat: 7 },
-  { name: "Plain Dosa", unitType: "piece", baseWeight: 100, calories: 168, protein: 3.8, carbs: 29, fat: 3.7 },
-  { name: "Roti / Chapati", unitType: "piece", baseWeight: 35, calories: 85, protein: 3, carbs: 18, fat: 0.8 },
-  { name: "Scrambled Eggs", unitType: "large egg", baseWeight: 50, calories: 70, protein: 6, carbs: 0.5, fat: 5 },
-  { name: "Boiled Egg", unitType: "large egg", baseWeight: 50, calories: 78, protein: 6.3, carbs: 0.6, fat: 5.3 },
-  { name: "Oatmeal (cooked)", unitType: "bowl", baseWeight: 200, calories: 150, protein: 6, carbs: 27, fat: 3 },
-  { name: "Rolled Oats (raw)", unitType: "grams", baseWeight: 100, calories: 389, protein: 16.9, carbs: 66, fat: 6.9 },
-  { name: "Steamed White Rice", unitType: "bowl", baseWeight: 150, calories: 195, protein: 4.3, carbs: 43, fat: 0.4 },
-  { name: "Grilled Chicken Breast", unitType: "grams", baseWeight: 100, calories: 165, protein: 31, carbs: 0, fat: 3.6 },
-  { name: "Paneer Tikka", unitType: "grams", baseWeight: 100, calories: 280, protein: 18, carbs: 4, fat: 22 },
-  { name: "Greek Yogurt", unitType: "cup", baseWeight: 170, calories: 130, protein: 24, carbs: 9, fat: 0 },
-  { name: "Whey Protein Shake", unitType: "scoop", baseWeight: 30, calories: 120, protein: 24, carbs: 3, fat: 1.5 },
-  { name: "Almonds", unitType: "grams", baseWeight: 28, calories: 160, protein: 6, carbs: 6, fat: 14 }
+  { name: "Chicken Biryani", unitType: "bowl", pieceWeight: 200, calsPer100g: 140, protPer100g: 9.3, carbsPer100g: 16, fatPer100g: 4.6 },
+  { name: "Masala Dosa", unitType: "piece", pieceWeight: 120, calsPer100g: 208, protPer100g: 4.1, carbsPer100g: 35, fatPer100g: 5.8 },
+  { name: "Plain Dosa", unitType: "piece", pieceWeight: 100, calsPer100g: 168, protPer100g: 3.8, carbsPer100g: 29, fatPer100g: 3.7 },
+  { name: "Roti / Chapati", unitType: "piece", pieceWeight: 35, calsPer100g: 242, protPer100g: 8.5, carbsPer100g: 51, fatPer100g: 2.3 },
+  { name: "Scrambled Eggs", unitType: "piece", pieceWeight: 50, calsPer100g: 140, protPer100g: 12, carbsPer100g: 1, fatPer100g: 10 },
+  { name: "Boiled Egg", unitType: "piece", pieceWeight: 50, calsPer100g: 155, protPer100g: 12.6, carbsPer100g: 1.1, fatPer100g: 10.6 },
+  { name: "Oatmeal (cooked)", unitType: "bowl", pieceWeight: 200, calsPer100g: 75, protPer100g: 3, carbsPer100g: 13.5, fatPer100g: 1.5 },
+  { name: "Rolled Oats (raw)", unitType: "grams", pieceWeight: 30, calsPer100g: 389, protPer100g: 16.9, carbsPer100g: 66, fatPer100g: 6.9 },
+  { name: "Steamed White Rice", unitType: "bowl", pieceWeight: 200, calsPer100g: 130, protPer100g: 2.7, carbsPer100g: 28, fatPer100g: 0.3 },
+  { name: "Grilled Chicken Breast", unitType: "grams", pieceWeight: 100, calsPer100g: 165, protPer100g: 31, carbsPer100g: 0, fatPer100g: 3.6 },
+  { name: "Paneer Tikka", unitType: "grams", pieceWeight: 100, calsPer100g: 280, protPer100g: 18, carbsPer100g: 4, fatPer100g: 22 },
+  { name: "Greek Yogurt", unitType: "cup", pieceWeight: 150, calsPer100g: 76, protPer100g: 14, carbsPer100g: 5.3, fatPer100g: 0 },
+  { name: "Whey Protein Shake", unitType: "scoop", pieceWeight: 30, calsPer100g: 400, protPer100g: 80, carbsPer100g: 10, fatPer100g: 5 },
+  { name: "Almonds", unitType: "grams", pieceWeight: 28, calsPer100g: 579, protPer100g: 21, carbsPer100g: 22, fatPer100g: 50 }
 ];
 
 export default function MealLoggerModal() {
@@ -35,7 +35,7 @@ export default function MealLoggerModal() {
   
   // Serving quantity & portion unit state
   const [quantity, setQuantity] = useState(1);
-  const [unitType, setUnitType] = useState('piece'); // 'piece' | 'bowl' | 'cup' | 'grams'
+  const [unitType, setUnitType] = useState('piece'); // 'grams' | 'piece' | 'bowl' | 'cup' | 'scoop' | 'tbsp' | 'tsp' | 'slice'
 
   // Calculated macros state
   const [calories, setCalories] = useState('');
@@ -67,28 +67,56 @@ export default function MealLoggerModal() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Compute calculated total grams for current portion configuration
+  const getComputedTotalGrams = () => {
+    const q = Number(quantity) || 0;
+    if (unitType === 'grams') return q;
+    if (unitType === 'piece') return Math.round(q * (selectedFood?.pieceWeight || 50));
+    if (unitType === 'bowl') return Math.round(q * 200);
+    if (unitType === 'cup') return Math.round(q * 150);
+    if (unitType === 'scoop') return Math.round(q * 30);
+    if (unitType === 'tbsp') return Math.round(q * 15);
+    if (unitType === 'tsp') return Math.round(q * 5);
+    if (unitType === 'slice') return Math.round(q * 25);
+    return Math.round(q * 100);
+  };
+
   // Recalculate macros automatically whenever selected food, quantity, or unit type changes!
   useEffect(() => {
     if (!selectedFood) return;
 
-    let multiplier = Number(quantity) || 1;
+    const totalGrams = getComputedTotalGrams();
+    const cals100 = selectedFood.calsPer100g || 150;
+    const p100 = selectedFood.protPer100g || 10;
+    const c100 = selectedFood.carbsPer100g || 20;
+    const f100 = selectedFood.fatPer100g || 5;
 
-    if (unitType === 'grams') {
-      // Base values are stored per 100g in INDIAN_FOODS
-      const baseGrams = selectedFood.baseWeight || 100;
-      multiplier = (Number(quantity) || 100) / baseGrams;
-    }
+    const factor = totalGrams / 100;
 
-    const calcCals = Math.round((selectedFood.calories || 0) * multiplier);
-    const calcProt = Number(((selectedFood.protein || 0) * multiplier).toFixed(1));
-    const calcCarbs = Number(((selectedFood.carbs || 0) * multiplier).toFixed(1));
-    const calcFat = Number(((selectedFood.fat || 0) * multiplier).toFixed(1));
-
-    setCalories(calcCals);
-    setProtein(calcProt);
-    setCarbs(calcCarbs);
-    setFat(calcFat);
+    setCalories(Math.round(cals100 * factor));
+    setProtein(Number((p100 * factor).toFixed(1)));
+    setCarbs(Number((c100 * factor).toFixed(1)));
+    setFat(Number((f100 * factor).toFixed(1)));
   }, [selectedFood, quantity, unitType]);
+
+  const handleUnitTypeChange = (newUnit) => {
+    if (newUnit === 'grams' && unitType !== 'grams') {
+      const g = getComputedTotalGrams();
+      setQuantity(g || 100);
+    } else if (newUnit !== 'grams' && unitType === 'grams') {
+      const g = Number(quantity) || 100;
+      let q = 1;
+      if (newUnit === 'piece') q = Number((g / (selectedFood?.pieceWeight || 50)).toFixed(1));
+      else if (newUnit === 'bowl') q = Number((g / 200).toFixed(1));
+      else if (newUnit === 'cup') q = Number((g / 150).toFixed(1));
+      else if (newUnit === 'scoop') q = Number((g / 30).toFixed(1));
+      else if (newUnit === 'tbsp') q = Number((g / 15).toFixed(1));
+      else if (newUnit === 'tsp') q = Number((g / 5).toFixed(1));
+      else if (newUnit === 'slice') q = Number((g / 25).toFixed(1));
+      setQuantity(q || 1);
+    }
+    setUnitType(newUnit);
+  };
 
   // Search food across INDIAN_FOODS dataset (1837 items) + FOODS_CATALOG
   const handleNameChange = (val) => {
@@ -104,37 +132,31 @@ export default function MealLoggerModal() {
       item.name.toLowerCase().includes(q) ||
       (item.aliases && item.aliases.some(a => a.toLowerCase().includes(q)))
     ).map(item => {
-      // Determine probable serving type
       const n = item.name.toLowerCase();
       let defaultUnit = 'grams';
       let defaultQty = 100;
-      let baseCals = item.calories;
-      let baseP = item.protein;
-      let baseC = item.carbs;
-      let baseF = item.fat;
+      let pw = 50;
 
       if (n.includes('roti') || n.includes('chapati') || n.includes('phulka') || n.includes('naan') || n.includes('paratha')) {
         defaultUnit = 'piece';
         defaultQty = 1;
-        // 1 roti is approx 35g -> ~85 kcal
-        baseCals = Math.round(item.calories * 0.35);
-        baseP = Number((item.protein * 0.35).toFixed(1));
-        baseC = Number((item.carbs * 0.35).toFixed(1));
-        baseF = Number((item.fat * 0.35).toFixed(1));
-      } else if (n.includes('dosa') || n.includes('idli') || n.includes('vada') || n.includes('samosa') || n.includes('egg')) {
+        pw = 35; // 1 roti is approx 35g
+      } else if (n.includes('dosa')) {
         defaultUnit = 'piece';
         defaultQty = 1;
-        baseCals = Math.round(item.calories * 0.8); // approx 1 piece
-        baseP = Number((item.protein * 0.8).toFixed(1));
-        baseC = Number((item.carbs * 0.8).toFixed(1));
-        baseF = Number((item.fat * 0.8).toFixed(1));
+        pw = 100; // 1 dosa is approx 100g
+      } else if (n.includes('idli')) {
+        defaultUnit = 'piece';
+        defaultQty = 1;
+        pw = 40;
+      } else if (n.includes('egg')) {
+        defaultUnit = 'piece';
+        defaultQty = 1;
+        pw = 50;
       } else if (n.includes('biryani') || n.includes('rice') || n.includes('dal') || n.includes('curry') || n.includes('pulao') || n.includes('khichdi')) {
         defaultUnit = 'bowl';
         defaultQty = 1;
-        baseCals = Math.round(item.calories * 2); // 1 bowl is approx 200g
-        baseP = Number((item.protein * 2).toFixed(1));
-        baseC = Number((item.carbs * 2).toFixed(1));
-        baseF = Number((item.fat * 2).toFixed(1));
+        pw = 200;
       }
 
       return {
@@ -143,11 +165,11 @@ export default function MealLoggerModal() {
         servingSize: item.servingSize,
         unitType: defaultUnit,
         defaultQty,
-        baseWeight: defaultUnit === 'grams' ? 100 : 1,
-        calories: baseCals,
-        protein: baseP,
-        carbs: baseC,
-        fat: baseF
+        pieceWeight: pw,
+        calsPer100g: item.calories,
+        protPer100g: item.protein,
+        carbsPer100g: item.carbs,
+        fatPer100g: item.fat
       };
     });
 
@@ -158,11 +180,11 @@ export default function MealLoggerModal() {
       category: 'Catalog',
       unitType: item.unitType || 'piece',
       defaultQty: 1,
-      baseWeight: 1,
-      calories: item.calories,
-      protein: item.protein,
-      carbs: item.carbs,
-      fat: item.fat
+      pieceWeight: item.pieceWeight || 50,
+      calsPer100g: item.calsPer100g,
+      protPer100g: item.protPer100g,
+      carbsPer100g: item.carbsPer100g,
+      fatPer100g: item.fatPer100g
     }));
 
     const merged = [...catalogMatches, ...indianMatches];
@@ -197,14 +219,18 @@ export default function MealLoggerModal() {
     setIsSaving(true);
     
     try {
-      const portionText = `${quantity} ${unitType}${quantity > 1 ? 's' : ''}`;
+      const computedGrams = getComputedTotalGrams();
+      const portionText = unitType === 'grams' 
+        ? `${quantity}g` 
+        : `${quantity} ${unitType}${quantity > 1 ? 's' : ''} (${computedGrams}g)`;
+
       const mealData = {
         name: `${mealName.trim()} (${portionText})`,
         calories: calVal,
         protein: Number(protein) || 0,
         carbs: Number(carbs) || 0,
         fat: Number(fat) || 0,
-        portionWeight: unitType === 'grams' ? Number(quantity) : Math.round(Number(quantity) * 100),
+        portionWeight: computedGrams,
         timestamp: Date.now()
       };
 
@@ -255,7 +281,7 @@ export default function MealLoggerModal() {
             </button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto flex-1 pr-1 custom-scrollbar">
             {/* Search Food Name */}
             <div ref={dropdownRef} className="relative">
               <label className="text-xs font-bold text-muted uppercase tracking-wider mb-1.5 block">
@@ -295,7 +321,7 @@ export default function MealLoggerModal() {
                         <div className="flex flex-col min-w-0">
                           <span className="font-bold text-foreground truncate">{item.name}</span>
                           <span className="text-[9px] text-muted font-medium">
-                            Base: {item.calories} kcal ({item.protein}g P, {item.carbs}g C, {item.fat}g F)
+                            Base: {item.calsPer100g} kcal/100g ({item.protPer100g}g P, {item.carbsPer100g}g C, {item.fatPer100g}g F)
                           </span>
                         </div>
                         <span className="text-[9px] text-green-500 font-extrabold uppercase shrink-0 ml-2 bg-green-500/10 border border-green-500/20 px-2 py-1 rounded-md">
@@ -319,11 +345,14 @@ export default function MealLoggerModal() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[9.5px] font-bold text-muted uppercase block mb-1">Quantity</label>
+                  <label className="text-[9.5px] font-bold text-muted uppercase block mb-1">
+                    {unitType === 'grams' ? 'Exact Grams (g)' : 'Quantity'}
+                  </label>
                   <input 
                     type="number" 
-                    min="0.1" 
-                    step="0.5"
+                    min={unitType === 'grams' ? "1" : "0.1"}
+                    step={unitType === 'grams' ? "5" : "0.5"}
+                    placeholder={unitType === 'grams' ? "e.g. 150g" : "e.g. 1 or 1.5"}
                     value={quantity}
                     onFocus={(e) => e.target.select()}
                     onChange={(e) => {
@@ -338,13 +367,17 @@ export default function MealLoggerModal() {
                   <label className="text-[9.5px] font-bold text-muted uppercase block mb-1">Serving Unit</label>
                   <select
                     value={unitType}
-                    onChange={(e) => setUnitType(e.target.value)}
+                    onChange={(e) => handleUnitTypeChange(e.target.value)}
                     className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-green-500 text-xs font-bold"
                   >
-                    <option value="piece">Pieces / Rotis / Dosas</option>
+                    <option value="grams">Grams (g) - e.g. 100g, 150g, 250g</option>
+                    <option value="piece">Pieces / Items (Rotis, Chapatis, Eggs, Dosas)</option>
                     <option value="bowl">Bowl (approx 200g)</option>
                     <option value="cup">Cup (approx 150g)</option>
-                    <option value="grams">Grams (g)</option>
+                    <option value="scoop">Scoop (approx 30g)</option>
+                    <option value="tbsp">Tablespoon (approx 15g)</option>
+                    <option value="tsp">Teaspoon (approx 5g)</option>
+                    <option value="slice">Slice (approx 25g)</option>
                   </select>
                 </div>
               </div>
@@ -353,7 +386,7 @@ export default function MealLoggerModal() {
               {selectedFood && (
                 <div className="p-2.5 rounded-xl bg-green-500/10 border border-green-500/20 text-center">
                   <span className="text-[10px] text-green-400 font-extrabold uppercase block tracking-wider">
-                    Calculated Nutrition for {quantity} {unitType}{quantity > 1 ? 's' : ''}
+                    Calculated Nutrition for {quantity} {unitType}{quantity > 1 ? 's' : ''} ({getComputedTotalGrams()}g total)
                   </span>
                   <div className="text-xs font-black text-foreground mt-0.5">
                     {calories} kcal | P: {protein}g | C: {carbs}g | F: {fat}g
@@ -413,19 +446,19 @@ export default function MealLoggerModal() {
             </div>
           </div>
 
-          <div className="pt-6 mt-4 border-t border-card-border">
+          <div className="pt-4 border-t border-card-border mt-4">
             <button 
               onClick={handleSave}
               disabled={isSaving || !mealName.trim() || Number(calories) <= 0}
-              className="w-full py-3.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-colors cursor-pointer border-none shadow-lg"
+              className="w-full py-3.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-colors cursor-pointer border-none shadow-lg shadow-green-500/20"
             >
               {isSaving ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin" /> Saving...
+                  <RefreshCw className="w-4 h-4 animate-spin" /> Saving Meal Log...
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4" /> Log Meal & Portion
+                  <Save className="w-4 h-4" /> Save Food & Portion Log
                 </>
               )}
             </button>
