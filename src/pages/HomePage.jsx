@@ -55,15 +55,11 @@ export default function HomePage() {
     return <LaunchScreen isLoading={true} />;
   }
 
-  // If user is authenticated
-  if (user) {
-    if (!userProfile?.onboarded) {
-      return <OnboardingFlow onComplete={handleOnboardingComplete} />;
-    }
-    navigate('/user/dashboard');
-    return <LaunchScreen isLoading={false} />;
+  // If user is authenticated but hasn't completed onboarding
+  if (user && userProfile?.onboarded === false) {
+    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
-  // Guest view
+  // Navigating to / MUST always stay at / and render LandingPage
   return <LandingPage />;
 }

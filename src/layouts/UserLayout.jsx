@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Home as HomeIcon, BookOpen, BarChart2, User, Users, LogOut, Sparkles, X, TrendingUp, Heart, Search, Menu, Plus } from 'lucide-react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { signOutUser } from '../lib/dbService';
+import { signOutUser, subscribeToAuth } from '../lib/dbService';
 
 import Logo from '../components/Logo';
 import ThemeToggle from '../components/ThemeToggle';
@@ -75,14 +75,19 @@ export default function UserLayout() {
   };
 
   useEffect(() => {
-    // Basic Auth Guard
-    const timer = setTimeout(() => {
-      const currentUser = useStore.getState().user;
-      if (!currentUser) {
-        window.location.href = '/';
+    const setUser = useStore.getState().setUser;
+    const unsubscribe = subscribeToAuth((authUser) => {
+      if (authUser) {
+        setUser(authUser);
+      } else {
+        // Only redirect to landing page if user is explicitly signed out / missing
+        const storeUser = useStore.getState().user;
+        if (!storeUser) {
+          window.location.href = '/';
+        }
       }
-    }, 1000);
-    return () => clearTimeout(timer);
+    });
+    return () => unsubscribe();
   }, []);
 
   return (
