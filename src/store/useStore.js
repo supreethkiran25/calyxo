@@ -186,7 +186,17 @@ export const useStore = create((set, get) => ({
     return { weightLogs: nextLogs };
   }),
 
-  setWaterIntake: (waterIntake) => set({ waterIntake }),
+  waterLogDate: typeof window !== 'undefined' ? new Date().toDateString() : '',
+
+  checkDailyReset: () => set((state) => {
+    const today = new Date().toDateString();
+    if (state.waterLogDate && state.waterLogDate !== today) {
+      return { waterIntake: 0, waterLogDate: today };
+    }
+    return { waterLogDate: today };
+  }),
+
+  setWaterIntake: (waterIntake) => set({ waterIntake, waterLogDate: new Date().toDateString() }),
   addWaterIntake: (amount) => set((state) => {
     const prevWater = state.waterIntake;
     const target = state.userProfile?.waterTarget || 2500;

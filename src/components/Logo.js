@@ -1,11 +1,11 @@
 import React from 'react';
 
-export default function Logo({ className = "w-8 h-8", glow = true, color }) {
+export default function Logo({ className = "w-7 h-7", glow = true, color, showText = false, textClassName = "" }) {
   // If className doesn't specify a text color, default to text-acid-green / #ccff00
   const hasTextColor = /\btext-/.test(className);
   const colorClass = hasTextColor ? '' : 'text-[var(--color-acid-green,#ccff00)]';
 
-  return (
+  const iconElement = (
     <div 
       className={`${className} ${colorClass} transition-all duration-300 relative inline-block shrink-0`}
       style={{
@@ -53,6 +53,17 @@ export default function Logo({ className = "w-8 h-8", glow = true, color }) {
       )}
     </div>
   );
+
+  if (showText) {
+    return (
+      <div className="flex items-center gap-2.5 shrink-0">
+        {iconElement}
+        <span className={`brand-name text-lg tracking-wider text-foreground ${textClassName}`}>CALYXO</span>
+      </div>
+    );
+  }
+
+  return iconElement;
 }
 
 export { Logo };

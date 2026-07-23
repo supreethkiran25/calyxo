@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { saveEcosystemState } from '../lib/dbService';
+import { isToday } from '../utils/dateUtils';
 
 import { Heart, Activity, Moon, Footprints, RefreshCw, Zap, Award } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -69,7 +70,8 @@ export default function HealthHub({ onNotification }) {
     // Composite: 25% steps, 25% water compliance, 25% calorie compliance, 25% sleep compliance
     const stepFactor = Math.min(1, parsedSteps / 10000) * 25;
     const waterFactor = Math.min(1, waterIntake / (userProfile?.waterTarget || 2500)) * 25;
-    const totalCal = foodLogs.reduce((s, x) => s + x.calories, 0);
+    const todaysFoodLogs = foodLogs.filter(x => isToday(x.timestamp));
+    const totalCal = todaysFoodLogs.reduce((s, x) => s + x.calories, 0);
     const targetCal = userProfile?.dailyCalories || 2000;
     const calDiff = Math.abs(targetCal - totalCal);
     const calFactor = Math.max(0, 25 - (calDiff / targetCal) * 25);

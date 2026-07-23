@@ -8,6 +8,7 @@ import { getWaterIntake, saveWaterIntake, getUserProfile, getUserConnection, get
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { syncAIHealthTwin } from '../lib/aiEcosystemService';
 import { calculateMacroTargets } from '../utils/macroCalculator';
+import { isToday } from '../utils/dateUtils';
 import { Flame, Droplets, Activity, Dumbbell, Utensils, Star, Sparkles, ChevronRight, Award, Zap, Brain, Moon, BookOpen, Bot, TrendingUp, PieChart } from 'lucide-react';
 import ThreeHealthCore from './ThreeHealthCore';
 
@@ -152,6 +153,7 @@ export default function Dashboard({ onNotification }) {
 
   useEffect(() => {
     const load = async () => {
+      useStore.getState().checkDailyReset();
       if (!userId) return;
       try {
         const profile = await getUserProfile(userId);
@@ -231,16 +233,6 @@ export default function Dashboard({ onNotification }) {
       setWaterIntake(prevWater); // Rollback
       if (onNotification) onNotification("Failed to reset water log. Please try again.");
     }
-  };
-
-  // Helper to check if a timestamp is today (12am to 12am)
-  const isToday = (timestamp) => {
-    if (!timestamp) return false;
-    const d = new Date(timestamp);
-    const today = new Date();
-    return d.getDate() === today.getDate() &&
-           d.getMonth() === today.getMonth() &&
-           d.getFullYear() === today.getFullYear();
   };
 
   const todaysFoodLogs = foodLogs.filter(x => isToday(x.timestamp));

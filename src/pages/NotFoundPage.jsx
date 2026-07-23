@@ -23,9 +23,9 @@ export default function NotFoundPage() {
 
       <div className="z-10 flex flex-col items-center text-center max-w-md w-full space-y-8">
         {/* Brand Header */}
-        <div className="flex items-center gap-3">
-          <Logo className="w-8 h-8 text-[var(--accent)]" glow={true} />
-          <span className="brand-name text-lg tracking-[0.16em] font-black text-white">calyxo</span>
+        <div className="flex items-center gap-2.5">
+          <Logo className="w-7 h-7 text-[var(--accent)]" glow={true} />
+          <span className="brand-name text-lg tracking-[0.16em] font-black text-white">CALYXO</span>
         </div>
 
         {/* 404 Illustration */}

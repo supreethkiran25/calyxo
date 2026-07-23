@@ -137,12 +137,22 @@ export const setSecureItem = (key, val, keyDerivation = ENCRYPTION_SALT) => {
 const LOCAL_STATE_KEY = "calyxo_pwa_state";
 const getLocalState = (userId) => {
   const state = getSecureItem(LOCAL_STATE_KEY, userId);
-  if (state) return state;
+  const today = new Date().toDateString();
+  if (state) {
+    // 24-hour daily restore: reset daily water intake if date has changed (24h passed)
+    if (state.waterDate && state.waterDate !== today) {
+      state.waterIntake = 0;
+      state.waterDate = today;
+      setSecureItem(LOCAL_STATE_KEY, state, userId);
+    }
+    return state;
+  }
   return {
     foodLogs: [],
     workoutLogs: [],
     weightLogs: [],
     waterIntake: 0,
+    waterDate: today,
     userProfile: { 
       gender: "male", 
       age: 25, 
@@ -480,6 +490,7 @@ export const saveWaterIntake = async (userId, amount) => {
   const today = new Date().toDateString();
   const state = getLocalState(userId);
   state.waterIntake = amount;
+  state.waterDate = today;
   saveLocalState(userId, state);
 
   if (isMockMode || !userId) return;

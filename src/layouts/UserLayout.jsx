@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home as HomeIcon, BookOpen, BarChart2, User, Users, LogOut, Sparkles, X, TrendingUp, Heart, Search, Menu, Plus } from 'lucide-react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
@@ -62,10 +62,24 @@ export default function UserLayout() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
 
+  const navigate = useNavigate();
+  const mainRef = useRef(null);
+
   const userProfile = useStore(state => state.userProfile);
   const bgEffects = userProfile?.appearance?.bgEffectsEnabled;
   const location = useLocation();
   const pathname = location.pathname;
+
+  const handleLogoClick = (e) => {
+    e.preventDefault();
+    if (pathname !== '/user/dashboard') {
+      navigate('/user/dashboard');
+    }
+    if (mainRef.current) {
+      mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleLogout = async () => {
     if (window.confirm("Sign out of Calyxo?")) {
@@ -75,6 +89,7 @@ export default function UserLayout() {
   };
 
   useEffect(() => {
+    useStore.getState().checkDailyReset();
     const setUser = useStore.getState().setUser;
     const unsubscribe = subscribeToAuth((authUser) => {
       if (authUser) {
@@ -97,10 +112,14 @@ export default function UserLayout() {
 
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-72 flex-col border-r border-card-border bg-card-bg/50 backdrop-blur-xl z-20">
-        <div className="p-6 flex items-center gap-3 border-b border-card-border">
-          <Logo className="w-8 h-8 text-acid-green" glow={true} />
-          <span className="font-black text-xl tracking-tight">calyxo</span>
-        </div>
+        <Link 
+          to="/user/dashboard" 
+          onClick={handleLogoClick}
+          className="p-6 flex items-center gap-2.5 border-b border-card-border cursor-pointer hover:opacity-90 transition-opacity no-underline text-current group"
+        >
+          <Logo className="w-7 h-7 text-acid-green" glow={true} />
+          <span className="brand-name text-lg text-foreground tracking-wider group-hover:text-acid-green transition-colors">CALYXO</span>
+        </Link>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-8 scrollbar-hide">
           {DESKTOP_NAV.map((group, idx) => (
@@ -158,12 +177,18 @@ export default function UserLayout() {
       <div className="flex-1 flex flex-col relative z-10 w-full lg:w-auto h-[100dvh] overflow-hidden">
         {/* Mobile Header */}
         <header className="lg:hidden h-[calc(3.5rem+env(safe-area-inset-top,0px))] pt-safe border-b border-card-border bg-background/90 backdrop-blur-xl flex items-center justify-between px-4 sticky top-0 z-30 shrink-0">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <button onClick={() => setIsMobileDrawerOpen(true)} className="p-2 text-foreground bg-transparent border-none cursor-pointer">
               <Menu className="w-6 h-6" />
             </button>
-            <Logo className="w-6 h-6 text-acid-green" glow={true} />
-            <span className="font-black text-lg tracking-tight">calyxo</span>
+            <Link 
+              to="/user/dashboard" 
+              onClick={handleLogoClick}
+              className="flex items-center gap-2.5 cursor-pointer hover:opacity-90 transition-opacity no-underline text-current"
+            >
+              <Logo className="w-6 h-6 text-acid-green" glow={true} />
+              <span className="brand-name text-base text-foreground tracking-wider">CALYXO</span>
+            </Link>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setIsSearchOpen(true)} className="p-2 text-foreground bg-transparent border-none cursor-pointer">
@@ -173,7 +198,7 @@ export default function UserLayout() {
         </header>
 
         {/* Dynamic Content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden relative scrollbar-hide pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8">
+        <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden relative scrollbar-hide pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8">
           <div className="max-w-7xl mx-auto w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
             <Outlet />
           </div>

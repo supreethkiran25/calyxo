@@ -6,6 +6,8 @@ import { useEcosystemStore } from '../store/useEcosystemStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Flame, Droplets, Dumbbell, Moon, Activity, Footprints, Sparkles } from 'lucide-react';
 
+import { isToday } from '../utils/dateUtils';
+
 export default function ThreeHealthCore() {
   const [mounted, setMounted] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState(null);
@@ -20,9 +22,10 @@ export default function ThreeHealthCore() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Calculate actual daily metrics
-  const totalCal = foodLogs.reduce((s, x) => s + (x.calories || 0), 0);
-  const totalProt = foodLogs.reduce((s, x) => s + (x.protein || 0), 0);
+  // Calculate actual daily metrics (resets every 24 hours for new day)
+  const todaysFoodLogs = foodLogs.filter(x => isToday(x.timestamp));
+  const totalCal = todaysFoodLogs.reduce((s, x) => s + (x.calories || 0), 0);
+  const totalProt = todaysFoodLogs.reduce((s, x) => s + (x.protein || 0), 0);
 
   const sleepHours = ecoStore.healthLogs?.sleep || 7.5;
   const recoveryScore = ecoStore.healthLogs?.recovery || 85;
