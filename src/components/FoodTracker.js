@@ -9,7 +9,8 @@ import {
   deleteFoodLog, 
   saveEcosystemState, 
   saveUserProfile, 
-  getUserAssignments 
+  getUserAssignments,
+  getCurrentUserIdSync 
 } from '../lib/dbService';
 import { searchFood } from '../services/foodService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
@@ -100,7 +101,7 @@ export default function FoodTracker({ onNotification }) {
   const updateFoodLogStore = useStore(state => state.updateFoodLog);
   const deleteFoodLogStore = useStore(state => state.deleteFoodLog);
   const userProfile = useStore(state => state.userProfile);
-  const userId = user?.uid;
+  const userId = user?.uid || user?.id || getCurrentUserIdSync();
   const ecoStore = useEcosystemStore();
 
   // Date Calendar History State

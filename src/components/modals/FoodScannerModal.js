@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, ScanLine, Image as ImageIcon, CheckCircle, RefreshCw, Save } from 'lucide-react';
 import useQuickActionsStore from '../../store/useQuickActionsStore';
+import { useStore } from '../../store/useStore';
 import { addFoodLog, getCurrentUserId } from '../../lib/dbService';
 import { scanMealVision } from '../../services/geminiService';
 import { useEcosystemStore } from '../../store/useEcosystemStore';
@@ -66,7 +67,8 @@ export default function FoodScannerModal() {
   const handleSave = async () => {
     if (!result) return;
     
-    const uid = getCurrentUserId();
+    const user = useStore.getState().user;
+    const uid = user?.uid || user?.id || await getCurrentUserId();
     if (!uid) {
       console.error("No user ID found.");
       return;

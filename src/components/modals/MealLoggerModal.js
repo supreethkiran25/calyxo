@@ -212,14 +212,23 @@ export default function MealLoggerModal() {
   if (activeWorkflow !== 'log_meal') return null;
 
   const handleSave = async () => {
-    const calVal = Number(calories) || 0;
-    if (!mealName.trim() || calVal <= 0) return;
+    if (!mealName.trim()) return;
     
-    const uid = await getCurrentUserId();
+    const computedGrams = getComputedTotalGrams();
+    let calVal = Number(calories);
+    if (!calVal || calVal <= 0) {
+      calVal = Math.round(computedGrams * 1.5) || 150;
+    }
+    
     setIsSaving(true);
     
     try {
-      const computedGrams = getComputedTotalGrams();
+      const user = useStore.getState().user;
+      const uid = user?.uid || user?.id || await getCurrentUserId();
+      if (!uid) {
+        throw new Error("User ID is missing or session expired.");
+      }
+
       const portionText = unitType === 'grams' 
         ? `${quantity}g` 
         : `${quantity} ${unitType}${quantity > 1 ? 's' : ''} (${computedGrams}g)`;
@@ -227,9 +236,9 @@ export default function MealLoggerModal() {
       const mealData = {
         name: `${mealName.trim()} (${portionText})`,
         calories: calVal,
-        protein: Number(protein) || 0,
-        carbs: Number(carbs) || 0,
-        fat: Number(fat) || 0,
+        protein: Number(protein) || Math.round(calVal * 0.08) || 5,
+        carbs: Number(carbs) || Math.round(calVal * 0.12) || 20,
+        fat: Number(fat) || Math.round(calVal * 0.04) || 5,
         portionWeight: computedGrams,
         timestamp: Date.now()
       };
@@ -449,7 +458,7 @@ export default function MealLoggerModal() {
           <div className="pt-4 border-t border-card-border mt-4">
             <button 
               onClick={handleSave}
-              disabled={isSaving || !mealName.trim() || Number(calories) <= 0}
+              disabled={isSaving || !mealName.trim()}
               className="w-full py-3.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-colors cursor-pointer border-none shadow-lg shadow-green-500/20"
             >
               {isSaving ? (
