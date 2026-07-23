@@ -6,6 +6,7 @@ import { useEcosystemStore } from '../../store/useEcosystemStore';
 import { useStore } from '../../store/useStore';
 import exercisesData from '../../lib/exercises.json';
 import { searchAndRankExercises, isFuzzyMatch } from '../../utils/exerciseSearch';
+import { addWorkoutLog, getCurrentUserId } from '../../lib/dbService';
 
 // Smart multi-tier exercise image & GIF resolver
 export const getExerciseImage = (item) => {
@@ -263,10 +264,14 @@ export default function WorkoutLoggerModal() {
 
     if (validExercises.length === 0) return;
     
-    const uid = await getCurrentUserId();
     setIsSaving(true);
     
     try {
+      const user = useStore.getState().user;
+      const uid = user?.uid || user?.id || await getCurrentUserId();
+      if (!uid) {
+        throw new Error("User ID is missing or session expired.");
+      }
       const logPromises = validExercises.map(ex => {
         const workoutData = {
           name: ex.name.trim() || workoutName.trim() || "Workout Exercise",

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { 
   getWorkoutLogs, 
@@ -136,7 +136,7 @@ export default function WorkoutLogger({ onNotification }) {
   const addWorkoutLogStore = useStore(state => state.addWorkoutLog);
   const updateWorkoutLogStore = useStore(state => state.updateWorkoutLog);
   const deleteWorkoutLogStore = useStore(state => state.deleteWorkoutLog);
-  const userId = user?.uid;
+  const userId = user?.uid || user?.id;
   const ecoStore = useEcosystemStore();
 
   // Date Calendar History State
@@ -150,7 +150,9 @@ export default function WorkoutLogger({ onNotification }) {
     return dStr === dateStr;
   };
 
-  const selectedDateWorkoutLogs = workoutLogs.filter(x => isDateSelected(x.timestamp, selectedDate));
+  const selectedDateWorkoutLogs = useMemo(() => {
+    return workoutLogs.filter(x => isDateSelected(x.timestamp, selectedDate));
+  }, [workoutLogs, selectedDate]);
 
   const handlePrevDate = () => {
     const d = new Date(selectedDate);
@@ -428,7 +430,7 @@ export default function WorkoutLogger({ onNotification }) {
     setExName(ex.name);
     setExCategory(ex.category || 'Strength');
     setExImage(ex.image || null);
-    setExQuery('');
+    setExQuery(ex.name);
     setShowDropdown(false);
   };
 
@@ -590,17 +592,18 @@ export default function WorkoutLogger({ onNotification }) {
   const favoriteExercises = useStore(state => state.favoriteExercises || []);
   const toggleFavoriteExercise = useStore(state => state.toggleFavoriteExercise);
 
-  const baseLibraryList = libQuery.trim() ? searchAndRankExercises(libQuery, exercisesData) : exercisesData;
+  const filteredExercises = useMemo(() => {
+    const baseList = libQuery.trim() ? searchAndRankExercises(libQuery, exercisesData) : exercisesData;
+    return baseList.filter(ex => {
+      const matchesBodyPart = libBodyPart === 'all' || (ex.body_part || '').toLowerCase() === libBodyPart.toLowerCase();
+      const matchesTarget = libTarget === 'all' || (ex.target || '').toLowerCase() === libTarget.toLowerCase();
+      const matchesEquipment = libEquipment === 'all' || (ex.equipment || '').toLowerCase() === libEquipment.toLowerCase();
+      const matchesCategory = libCategory === 'all' || (ex.category || '').toLowerCase() === libCategory.toLowerCase();
+      const matchesFavorites = !libOnlyFavorites || favoriteExercises.includes(ex.id);
 
-  const filteredExercises = baseLibraryList.filter(ex => {
-    const matchesBodyPart = libBodyPart === 'all' || (ex.body_part || '').toLowerCase() === libBodyPart.toLowerCase();
-    const matchesTarget = libTarget === 'all' || (ex.target || '').toLowerCase() === libTarget.toLowerCase();
-    const matchesEquipment = libEquipment === 'all' || (ex.equipment || '').toLowerCase() === libEquipment.toLowerCase();
-    const matchesCategory = libCategory === 'all' || (ex.category || '').toLowerCase() === libCategory.toLowerCase();
-    const matchesFavorites = !libOnlyFavorites || favoriteExercises.includes(ex.id);
-
-    return matchesBodyPart && matchesTarget && matchesEquipment && matchesCategory && matchesFavorites;
-  });
+      return matchesBodyPart && matchesTarget && matchesEquipment && matchesCategory && matchesFavorites;
+    });
+  }, [libQuery, libBodyPart, libTarget, libEquipment, libCategory, libOnlyFavorites, favoriteExercises]);
 
   const inputStyle = "w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner";
 

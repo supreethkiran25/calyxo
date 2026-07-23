@@ -31,11 +31,15 @@ export const searchAndRankExercises = (query, dataset = exercisesData) => {
 
     const fullText = `${name} ${bodyPart} ${target} ${equipment} ${category} ${instructions}`;
 
+    let cachedWords = null;
+
     // Every query token must match somewhere in fullText or fuzzy match
     const allTokensMatch = tokens.every(token => {
       if (fullText.includes(token)) return true;
-      const words = fullText.split(/[\s\-_,()]+/);
-      return words.some(w => isFuzzyMatch(token, w));
+      if (!cachedWords) {
+        cachedWords = fullText.split(/[\s\-_,()]+/);
+      }
+      return cachedWords.some(w => isFuzzyMatch(token, w));
     });
 
     if (!allTokensMatch) continue;
@@ -58,9 +62,11 @@ export const searchAndRankExercises = (query, dataset = exercisesData) => {
     else if (tokens.length > 0 && name.startsWith(tokens[0])) score += 50;
 
     // Word boundary matches in name
-    const nameWords = name.split(/\s+/);
+    if (!cachedWords) {
+      cachedWords = fullText.split(/[\s\-_,()]+/);
+    }
     tokens.forEach(token => {
-      if (nameWords.includes(token)) score += 40;
+      if (cachedWords.includes(token)) score += 40;
     });
 
     // Equipment match bonus (e.g., equipment === 'dumbbell')
