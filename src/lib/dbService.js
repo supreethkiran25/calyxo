@@ -99,25 +99,26 @@ export const xorDecrypt = (encoded, key = ENCRYPTION_SALT) => {
 
 export const getSecureItem = (key, keyDerivation = ENCRYPTION_SALT) => {
   if (typeof window === 'undefined') return null;
-  const saved = localStorage.getItem(key);
+  const uid = getCurrentUserIdSync();
+  const targetUser = (keyDerivation !== ENCRYPTION_SALT && keyDerivation) ? keyDerivation : uid;
+  const storageKey = targetUser ? `${key}_${targetUser}` : key;
+  let saved = localStorage.getItem(storageKey);
+  if (!saved && targetUser) {
+    saved = localStorage.getItem(key);
+  }
   if (!saved) return null;
   if (saved.startsWith("{") || saved.startsWith("[")) {
     try {
       return JSON.parse(saved);
     } catch (e) {}
   }
-  const uid = getCurrentUserIdSync();
-  const derivationKey = (keyDerivation === ENCRYPTION_SALT && uid)
-    ? `${uid}_${ENCRYPTION_SALT}`
-    : keyDerivation;
+  const derivationKey = targetUser ? `${targetUser}_${ENCRYPTION_SALT}` : ENCRYPTION_SALT;
 
   const decrypted = xorDecrypt(saved, derivationKey);
   if (decrypted) {
     try {
       return JSON.parse(decrypted);
-    } catch (e) {
-      localStorage.removeItem(key);
-    }
+    } catch (e) {}
   }
   return null;
 };
@@ -126,12 +127,12 @@ export const setSecureItem = (key, val, keyDerivation = ENCRYPTION_SALT) => {
   if (typeof window === 'undefined') return;
   const rawStr = JSON.stringify(val);
   const uid = getCurrentUserIdSync();
-  const derivationKey = (keyDerivation === ENCRYPTION_SALT && uid)
-    ? `${uid}_${ENCRYPTION_SALT}`
-    : keyDerivation;
+  const targetUser = (keyDerivation !== ENCRYPTION_SALT && keyDerivation) ? keyDerivation : uid;
+  const storageKey = targetUser ? `${key}_${targetUser}` : key;
+  const derivationKey = targetUser ? `${targetUser}_${ENCRYPTION_SALT}` : ENCRYPTION_SALT;
 
   const encrypted = xorEncrypt(rawStr, derivationKey);
-  localStorage.setItem(key, encrypted);
+  localStorage.setItem(storageKey, encrypted);
 };
 
 const LOCAL_STATE_KEY = "calyxo_pwa_state";
@@ -492,6 +493,14 @@ export const saveWaterIntake = async (userId, amount) => {
   const state = getLocalState(userId);
   state.waterIntake = amount;
   state.waterDate = today;
+  if (!state.waterLogs) state.waterLogs = [];
+  const idx = state.waterLogs.findIndex(w => w.date === today);
+  if (idx >= 0) {
+    state.waterLogs[idx].amount = amount;
+    state.waterLogs[idx].timestamp = Date.now();
+  } else {
+    state.waterLogs.push({ date: today, amount, timestamp: Date.now() });
+  }
   saveLocalState(userId, state);
 
   if (isMockMode || !userId) return;
@@ -543,9 +552,6 @@ export const addWeightLog = async (userId, weightVal, units) => {
 
   const state = getLocalState(userId);
   state.weightLogs.push(entry);
-  if (state.weightLogs.length > 10) {
-    state.weightLogs.shift();
-  }
   saveLocalState(userId, state);
 
   if (isMockMode || !userId) return entry;

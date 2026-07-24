@@ -95,15 +95,32 @@ export default function UserLayout() {
     useStore.getState().checkDailyReset();
     const setUser = useStore.getState().setUser;
     const setUserProfile = useStore.getState().setUserProfile;
+    const setFoodLogs = useStore.getState().setFoodLogs;
+    const setWorkoutLogs = useStore.getState().setWorkoutLogs;
+    const setWeightLogs = useStore.getState().setWeightLogs;
+    const setWaterIntake = useStore.getState().setWaterIntake;
     const unsubscribe = subscribeToAuth(async (authUser) => {
       if (authUser) {
         setUser(authUser);
-        const profile = await getUserProfile(authUser.uid || authUser.id);
+        const uid = authUser.uid || authUser.id;
+
+        const [profile, foods, workouts, weights, water] = await Promise.all([
+          getUserProfile(uid),
+          getFoodLogs(uid),
+          getWorkoutLogs(uid),
+          getWeightLogs(uid),
+          getWaterIntake(uid)
+        ]);
+
         if (profile) {
           setUserProfile(profile);
         } else {
           setUserProfile({ onboarded: false });
         }
+        if (foods) setFoodLogs(foods);
+        if (workouts) setWorkoutLogs(workouts);
+        if (weights) setWeightLogs(weights);
+        if (water !== undefined && water !== null) setWaterIntake(water);
       } else {
         // Only redirect to landing page if user is explicitly signed out / missing
         const storeUser = useStore.getState().user;

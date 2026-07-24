@@ -180,11 +180,9 @@ export const useStore = create((set, get) => ({
   })),
 
   setWeightLogs: (weightLogs) => set({ weightLogs }),
-  addWeightLog: (entry) => set((state) => {
-    const nextLogs = [...state.weightLogs, entry];
-    if (nextLogs.length > 10) nextLogs.shift();
-    return { weightLogs: nextLogs };
-  }),
+  addWeightLog: (entry) => set((state) => ({
+    weightLogs: [...state.weightLogs, entry]
+  })),
 
   waterLogDate: typeof window !== 'undefined' ? new Date().toDateString() : '',
 
