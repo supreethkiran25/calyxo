@@ -111,7 +111,11 @@ async function callGeminiAPI(model, payload) {
     });
 
     if (proxyRes.ok) {
-      return await proxyRes.json();
+      const data = await proxyRes.json();
+      if (data && data.candidates && data.candidates.length > 0) {
+        return data;
+      }
+      console.warn("Proxy returned response without candidates, falling back...", data);
     }
 
     if (proxyRes.status === 429) {
@@ -123,8 +127,8 @@ async function callGeminiAPI(model, payload) {
   }
 
   // 2. Local Development Fallback (Only used if /api/gemini route is un-routable in standalone dev)
-  const apiKey = (typeof process !== 'undefined' && process.env?.VITE_GEMINI_API_KEY) || 
-                 (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY);
+  const apiKey = (typeof process !== 'undefined' && (process.env?.VITE_GEMINI_API_KEY || process.env?.GEMINI_API_KEY)) || 
+                 (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_GEMINI_API_KEY || import.meta.env?.GEMINI_API_KEY));
   
   if (!apiKey) {
     throw new Error("Local AI twin mode (No remote API key set)");
