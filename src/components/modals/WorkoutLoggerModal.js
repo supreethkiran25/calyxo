@@ -4,8 +4,7 @@ import { X, Plus, Dumbbell, Clock, Flame, Save, RefreshCw, Search } from 'lucide
 import useQuickActionsStore from '../../store/useQuickActionsStore';
 import { useEcosystemStore } from '../../store/useEcosystemStore';
 import { useStore } from '../../store/useStore';
-import exercisesData from '../../lib/exercises.json';
-import { searchAndRankExercises, isFuzzyMatch } from '../../utils/exerciseSearch';
+import { searchAndRankExercises, isFuzzyMatch, loadExercisesData, getCachedExercises } from '../../utils/exerciseSearch';
 import { addWorkoutLog, getCurrentUserId } from '../../lib/dbService';
 
 // Smart multi-tier exercise image & GIF resolver
@@ -102,6 +101,10 @@ export default function WorkoutLoggerModal() {
   const [exerciseSuggestions, setExerciseSuggestions] = useState([]);
 
   useEffect(() => {
+    loadExercisesData();
+  }, []);
+
+  useEffect(() => {
     if (activeWorkflow === 'log_workout') {
       if (exercises.length === 0) {
         setExercises([{ id: Date.now(), name: '', sets: 3, reps: 10, weight: 0, category: 'Strength' }]);
@@ -151,6 +154,7 @@ export default function WorkoutLoggerModal() {
     const tokens = q.split(/\s+/).filter(Boolean);
 
     // Full Exercise Dataset matches with smart relevance ranking
+    const exercisesData = getCachedExercises();
     const exMatches = searchAndRankExercises(val, exercisesData);
 
     const exMapped = exMatches.slice(0, 15).map(x => ({

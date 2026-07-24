@@ -22,8 +22,7 @@ const globalImageCache = new Map();
 const activeFetches = new Set();
 import { motion, AnimatePresence } from 'framer-motion';
 
-import exercisesData from '../lib/exercises.json';
-import { searchAndRankExercises } from '../utils/exerciseSearch';
+import { searchAndRankExercises, loadExercisesData, getCachedExercises } from '../utils/exerciseSearch';
 
 const INITIAL_WORKOUT_SPLITS = [
   {
@@ -250,7 +249,12 @@ export default function WorkoutLogger({ onNotification }) {
   const [libLimit, setLibLimit] = useState(24);
   const [selectedExercise, setSelectedExercise] = useState(null);
 
+  useEffect(() => {
+    loadExercisesData();
+  }, []);
+
   const handleOpenExerciseDetail = (ex) => {
+    const exercisesData = getCachedExercises();
     const match = exercisesData.find(x => x.name.toLowerCase() === (ex.name || '').toLowerCase());
     if (match) {
       setSelectedExercise(match);

@@ -4,8 +4,8 @@ import { HelmetProvider } from 'react-helmet-async';
 import ErrorBoundary from './components/ErrorBoundary';
 import LaunchScreen from './components/LaunchScreen';
 
-// Layout
-import UserLayout from './layouts/UserLayout';
+// Layout — lazy loaded for code splitting
+const UserLayout = lazy(() => import('./layouts/UserLayout'));
 
 // Pages — lazy loaded for code splitting
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -21,7 +21,10 @@ const UserAIPage = lazy(() => import('./pages/user/AIPage'));
 const UserProfilePage = lazy(() => import('./pages/user/ProfilePage'));
 
 // Static Pages
-import { AboutPage, SupportPage, PrivacyPage, TermsPage } from './pages/user/StaticPages';
+const AboutPage = lazy(() => import('./pages/user/StaticPages').then(m => ({ default: m.AboutPage })));
+const SupportPage = lazy(() => import('./pages/user/StaticPages').then(m => ({ default: m.SupportPage })));
+const PrivacyPage = lazy(() => import('./pages/user/StaticPages').then(m => ({ default: m.PrivacyPage })));
+const TermsPage = lazy(() => import('./pages/user/StaticPages').then(m => ({ default: m.TermsPage })));
 
 function App() {
   return (

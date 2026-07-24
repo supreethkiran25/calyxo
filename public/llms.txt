@@ -1,0 +1,6 @@
+# Calyxo AI Health Operating System
+> Calyxo is an AI fitness and nutrition operating system featuring biometrics tracking, calorie calculations, structured workout logging, and real-time AI coaching.
+
+## Primary Documentation & Features
+- [Website](https://calyxo.vercel.app/): Interactive landing page and product features.
+- [About](https://calyxo.vercel.app/user/about): Learn more about Calyxo.

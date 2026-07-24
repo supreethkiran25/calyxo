@@ -1,4 +1,18 @@
-import exercisesData from '../lib/exercises.json';
+let cachedExercisesData = null;
+
+export const loadExercisesData = async () => {
+  if (cachedExercisesData) return cachedExercisesData;
+  try {
+    const module = await import('../lib/exercises.json');
+    cachedExercisesData = module.default || module;
+    return cachedExercisesData;
+  } catch (err) {
+    console.error('Failed to load exercise dataset:', err);
+    return [];
+  }
+};
+
+export const getCachedExercises = () => cachedExercisesData || [];
 
 export const isFuzzyMatch = (str1, str2) => {
   if (!str1 || !str2) return false;
@@ -12,8 +26,9 @@ export const isFuzzyMatch = (str1, str2) => {
   return dist <= 2 && s1.length >= 4;
 };
 
-export const searchAndRankExercises = (query, dataset = exercisesData) => {
-  if (!query || !query.trim()) return [];
+export const searchAndRankExercises = (query, dataset) => {
+  const activeDataset = dataset || cachedExercisesData || [];
+  if (!query || !query.trim() || !activeDataset.length) return [];
   
   const qClean = query.toLowerCase().trim();
   const tokens = qClean.split(/\s+/).filter(Boolean);

@@ -102,6 +102,7 @@ export default function LandingPage() {
             {user && (
               <button 
                 onClick={goToDashboard}
+                aria-label="Go to Dashboard"
                 className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer border border-white/10 flex items-center gap-1 whitespace-nowrap shrink-0"
               >
                 <span>Dashboard</span>
@@ -110,12 +111,14 @@ export default function LandingPage() {
             )}
             <button 
               onClick={() => openAuth('login')}
+              aria-label="Login to Calyxo"
               className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#B9B9C7] hover:text-white transition-colors cursor-pointer px-1.5 py-1 whitespace-nowrap shrink-0"
             >
               Login
             </button>
             <button 
               onClick={() => openAuth('signup')}
+              aria-label="Get Started with Calyxo"
               className="px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider shadow-lg hover:shadow-[#10B981]/25 transition-all duration-300 cursor-pointer border-none whitespace-nowrap shrink-0"
             >
               Get Started
@@ -129,8 +132,10 @@ export default function LandingPage() {
         {/* Full-width Background Image Layer */}
         <div className="absolute inset-0 z-0">
           <img 
-            src="/hero section.png" 
+            src="/hero-section.jpg" 
             alt="Calyxo AI Health Operating System Hero Background" 
+            fetchpriority="high"
+            decoding="async"
             className="w-full h-full object-cover object-center opacity-85 brightness-105 saturate-[1.15]"
           />
           {/* Layered Gradients for clear text readability across all screen sizes */}
@@ -197,7 +202,7 @@ export default function LandingPage() {
               className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-black/60 border border-white/15 backdrop-blur-xl shadow-2xl flex items-center justify-between"
             >
               <div>
-                <span className="text-[8px] sm:text-[9px] text-[#9CA3AF] font-bold uppercase tracking-wider block">AI Coach Status</span>
+                <span className="text-[8px] sm:text-[9px] text-gray-300 font-bold uppercase tracking-wider block">AI Coach Status</span>
                 <span className="text-xs sm:text-sm font-black text-white flex items-center gap-1.5 sm:gap-2">
                   ACTIVE BRIEFING <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#10B981] animate-pulse"></span>
                 </span>
@@ -211,7 +216,7 @@ export default function LandingPage() {
               className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-black/60 border border-white/15 backdrop-blur-xl shadow-2xl flex items-center justify-between"
             >
               <div>
-                <span className="text-[8px] sm:text-[9px] text-[#9CA3AF] font-bold uppercase tracking-wider block">Readiness Score</span>
+                <span className="text-[8px] sm:text-[9px] text-gray-300 font-bold uppercase tracking-wider block">Readiness Score</span>
                 <span className="text-xs sm:text-sm font-black text-white">94% OPTIMAL RECOVERY</span>
               </div>
               <span className="text-[9px] sm:text-xs font-bold text-[#10B981] bg-[#10B981]/10 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-[#10B981]/20 shrink-0">PEAK STATE</span>
@@ -223,7 +228,7 @@ export default function LandingPage() {
               className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-black/60 border border-white/15 backdrop-blur-xl shadow-2xl flex items-center justify-between"
             >
               <div>
-                <span className="text-[8px] sm:text-[9px] text-[#9CA3AF] font-bold uppercase tracking-wider block">Compliance Streak</span>
+                <span className="text-[8px] sm:text-[9px] text-gray-300 font-bold uppercase tracking-wider block">Compliance Streak</span>
                 <span className="text-xs sm:text-sm font-black text-white">12 DAYS ACTIVE 🔥</span>
               </div>
               <span className="text-[9px] sm:text-xs font-bold text-purple-300 bg-purple-500/10 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-purple-500/20 shrink-0">+1,450 XP</span>
@@ -333,10 +338,10 @@ export default function LandingPage() {
                     {feat.icon}
                   </div>
                   <div className="space-y-2">
-                    <h4 className="text-sm sm:text-base font-black uppercase tracking-wider text-white flex items-center justify-between">
+                    <h3 className="text-sm sm:text-base font-black uppercase tracking-wider text-white flex items-center justify-between">
                       <span>{feat.title}</span>
                       <ChevronRight className="w-3.5 h-3.5 text-[#B9B9C7] opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                    </h4>
+                    </h3>
                     <p className="text-xs text-[#B9B9C7] font-medium leading-relaxed">{feat.desc}</p>
                   </div>
                 </div>

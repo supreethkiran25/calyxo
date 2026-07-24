@@ -1,4 +1,4 @@
-import exercisesData from '../lib/exercises.json';
+import { getCachedExercises, loadExercisesData } from '../utils/exerciseSearch';
 
 // Helper: extract JSON from possibly-wrapped response
 function extractJSON(text) {
@@ -18,7 +18,13 @@ function searchLibraryExercises(queryText) {
   const words = queryText.toLowerCase().split(/\s+/).filter(w => w.length > 2);
   if (words.length === 0) return [];
 
-  const matches = exercisesData.filter(ex => {
+  const exercises = getCachedExercises();
+  if (!exercises || !exercises.length) {
+    loadExercisesData();
+    return [];
+  }
+
+  const matches = exercises.filter(ex => {
     return words.some(word => 
       ex.name.toLowerCase().includes(word) ||
       (ex.body_part || '').toLowerCase().includes(word) ||

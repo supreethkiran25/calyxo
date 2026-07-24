@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home as HomeIcon, BookOpen, BarChart2, User, Users, LogOut, Sparkles, X, TrendingUp, Heart, Search, Menu, Plus } from 'lucide-react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
@@ -7,18 +7,19 @@ import { signOutUser, subscribeToAuth } from '../lib/dbService';
 
 import Logo from '../components/Logo';
 import ThemeToggle from '../components/ThemeToggle';
-import BackgroundEffects from '../components/BackgroundEffects';
-import QuickActionsSheet from '../components/QuickActionsSheet';
-import GlobalSearch from '../components/GlobalSearch';
-import MobileDrawerMenu from '../components/MobileDrawerMenu';
 
-// Quick Action Modals
-import WorkoutLoggerModal from '../components/modals/WorkoutLoggerModal';
-import MealLoggerModal from '../components/modals/MealLoggerModal';
-import ProgressUploadModal from '../components/modals/ProgressUploadModal';
-import AIChatModal from '../components/modals/AIChatModal';
-import WaterLoggerModal from '../components/modals/WaterLoggerModal';
-import WeightLoggerModal from '../components/modals/WeightLoggerModal';
+const BackgroundEffects = lazy(() => import('../components/BackgroundEffects'));
+const QuickActionsSheet = lazy(() => import('../components/QuickActionsSheet'));
+const GlobalSearch = lazy(() => import('../components/GlobalSearch'));
+const MobileDrawerMenu = lazy(() => import('../components/MobileDrawerMenu'));
+
+// Quick Action Modals (lazy loaded for performance)
+const WorkoutLoggerModal = lazy(() => import('../components/modals/WorkoutLoggerModal'));
+const MealLoggerModal = lazy(() => import('../components/modals/MealLoggerModal'));
+const ProgressUploadModal = lazy(() => import('../components/modals/ProgressUploadModal'));
+const AIChatModal = lazy(() => import('../components/modals/AIChatModal'));
+const WaterLoggerModal = lazy(() => import('../components/modals/WaterLoggerModal'));
+const WeightLoggerModal = lazy(() => import('../components/modals/WeightLoggerModal'));
 
 const DESKTOP_NAV = [
   {
@@ -107,8 +108,10 @@ export default function UserLayout() {
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground flex overflow-hidden relative">
-      {bgEffects && <BackgroundEffects />}
-      <GlobalSearch isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <Suspense fallback={null}>
+        {bgEffects && <BackgroundEffects />}
+        <GlobalSearch isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      </Suspense>
 
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-72 flex-col border-r border-card-border bg-card-bg/50 backdrop-blur-xl z-20">
@@ -167,7 +170,7 @@ export default function UserLayout() {
 
         <div className="p-6 border-t border-card-border flex items-center justify-between">
           <ThemeToggle />
-          <button onClick={handleLogout} className="p-2 text-muted hover:text-destructive transition-colors bg-transparent border-none cursor-pointer rounded-full hover:bg-surface">
+          <button onClick={handleLogout} aria-label="Sign Out" className="p-2 text-muted hover:text-destructive transition-colors bg-transparent border-none cursor-pointer rounded-full hover:bg-surface">
             <LogOut className="w-5 h-5" />
           </button>
         </div>
@@ -178,7 +181,7 @@ export default function UserLayout() {
         {/* Mobile Header */}
         <header className="lg:hidden h-[calc(3.5rem+env(safe-area-inset-top,0px))] pt-safe border-b border-card-border bg-background/90 backdrop-blur-xl flex items-center justify-between px-4 sticky top-0 z-30 shrink-0">
           <div className="flex items-center gap-2.5">
-            <button onClick={() => setIsMobileDrawerOpen(true)} className="p-2 text-foreground bg-transparent border-none cursor-pointer">
+            <button onClick={() => setIsMobileDrawerOpen(true)} aria-label="Open Navigation Drawer" className="p-2 text-foreground bg-transparent border-none cursor-pointer">
               <Menu className="w-6 h-6" />
             </button>
             <Link 
@@ -191,7 +194,7 @@ export default function UserLayout() {
             </Link>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setIsSearchOpen(true)} className="p-2 text-foreground bg-transparent border-none cursor-pointer">
+            <button onClick={() => setIsSearchOpen(true)} aria-label="Open Search" className="p-2 text-foreground bg-transparent border-none cursor-pointer">
               <Search className="w-5 h-5" />
             </button>
           </div>
@@ -228,6 +231,7 @@ export default function UserLayout() {
             {/* Quick Create Action Button */}
             <button
               onClick={() => setIsQuickActionsOpen(true)}
+              aria-label="Quick Action Menu"
               className="flex flex-col items-center justify-center -mt-5 border-none bg-transparent outline-none cursor-pointer group"
             >
               <div className="w-12 h-12 rounded-full bg-acid-green text-black flex items-center justify-center shadow-lg shadow-acid-green/40 active:scale-90 group-hover:scale-105 transition-all">
@@ -257,22 +261,24 @@ export default function UserLayout() {
         </nav>
       </div>
 
-      <QuickActionsSheet isOpen={isQuickActionsOpen} onClose={() => setIsQuickActionsOpen(false)} />
+      <Suspense fallback={null}>
+        <QuickActionsSheet isOpen={isQuickActionsOpen} onClose={() => setIsQuickActionsOpen(false)} />
 
-      {/* Create Hub Modals */}
-      <WorkoutLoggerModal />
-      <MealLoggerModal />
-      <ProgressUploadModal />
-      <AIChatModal />
-      <WaterLoggerModal />
-      <WeightLoggerModal />
+        {/* Create Hub Modals */}
+        <WorkoutLoggerModal />
+        <MealLoggerModal />
+        <ProgressUploadModal />
+        <AIChatModal />
+        <WaterLoggerModal />
+        <WeightLoggerModal />
 
-      <MobileDrawerMenu 
-        isOpen={isMobileDrawerOpen} 
-        onClose={() => setIsMobileDrawerOpen(false)} 
-        userProfile={userProfile}
-        navItems={DESKTOP_NAV.flatMap(g => g.items)}
-      />
+        <MobileDrawerMenu 
+          isOpen={isMobileDrawerOpen} 
+          onClose={() => setIsMobileDrawerOpen(false)} 
+          userProfile={userProfile}
+          navItems={DESKTOP_NAV.flatMap(g => g.items)}
+        />
+      </Suspense>
     </div>
   );
 }

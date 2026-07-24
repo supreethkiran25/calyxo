@@ -8,9 +8,8 @@ import {
   Settings, ChevronRight, Sparkles, Activity 
 } from 'lucide-react';
 import useQuickActionsStore from '../store/useQuickActionsStore';
-import exercisesData from '../lib/exercises.json';
 import { INDIAN_FOODS } from '../lib/indianFoods';
-import { searchAndRankExercises } from '../utils/exerciseSearch';
+import { searchAndRankExercises, loadExercisesData, getCachedExercises } from '../utils/exerciseSearch';
 
 export default function GlobalSearch({ isOpen, onClose }) {
   const [query, setQuery] = useState('');
@@ -20,6 +19,7 @@ export default function GlobalSearch({ isOpen, onClose }) {
 
   useEffect(() => {
     if (isOpen) {
+      loadExercisesData();
       setTimeout(() => inputRef.current?.focus(), 150);
     } else {
       setQuery('');
@@ -82,7 +82,7 @@ export default function GlobalSearch({ isOpen, onClose }) {
     });
 
     // 2. Matching Exercises (top 5)
-    const matchedExercises = searchAndRankExercises(query, exercisesData).slice(0, 5);
+    const matchedExercises = searchAndRankExercises(query, getCachedExercises()).slice(0, 5);
     matchedExercises.forEach(ex => {
       results.push({
         id: `ex-${ex.id}`,
