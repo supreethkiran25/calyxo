@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getSecureItem, setSecureItem, getCurrentUserId } from '../lib/dbService';
+import { getSecureItem, setSecureItem, getCurrentUserIdSync } from '../lib/dbService';
 
 const LOCAL_ECOSYSTEM_KEY = "calyxo_ecosystem_state";
 
@@ -99,7 +99,7 @@ export const useEcosystemStore = create((set, get) => ({
     saveLocalEcosystemState(nextState);
 
     // Publish Achievement & Level Up Activities
-    const userId = getCurrentUserId();
+    const userId = getCurrentUserIdSync();
     const oldLevel = state.level || 1;
     if (userId && xpGranted > 0) {
       const achName = next.find(a => a.id === id)?.name || "Achievement";
@@ -125,7 +125,7 @@ export const useEcosystemStore = create((set, get) => ({
     const nextState = { ...state, xp: nextXP, level: nextLevel };
     saveLocalEcosystemState(nextState);
 
-    const userId = getCurrentUserId();
+    const userId = getCurrentUserIdSync();
     if (userId && nextLevel > oldLevel) {
       // Level up publish removed
     }

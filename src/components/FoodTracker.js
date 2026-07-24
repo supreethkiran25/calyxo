@@ -275,7 +275,10 @@ export default function FoodTracker({ onNotification }) {
 
     const delayDebounce = setTimeout(async () => {
       const q = queryVal.toLowerCase().trim();
-      const localMatches = INDIAN_FOODS.filter(f => f.name.toLowerCase().includes(q)).map(f => ({ ...f, isLocal: true }));
+      const localMatches = INDIAN_FOODS.filter(f => 
+        f.name.toLowerCase().includes(q) || 
+        (f.aliases && f.aliases.some(a => a.toLowerCase().includes(q)))
+      ).map(f => ({ ...f, isLocal: true }));
       const catalogMatches = FOODS_CATALOG.filter(f => f.name.toLowerCase().includes(q)).map(f => ({ ...f, isLocal: false, category: 'Catalog' }));
 
       let externalMatches = [];

@@ -56,7 +56,7 @@ export default function HomePage() {
   }
 
   // If user is authenticated but hasn't completed onboarding
-  if (user && userProfile?.onboarded === false) {
+  if (user && (!userProfile || userProfile.onboarded !== true)) {
     return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
