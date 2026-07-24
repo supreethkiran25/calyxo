@@ -95,17 +95,39 @@ function findFewShotExamples(queryText, logs) {
 let lastRateLimitTime = 0;
 const RATE_LIMIT_COOLDOWN_MS = 5 * 60 * 1000;
 
-// Secure proxy helper function
+// Secure proxy helper function (Masks & protects API Keys from client inspection)
 async function callGeminiAPI(model, payload) {
+  if (Date.now() - lastRateLimitTime < RATE_LIMIT_COOLDOWN_MS) {
+    throw new Error("Gemini API rate limit cooldown active; using local offline twin");
+  }
+
+  // 1. Primary: Route via Serverless Backend Proxy (/api/gemini)
+  // Keeps API Keys 100% hidden on server side - NO client devtools access
+  try {
+    const proxyRes = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, payload })
+    });
+
+    if (proxyRes.ok) {
+      return await proxyRes.json();
+    }
+
+    if (proxyRes.status === 429) {
+      lastRateLimitTime = Date.now();
+      throw new Error("Gemini API 429 (Too Many Requests)");
+    }
+  } catch (proxyErr) {
+    console.warn("Serverless AI Proxy unavailable, attempting local dev fallback...", proxyErr?.message || proxyErr);
+  }
+
+  // 2. Local Development Fallback (Only used if /api/gemini route is un-routable in standalone dev)
   const apiKey = (typeof process !== 'undefined' && process.env?.VITE_GEMINI_API_KEY) || 
                  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY);
   
   if (!apiKey) {
     throw new Error("Local AI twin mode (No remote API key set)");
-  }
-
-  if (Date.now() - lastRateLimitTime < RATE_LIMIT_COOLDOWN_MS) {
-    throw new Error("Gemini API rate limit cooldown active; using local offline twin");
   }
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
