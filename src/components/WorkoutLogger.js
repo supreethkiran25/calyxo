@@ -627,6 +627,18 @@ export default function WorkoutLogger({ onNotification }) {
   const favoriteExercises = useStore(state => state.favoriteExercises || []);
   const toggleFavoriteExercise = useStore(state => state.toggleFavoriteExercise);
 
+  const uniqueBodyParts = useMemo(() => {
+    return Array.from(new Set((exercisesData || []).map(e => e.body_part))).filter(Boolean);
+  }, [exercisesData]);
+
+  const uniqueTargets = useMemo(() => {
+    return Array.from(new Set((exercisesData || []).map(e => e.target))).filter(Boolean);
+  }, [exercisesData]);
+
+  const uniqueEquipments = useMemo(() => {
+    return Array.from(new Set((exercisesData || []).map(e => e.equipment))).filter(Boolean);
+  }, [exercisesData]);
+
   const filteredExercises = useMemo(() => {
     const baseList = libQuery.trim() ? searchAndRankExercises(libQuery, exercisesData) : exercisesData;
     return baseList.filter(ex => {
@@ -1091,7 +1103,7 @@ export default function WorkoutLogger({ onNotification }) {
                     className="bg-[var(--input)] text-foreground border border-card-border rounded-xl px-3 py-2 text-xs focus:outline-none"
                   >
                     <option value="all">All Body Parts</option>
-                    {Array.from(new Set(exercisesData.map(e => e.body_part))).filter(Boolean).map(bp => (
+                    {uniqueBodyParts.map(bp => (
                       <option key={bp} value={bp}>{bp}</option>
                     ))}
                   </select>
@@ -1102,7 +1114,7 @@ export default function WorkoutLogger({ onNotification }) {
                     className="bg-[var(--input)] text-foreground border border-card-border rounded-xl px-3 py-2 text-xs focus:outline-none"
                   >
                     <option value="all">All Target Muscles</option>
-                    {Array.from(new Set(exercisesData.map(e => e.target))).filter(Boolean).map(t => (
+                    {uniqueTargets.map(t => (
                       <option key={t} value={t}>{t}</option>
                     ))}
                   </select>
@@ -1113,7 +1125,7 @@ export default function WorkoutLogger({ onNotification }) {
                     className="bg-[var(--input)] text-foreground border border-card-border rounded-xl px-3 py-2 text-xs focus:outline-none"
                   >
                     <option value="all">All Equipment</option>
-                    {Array.from(new Set(exercisesData.map(e => e.equipment))).filter(Boolean).map(eq => (
+                    {uniqueEquipments.map(eq => (
                       <option key={eq} value={eq}>{eq}</option>
                     ))}
                   </select>

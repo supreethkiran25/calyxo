@@ -74,6 +74,12 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
+            if (id.includes('exercises.json')) {
+              return 'exercises-dataset';
+            }
+            if (id.includes('indianFoods.json')) {
+              return 'foods-dataset';
+            }
             if (id.includes('node_modules')) {
               if (id.includes('three') || id.includes('@react-three')) {
                 return 'vendor-three';

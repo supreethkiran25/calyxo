@@ -1,10 +1,27 @@
 let cachedExercisesData = null;
 
+const preprocessExercise = (ex) => {
+  if (ex._searchStr) return ex;
+  const name = (ex.name || '').toLowerCase();
+  const bodyPart = (ex.body_part || '').toLowerCase();
+  const target = (ex.target || '').toLowerCase();
+  const equipment = (ex.equipment || '').toLowerCase();
+  const category = (ex.category || '').toLowerCase();
+  const instructions = (ex.instructions || '').toLowerCase();
+
+  const fullText = `${name} ${bodyPart} ${target} ${equipment} ${category} ${instructions}`;
+  ex._searchStr = fullText;
+  ex._nameLower = name;
+  ex._words = fullText.split(/[\s\-_,()]+/);
+  return ex;
+};
+
 export const loadExercisesData = async () => {
   if (cachedExercisesData) return cachedExercisesData;
   try {
     const module = await import('../lib/exercises.json');
-    cachedExercisesData = module.default || module;
+    const rawData = module.default || module;
+    cachedExercisesData = Array.isArray(rawData) ? rawData.map(preprocessExercise) : [];
     return cachedExercisesData;
   } catch (err) {
     console.error('Failed to load exercise dataset:', err);
@@ -37,23 +54,18 @@ export const searchAndRankExercises = (query, dataset) => {
 
   for (let i = 0; i < activeDataset.length; i++) {
     const ex = activeDataset[i];
-    const name = (ex.name || '').toLowerCase();
-    const bodyPart = (ex.body_part || '').toLowerCase();
+    if (!ex._searchStr) preprocessExercise(ex);
+
+    const fullText = ex._searchStr;
+    const name = ex._nameLower || '';
+    const cachedWords = ex._words || [];
     const target = (ex.target || '').toLowerCase();
+    const bodyPart = (ex.body_part || '').toLowerCase();
     const equipment = (ex.equipment || '').toLowerCase();
-    const category = (ex.category || '').toLowerCase();
-    const instructions = (ex.instructions || '').toLowerCase();
-
-    const fullText = `${name} ${bodyPart} ${target} ${equipment} ${category} ${instructions}`;
-
-    let cachedWords = null;
 
     // Every query token must match somewhere in fullText or fuzzy match
     const allTokensMatch = tokens.every(token => {
       if (fullText.includes(token)) return true;
-      if (!cachedWords) {
-        cachedWords = fullText.split(/[\s\-_,()]+/);
-      }
       return cachedWords.some(w => isFuzzyMatch(token, w));
     });
 
@@ -77,9 +89,6 @@ export const searchAndRankExercises = (query, dataset) => {
     else if (tokens.length > 0 && name.startsWith(tokens[0])) score += 50;
 
     // Word boundary matches in name
-    if (!cachedWords) {
-      cachedWords = fullText.split(/[\s\-_,()]+/);
-    }
     tokens.forEach(token => {
       if (cachedWords.includes(token)) score += 40;
     });
