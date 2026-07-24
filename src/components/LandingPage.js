@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import Logo from './Logo';
 import AuthFlow from './AuthFlow';
 import BorderGlow from './BorderGlow';
+import { useStore } from '../store/useStore';
 const ColorBends = React.lazy(() => import('./ColorBends'));
 
 export default function LandingPage() {
