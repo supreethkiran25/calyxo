@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Logo from './Logo';
+import ColorBends from './ColorBends';
 import { Sparkles, Shield, Cpu, Zap, Activity } from 'lucide-react';
 
 export default function LaunchScreen({ isLoading }) {
@@ -52,8 +53,24 @@ export default function LaunchScreen({ isLoading }) {
             background: 'radial-gradient(circle at 50% 40%, #121824 0%, #080b10 70%, #030406 100%)'
           }}
         >
-          {/* Ambient Cyber Grid & Neon Aura Background */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {/* Ambient ColorBends WebGL Shader & Neon Aura Background */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+            <ColorBends
+              colors={["#10B981", "#00F0FF", "#3B82F6", "#059669"]}
+              rotation={87}
+              speed={0.4}
+              scale={1.2}
+              frequency={1}
+              warpStrength={1}
+              mouseInfluence={1}
+              noise={0.15}
+              parallax={0.5}
+              iterations={2}
+              intensity={1.6}
+              bandWidth={6}
+              transparent={true}
+              className="w-full h-full opacity-70"
+            />
             <div 
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-20 blur-[120px]"
               style={{ background: 'radial-gradient(circle, #ccff00 0%, #10b981 50%, transparent 80%)' }}

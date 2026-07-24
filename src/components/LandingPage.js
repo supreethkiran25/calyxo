@@ -79,6 +79,26 @@ export default function LandingPage() {
         style={{ width: `${scrollProgress}%` }}
       />
 
+      {/* ── Fixed Full-Page Interactive ColorBends WebGL Background ── */}
+      <div className="fixed inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
+        <ColorBends
+          colors={["#10B981", "#00F0FF", "#3B82F6", "#059669"]}
+          rotation={87}
+          speed={0.35}
+          scale={1.15}
+          frequency={1}
+          warpStrength={1}
+          mouseInfluence={1}
+          noise={0.12}
+          parallax={0.5}
+          iterations={2}
+          intensity={1.5}
+          bandWidth={6}
+          transparent={true}
+          className="w-full h-full opacity-60"
+        />
+      </div>
+
       {/* Background glowing gradients contained inside overflow-hidden wrapper */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-0 left-1/4 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-gradient-to-tr from-[#10B981]/15 to-[#00F0FF]/5 rounded-full blur-[100px] sm:blur-[140px]"></div>
@@ -128,26 +148,10 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Full Hero Section with ColorBends WebGL Shader & Photo Background */}
+      {/* Full Hero Section */}
       <section className="relative w-full overflow-hidden border-b border-white/10 min-h-[90vh] sm:min-h-screen flex items-center justify-center">
-        {/* Full-width Interactive ColorBends WebGL + Image Background Layer */}
+        {/* Full-width Image & Dark Gradient Overlay Layer */}
         <div className="absolute inset-0 z-0 overflow-hidden">
-          <ColorBends
-            colors={["#10B981", "#00F0FF", "#3B82F6", "#059669"]}
-            rotation={87}
-            speed={0.4}
-            scale={1.1}
-            frequency={1}
-            warpStrength={1}
-            mouseInfluence={1}
-            noise={0.12}
-            parallax={0.5}
-            iterations={2}
-            intensity={1.5}
-            bandWidth={6}
-            transparent={true}
-            className="absolute inset-0 w-full h-full opacity-65 z-0"
-          />
           <img 
             src="/hero-section.jpg" 
             alt="Calyxo AI Health Operating System Hero Background" 
