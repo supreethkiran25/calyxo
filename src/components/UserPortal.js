@@ -147,15 +147,6 @@ export default function UserPortal() {
           // Fetch User Profile
           const profile = await getUserProfile(currentUser.uid);
           if (profile) {
-            // Check if user has biometrics but is not marked onboarded yet
-            if (profile.onboarded === undefined || profile.onboarded === null) {
-              if (profile.weight && profile.height && profile.firstName) {
-                profile.onboarded = true;
-                await saveUserProfile(currentUser.uid, profile);
-              } else {
-                profile.onboarded = false;
-              }
-            }
             setUserProfile(profile);
 
             // Fetch other logs if already onboarded

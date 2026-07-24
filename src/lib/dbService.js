@@ -154,6 +154,7 @@ const getLocalState = (userId) => {
     waterIntake: 0,
     waterDate: today,
     userProfile: { 
+      onboarded: false,
       gender: "male", 
       age: 25, 
       weight: 70, 
@@ -588,7 +589,7 @@ export const getUserProfile = async (userId) => {
         ...getLocalState(userId).userProfile,
         ...data,
         ...extra,
-        onboarded: extra.onboarded !== undefined ? extra.onboarded : (data.onboarded !== undefined ? data.onboarded : true),
+        onboarded: extra.onboarded === true || data.onboarded === true,
         id: data.id,
         userId: data.userId,
         displayName: data.displayName || extra.nickname || extra.firstName || '',
@@ -636,7 +637,7 @@ export const saveUserProfile = async (userId, profile) => {
           const parsed = JSON.parse(existing.bio);
           if (parsed.role) {
             profile.role = parsed.role;
-            profile.onboarded = parsed.onboarded !== false; // preserve onboarded too
+            profile.onboarded = parsed.onboarded === true;
           }
         } catch (e) { /* bio isn't JSON, ignore */ }
       }

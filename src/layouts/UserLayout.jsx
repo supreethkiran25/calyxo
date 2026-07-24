@@ -116,7 +116,7 @@ export default function UserLayout() {
   }, []);
 
   // If user is authenticated but has not completed onboarding, trigger OnboardingFlow
-  if (user && userProfile && userProfile.onboarded === false) {
+  if (user && (!userProfile || userProfile.onboarded !== true)) {
     return (
       <Suspense fallback={null}>
         <OnboardingFlow />
