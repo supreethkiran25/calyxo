@@ -1,28 +1,24 @@
 "use client";
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Logo from './Logo';
-import { Sparkles, Shield, Cpu, Zap, Activity } from 'lucide-react';
-
-const ColorBends = React.lazy(() => import('./ColorBends'));
 
 export default function LaunchScreen({ isLoading }) {
   const [visible, setVisible] = useState(true);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    // Simulate high-tech loading progress bar 0 -> 100
+    // Smooth minimalist progress animation (0 -> 100 in ~1 second)
     const interval = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 99) {
+        if (prev >= 98) {
           clearInterval(interval);
           return 100;
         }
-        const diff = Math.floor(Math.random() * 15) + 8;
-        return Math.min(99, prev + diff);
+        return prev + 12;
       });
-    }, 120);
+    }, 40);
 
     return () => clearInterval(interval);
   }, []);
@@ -30,163 +26,97 @@ export default function LaunchScreen({ isLoading }) {
   useEffect(() => {
     if (!isLoading) {
       setProgress(100);
-      const timer = setTimeout(() => setVisible(false), 500);
+      const timer = setTimeout(() => setVisible(false), 400);
       return () => clearTimeout(timer);
     }
   }, [isLoading]);
-
-  const getStatusText = (pct) => {
-    if (pct < 30) return "INITIALIZING HEALTH KERNEL...";
-    if (pct < 65) return "CONNECTING AI HEALTH TWIN...";
-    if (pct < 95) return "OPTIMIZING METABOLIC ENGINE...";
-    return "SYSTEM OPERATIONAL • READY";
-  };
 
   return (
     <AnimatePresence>
       {visible && (
         <motion.div
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, scale: 1.03 }}
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-between p-8 overflow-hidden select-none bg-[#030303]"
+          exit={{ opacity: 0, scale: 1.02 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-6 overflow-hidden select-none bg-[#030303]"
         >
-          {/* Ambient ColorBends WebGL Shader Background */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-            <Suspense fallback={null}>
-              <ColorBends
-                colors={["#10B981", "#00F0FF", "#3B82F6", "#059669"]}
-                rotation={87}
-                speed={0.4}
-                scale={1.2}
-                frequency={1}
-                warpStrength={1}
-                mouseInfluence={1}
-                noise={0.08}
-                parallax={0.5}
-                iterations={1}
-                intensity={1.6}
-                bandWidth={6}
-                transparent={true}
-                className="w-full h-full opacity-100"
-              />
-            </Suspense>
-            {/* Fine Grid Background */}
-            <div 
-              className="absolute inset-0 opacity-[0.03]"
-              style={{
-                backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)',
-                backgroundSize: '32px 32px'
-              }}
+          {/* Subtle Deep Ambient Halo Effect */}
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: [0.8, 1.2, 1], opacity: [0.2, 0.4, 0.25] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              className="w-[450px] h-[450px] sm:w-[600px] sm:h-[600px] rounded-full bg-radial from-[#10B981]/25 via-[#00F0FF]/10 to-transparent blur-[120px]"
             />
           </div>
 
-          {/* Top Brand Tag */}
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="flex items-center gap-2 relative z-10 pt-4"
-          >
-            <div className="flex items-center gap-1.5 bg-[rgba(204,255,0,0.08)] border border-[rgba(204,255,0,0.25)] px-3 py-1 rounded-full backdrop-blur-md shadow-lg shadow-[rgba(204,255,0,0.05)]">
-              <span className="w-2 h-2 rounded-full bg-[#ccff00] animate-ping shrink-0" />
-              <span className="text-[10px] font-black tracking-widest text-[#ccff00] uppercase">
-                CALYXO v2.4 OS
-              </span>
-            </div>
-          </motion.div>
-
-          {/* Centerpiece Glowing Emblem & Title */}
-          <div className="flex flex-col items-center relative z-10 my-auto">
-            {/* Multi-ring Glowing Emblem Container */}
+          {/* Centered Iconic Nike/Puma-style Brand Hero Container */}
+          <div className="relative z-10 flex flex-col items-center justify-center text-center my-auto">
+            {/* Iconic Glowing Logo Emblem */}
             <motion.div
-              initial={{ scale: 0.7, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.7, ease: [0.34, 1.56, 0.64, 1] }}
-              className="relative flex items-center justify-center mb-8 group"
+              initial={{ scale: 0.75, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="relative flex items-center justify-center mb-6 group cursor-default"
             >
-              {/* Outer Pulsating Ring */}
+              {/* Outer Subtle Radial Pulse Ring */}
               <motion.div
                 animate={{
                   scale: [1, 1.15, 1],
-                  opacity: [0.3, 0.7, 0.3]
+                  opacity: [0.25, 0.6, 0.25]
                 }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute w-36 h-36 rounded-full border border-[#ccff00]/40 shadow-[0_0_50px_rgba(204,255,0,0.3)]"
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-[#10B981]/10 border border-[#10B981]/30 blur-sm"
               />
 
-              {/* Glass Inner Frame */}
-              <div className="w-28 h-28 rounded-3xl bg-surface/40 backdrop-blur-2xl border border-white/10 flex items-center justify-center shadow-2xl shadow-black/80 relative overflow-hidden">
-                {/* Neon Shimmer Streak */}
+              {/* Glassmorphic Logo Shield */}
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white/[0.04] backdrop-blur-2xl border border-white/15 flex items-center justify-center shadow-[0_16px_40px_rgba(0,0,0,0.8)] relative overflow-hidden">
+                {/* Light Sweep Effect */}
                 <motion.div 
                   animate={{ x: ['-100%', '200%'] }}
-                  transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-[#ccff00]/20 to-transparent transform -skew-x-12"
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.5 }}
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12"
                 />
 
-                {/* Bright Glowing Logo */}
-                <Logo className="w-16 h-16 text-[#ccff00]" glow={true} />
+                <Logo className="w-12 h-12 sm:w-14 sm:h-14 text-[#10B981]" glow={true} />
               </div>
             </motion.div>
 
-            {/* Brand Title */}
+            {/* Bold Premium Brand Typography */}
             <motion.h1
-              initial={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-              className="text-3xl sm:text-4xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-[#ccff00] via-emerald-400 to-teal-300 uppercase leading-none text-center"
+              transition={{ delay: 0.15, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              className="text-2xl sm:text-3xl font-black tracking-[0.25em] text-white uppercase leading-none text-center"
             >
               CALYXO
             </motion.h1>
 
             <motion.p
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.7 }}
-              transition={{ delay: 0.35 }}
-              className="text-[11px] font-extrabold tracking-[0.25em] text-muted uppercase mt-2.5 text-center flex items-center gap-2"
+              animate={{ opacity: 0.6 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+              className="text-[10px] sm:text-[11px] font-bold tracking-[0.35em] text-[#9CA3AF] uppercase mt-3 text-center"
             >
-              <span>Track Today</span>
-              <span className="text-[#ccff00]">•</span>
-              <span>Transform Tomorrow</span>
+              TRACK TODAY &bull; TRANSFORM TOMORROW
             </motion.p>
           </div>
 
-          {/* Bottom High-Tech Progress Bar & Status */}
+          {/* Minimalist Bottom Precision Loading Line */}
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-            className="w-full max-w-xs relative z-10 flex flex-col items-center gap-3 pb-6"
+            transition={{ delay: 0.35, duration: 0.5 }}
+            className="relative z-10 w-36 sm:w-44 flex flex-col items-center gap-2 pb-8"
           >
-            {/* Percentage & Status Label */}
-            <div className="w-full flex items-center justify-between text-[10px] font-black uppercase tracking-wider">
-              <span className="text-muted flex items-center gap-1.5">
-                <Activity className="w-3.5 h-3.5 text-[#ccff00] animate-pulse" />
-                {getStatusText(progress)}
-              </span>
-              <span className="text-[#ccff00] font-mono text-xs font-black">
-                {progress}%
-              </span>
-            </div>
-
-            {/* Segmented Neon Bar Container */}
-            <div className="w-full h-2 bg-black/60 border border-white/10 rounded-full overflow-hidden p-0.5 relative shadow-inner">
+            {/* Ultra-thin Minimalist Neon Progress Line */}
+            <div className="w-full h-[2px] bg-white/10 rounded-full overflow-hidden relative">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-[#ccff00] via-emerald-400 to-teal-300 shadow-[0_0_15px_rgba(204,255,0,0.8)]"
+                className="h-full rounded-full bg-gradient-to-r from-[#10B981] via-[#00F0FF] to-[#10B981] shadow-[0_0_12px_rgba(16,185,129,0.8)]"
                 initial={{ width: '0%' }}
                 animate={{ width: `${progress}%` }}
-                transition={{ ease: "easeOut", duration: 0.3 }}
+                transition={{ ease: "easeOut", duration: 0.2 }}
               />
-            </div>
-
-            {/* System Encryption Badges */}
-            <div className="flex items-center gap-4 text-[9px] text-muted font-bold tracking-widest uppercase opacity-60 pt-1">
-              <span className="flex items-center gap-1">
-                <Shield className="w-3 h-3 text-[#ccff00]" /> End-to-End Encrypted
-              </span>
-              <span className="flex items-center gap-1">
-                <Cpu className="w-3 h-3 text-emerald-400" /> Neural Twin Active
-              </span>
             </div>
           </motion.div>
         </motion.div>
