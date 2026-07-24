@@ -128,6 +128,27 @@ const FallbackIcon = ({ category, muscleGroup, className }) => {
   }
 };
 
+const ExerciseImage = ({ src, alt, category, muscleGroup, className = "w-full h-full object-cover" }) => {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [src]);
+
+  if (!src || hasError) {
+    return <FallbackIcon category={category} muscleGroup={muscleGroup} className="w-4 h-4 text-muted" />;
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      onError={() => setHasError(true)}
+    />
+  );
+};
+
 export default function WorkoutLogger({ onNotification }) {
   const user = useStore(state => state.user);
   const workoutLogs = useStore(state => state.workoutLogs);
@@ -137,6 +158,16 @@ export default function WorkoutLogger({ onNotification }) {
   const deleteWorkoutLogStore = useStore(state => state.deleteWorkoutLog);
   const userId = user?.uid || user?.id;
   const ecoStore = useEcosystemStore();
+
+  const [exercisesData, setExercisesData] = useState(() => getCachedExercises());
+
+  useEffect(() => {
+    loadExercisesData().then(data => {
+      if (data && Array.isArray(data)) {
+        setExercisesData(data);
+      }
+    });
+  }, []);
 
   // Date Calendar History State
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -759,10 +790,7 @@ export default function WorkoutLogger({ onNotification }) {
                                       className="w-10 h-10 rounded-md bg-surface/50 border border-card-border/50 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
                                       title="Click to view GIF"
                                     >
-                                      {item.gif_url || item.image || globalImageCache.get(item.name) ? (
-                                        <img src={item.gif_url || item.image || globalImageCache.get(item.name)} alt={item.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
-                                      ) : null}
-                                      <FallbackIcon category={item.category} muscleGroup={item.muscleGroup} className="w-4 h-4 text-muted" />
+                                      <ExerciseImage src={item.gif_url || item.image || globalImageCache.get(item.name)} alt={item.name} category={item.category} muscleGroup={item.muscleGroup} />
                                     </div>
                                     <span className="text-xs font-semibold truncate">{item.name}</span>
                                   </div>
@@ -877,10 +905,7 @@ export default function WorkoutLogger({ onNotification }) {
                               className="w-9 h-9 rounded border border-card-border/50 bg-black/20 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
                               title="Click photo to view GIF animation"
                             >
-                              {item.image || globalImageCache.get(item.name) ? (
-                                <img src={item.image || globalImageCache.get(item.name)} alt={item.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
-                              ) : null}
-                              <FallbackIcon category={item.category} muscleGroup={item.muscleGroup} className="w-4 h-4 text-muted" />
+                              <ExerciseImage src={item.image || globalImageCache.get(item.name)} alt={item.name} category={item.category} muscleGroup={item.muscleGroup} />
                             </div>
                             <div className="flex flex-col min-w-0">
                               <span className="text-xs font-bold text-foreground truncate hover:text-acid-green cursor-pointer" onClick={() => handleOpenExerciseDetail(item)}>{item.name}</span>
@@ -1015,10 +1040,7 @@ export default function WorkoutLogger({ onNotification }) {
                                 className="w-8 h-8 rounded border border-card-border/50 bg-black/20 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
                                 title="Click to view GIF animation"
                               >
-                                {ex.image || globalImageCache.get(ex.name) ? (
-                                  <img src={ex.image || globalImageCache.get(ex.name)} alt={ex.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
-                                ) : null}
-                                <FallbackIcon category={ex.category || 'Strength'} muscleGroup={ex.muscleGroup} className="w-4 h-4 text-muted" />
+                                <ExerciseImage src={ex.image || globalImageCache.get(ex.name)} alt={ex.name} category={ex.category || 'Strength'} muscleGroup={ex.muscleGroup} />
                               </div>
                               <span className="font-semibold text-foreground truncate cursor-pointer hover:text-acid-green" onClick={() => handleOpenExerciseDetail(ex)}>{ex.name}</span>
                             </div>
@@ -1119,13 +1141,12 @@ export default function WorkoutLogger({ onNotification }) {
                     className="glass border border-card-border rounded-2xl p-4 flex flex-col justify-between hover:border-acid-green/40 transition-all cursor-pointer group shadow-sm relative overflow-hidden"
                   >
                     <div className="relative w-full h-40 bg-black/40 rounded-xl overflow-hidden mb-3 border border-card-border/50">
-                      <img 
+                      <ExerciseImage 
                         src={ex.gif_url || ex.image} 
                         alt={ex.name}
+                        category={ex.category}
+                        muscleGroup={ex.target || ex.body_part}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => {
-                          e.target.src = ex.image;
-                        }}
                       />
                       <div className="absolute top-2 right-2 bg-black/60 px-2 py-0.5 rounded text-[8px] font-black uppercase text-acid-green tracking-wider">
                         GIF
@@ -1242,13 +1263,12 @@ export default function WorkoutLogger({ onNotification }) {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative w-full h-64 md:h-80 bg-black flex items-center justify-center overflow-hidden border-b border-card-border">
-                <img 
+                <ExerciseImage 
                   src={selectedExercise.gif_url || selectedExercise.image} 
                   alt={`${selectedExercise.name} Animation`}
+                  category={selectedExercise.category}
+                  muscleGroup={selectedExercise.target || selectedExercise.body_part}
                   className="w-full h-full object-contain"
-                  onError={(e) => {
-                    e.target.src = selectedExercise.image || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80';
-                  }}
                 />
 
                 <button

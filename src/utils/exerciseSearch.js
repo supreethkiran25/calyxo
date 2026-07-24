@@ -35,8 +35,8 @@ export const searchAndRankExercises = (query, dataset) => {
 
   const scored = [];
 
-  for (let i = 0; i < dataset.length; i++) {
-    const ex = dataset[i];
+  for (let i = 0; i < activeDataset.length; i++) {
+    const ex = activeDataset[i];
     const name = (ex.name || '').toLowerCase();
     const bodyPart = (ex.body_part || '').toLowerCase();
     const target = (ex.target || '').toLowerCase();

@@ -70,6 +70,25 @@ const getDistinctFallback = (nameStr) => {
   return photos[idx];
 };
 
+const ModalExerciseImage = ({ item, className = "w-11 h-11 rounded-lg object-cover border border-card-border shrink-0 bg-black/30" }) => {
+  const [imgSrc, setImgSrc] = useState(() => getExerciseImage(item));
+
+  useEffect(() => {
+    setImgSrc(getExerciseImage(item));
+  }, [item]);
+
+  return (
+    <img 
+      src={imgSrc} 
+      alt={item?.name || 'Exercise'} 
+      className={className}
+      onError={() => {
+        setImgSrc(getDistinctFallback(item?.name));
+      }}
+    />
+  );
+};
+
 
 
 const POPULAR_ROUTINES = [
@@ -222,6 +241,7 @@ export default function WorkoutLoggerModal() {
         setExerciseSuggestions([]);
         setActiveExIdSearch(null);
       } else {
+        const exercisesData = getCachedExercises();
         const matches = searchAndRankExercises(value, exercisesData);
         setExerciseSuggestions(matches.slice(0, 15));
         setActiveExIdSearch(id);
@@ -380,15 +400,7 @@ export default function WorkoutLoggerModal() {
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             {item.type === 'exercise' ? (
-                              <img 
-                                src={getExerciseImage(item)} 
-                                alt={item.name} 
-                                className="w-11 h-11 rounded-lg object-cover border border-card-border shrink-0 bg-black/30"
-                                onError={(e) => {
-                                  e.target.onerror = null;
-                                  e.target.src = getDistinctFallback(item.name);
-                                }}
-                              />
+                              <ModalExerciseImage item={item} />
                             ) : (
                               <div className="w-11 h-11 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center shrink-0 text-blue-400 font-bold">
                                 🏋️
@@ -464,15 +476,7 @@ export default function WorkoutLoggerModal() {
                     
                     <div className="relative">
                       <div className="flex items-center gap-3 mb-2">
-                        <img 
-                          src={getExerciseImage(ex)} 
-                          alt={ex.name || `Exercise ${index + 1}`} 
-                          className="w-12 h-12 rounded-xl object-cover border border-card-border shrink-0 bg-black/30 shadow-sm"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = getDistinctFallback(ex.name);
-                          }}
-                        />
+                        <ModalExerciseImage item={ex} className="w-12 h-12 rounded-xl object-cover border border-card-border shrink-0 bg-black/30 shadow-sm" />
                         <div className="flex-1 min-w-0">
                           <label className="text-[9px] font-bold text-muted uppercase block mb-1">
                             Exercise #{index + 1} Name {ex.target ? `• ${ex.target}` : ''}
@@ -509,15 +513,7 @@ export default function WorkoutLoggerModal() {
                                 className="px-3 py-2.5 hover:bg-blue-500/10 hover:text-blue-400 cursor-pointer flex justify-between items-center text-xs border-b border-card-border/40 last:border-b-0 group/item"
                               >
                                 <div className="flex items-center gap-3 min-w-0">
-                                  <img 
-                                    src={getExerciseImage(item)} 
-                                    alt={item.name} 
-                                    className="w-11 h-11 rounded-lg object-cover border border-card-border shrink-0 bg-black/30"
-                                    onError={(e) => {
-                                      e.target.onerror = null;
-                                      e.target.src = getDistinctFallback(item.name);
-                                    }}
-                                  />
+                                  <ModalExerciseImage item={item} />
                                   <div className="flex flex-col min-w-0">
                                     <span className="font-bold text-foreground truncate group-hover/item:text-blue-400">{item.name}</span>
                                     <span className="text-[9.5px] text-muted truncate font-medium">
