@@ -7,8 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import Logo from './Logo';
 import AuthFlow from './AuthFlow';
 import BorderGlow from './BorderGlow';
-import ColorBends from './ColorBends';
-import { useStore } from '../store/useStore';
+const ColorBends = React.lazy(() => import('./ColorBends'));
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -81,22 +80,24 @@ export default function LandingPage() {
 
       {/* ── Fixed Full-Page Interactive ColorBends WebGL Background ── */}
       <div className="fixed inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
-        <ColorBends
-          colors={["#10B981", "#00F0FF", "#3B82F6", "#059669"]}
-          rotation={87}
-          speed={0.35}
-          scale={1.15}
-          frequency={1}
-          warpStrength={1}
-          mouseInfluence={1}
-          noise={0.12}
-          parallax={0.5}
-          iterations={2}
-          intensity={1.5}
-          bandWidth={6}
-          transparent={true}
-          className="w-full h-full opacity-100"
-        />
+        <React.Suspense fallback={null}>
+          <ColorBends
+            colors={["#10B981", "#00F0FF", "#3B82F6", "#059669"]}
+            rotation={87}
+            speed={0.35}
+            scale={1.15}
+            frequency={1}
+            warpStrength={1}
+            mouseInfluence={1}
+            noise={0.08}
+            parallax={0.5}
+            iterations={1}
+            intensity={1.5}
+            bandWidth={6}
+            transparent={true}
+            className="w-full h-full opacity-100"
+          />
+        </React.Suspense>
       </div>
 
       {/* Fixed Transparent to Glass Navbar on Scroll with Safe Area Status Bar Support */}

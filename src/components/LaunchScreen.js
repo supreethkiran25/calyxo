@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Logo from './Logo';
-import ColorBends from './ColorBends';
 import { Sparkles, Shield, Cpu, Zap, Activity } from 'lucide-react';
+
+const ColorBends = React.lazy(() => import('./ColorBends'));
 
 export default function LaunchScreen({ isLoading }) {
   const [visible, setVisible] = useState(true);
@@ -52,22 +53,24 @@ export default function LaunchScreen({ isLoading }) {
         >
           {/* Ambient ColorBends WebGL Shader Background */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-            <ColorBends
-              colors={["#10B981", "#00F0FF", "#3B82F6", "#059669"]}
-              rotation={87}
-              speed={0.4}
-              scale={1.2}
-              frequency={1}
-              warpStrength={1}
-              mouseInfluence={1}
-              noise={0.15}
-              parallax={0.5}
-              iterations={2}
-              intensity={1.6}
-              bandWidth={6}
-              transparent={true}
-              className="w-full h-full opacity-100"
-            />
+            <Suspense fallback={null}>
+              <ColorBends
+                colors={["#10B981", "#00F0FF", "#3B82F6", "#059669"]}
+                rotation={87}
+                speed={0.4}
+                scale={1.2}
+                frequency={1}
+                warpStrength={1}
+                mouseInfluence={1}
+                noise={0.08}
+                parallax={0.5}
+                iterations={1}
+                intensity={1.6}
+                bandWidth={6}
+                transparent={true}
+                className="w-full h-full opacity-100"
+              />
+            </Suspense>
             {/* Fine Grid Background */}
             <div 
               className="absolute inset-0 opacity-[0.03]"
