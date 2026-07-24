@@ -48,12 +48,9 @@ export default function LaunchScreen({ isLoading }) {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, scale: 1.03 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-between p-8 overflow-hidden select-none"
-          style={{
-            background: 'radial-gradient(circle at 50% 40%, #121824 0%, #080b10 70%, #030406 100%)'
-          }}
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-between p-8 overflow-hidden select-none bg-[#030303]"
         >
-          {/* Ambient ColorBends WebGL Shader & Neon Aura Background */}
+          {/* Ambient ColorBends WebGL Shader Background */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
             <ColorBends
               colors={["#10B981", "#00F0FF", "#3B82F6", "#059669"]}
@@ -69,15 +66,7 @@ export default function LaunchScreen({ isLoading }) {
               intensity={1.6}
               bandWidth={6}
               transparent={true}
-              className="w-full h-full opacity-70"
-            />
-            <div 
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-20 blur-[120px]"
-              style={{ background: 'radial-gradient(circle, #ccff00 0%, #10b981 50%, transparent 80%)' }}
-            />
-            <div 
-              className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full opacity-30 blur-[80px]"
-              style={{ background: 'radial-gradient(circle, #00f0ff 0%, transparent 70%)' }}
+              className="w-full h-full opacity-100"
             />
             {/* Fine Grid Background */}
             <div 

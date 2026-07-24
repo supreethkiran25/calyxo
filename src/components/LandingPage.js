@@ -95,15 +95,8 @@ export default function LandingPage() {
           intensity={1.5}
           bandWidth={6}
           transparent={true}
-          className="w-full h-full opacity-60"
+          className="w-full h-full opacity-100"
         />
-      </div>
-
-      {/* Background glowing gradients contained inside overflow-hidden wrapper */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-0 left-1/4 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-gradient-to-tr from-[#10B981]/15 to-[#00F0FF]/5 rounded-full blur-[100px] sm:blur-[140px]"></div>
-        <div className="absolute top-1/3 right-[5%] w-[250px] sm:w-[500px] h-[250px] sm:h-[500px] bg-gradient-to-bl from-violet-600/10 to-transparent rounded-full blur-[90px] sm:blur-[130px]"></div>
-        <div className="absolute bottom-10 left-[10%] w-[200px] sm:w-[450px] h-[200px] sm:h-[450px] bg-blue-500/5 rounded-full blur-[80px] sm:blur-[120px]"></div>
       </div>
 
       {/* Fixed Transparent to Glass Navbar on Scroll with Safe Area Status Bar Support */}
@@ -150,11 +143,6 @@ export default function LandingPage() {
 
       {/* Full Hero Section */}
       <section className="relative w-full overflow-hidden border-b border-white/10 min-h-[90vh] sm:min-h-screen flex items-center justify-center">
-        {/* Subtle Dark Gradient Overlay Layer */}
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-transparent to-[#030303]/40 z-10"></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-[#030303]/60 via-transparent to-[#030303]/60 z-10"></div>
-        </div>
 
         {/* Hero Content Grid (On top of background & dark gradient layers) */}
         <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-12 sm:pb-16 w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
