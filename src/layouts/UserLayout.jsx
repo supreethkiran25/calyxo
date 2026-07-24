@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Home as HomeIcon, BookOpen, BarChart2, User, Users, LogOut, Sparkles, X, TrendingUp, Heart, Search, Menu, Plus } from 'lucide-react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { signOutUser, subscribeToAuth } from '../lib/dbService';
+import { signOutUser, subscribeToAuth, getUserProfile } from '../lib/dbService';
 
 import Logo from '../components/Logo';
 import ThemeToggle from '../components/ThemeToggle';
@@ -12,6 +12,7 @@ const BackgroundEffects = lazy(() => import('../components/BackgroundEffects'));
 const QuickActionsSheet = lazy(() => import('../components/QuickActionsSheet'));
 const GlobalSearch = lazy(() => import('../components/GlobalSearch'));
 const MobileDrawerMenu = lazy(() => import('../components/MobileDrawerMenu'));
+const OnboardingFlow = lazy(() => import('../components/OnboardingFlow'));
 
 // Quick Action Modals (lazy loaded for performance)
 const WorkoutLoggerModal = lazy(() => import('../components/modals/WorkoutLoggerModal'));
@@ -66,6 +67,7 @@ export default function UserLayout() {
   const navigate = useNavigate();
   const mainRef = useRef(null);
 
+  const user = useStore(state => state.user);
   const userProfile = useStore(state => state.userProfile);
   const bgEffects = userProfile?.appearance?.bgEffectsEnabled;
   const location = useLocation();
@@ -92,9 +94,16 @@ export default function UserLayout() {
   useEffect(() => {
     useStore.getState().checkDailyReset();
     const setUser = useStore.getState().setUser;
-    const unsubscribe = subscribeToAuth((authUser) => {
+    const setUserProfile = useStore.getState().setUserProfile;
+    const unsubscribe = subscribeToAuth(async (authUser) => {
       if (authUser) {
         setUser(authUser);
+        const profile = await getUserProfile(authUser.uid || authUser.id);
+        if (profile) {
+          setUserProfile(profile);
+        } else {
+          setUserProfile({ onboarded: false });
+        }
       } else {
         // Only redirect to landing page if user is explicitly signed out / missing
         const storeUser = useStore.getState().user;
@@ -105,6 +114,15 @@ export default function UserLayout() {
     });
     return () => unsubscribe();
   }, []);
+
+  // If user is authenticated but has not completed onboarding, trigger OnboardingFlow
+  if (user && userProfile && userProfile.onboarded === false) {
+    return (
+      <Suspense fallback={null}>
+        <OnboardingFlow />
+      </Suspense>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground flex overflow-hidden relative">

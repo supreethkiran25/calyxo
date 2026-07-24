@@ -588,6 +588,7 @@ export const getUserProfile = async (userId) => {
         ...getLocalState(userId).userProfile,
         ...data,
         ...extra,
+        onboarded: extra.onboarded !== undefined ? extra.onboarded : (data.onboarded !== undefined ? data.onboarded : true),
         id: data.id,
         userId: data.userId,
         displayName: data.displayName || extra.nickname || extra.firstName || '',
@@ -601,9 +602,17 @@ export const getUserProfile = async (userId) => {
         bio: ('bio' in extra) ? (extra.bio || "") : ""
       };
     }
-    return getLocalState(userId).userProfile;
+    const localProf = getLocalState(userId).userProfile;
+    return {
+      ...localProf,
+      onboarded: localProf?.onboarded === true ? true : false
+    };
   } catch (err) {
-    return getLocalState(userId).userProfile;
+    const localProf = getLocalState(userId).userProfile;
+    return {
+      ...localProf,
+      onboarded: localProf?.onboarded === true ? true : false
+    };
   }
 };
 
