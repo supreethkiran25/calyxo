@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => {
             req.on('end', async () => {
               try {
                 const body = JSON.parse(bodyStr || '{}');
-                const { model = 'gemini-1.5-flash', payload } = body;
+                const { model = 'gemini-2.5-flash', payload } = body;
                 const apiKey = env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
                 if (!apiKey) {

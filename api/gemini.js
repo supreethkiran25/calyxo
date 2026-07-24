@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { model = 'gemini-1.5-flash', payload } = req.body || {};
+  const { model = 'gemini-2.5-flash', payload } = req.body || {};
   
   // Retrieve API Key exclusively from Server Environment Variables (Completely hidden from browser clients)
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
