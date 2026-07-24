@@ -150,18 +150,10 @@ export default function LandingPage() {
 
       {/* Full Hero Section */}
       <section className="relative w-full overflow-hidden border-b border-white/10 min-h-[90vh] sm:min-h-screen flex items-center justify-center">
-        {/* Full-width Image & Dark Gradient Overlay Layer */}
-        <div className="absolute inset-0 z-0 overflow-hidden">
-          <img 
-            src="/hero-section.jpg" 
-            alt="Calyxo AI Health Operating System Hero Background" 
-            fetchpriority="high"
-            decoding="async"
-            className="w-full h-full object-cover object-center opacity-70 brightness-105 saturate-[1.15] mix-blend-overlay"
-          />
-          {/* Layered Gradients for clear text readability across all screen sizes */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/50 to-[#030303]/30 z-10 pointer-events-none"></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-[#030303]/85 via-transparent to-[#030303]/85 z-10 pointer-events-none"></div>
+        {/* Subtle Dark Gradient Overlay Layer */}
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-transparent to-[#030303]/40 z-10"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#030303]/60 via-transparent to-[#030303]/60 z-10"></div>
         </div>
 
         {/* Hero Content Grid (On top of background & dark gradient layers) */}
