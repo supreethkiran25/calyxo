@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import Logo from './Logo';
 import AuthFlow from './AuthFlow';
 import BorderGlow from './BorderGlow';
+import ColorBends from './ColorBends';
 import { useStore } from '../store/useStore';
 
 export default function LandingPage() {
@@ -112,14 +113,14 @@ export default function LandingPage() {
             <button 
               onClick={() => openAuth('login')}
               aria-label="Login to Calyxo"
-              className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#B9B9C7] hover:text-white transition-colors cursor-pointer px-1.5 py-1 whitespace-nowrap shrink-0"
+              className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-white/80 hover:text-white transition-all cursor-pointer px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-white/5 hover:bg-white/15 backdrop-blur-md border border-white/10 hover:border-white/25 shadow-sm whitespace-nowrap shrink-0"
             >
               Login
             </button>
             <button 
               onClick={() => openAuth('signup')}
               aria-label="Get Started with Calyxo"
-              className="px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider shadow-lg hover:shadow-[#10B981]/25 transition-all duration-300 cursor-pointer border-none whitespace-nowrap shrink-0"
+              className="px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-xl bg-[#10B981]/20 hover:bg-[#10B981]/35 backdrop-blur-xl border border-[#10B981]/40 hover:border-[#10B981] text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider shadow-[0_4px_20px_rgba(16,185,129,0.25)] hover:shadow-[0_6px_28px_rgba(16,185,129,0.45)] active:scale-95 transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0"
             >
               Get Started
             </button>
@@ -127,20 +128,36 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Full Hero Section with Background Photo & Heavy Black Layered Gradients */}
+      {/* Full Hero Section with ColorBends WebGL Shader & Photo Background */}
       <section className="relative w-full overflow-hidden border-b border-white/10 min-h-[90vh] sm:min-h-screen flex items-center justify-center">
-        {/* Full-width Background Image Layer */}
-        <div className="absolute inset-0 z-0">
+        {/* Full-width Interactive ColorBends WebGL + Image Background Layer */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <ColorBends
+            colors={["#10B981", "#00F0FF", "#3B82F6", "#059669"]}
+            rotation={87}
+            speed={0.4}
+            scale={1.1}
+            frequency={1}
+            warpStrength={1}
+            mouseInfluence={1}
+            noise={0.12}
+            parallax={0.5}
+            iterations={2}
+            intensity={1.5}
+            bandWidth={6}
+            transparent={true}
+            className="absolute inset-0 w-full h-full opacity-65 z-0"
+          />
           <img 
             src="/hero-section.jpg" 
             alt="Calyxo AI Health Operating System Hero Background" 
             fetchpriority="high"
             decoding="async"
-            className="w-full h-full object-cover object-center opacity-85 brightness-105 saturate-[1.15]"
+            className="w-full h-full object-cover object-center opacity-70 brightness-105 saturate-[1.15] mix-blend-overlay"
           />
           {/* Layered Gradients for clear text readability across all screen sizes */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/60 to-[#030303]/40 z-10 pointer-events-none"></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-[#030303]/80 via-transparent to-[#030303]/80 z-10 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/50 to-[#030303]/30 z-10 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#030303]/85 via-transparent to-[#030303]/85 z-10 pointer-events-none"></div>
         </div>
 
         {/* Hero Content Grid (On top of background & dark gradient layers) */}
@@ -172,19 +189,27 @@ export default function LandingPage() {
 
             <motion.div 
               variants={itemVariants}
-              className="flex flex-col sm:flex-row justify-start items-center gap-3 sm:gap-4 pt-2 w-full"
+              className="flex flex-col sm:flex-row justify-start items-center gap-3.5 sm:gap-5 pt-3 w-full"
             >
+              {/* Glassmorphic Primary CTA Button */}
               <button 
                 onClick={() => openAuth('signup')}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-xs font-black uppercase tracking-wider shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:shadow-[#10B981]/60 flex items-center justify-center group cursor-pointer transition-all duration-300 border-none"
+                aria-label="Start Free Trial"
+                className="w-full sm:w-auto px-7 sm:px-9 py-3.5 sm:py-4 rounded-2xl bg-[#10B981]/25 hover:bg-[#10B981]/40 active:scale-[0.98] backdrop-blur-2xl text-white text-xs font-black uppercase tracking-widest border border-[#10B981]/60 hover:border-[#10B981] shadow-[0_8px_32px_rgba(16,185,129,0.35)] hover:shadow-[0_12px_44px_rgba(16,185,129,0.6)] flex items-center justify-center gap-2.5 group cursor-pointer transition-all duration-300 relative overflow-hidden"
               >
-                Start Free Trial
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none"></span>
+                <span>Start Free Trial</span>
+                <ArrowRight className="w-4 h-4 text-[#00F0FF] group-hover:translate-x-1 transition-transform" />
               </button>
+
+              {/* Glassmorphic Secondary Button */}
               <button 
                 onClick={() => openAuth('login')}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md text-white text-xs font-black uppercase tracking-wider flex items-center justify-center cursor-pointer transition-colors border border-white/20 shadow-lg"
+                aria-label="Watch Demo"
+                className="w-full sm:w-auto px-7 sm:px-9 py-3.5 sm:py-4 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-[0.98] backdrop-blur-2xl text-white text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2.5 cursor-pointer transition-all duration-300 border border-white/25 hover:border-white/50 shadow-[0_8px_32px_rgba(255,255,255,0.08)] hover:shadow-[0_12px_36px_rgba(255,255,255,0.18)] relative overflow-hidden group"
               >
-                Watch Demo
+                <Play className="w-4 h-4 text-white/90 fill-white/30 group-hover:scale-110 transition-transform" />
+                <span>Watch Demo</span>
               </button>
             </motion.div>
           </motion.div>
