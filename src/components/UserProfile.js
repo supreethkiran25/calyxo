@@ -720,7 +720,7 @@ export default function UserProfile({ onNotification }) {
         return;
       }
 
-      const amountPaise = plan.id === 'MEDIUM' ? 4900 : plan.id === 'HIGH' ? 14900 : (plan.amountPaise || 4900);
+      const amountPaise = plan.id === 'MEDIUM' ? 100 : plan.id === 'HIGH' ? 200 : (plan.amountPaise || 100);
       let orderData = null;
 
       // 2. Attempt backend /api/create-order
@@ -1568,12 +1568,12 @@ export default function UserProfile({ onNotification }) {
       {
         id: 'MEDIUM',
         name: 'MEDIUM TIER',
-        price: '₹49',
+        price: '₹1',
         period: 'per month',
         badge: 'MOST POPULAR',
         accentColor: 'border-acid-green',
         bgGradient: 'bg-acid-green/10',
-        amountPaise: 4900,
+        amountPaise: 100,
         features: [
           'Everything in Free',
           'Unlimited AI Coach Long-term Memory',
@@ -1585,12 +1585,12 @@ export default function UserProfile({ onNotification }) {
       {
         id: 'HIGH',
         name: 'HIGH TIER',
-        price: '₹149',
+        price: '₹2',
         period: 'per month',
         badge: 'ULTRA ACCESS',
         accentColor: 'border-purple-500/50',
         bgGradient: 'bg-purple-500/10',
-        amountPaise: 14900,
+        amountPaise: 200,
         features: [
           'Everything in Medium',
           'AI Coach Concierge & Unlimited Messages',
