@@ -693,13 +693,115 @@ export default function UserProfile({ onNotification }) {
     if (onNotification) onNotification("Backup JSON downloaded! 💾");
   };
 
-  const handleRazorpayCheckout = (plan) => {
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleRazorpayCheckout = async (plan) => {
     if (plan.id === 'FREE') return;
-    const razorpayUrl = import.meta.env.VITE_RAZORPAY_URL || 'https://razorpay.com';
-    if (onNotification) onNotification(`Redirecting to Razorpay for ${plan.name} payment... 💳`);
-    setTimeout(() => {
-      window.open(razorpayUrl, '_blank', 'noopener,noreferrer');
-    }, 400);
+    setSaving(true);
+
+    try {
+      // 1. Ensure Razorpay Checkout script is loaded
+      const isScriptLoaded = await loadRazorpayScript();
+      if (!isScriptLoaded) {
+        if (onNotification) onNotification("Failed to load Razorpay SDK. Please check your network connection.");
+        setSaving(false);
+        return;
+      }
+
+      // 2. Call backend /api/create-order
+      const amountPaise = plan.id === 'PRO' ? 99900 : 249900;
+      const orderRes = await fetch('/api/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: amountPaise,
+          currency: 'INR',
+          receipt: `rcpt_${userId ? userId.substring(0, 8) : 'usr'}_${Date.now()}`
+        })
+      });
+
+      const orderData = await orderRes.json();
+      if (!orderRes.ok || !orderData.order_id) {
+        throw new Error(orderData?.error?.message || 'Failed to create payment order');
+      }
+
+      // 3. Open Razorpay Standard Web Checkout Modal
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_THnoEZFZXVop3t',
+        amount: orderData.amount,
+        currency: orderData.currency || 'INR',
+        name: 'Calyxo Nutrition & Fitness',
+        description: `${plan.name} Subscription`,
+        order_id: orderData.order_id,
+        handler: async function (response) {
+          try {
+            // STEP 3: Verify Payment Signature via /api/verify-payment
+            const verifyRes = await fetch('/api/verify-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature
+              })
+            });
+
+            const verifyData = await verifyRes.json();
+            if (verifyRes.ok && verifyData.success) {
+              const updatedProfile = { ...userProfile, subscriptionPlan: plan.id };
+              updateUserProfile(updatedProfile);
+              await saveUserProfile(userId, updatedProfile);
+              if (onNotification) onNotification(`Payment verified! Welcome to ${plan.name}! 🚀`);
+            } else {
+              if (onNotification) onNotification(`Payment verification failed: ${verifyData.message || 'Invalid signature'}`);
+            }
+          } catch (verifyErr) {
+            console.error("Verification error:", verifyErr);
+            if (onNotification) onNotification("Payment verification error. Please contact support.");
+          } finally {
+            setSaving(false);
+          }
+        },
+        prefill: {
+          name: nickname || user?.displayName || 'Calyxo Athlete',
+          email: user?.email || '',
+        },
+        theme: {
+          color: '#86efac'
+        },
+        modal: {
+          ondismiss: function () {
+            if (onNotification) onNotification("Payment modal closed by user.");
+            setSaving(false);
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response) {
+        console.error("Razorpay Payment Failed:", response.error);
+        if (onNotification) onNotification(`Payment failed: ${response.error.description || response.error.reason}`);
+        setSaving(false);
+      });
+
+      rzp.open();
+    } catch (err) {
+      console.error("Razorpay checkout exception:", err);
+      if (onNotification) onNotification(`Checkout error: ${err.message}`);
+      setSaving(false);
+    }
   };
 
   const handleRestoreData = (e) => {
