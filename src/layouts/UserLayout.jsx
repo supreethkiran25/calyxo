@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home as HomeIcon, BookOpen, BarChart2, User, Users, LogOut, Sparkles, X, TrendingUp, Heart, Search, Menu, Plus, Crown } from 'lucide-react';
+import { Home as HomeIcon, BookOpen, BarChart2, User, Users, LogOut, Sparkles, X, TrendingUp, Heart, Search, Menu, Plus, Crown, Lock } from 'lucide-react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { signOutUser, subscribeToAuth, getUserProfile, getFoodLogs, getWorkoutLogs, getWeightLogs, getWaterIntake } from '../lib/dbService';
@@ -35,13 +35,13 @@ const DESKTOP_NAV = [
     items: [
       { id: 'nutrition', href: '/user/nutrition', label: 'Nutrition', icon: BookOpen },
       { id: 'workout', href: '/user/workout', label: 'Workouts', icon: BarChart2 },
-      { id: 'healthhub', href: '/user/healthhub', label: 'Health Hub', icon: Heart },
+      { id: 'healthhub', href: '/user/healthhub', label: 'Health Hub', icon: Heart, isPremium: true },
     ]
   },
   {
     group: 'AI',
     items: [
-      { id: 'ai', href: '/user/ai', label: 'AI Workspace', icon: Sparkles },
+      { id: 'ai', href: '/user/ai', label: 'AI Workspace', icon: Sparkles, isPremium: true },
     ]
   },
   {
@@ -173,24 +173,30 @@ export default function UserLayout() {
                 {group.items.map(item => {
                   const Icon = item.icon;
                   const isActive = pathname === item.href;
+                  const isLocked = item.isPremium && !isSubscribed;
                   return (
                     <Link
                       key={item.id}
                       to={item.href}
-                      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-sm font-bold transition-all cursor-pointer border-none group ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-sm font-bold transition-all cursor-pointer border-none group ${
                         isActive 
                           ? 'bg-acid-green/10 text-acid-green' 
                           : 'bg-transparent text-muted hover:bg-surface hover:text-foreground'
                       }`}
                     >
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-                        isActive
-                          ? 'bg-acid-green/20 text-acid-green shadow-sm shadow-acid-green/20'
-                          : 'bg-surface/60 text-muted-foreground group-hover:bg-surface group-hover:text-foreground'
-                      }`}>
-                        <Icon className="w-4 h-4" />
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+                          isActive
+                            ? 'bg-acid-green/20 text-acid-green shadow-sm shadow-acid-green/20'
+                            : 'bg-surface/60 text-muted-foreground group-hover:bg-surface group-hover:text-foreground'
+                        }`}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <span>{item.label}</span>
                       </div>
-                      {item.label}
+                      {isLocked && (
+                        <Lock className="w-3.5 h-3.5 text-muted opacity-60 group-hover:opacity-100" />
+                      )}
                     </Link>
                   );
                 })}
