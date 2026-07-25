@@ -720,7 +720,7 @@ export default function UserProfile({ onNotification }) {
         return;
       }
 
-      const amountPaise = plan.id === 'PRO' ? 99900 : 249900;
+      const amountPaise = plan.id === 'MEDIUM' ? 4900 : plan.id === 'HIGH' ? 14900 : (plan.amountPaise || 4900);
       let orderData = null;
 
       // 2. Attempt backend /api/create-order
@@ -1555,7 +1555,7 @@ export default function UserProfile({ onNotification }) {
         name: 'FREE ATHLETE',
         price: '₹0',
         period: 'Forever Free',
-        badge: 'DEFAULT',
+        badge: 'FREE TIER',
         accentColor: 'border-card-border',
         bgGradient: 'bg-surface/40',
         features: [
@@ -1566,37 +1566,37 @@ export default function UserProfile({ onNotification }) {
         ]
       },
       {
-        id: 'PRO',
-        name: 'PRO BIOHACKER',
-        price: '₹999',
+        id: 'MEDIUM',
+        name: 'MEDIUM TIER',
+        price: '₹49',
         period: 'per month',
         badge: 'MOST POPULAR',
         accentColor: 'border-acid-green',
         bgGradient: 'bg-acid-green/10',
+        amountPaise: 4900,
         features: [
           'Everything in Free',
           'Unlimited AI Coach Long-term Memory',
-          'Dynamic GPU Visual Backgrounds',
           'Custom Macro & Micro Nutrient Targets',
-          'CSV Data Exports & Telemetry Diagnostics',
-          'Priority AI Processing Speed'
+          '3D Core View & Compliance Metrics',
+          'Priority Processing Speed'
         ]
       },
       {
-        id: 'ELITE',
-        name: 'ELITE TRAINER',
-        price: '₹2,499',
+        id: 'HIGH',
+        name: 'HIGH TIER',
+        price: '₹149',
         period: 'per month',
-        badge: 'ALL ACCESS',
+        badge: 'ULTRA ACCESS',
         accentColor: 'border-purple-500/50',
         bgGradient: 'bg-purple-500/10',
+        amountPaise: 14900,
         features: [
-          'Everything in Pro',
-          'Full Personal Trainer CRM Dashboard',
-          'Manage & Assign Client Workouts & Meals',
-          'Client Progress Analytics & PDF Export',
-          'Direct Trainer-Client Messaging',
-          'Custom Branding & Priority Support'
+          'Everything in Medium',
+          'AI Coach Concierge & Unlimited Messages',
+          'Dynamic GPU Visual Background Effects',
+          'Full Personal Trainer CRM & CSV Exports',
+          'Priority AI Processing & Direct Support'
         ]
       }
     ];
