@@ -822,6 +822,38 @@ export default function UserProfile({ onNotification }) {
     }
   };
 
+  const handleCancelSubscription = async () => {
+    if (!window.confirm("Are you sure you want to cancel your active subscription? You will lose access to premium AI and Health Hub features.")) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const updatedProfile = {
+        ...userProfile,
+        subscriptionPlan: 'FREE',
+        isSubscribed: false,
+        updatedAt: new Date().toISOString()
+      };
+
+      updateUserProfile(updatedProfile);
+      if (userId) {
+        await saveUserProfile(userId, updatedProfile);
+      }
+
+      if (onNotification) {
+        onNotification("Subscription cancelled successfully. You are now on the Free tier.");
+      }
+    } catch (err) {
+      console.error("Cancel subscription error:", err);
+      if (onNotification) {
+        onNotification("Failed to cancel subscription. Please try again.");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleRestoreData = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -1614,9 +1646,21 @@ export default function UserProfile({ onNotification }) {
               Active Tier: <strong className="text-acid-green font-bold uppercase">{currentPlan} PLAN</strong>
             </p>
           </div>
-          <span className="px-3 py-1 rounded-full bg-acid-green/20 text-acid-green text-[10px] font-black uppercase tracking-wider border border-acid-green/30">
-            {currentPlan === 'FREE' ? 'Free Tier' : 'Active Subscription'}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 rounded-full bg-acid-green/20 text-acid-green text-[10px] font-black uppercase tracking-wider border border-acid-green/30">
+              {currentPlan === 'FREE' ? 'Free Tier' : 'Active Subscription'}
+            </span>
+            {currentPlan !== 'FREE' && (
+              <button
+                type="button"
+                onClick={handleCancelSubscription}
+                disabled={saving}
+                className="px-3 py-1 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30 text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Cancel Subscription
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Subscription Plan Cards Grid */}
@@ -1651,13 +1695,33 @@ export default function UserProfile({ onNotification }) {
                   </ul>
                 </div>
 
-                {plan.id === 'FREE' ? (
+                {isCurrent ? (
+                  <div className="space-y-2 mt-2">
+                    <button
+                      type="button"
+                      disabled={true}
+                      className="w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-acid-green/20 text-acid-green border border-acid-green/30 cursor-default"
+                    >
+                      Active Plan
+                    </button>
+                    {currentPlan !== 'FREE' && (
+                      <button
+                        type="button"
+                        onClick={handleCancelSubscription}
+                        disabled={saving}
+                        className="w-full py-2 rounded-xl font-black text-[10px] uppercase tracking-wider bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/30 transition-colors cursor-pointer"
+                      >
+                        Cancel Subscription
+                      </button>
+                    )}
+                  </div>
+                ) : plan.id === 'FREE' ? (
                   <button
                     type="button"
                     disabled={true}
                     className="w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-surface text-muted border border-card-border cursor-default mt-2"
                   >
-                    {isCurrent ? 'Current Plan' : 'Free Tier'}
+                    Free Tier
                   </button>
                 ) : (
                   <button
