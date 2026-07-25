@@ -693,6 +693,21 @@ export default function UserProfile({ onNotification }) {
     if (onNotification) onNotification("Backup JSON downloaded! 💾");
   };
 
+  const handleSaveSubscriptionPlan = async (newPlan) => {
+    setSaving(true);
+    try {
+      const updated = { ...userProfile, subscriptionPlan: newPlan };
+      updateUserProfile(updated);
+      await saveUserProfile(userId, updated);
+      if (onNotification) onNotification(`Subscription plan updated to ${newPlan}! 🚀`);
+    } catch (e) {
+      console.error("Failed to update subscription", e);
+      if (onNotification) onNotification("Failed to update subscription plan.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleRestoreData = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -1417,6 +1432,173 @@ export default function UserProfile({ onNotification }) {
     </div>
   );
 
+  const renderSubscriptionForm = () => {
+    const currentPlan = userProfile?.subscriptionPlan || 'FREE';
+
+    const plans = [
+      {
+        id: 'FREE',
+        name: 'FREE ATHLETE',
+        price: '$0',
+        period: 'Forever Free',
+        badge: 'DEFAULT',
+        accentColor: 'border-card-border',
+        bgGradient: 'bg-surface/40',
+        features: [
+          'Unlimited Workout & Food Logging',
+          'Daily Calorie & Water Tracking',
+          'Basic AI Coach Queries',
+          'Community Features'
+        ]
+      },
+      {
+        id: 'PRO',
+        name: 'PRO BIOHACKER',
+        price: '$14.99',
+        period: 'per month',
+        badge: 'MOST POPULAR',
+        accentColor: 'border-acid-green',
+        bgGradient: 'bg-acid-green/10',
+        features: [
+          'Everything in Free',
+          'Unlimited AI Coach Long-term Memory',
+          'Dynamic GPU Visual Backgrounds',
+          'Custom Macro & Micro Nutrient Targets',
+          'CSV Data Exports & Telemetry Diagnostics',
+          'Priority AI Processing Speed'
+        ]
+      },
+      {
+        id: 'ELITE',
+        name: 'ELITE TRAINER',
+        price: '$29.99',
+        period: 'per month',
+        badge: 'ALL ACCESS',
+        accentColor: 'border-purple-500/50',
+        bgGradient: 'bg-purple-500/10',
+        features: [
+          'Everything in Pro',
+          'Full Personal Trainer CRM Dashboard',
+          'Manage & Assign Client Workouts & Meals',
+          'Client Progress Analytics & PDF Export',
+          'Direct Trainer-Client Messaging',
+          'Custom Branding & Priority Support'
+        ]
+      }
+    ];
+
+    return (
+      <div className="space-y-6">
+        {/* Current Active Status Badge */}
+        <div className="p-4 rounded-xl bg-surface border border-card-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-acid-green" />
+              <span className="text-xs font-black uppercase tracking-wider text-foreground">Current Active Status</span>
+            </div>
+            <p className="text-[11px] text-muted mt-1">
+              Active Tier: <strong className="text-acid-green font-bold uppercase">{currentPlan} PLAN</strong>
+            </p>
+          </div>
+          <span className="px-3 py-1 rounded-full bg-acid-green/20 text-acid-green text-[10px] font-black uppercase tracking-wider border border-acid-green/30">
+            {currentPlan === 'FREE' ? 'Free Tier' : 'Active Subscription'}
+          </span>
+        </div>
+
+        {/* Subscription Plan Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {plans.map(plan => {
+            const isCurrent = currentPlan === plan.id;
+            return (
+              <div 
+                key={plan.id}
+                className={`p-5 rounded-2xl border ${plan.accentColor} ${plan.bgGradient} flex flex-col justify-between relative transition-all hover:scale-[1.02]`}
+              >
+                {plan.badge && (
+                  <span className="absolute top-3 right-3 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-acid-green text-black">
+                    {plan.badge}
+                  </span>
+                )}
+                
+                <div>
+                  <h4 className="text-sm font-black tracking-tight text-foreground uppercase mb-1">{plan.name}</h4>
+                  <div className="flex items-baseline gap-1 my-2">
+                    <span className="text-2xl font-black text-foreground">{plan.price}</span>
+                    <span className="text-[10px] text-muted">{plan.period}</span>
+                  </div>
+
+                  <ul className="space-y-2 my-4 pl-0 list-none">
+                    {plan.features.map((feat, idx) => (
+                      <li key={idx} className="flex items-center gap-2 text-[11px] text-muted">
+                        <CheckCircle className="w-3.5 h-3.5 text-acid-green shrink-0" />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={saving || isCurrent}
+                  onClick={() => handleSaveSubscriptionPlan(plan.id)}
+                  className={`w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer border-none mt-2 ${
+                    isCurrent
+                      ? 'bg-surface text-muted border border-card-border cursor-default'
+                      : 'bg-acid-green text-black hover:brightness-110 shadow-md shadow-acid-green/10'
+                  }`}
+                >
+                  {isCurrent ? 'Current Plan' : `Upgrade to ${plan.id}`}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Admin Grant Access Control Panel */}
+        <div className="p-4 rounded-xl bg-acid-green/5 border border-acid-green/30 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-acid-green" />
+              <h4 className="text-xs font-black uppercase tracking-wider text-foreground">Admin Subscription Access Control</h4>
+            </div>
+            <span className="text-[9px] font-bold text-acid-green uppercase px-2 py-0.5 bg-acid-green/20 rounded-md">Admin (Me) Mode</span>
+          </div>
+
+          <p className="text-[10px] text-muted leading-relaxed">
+            As Admin, you can grant instant full subscription access (FREE, PRO, ELITE) to users or yourself without payment gateways. Select a tier below to grant immediate access:
+          </p>
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => handleSaveSubscriptionPlan('FREE')}
+              className="px-3 py-2 rounded-lg bg-surface border border-card-border text-foreground text-xs font-bold hover:border-acid-green transition-all cursor-pointer"
+            >
+              Grant Free Access
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => handleSaveSubscriptionPlan('PRO')}
+              className="px-3 py-2 rounded-lg bg-acid-green text-black text-xs font-black uppercase tracking-wider hover:brightness-110 transition-all cursor-pointer border-none shadow-sm"
+            >
+              Grant PRO (Biohacker) Access
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => handleSaveSubscriptionPlan('ELITE')}
+              className="px-3 py-2 rounded-lg bg-purple-600 text-white text-xs font-black uppercase tracking-wider hover:brightness-110 transition-all cursor-pointer border-none shadow-sm"
+            >
+              Grant ELITE (Trainer) Access
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderDataForm = () => (
     <div className="space-y-4">
       <div className="space-y-1">
@@ -2124,7 +2306,7 @@ export default function UserProfile({ onNotification }) {
                       {acc.id === 'notifications' && renderNotificationsForm()}
                       {acc.id === 'privacy' && renderPrivacyForm()}
                       {acc.id === 'security' && renderSecurityForm()}
-                      {acc.id === 'subscription' && <div className="text-xs text-muted text-center py-8 font-medium">Subscription management coming soon.</div>}
+                      {acc.id === 'subscription' && renderSubscriptionForm()}
                       {acc.id === 'data' && renderDataForm()}
                       {acc.id === 'about' && renderAboutForm()}
                     </div>
