@@ -66,34 +66,32 @@ export const getCurrentUserIdSync = () => {
 };
 
 
-export const xorEncrypt = (text, key = ENCRYPTION_SALT) => {
-  let result = "";
-  for (let i = 0; i < text.length; i++) {
-    result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-  }
+export const xorEncrypt = (text) => {
+  if (!text) return "";
   try {
-    return btoa(unescape(encodeURIComponent(result)));
+    return btoa(encodeURIComponent(text));
   } catch (e) {
-    return btoa(result);
+    return text;
   }
 };
 
 export const xorDecrypt = (encoded, key = ENCRYPTION_SALT) => {
   if (!encoded) return "";
   try {
-    let text;
-    try {
-      text = decodeURIComponent(escape(atob(encoded)));
-    } catch (e) {
-      text = atob(encoded);
-    }
-    let result = "";
-    for (let i = 0; i < text.length; i++) {
-      result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-    }
-    return result;
+    return decodeURIComponent(atob(encoded));
   } catch (e) {
-    return "";
+    // Fallback for legacy XOR-encoded strings
+    try {
+      let text;
+      try { text = decodeURIComponent(escape(atob(encoded))); } catch (err) { text = atob(encoded); }
+      let result = "";
+      for (let i = 0; i < text.length; i++) {
+        result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+      }
+      return result;
+    } catch (err) {
+      return encoded;
+    }
   }
 };
 
@@ -129,9 +127,8 @@ export const setSecureItem = (key, val, keyDerivation = ENCRYPTION_SALT) => {
   const uid = getCurrentUserIdSync();
   const targetUser = (keyDerivation !== ENCRYPTION_SALT && keyDerivation) ? keyDerivation : uid;
   const storageKey = targetUser ? `${key}_${targetUser}` : key;
-  const derivationKey = targetUser ? `${targetUser}_${ENCRYPTION_SALT}` : ENCRYPTION_SALT;
 
-  const encrypted = xorEncrypt(rawStr, derivationKey);
+  const encrypted = xorEncrypt(rawStr);
   localStorage.setItem(storageKey, encrypted);
 };
 

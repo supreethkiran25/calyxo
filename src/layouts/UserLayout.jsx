@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Home as HomeIcon, BookOpen, BarChart2, User, Users, LogOut, Sparkles, X, TrendingUp, Heart, Search, Menu, Plus } from 'lucide-react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { signOutUser, subscribeToAuth, getUserProfile } from '../lib/dbService';
+import { signOutUser, subscribeToAuth, getUserProfile, getFoodLogs, getWorkoutLogs, getWeightLogs, getWaterIntake } from '../lib/dbService';
 
 import Logo from '../components/Logo';
 import ThemeToggle from '../components/ThemeToggle';

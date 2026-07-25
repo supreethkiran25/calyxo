@@ -1,4 +1,5 @@
 let cachedExercisesData = null;
+let fetchPromise = null;
 
 const preprocessExercise = (ex) => {
   if (ex._searchStr) return ex;
@@ -18,30 +19,35 @@ const preprocessExercise = (ex) => {
 
 export const loadExercisesData = async () => {
   if (cachedExercisesData) return cachedExercisesData;
-  try {
-    const module = await import('../lib/exercises.json');
-    const rawData = module.default || module;
-    cachedExercisesData = Array.isArray(rawData) ? rawData.map(preprocessExercise) : [];
-    return cachedExercisesData;
-  } catch (err) {
-    console.error('Failed to load exercise dataset:', err);
-    return [];
-  }
-};
+  if (fetchPromise) return fetchPromise;
 
-export const getCachedExercises = () => cachedExercisesData || [];
+  fetchPromise = (async () => {
+    try {
+      const res = await fetch('/data/exercises.json');
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      const rawData = await res.json();
+      cachedExercisesData = Array.isArray(rawData) ? rawData.map(preprocessExercise) : [];
+      return cachedExercisesData;
+    } catch (err) {
+      console.error('Failed to load exercise dataset:', err);
+      cachedExercisesData = [];
+      return [];
+    } finally {
+      fetchPromise = null;
+    }
+  })();
+
+  return fetchPromise;
+};
 
 export const isFuzzyMatch = (str1, str2) => {
   if (!str1 || !str2) return false;
-  const s1 = str1.toLowerCase();
-  const s2 = str2.toLowerCase();
-  if (Math.abs(s1.length - s2.length) > 2) return false;
-  let dist = 0;
-  for (let i = 0; i < Math.min(s1.length, s2.length); i++) {
-    if (s1[i] !== s2[i]) dist++;
-  }
-  return dist <= 2 && s1.length >= 4;
+  const s1 = String(str1).toLowerCase();
+  const s2 = String(str2).toLowerCase();
+  return s1.includes(s2) || s2.includes(s1);
 };
+
+export const getCachedExercises = () => cachedExercisesData || [];
 
 export const searchAndRankExercises = (query, dataset) => {
   const activeDataset = dataset || cachedExercisesData || [];
@@ -63,12 +69,8 @@ export const searchAndRankExercises = (query, dataset) => {
     const bodyPart = (ex.body_part || '').toLowerCase();
     const equipment = (ex.equipment || '').toLowerCase();
 
-    // Every query token must match somewhere in fullText or fuzzy match
-    const allTokensMatch = tokens.every(token => {
-      if (fullText.includes(token)) return true;
-      return cachedWords.some(w => isFuzzyMatch(token, w));
-    });
-
+    // High-performance tokenized match using String.prototype.includes()
+    const allTokensMatch = tokens.every(token => fullText.includes(token));
     if (!allTokensMatch) continue;
 
     // Calculate Relevance Score
@@ -93,7 +95,7 @@ export const searchAndRankExercises = (query, dataset) => {
       if (cachedWords.includes(token)) score += 40;
     });
 
-    // Equipment match bonus (e.g., equipment === 'dumbbell')
+    // Equipment match bonus
     if (tokens.some(t => equipment.includes(t))) score += 30;
 
     // Target muscle match bonus
