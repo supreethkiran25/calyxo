@@ -15,15 +15,6 @@ const MENU_ITEMS = [
       { id: 'progress', label: 'Progress & Analytics', icon: TrendingUp, color: 'text-foreground' },
       { id: 'healthhub', label: 'Health Hub', icon: Heart, color: 'text-foreground' },
     ]
-  },
-  {
-    group: 'About',
-    items: [
-      { id: 'about', label: 'About Calyxo', icon: Info, color: 'text-muted' },
-      { id: 'support', label: 'Help & Support', icon: HelpCircle, color: 'text-muted' },
-      { id: 'privacy', label: 'Privacy Policy', icon: Shield, color: 'text-muted' },
-      { id: 'terms', label: 'Terms of Service', icon: FileText, color: 'text-muted' },
-    ]
   }
 ];
 

@@ -49,13 +49,6 @@ const DESKTOP_NAV = [
     items: [
       { id: 'profile', href: '/user/profile', label: 'Profile', icon: User },
     ]
-  },
-  {
-    group: 'INFO',
-    items: [
-      { id: 'about', href: '/user/about', label: 'About Calyxo', icon: Sparkles },
-      { id: 'support', href: '/user/support', label: 'Help & Support', icon: Heart },
-    ]
   }
 ];
 
