@@ -693,19 +693,13 @@ export default function UserProfile({ onNotification }) {
     if (onNotification) onNotification("Backup JSON downloaded! 💾");
   };
 
-  const handleSaveSubscriptionPlan = async (newPlan) => {
-    setSaving(true);
-    try {
-      const updated = { ...userProfile, subscriptionPlan: newPlan };
-      updateUserProfile(updated);
-      await saveUserProfile(userId, updated);
-      if (onNotification) onNotification(`Subscription plan updated to ${newPlan}! 🚀`);
-    } catch (e) {
-      console.error("Failed to update subscription", e);
-      if (onNotification) onNotification("Failed to update subscription plan.");
-    } finally {
-      setSaving(false);
-    }
+  const handleRazorpayCheckout = (plan) => {
+    if (plan.id === 'FREE') return;
+    const razorpayUrl = import.meta.env.VITE_RAZORPAY_URL || 'https://razorpay.com';
+    if (onNotification) onNotification(`Redirecting to Razorpay for ${plan.name} payment... 💳`);
+    setTimeout(() => {
+      window.open(razorpayUrl, '_blank', 'noopener,noreferrer');
+    }, 400);
   };
 
   const handleRestoreData = (e) => {
@@ -1439,7 +1433,7 @@ export default function UserProfile({ onNotification }) {
       {
         id: 'FREE',
         name: 'FREE ATHLETE',
-        price: '$0',
+        price: '₹0',
         period: 'Forever Free',
         badge: 'DEFAULT',
         accentColor: 'border-card-border',
@@ -1454,7 +1448,7 @@ export default function UserProfile({ onNotification }) {
       {
         id: 'PRO',
         name: 'PRO BIOHACKER',
-        price: '$14.99',
+        price: '₹999',
         period: 'per month',
         badge: 'MOST POPULAR',
         accentColor: 'border-acid-green',
@@ -1471,7 +1465,7 @@ export default function UserProfile({ onNotification }) {
       {
         id: 'ELITE',
         name: 'ELITE TRAINER',
-        price: '$29.99',
+        price: '₹2,499',
         period: 'per month',
         badge: 'ALL ACCESS',
         accentColor: 'border-purple-500/50',
@@ -1537,63 +1531,27 @@ export default function UserProfile({ onNotification }) {
                   </ul>
                 </div>
 
-                <button
-                  type="button"
-                  disabled={saving || isCurrent}
-                  onClick={() => handleSaveSubscriptionPlan(plan.id)}
-                  className={`w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer border-none mt-2 ${
-                    isCurrent
-                      ? 'bg-surface text-muted border border-card-border cursor-default'
-                      : 'bg-acid-green text-black hover:brightness-110 shadow-md shadow-acid-green/10'
-                  }`}
-                >
-                  {isCurrent ? 'Current Plan' : `Upgrade to ${plan.id}`}
-                </button>
+                {plan.id === 'FREE' ? (
+                  <button
+                    type="button"
+                    disabled={true}
+                    className="w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-surface text-muted border border-card-border cursor-default mt-2"
+                  >
+                    {isCurrent ? 'Current Plan' : 'Free Tier'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleRazorpayCheckout(plan)}
+                    className="w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer border-none mt-2 bg-acid-green text-black hover:brightness-110 shadow-md shadow-acid-green/10 flex items-center justify-center gap-1.5"
+                  >
+                    <CreditCard className="w-3.5 h-3.5" />
+                    Subscribe via Razorpay
+                  </button>
+                )}
               </div>
             );
           })}
-        </div>
-
-        {/* Admin Grant Access Control Panel */}
-        <div className="p-4 rounded-xl bg-acid-green/5 border border-acid-green/30 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-acid-green" />
-              <h4 className="text-xs font-black uppercase tracking-wider text-foreground">Admin Subscription Access Control</h4>
-            </div>
-            <span className="text-[9px] font-bold text-acid-green uppercase px-2 py-0.5 bg-acid-green/20 rounded-md">Admin (Me) Mode</span>
-          </div>
-
-          <p className="text-[10px] text-muted leading-relaxed">
-            As Admin, you can grant instant full subscription access (FREE, PRO, ELITE) to users or yourself without payment gateways. Select a tier below to grant immediate access:
-          </p>
-
-          <div className="flex flex-wrap gap-2 pt-1">
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => handleSaveSubscriptionPlan('FREE')}
-              className="px-3 py-2 rounded-lg bg-surface border border-card-border text-foreground text-xs font-bold hover:border-acid-green transition-all cursor-pointer"
-            >
-              Grant Free Access
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => handleSaveSubscriptionPlan('PRO')}
-              className="px-3 py-2 rounded-lg bg-acid-green text-black text-xs font-black uppercase tracking-wider hover:brightness-110 transition-all cursor-pointer border-none shadow-sm"
-            >
-              Grant PRO (Biohacker) Access
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => handleSaveSubscriptionPlan('ELITE')}
-              className="px-3 py-2 rounded-lg bg-purple-600 text-white text-xs font-black uppercase tracking-wider hover:brightness-110 transition-all cursor-pointer border-none shadow-sm"
-            >
-              Grant ELITE (Trainer) Access
-            </button>
-          </div>
         </div>
       </div>
     );
