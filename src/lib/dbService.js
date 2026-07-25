@@ -236,14 +236,14 @@ export const signInWithGoogle = async (remember = true) => {
     localStorage.setItem("calyxo_mock_user", JSON.stringify(mockUser));
     return mockUser;
   }
+  const redirectUrl = typeof window !== 'undefined' 
+    ? `${window.location.origin}/user/dashboard` 
+    : 'https://calyxo.vercel.app/user/dashboard';
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/user/dashboard`,
-      queryParams: {
-        access_type: 'offline',
-        prompt: 'consent',
-      }
+      redirectTo: redirectUrl
     }
   });
   if (error) {
