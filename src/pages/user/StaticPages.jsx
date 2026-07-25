@@ -71,7 +71,6 @@ export function AboutPage() {
 export function SupportPage() {
   const faqs = [
     { q: "How do I connect with my personal trainer?", a: "Navigate to the 'My Coach' tab in the navigation menu. Enter your trainer's invite code or browse available trainer profiles to send a connection request. Once accepted, your coach can assign custom workouts and nutrition guidelines." },
-    { q: "How does the AI Food Scanner work?", a: "When logging a meal, select the 'Scan Food' option. Take a picture or upload an image of your meal, and our Gemini vision engine will instantly estimate the portion details, calorie count, and macronutrient breakdowns." },
     { q: "What is the AI Health Twin?", a: "The AI Health Twin compiles your logged metrics, sleeping schedule, and daily calorie burns to compute a daily health recovery score (0-100%) and project weight predictions for the next 30 to 180 days." },
     { q: "How can I edit my daily calorie targets?", a: "Go to your 'Profile' page. Tap 'Adjust Biometrics' to update your weight, height, age, activity level, and goal (gains, maintenance, weight loss). The system will automatically recalculate your baseline targets." }
   ];

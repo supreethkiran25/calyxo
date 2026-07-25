@@ -435,44 +435,4 @@ export async function syncHealthTwin({ userProfile, metrics, recentLogs, activeD
   }
 }
 
-// =====================================================================
-// Vision / Meal Scanner (replaces /api/gemini/vision)
-// =====================================================================
-export async function scanMealVision({ imageBase64, mimeType, image, userGoal }) {
-  if (image && image.startsWith('data:')) {
-    const match = image.match(/^data:([^;]+);base64,(.+)$/);
-    if (match) {
-      mimeType = match[1];
-      imageBase64 = match[2];
-    }
-  }
 
-  const systemPrompt = `Analyze the uploaded meal photo. Provide the name of the meal and estimate the nutritional metrics per portion (Calories in kcal, Protein in g, Carbohydrates in g, Fat in g, Fiber in g, Sugar in g). Also calculate a compatibility score from 0-100 based on the user's primary goal: "${userGoal || 'lose'}". Higher protein and fiber fit weight loss/muscle gains better.\nProvide the response strictly in JSON format matching this schema:\n{\n  "foodName": "string",\n  "calories": number,\n  "protein": number,\n  "carbs": number,\n  "fat": number,\n  "fiber": number,\n  "sugar": number,\n  "compatibilityScore": number,\n  "compatibilityReason": "string explanation referencing user's goal",\n  "healthyAlternatives": ["string", "string"]\n}\nDo not return any markdown wraps or comments. Return pure JSON.`;
-
-  try {
-    const data = await callGeminiAPI("gemini-2.5-flash", {
-      contents: [{
-        parts: [
-          { text: systemPrompt },
-          { inlineData: { mimeType: mimeType || 'image/jpeg', data: imageBase64 } }
-        ]
-      }],
-      generationConfig: { responseMimeType: "application/json" }
-    });
-    return extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
-  } catch (err) {
-    console.warn("Vision scanner error, using fallback salmon meal estimation:", err.message);
-    return {
-      foodName: "Grilled Salmon & Rice (Demo)",
-      calories: 520,
-      protein: 38,
-      carbs: 45,
-      fat: 16,
-      fiber: 3.5,
-      sugar: 1.2,
-      compatibilityScore: 88,
-      compatibilityReason: "High protein and healthy fats fit your gains target, although slightly high in overall calorie density.",
-      healthyAlternatives: ["Steamed Cod with Quinoa", "Lemon Herb Grilled Chicken Salad"]
-    };
-  }
-}
