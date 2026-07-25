@@ -239,10 +239,19 @@ export const signInWithGoogle = async (remember = true) => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}`
+      redirectTo: `${window.location.origin}/user/dashboard`,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+      }
     }
   });
-  if (error) throw error;
+  if (error) {
+    if (error.message?.includes('provider is not enabled') || error.status === 400) {
+      throw new Error("Google Sign-In is not enabled in your Supabase Auth Providers settings. Please enable Google provider in Supabase Dashboard.");
+    }
+    throw error;
+  }
   return data;
 };
 
@@ -255,10 +264,15 @@ export const signInWithApple = async (remember = true) => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'apple',
     options: {
-      redirectTo: `${window.location.origin}`
+      redirectTo: `${window.location.origin}/user/dashboard`
     }
   });
-  if (error) throw error;
+  if (error) {
+    if (error.message?.includes('provider is not enabled') || error.status === 400) {
+      throw new Error("Apple Sign-In is not enabled in your Supabase Auth Providers settings. Please enable Apple provider in Supabase Dashboard.");
+    }
+    throw error;
+  }
   return data;
 };
 
