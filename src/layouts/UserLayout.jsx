@@ -159,18 +159,10 @@ export default function UserLayout() {
         <Link 
           to="/user/dashboard" 
           onClick={handleLogoClick}
-          className="p-6 flex items-center justify-between border-b border-card-border cursor-pointer hover:opacity-90 transition-opacity no-underline text-current group"
+          className="p-6 flex items-center gap-2.5 border-b border-card-border cursor-pointer hover:opacity-90 transition-opacity no-underline text-current group"
         >
-          <div className="flex items-center gap-2.5">
-            <Logo className="w-7 h-7 text-acid-green" glow={true} />
-            <span className="brand-name text-lg text-foreground tracking-wider group-hover:text-acid-green transition-colors">CALYXO</span>
-          </div>
-          {isSubscribed && (
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-acid-green/15 text-acid-green border border-acid-green/30 text-[9px] font-black uppercase tracking-wider shadow-sm shadow-acid-green/10" title={`Active Subscription: ${subscriptionPlan}`}>
-              <Crown className="w-3 h-3 text-acid-green shrink-0 animate-pulse" />
-              <span>{subscriptionPlan}</span>
-            </div>
-          )}
+          <Logo className="w-7 h-7 text-acid-green" glow={true} />
+          <span className="brand-name text-lg text-foreground tracking-wider group-hover:text-acid-green transition-colors">CALYXO</span>
         </Link>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-8 scrollbar-hide">
@@ -236,16 +228,10 @@ export default function UserLayout() {
             <Link 
               to="/user/dashboard" 
               onClick={handleLogoClick}
-              className="flex items-center gap-2 cursor-pointer hover:opacity-90 transition-opacity no-underline text-current"
+              className="flex items-center gap-2.5 cursor-pointer hover:opacity-90 transition-opacity no-underline text-current"
             >
               <Logo className="w-6 h-6 text-acid-green" glow={true} />
               <span className="brand-name text-base text-foreground tracking-wider">CALYXO</span>
-              {isSubscribed && (
-                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-acid-green/15 text-acid-green border border-acid-green/30 text-[8px] font-black uppercase tracking-wider" title={`Subscribed: ${subscriptionPlan}`}>
-                  <Crown className="w-2.5 h-2.5 text-acid-green shrink-0 animate-pulse" />
-                  <span>{subscriptionPlan}</span>
-                </div>
-              )}
             </Link>
           </div>
           <div className="flex items-center gap-2">
