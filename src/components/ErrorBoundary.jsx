@@ -10,6 +10,19 @@ export default class ErrorBoundary extends React.Component {
   }
 
   static getDerivedStateFromError(error) {
+    const msg = error?.message || '';
+    if (
+      msg.includes('Failed to fetch dynamically imported module') ||
+      msg.includes('Importing a module script failed') ||
+      msg.includes('Loading chunk')
+    ) {
+      const reloaded = sessionStorage.getItem('chunk_reload_attempts');
+      if (!reloaded) {
+        sessionStorage.setItem('chunk_reload_attempts', 'true');
+        window.location.reload();
+        return { hasError: false, error: null };
+      }
+    }
     return { hasError: true, error };
   }
 
@@ -18,7 +31,9 @@ export default class ErrorBoundary extends React.Component {
   }
 
   reset = () => {
-    this.setState({ hasError: false, error: null });
+    sessionStorage.removeItem('chunk_reload_attempts');
+    sessionStorage.removeItem('page_reloaded_for_chunk');
+    window.location.reload();
   };
 
   render() {

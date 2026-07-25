@@ -1,30 +1,31 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import ErrorBoundary from './components/ErrorBoundary';
 import LaunchScreen from './components/LaunchScreen';
+import { lazyWithRetry } from './utils/lazyWithRetry';
 
-// Layout — lazy loaded for code splitting
-const UserLayout = lazy(() => import('./layouts/UserLayout'));
+// Layout — lazy loaded with chunk retry protection
+const UserLayout = lazyWithRetry(() => import('./layouts/UserLayout'));
 
-// Pages — lazy loaded for code splitting
-const HomePage = lazy(() => import('./pages/HomePage'));
-const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+// Pages — lazy loaded for code splitting with chunk retry protection
+const HomePage = lazyWithRetry(() => import('./pages/HomePage'));
+const NotFoundPage = lazyWithRetry(() => import('./pages/NotFoundPage'));
 
 // User Pages
-const UserDashboardPage = lazy(() => import('./pages/user/DashboardPage'));
-const UserNutritionPage = lazy(() => import('./pages/user/NutritionPage'));
-const UserWorkoutPage = lazy(() => import('./pages/user/WorkoutPage'));
-const UserProgressPage = lazy(() => import('./pages/user/ProgressPage'));
-const UserHealthHubPage = lazy(() => import('./pages/user/HealthHubPage'));
-const UserAIPage = lazy(() => import('./pages/user/AIPage'));
-const UserProfilePage = lazy(() => import('./pages/user/ProfilePage'));
+const UserDashboardPage = lazyWithRetry(() => import('./pages/user/DashboardPage'));
+const UserNutritionPage = lazyWithRetry(() => import('./pages/user/NutritionPage'));
+const UserWorkoutPage = lazyWithRetry(() => import('./pages/user/WorkoutPage'));
+const UserProgressPage = lazyWithRetry(() => import('./pages/user/ProgressPage'));
+const UserHealthHubPage = lazyWithRetry(() => import('./pages/user/HealthHubPage'));
+const UserAIPage = lazyWithRetry(() => import('./pages/user/AIPage'));
+const UserProfilePage = lazyWithRetry(() => import('./pages/user/ProfilePage'));
 
 // Static Pages
-const AboutPage = lazy(() => import('./pages/user/StaticPages').then(m => ({ default: m.AboutPage })));
-const SupportPage = lazy(() => import('./pages/user/StaticPages').then(m => ({ default: m.SupportPage })));
-const PrivacyPage = lazy(() => import('./pages/user/StaticPages').then(m => ({ default: m.PrivacyPage })));
-const TermsPage = lazy(() => import('./pages/user/StaticPages').then(m => ({ default: m.TermsPage })));
+const AboutPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(m => ({ default: m.AboutPage })));
+const SupportPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(m => ({ default: m.SupportPage })));
+const PrivacyPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(m => ({ default: m.PrivacyPage })));
+const TermsPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(m => ({ default: m.TermsPage })));
 
 function App() {
   return (
