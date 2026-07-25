@@ -279,6 +279,29 @@ export const sendPasswordReset = async (email) => {
   if (error) throw error;
 };
 
+const mergeLogs = (remoteLogs, localLogs) => {
+  const map = new Map();
+  (localLogs || []).forEach(item => {
+    const key = item.id || item.timestamp;
+    if (key) map.set(String(key), item);
+  });
+  (remoteLogs || []).forEach(item => {
+    const key = item.id || item.timestamp;
+    if (key) {
+      const existing = map.get(String(key)) || {};
+      map.set(String(key), { 
+        ...existing, 
+        ...item,
+        name: item.name || item.title || existing.name || "Log Item",
+        title: item.title || item.name || existing.title || "Log Item"
+      });
+    }
+  });
+  const merged = Array.from(map.values());
+  merged.sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
+  return merged;
+};
+
 export const subscribeToAuth = (callback) => {
   if (isMockMode) {
     let mockUser = null;
@@ -292,17 +315,23 @@ export const subscribeToAuth = (callback) => {
     return () => { };
   }
   
-  // Immediately call with current session
+  let lastUid = null;
   supabase.auth.getSession().then(({ data: { session } }) => {
     let user = session?.user || null;
     if (user) user.uid = user.id;
+    lastUid = user ? user.id : null;
     callback(user);
   });
 
   const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
     let user = session?.user || null;
     if (user) user.uid = user.id;
-    callback(user);
+    const currentUid = user ? user.id : null;
+
+    if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED' || currentUid !== lastUid) {
+      lastUid = currentUid;
+      callback(user);
+    }
   });
 
   return () => { subscription.unsubscribe(); };
@@ -313,8 +342,9 @@ export const subscribeToAuth = (callback) => {
    ========================================================================== */
 
 export const getFoodLogs = async (userId) => {
+  const localLogs = getLocalState(userId).foodLogs || [];
   if (isMockMode || !userId) {
-    return getLocalState(userId).foodLogs;
+    return localLogs;
   }
   try {
     const { data, error } = await supabase
@@ -323,31 +353,50 @@ export const getFoodLogs = async (userId) => {
       .eq("userId", userId)
       .order("timestamp", { ascending: false });
     if (error) throw error;
-    return data || [];
+    const merged = mergeLogs(data || [], localLogs);
+    const state = getLocalState(userId);
+    state.foodLogs = merged;
+    saveLocalState(userId, state);
+    return merged;
   } catch (err) {
-    console.error("Supabase getFoodLogs error, falling back to LocalStorage:", err);
-    console.error("Error name:", err?.name);
-    console.error("Error message:", err?.message);
-    console.error("Error details:", JSON.stringify(err));
-    return getLocalState(userId).foodLogs;
+    console.warn("Supabase getFoodLogs error, using local state:", err);
+    return localLogs;
   }
 };
 
 export const addFoodLog = async (userId, item) => {
-  const logItem = { ...item, userId, timestamp: Date.now() };
+  const logItem = { 
+    ...item, 
+    id: item.id || `food_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    userId, 
+    timestamp: Number(item.timestamp) || Date.now() 
+  };
 
   const state = getLocalState(userId);
-  state.foodLogs.push(logItem);
+  state.foodLogs = [logItem, ...state.foodLogs.filter(x => x.id !== logItem.id)];
   saveLocalState(userId, state);
 
   if (isMockMode || !userId) return logItem;
 
   try {
-    const { data, error } = await supabase.from("food_logs").insert(logItem).select().single();
-    if (error) throw error;
-    return data;
+    const insertPayload = {
+      "userId": userId,
+      "name": item.name || "Food Item",
+      "calories": Math.round(Number(item.calories) || 0),
+      "protein": Number(item.protein) || 0,
+      "carbs": Number(item.carbs) || 0,
+      "fat": Number(item.fat) || 0,
+      "portionWeight": Number(item.portionWeight) || 100,
+      "timestamp": Number(logItem.timestamp)
+    };
+    const { data, error } = await supabase.from("food_logs").insert(insertPayload).select().single();
+    if (error) {
+      console.warn("Supabase addFoodLog insert error, saved locally:", error);
+      return logItem;
+    }
+    return { ...logItem, ...data };
   } catch (err) {
-    console.error("Supabase addFoodLog error", err);
+    console.warn("Supabase addFoodLog exception, saved locally:", err);
     return logItem;
   }
 };
@@ -387,8 +436,9 @@ export const updateFoodLog = async (userId, logId, updatedItem) => {
    ========================================================================== */
 
 export const getWorkoutLogs = async (userId) => {
+  const localLogs = getLocalState(userId).workoutLogs || [];
   if (isMockMode || !userId) {
-    return getLocalState(userId).workoutLogs;
+    return localLogs;
   }
   try {
     const { data, error } = await supabase
@@ -397,31 +447,68 @@ export const getWorkoutLogs = async (userId) => {
       .eq("userId", userId)
       .order("timestamp", { ascending: false });
     if (error) throw error;
-    return data || [];
+    const remoteMapped = (data || []).map(w => ({
+      ...w,
+      name: w.name || w.title || "Workout",
+      title: w.title || w.name || "Workout"
+    }));
+    const merged = mergeLogs(remoteMapped, localLogs);
+    const state = getLocalState(userId);
+    state.workoutLogs = merged;
+    saveLocalState(userId, state);
+    return merged;
   } catch (err) {
-    console.error("Supabase getWorkoutLogs error:", err);
-    console.error("Error name:", err?.name);
-    console.error("Error message:", err?.message);
-    console.error("Error details:", JSON.stringify(err));
-    return getLocalState(userId).workoutLogs;
+    console.warn("Supabase getWorkoutLogs error, using local state:", err);
+    return localLogs;
   }
 };
 
 export const addWorkoutLog = async (userId, workout) => {
-  const logItem = { ...workout, userId, timestamp: workout.timestamp || Date.now() };
+  const logItem = { 
+    ...workout, 
+    id: workout.id || `workout_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    userId, 
+    timestamp: Number(workout.timestamp) || Date.now() 
+  };
 
   const state = getLocalState(userId);
-  state.workoutLogs.push(logItem);
+  state.workoutLogs = [logItem, ...state.workoutLogs.filter(x => x.id !== logItem.id)];
   saveLocalState(userId, state);
 
   if (isMockMode || !userId) return logItem;
 
   try {
-    const { data, error } = await supabase.from("workout_logs").insert(logItem).select().single();
-    if (error) throw error;
-    return data;
+    const insertPayload = {
+      "userId": userId,
+      "title": workout.name || workout.title || "Workout",
+      "category": workout.category || "General",
+      "duration": Math.round(Number(workout.duration) || 30),
+      "calories": Math.round(Number(workout.calories) || 150),
+      "intensity": workout.intensity || "Medium",
+      "notes": workout.notes || "",
+      "exercises": Array.isArray(workout.exercises) ? workout.exercises : [{
+        name: workout.name || "Exercise",
+        sets: workout.sets || 1,
+        reps: workout.reps || 10,
+        weight: workout.weight || 0,
+        category: workout.category
+      }],
+      "timestamp": Number(logItem.timestamp)
+    };
+
+    const { data, error } = await supabase.from("workout_logs").insert(insertPayload).select().single();
+    if (error) {
+      console.warn("Supabase addWorkoutLog insert error, saved locally:", error);
+      return logItem;
+    }
+    return {
+      ...logItem,
+      ...data,
+      name: data?.title || logItem.name,
+      title: data?.title || logItem.title
+    };
   } catch (err) {
-    console.error("Supabase addWorkoutLog error", err);
+    console.warn("Supabase addWorkoutLog exception, saved locally:", err);
     return logItem;
   }
 };
