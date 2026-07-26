@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Home as HomeIcon, BookOpen, BarChart2, User, Users, LogOut, Sparkles, X, TrendingUp, Heart, Search, Menu, Plus, Crown, Lock } from 'lucide-react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useStore } from '../store/useStore';
+import useQuickActionsStore from '../store/useQuickActionsStore';
 import { signOutUser, subscribeToAuth, getUserProfile, getFoodLogs, getWorkoutLogs, getWeightLogs, getWaterIntake } from '../lib/dbService';
 
 import Logo from '../components/Logo';
@@ -71,6 +72,14 @@ export default function UserLayout() {
     userProfile?.isSubscribed || 
     (subscriptionPlan && subscriptionPlan !== 'FREE' && subscriptionPlan !== 'DEFAULT')
   );
+
+  const activeWorkflow = useQuickActionsStore(state => state.activeWorkflow);
+
+  useEffect(() => {
+    if (activeWorkflow === 'start_live_session' && pathname !== '/user/workout') {
+      navigate('/user/workout');
+    }
+  }, [activeWorkflow, pathname, navigate]);
 
   const handleLogoClick = (e) => {
     e.preventDefault();

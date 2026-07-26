@@ -12,10 +12,12 @@ import {
 } from '../lib/dbService';
 
 import { useEcosystemStore } from '../store/useEcosystemStore';
+import useQuickActionsStore from '../store/useQuickActionsStore';
+import LiveWorkoutSessionModal from './modals/LiveWorkoutSessionModal';
 import { 
   Plus, Dumbbell, Clock, Edit3, X, Check, Search, Trophy, Activity, Move, 
   PersonStanding, Target, User, Crosshair, Heart, Share2, ChevronLeft, ChevronRight, 
-  Calendar, Trash2, Edit2, Play, ChevronUp, ChevronDown
+  Calendar, Trash2, Edit2, Play, ChevronUp, ChevronDown, Zap
 } from 'lucide-react';
 
 const globalImageCache = new Map();
@@ -291,6 +293,20 @@ export default function WorkoutLogger({ onNotification }) {
   const [editRoutineFields, setEditRoutineFields] = useState({ type: '', desc: '', exercises: [] });
   const [activeSplitEditIdx, setActiveSplitEditIdx] = useState(null);
   const [splitEditSuggestions, setSplitEditSuggestions] = useState([]);
+
+  // Live Guided Workout Session Modal State
+  const activeWorkflow = useQuickActionsStore(state => state.activeWorkflow);
+  const closeWorkflow = useQuickActionsStore(state => state.closeWorkflow);
+  const [showLiveSessionModal, setShowLiveSessionModal] = useState(false);
+  const [liveSessionRoutine, setLiveSessionRoutine] = useState(null);
+
+  useEffect(() => {
+    if (activeWorkflow === 'start_live_session') {
+      setLiveSessionRoutine(splits[activeDay]);
+      setShowLiveSessionModal(true);
+      closeWorkflow();
+    }
+  }, [activeWorkflow, splits, activeDay, closeWorkflow]);
 
   // Exercise Library States
   const [libQuery, setLibQuery] = useState('');
@@ -1324,13 +1340,25 @@ export default function WorkoutLogger({ onNotification }) {
                         </div>
                         <div className="flex items-center gap-2">
                           <button 
+                            onClick={() => {
+                              setLiveSessionRoutine(splits[activeDay]);
+                              setShowLiveSessionModal(true);
+                            }}
+                            disabled={!splits[activeDay]?.workout?.exercises?.length}
+                            className="px-3.5 py-1.5 rounded-xl bg-acid-green text-black font-black text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-acid-green/20 disabled:opacity-50"
+                            title={`Start interactive guided live workout session for ${splits[activeDay]?.dayName}`}
+                          >
+                            <Zap className="w-3.5 h-3.5 fill-current" />
+                            Start Live Session ⚡
+                          </button>
+                          <button 
                             onClick={handleLogFullDaySplit}
                             disabled={loading || !splits[activeDay]?.workout?.exercises?.length}
-                            className="px-3 py-1.5 rounded-xl bg-acid-green text-accent-foreground text-[10px] font-black uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-acid-green/20 disabled:opacity-50"
-                            title={`Log all ${splits[activeDay]?.dayName}'s exercises to ${formatDisplayDate(selectedDate)}`}
+                            className="px-3 py-1.5 rounded-xl bg-surface border border-card-border text-foreground text-[10px] font-black uppercase tracking-wider hover:border-acid-green active:scale-95 transition-all border-none cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                            title={`Quick Log all ${splits[activeDay]?.dayName}'s exercises`}
                           >
-                            <Play className="w-3 h-3 fill-current" />
-                            Log {splits[activeDay]?.dayName}'s Session
+                            <Play className="w-3 h-3 fill-current text-acid-green" />
+                            Quick Log
                           </button>
                           <button 
                             onClick={handleStartEditSplit} 
@@ -1676,6 +1704,13 @@ export default function WorkoutLogger({ onNotification }) {
         )}
       </AnimatePresence>
 
+      {/* LIVE GUIDED WORKOUT SESSION MODAL */}
+      <LiveWorkoutSessionModal
+        isOpen={showLiveSessionModal}
+        onClose={() => setShowLiveSessionModal(false)}
+        routine={liveSessionRoutine}
+        onNotification={onNotification}
+      />
     </div>
   );
 }
