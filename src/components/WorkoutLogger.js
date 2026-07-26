@@ -25,20 +25,37 @@ const activeFetches = new Set();
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { searchAndRankExercises, loadExercisesData, getCachedExercises, getExerciseImage, getDistinctFallback } from '../utils/exerciseSearch';
+import { getTodayDateString, formatDateToLocalString, getLocalDayOfWeekIndex, isSameLocalDate } from '../utils/dateUtils';
 
 const ExerciseImage = ({ src, alt, category, muscleGroup, className = "w-full h-full object-cover" }) => {
-  const resolvedSrc = useMemo(() => {
+  const [currentSrc, setCurrentSrc] = useState(() => {
     if (src && typeof src === 'string' && src.trim().length > 0) return src;
     return getExerciseImage({ name: alt, category, target: muscleGroup, body_part: muscleGroup });
-  }, [src, alt, category, muscleGroup]);
-
-  const [currentSrc, setCurrentSrc] = useState(resolvedSrc);
+  });
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    setCurrentSrc(resolvedSrc);
+    let isMounted = true;
+    if (src && typeof src === 'string' && src.trim().length > 0) {
+      setCurrentSrc(src);
+      setHasError(false);
+      return;
+    }
+
+    // Resolve immediately and also after exercise library finishes preloading
+    const initial = getExerciseImage({ name: alt, category, target: muscleGroup, body_part: muscleGroup });
+    setCurrentSrc(initial);
     setHasError(false);
-  }, [resolvedSrc]);
+
+    loadExercisesData().then(() => {
+      if (isMounted) {
+        const resolved = getExerciseImage({ name: alt, category, target: muscleGroup, body_part: muscleGroup });
+        setCurrentSrc(resolved);
+      }
+    });
+
+    return () => { isMounted = false; };
+  }, [src, alt, category, muscleGroup]);
 
   if (hasError) {
     const fallback = getDistinctFallback(alt || category || muscleGroup || 'exercise');
@@ -187,38 +204,30 @@ export default function WorkoutLogger({ onNotification }) {
   }, []);
 
   // Date Calendar History State
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
-
-  const isDateSelected = (timestamp, dateStr) => {
-    if (!timestamp) return false;
-    const d = new Date(timestamp);
-    if (isNaN(d.getTime())) return false;
-    const dStr = d.toISOString().split('T')[0];
-    return dStr === dateStr;
-  };
+  const [selectedDate, setSelectedDate] = useState(() => getTodayDateString());
 
   const selectedDateWorkoutLogs = useMemo(() => {
-    return workoutLogs.filter(x => isDateSelected(x.timestamp, selectedDate));
+    return workoutLogs.filter(x => isSameLocalDate(x.timestamp, selectedDate));
   }, [workoutLogs, selectedDate]);
 
   const handlePrevDate = () => {
-    const d = new Date(selectedDate);
+    const d = new Date(selectedDate + "T00:00:00");
     d.setDate(d.getDate() - 1);
-    setSelectedDate(d.toISOString().split('T')[0]);
+    setSelectedDate(formatDateToLocalString(d));
   };
 
   const handleNextDate = () => {
-    const d = new Date(selectedDate);
+    const d = new Date(selectedDate + "T00:00:00");
     d.setDate(d.getDate() + 1);
-    setSelectedDate(d.toISOString().split('T')[0]);
+    setSelectedDate(formatDateToLocalString(d));
   };
 
   const handleTodayDate = () => {
-    setSelectedDate(new Date().toISOString().split('T')[0]);
+    setSelectedDate(getTodayDateString());
   };
 
   const formatDisplayDate = (dateStr) => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayDateString();
     if (dateStr === todayStr) return "Today";
     const d = new Date(dateStr + "T00:00:00");
     return d.toLocaleDateString("en-US", { weekday: 'short', month: 'short', day: 'numeric' });
@@ -275,12 +284,26 @@ export default function WorkoutLogger({ onNotification }) {
   const [editingLog, setEditingLog] = useState(null);
 
   // Weekly Planner states (Persistent via localStorage)
-  const getTodayDayIndex = () => {
-    const day = new Date().getDay();
-    return (day + 6) % 7; // Monday=0 ... Sunday=6
-  };
+  const [activeDay, setActiveDay] = useState(getLocalDayOfWeekIndex);
 
-  const [activeDay, setActiveDay] = useState(getTodayDayIndex);
+  // Automatic 24-Hour Midnight Rollover Effect
+  useEffect(() => {
+    const updateTimeState = () => {
+      const currentToday = getTodayDateString();
+      const currentDayIdx = getLocalDayOfWeekIndex();
+      setActiveDay(currentDayIdx);
+      setSelectedDate(prev => {
+        // If prev date was yesterday, auto-advance to today's date
+        const yesterday = getTodayDateString(new Date(Date.now() - 86400000));
+        if (prev === yesterday) return currentToday;
+        return prev;
+      });
+    };
+
+    updateTimeState();
+    const timer = setInterval(updateTimeState, 60000);
+    return () => clearInterval(timer);
+  }, []);
   const [splits, setSplits] = useState(() => {
     try {
       const saved = localStorage.getItem('calyxo_user_workout_splits');

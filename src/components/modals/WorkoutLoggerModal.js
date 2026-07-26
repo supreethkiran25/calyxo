@@ -4,77 +4,28 @@ import { X, Plus, Dumbbell, Clock, Flame, Save, RefreshCw, Search } from 'lucide
 import useQuickActionsStore from '../../store/useQuickActionsStore';
 import { useEcosystemStore } from '../../store/useEcosystemStore';
 import { useStore } from '../../store/useStore';
-import { searchAndRankExercises, isFuzzyMatch, loadExercisesData, getCachedExercises } from '../../utils/exerciseSearch';
+import { searchAndRankExercises, isFuzzyMatch, loadExercisesData, getCachedExercises, getExerciseImage, getDistinctFallback } from '../../utils/exerciseSearch';
 import { addWorkoutLog, getCurrentUserId } from '../../lib/dbService';
 
-// Smart multi-tier exercise image & GIF resolver
-export const getExerciseImage = (item) => {
-  if (!item) return 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&auto=format&fit=crop&q=80';
-
-  if (item.gif_url && typeof item.gif_url === 'string' && item.gif_url.trim().length > 0) return item.gif_url;
-  if (item.image && typeof item.image === 'string' && item.image.trim().length > 0) return item.image;
-
-  if (item.id) {
-    const cleanId = String(item.id).padStart(4, '0');
-    return `https://v2.exercisedb.io/image/${cleanId}`;
-  }
-
-  const name = (item.name || '').toLowerCase();
-  const target = (item.target || item.body_part || '').toLowerCase();
-
-  if (name.includes('incline') && name.includes('barbell'))
-    return 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('incline') && name.includes('dumbbell'))
-    return 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('incline') && name.includes('fly'))
-    return 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('close grip'))
-    return 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('reverse'))
-    return 'https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('squat'))
-    return 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('deadlift'))
-    return 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('pull') || name.includes('row'))
-    return 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('curl') || name.includes('bicep'))
-    return 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('shoulder') || name.includes('press'))
-    return 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=400&auto=format&fit=crop&q=80';
-
-  if (target.includes('chest')) return 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&auto=format&fit=crop&q=80';
-  if (target.includes('back')) return 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=400&auto=format&fit=crop&q=80';
-  if (target.includes('leg')) return 'https://images.unsplash.com/photo-1434596922112-19c563067271?w=400&auto=format&fit=crop&q=80';
-
-  return 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&auto=format&fit=crop&q=80';
-};
-
-// Fallback image generator based on string hash
-const getDistinctFallback = (nameStr) => {
-  const photos = [
-    'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?w=400&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=400&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=400&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=400&auto=format&fit=crop&q=80'
-  ];
-  let hash = 0;
-  for (let i = 0; i < (nameStr || '').length; i++) {
-    hash = (nameStr.charCodeAt(i) + (hash << 5) - hash);
-  }
-  const idx = Math.abs(hash) % photos.length;
-  return photos[idx];
-};
 
 const ModalExerciseImage = ({ item, className = "w-11 h-11 rounded-lg object-cover border border-card-border shrink-0 bg-black/30" }) => {
   const [imgSrc, setImgSrc] = useState(() => getExerciseImage(item));
 
   useEffect(() => {
+    let isMounted = true;
+    if (item?.gif_url || item?.image) {
+      setImgSrc(item.gif_url || item.image);
+      return;
+    }
+
     setImgSrc(getExerciseImage(item));
+    loadExercisesData().then(() => {
+      if (isMounted) {
+        setImgSrc(getExerciseImage(item));
+      }
+    });
+
+    return () => { isMounted = false; };
   }, [item]);
 
   return (

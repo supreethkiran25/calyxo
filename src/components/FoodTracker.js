@@ -20,6 +20,7 @@ import {
   ShoppingBag, Star, ChevronLeft, ChevronRight, Calendar, Edit2, Pencil 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getTodayDateString, formatDateToLocalString, isSameLocalDate } from '../utils/dateUtils';
 
 const FOODS_CATALOG = [
   { name: "Scrambled Eggs (2 large)", calories: 140, protein: 12, carbs: 1, fat: 10, fiber: 0, sugar: 0, sodium: 180 },
@@ -105,36 +106,44 @@ export default function FoodTracker({ onNotification }) {
   const ecoStore = useEcosystemStore();
 
   // Date Calendar History State
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => getTodayDateString());
 
-  const isDateSelected = (timestamp, dateStr) => {
-    if (!timestamp) return false;
-    const d = new Date(timestamp);
-    if (isNaN(d.getTime())) return false;
-    const dStr = d.toISOString().split('T')[0];
-    return dStr === dateStr;
-  };
+  // Automatic 24-Hour Midnight Rollover Effect
+  useEffect(() => {
+    const updateTimeState = () => {
+      const currentToday = getTodayDateString();
+      setSelectedDate(prev => {
+        const yesterday = getTodayDateString(new Date(Date.now() - 86400000));
+        if (prev === yesterday) return currentToday;
+        return prev;
+      });
+    };
 
-  const selectedDateFoodLogs = foodLogs.filter(x => isDateSelected(x.timestamp, selectedDate));
+    updateTimeState();
+    const timer = setInterval(updateTimeState, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const selectedDateFoodLogs = foodLogs.filter(x => isSameLocalDate(x.timestamp, selectedDate));
 
   const handlePrevDate = () => {
-    const d = new Date(selectedDate);
+    const d = new Date(selectedDate + "T00:00:00");
     d.setDate(d.getDate() - 1);
-    setSelectedDate(d.toISOString().split('T')[0]);
+    setSelectedDate(formatDateToLocalString(d));
   };
 
   const handleNextDate = () => {
-    const d = new Date(selectedDate);
+    const d = new Date(selectedDate + "T00:00:00");
     d.setDate(d.getDate() + 1);
-    setSelectedDate(d.toISOString().split('T')[0]);
+    setSelectedDate(formatDateToLocalString(d));
   };
 
   const handleTodayDate = () => {
-    setSelectedDate(new Date().toISOString().split('T')[0]);
+    setSelectedDate(getTodayDateString());
   };
 
   const formatDisplayDate = (dateStr) => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayDateString();
     if (dateStr === todayStr) return "Today";
     const d = new Date(dateStr + "T00:00:00");
     return d.toLocaleDateString("en-US", { weekday: 'short', month: 'short', day: 'numeric' });

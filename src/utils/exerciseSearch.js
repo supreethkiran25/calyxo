@@ -1,6 +1,15 @@
 let cachedExercisesData = null;
 let fetchPromise = null;
 
+const normalizeWord = (w) => {
+  if (!w) return '';
+  let str = String(w).toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+  if (str.endsWith('ies')) str = str.slice(0, -3) + 'y';
+  else if (str.endsWith('es') && str.length > 3) str = str.slice(0, -2);
+  else if (str.endsWith('s') && !str.endsWith('ss') && str.length > 3) str = str.slice(0, -1);
+  return str;
+};
+
 const preprocessExercise = (ex) => {
   if (ex._searchStr) return ex;
   const name = (ex.name || '').toLowerCase();
@@ -12,25 +21,25 @@ const preprocessExercise = (ex) => {
 
   let aliases = '';
   if (bodyPart.includes('chest') || target.includes('chest') || target.includes('pectoralis') || name.includes('bench') || name.includes('dip') || name.includes('fly')) {
-    aliases += ' pec pecs chest chestday push fly press dip';
+    aliases += ' pec pecs chest chestday push fly press dip dips';
   }
   if (bodyPart.includes('arms') || target.includes('biceps') || target.includes('brachialis') || name.includes('curl')) {
-    aliases += ' bicep biceps arm arms pull curl';
+    aliases += ' bicep biceps arm arms pull curl curls';
   }
   if (bodyPart.includes('arms') || target.includes('triceps') || name.includes('extension') || name.includes('pushdown')) {
-    aliases += ' tricep triceps arm arms push skullcrusher';
+    aliases += ' tricep triceps arm arms push skullcrusher skullcrushers';
   }
   if (bodyPart.includes('back') || target.includes('latissimus') || target.includes('trapezius') || target.includes('rhomboids') || name.includes('row') || name.includes('pull')) {
-    aliases += ' back lats lat trap traps pull row pulldown pullup';
+    aliases += ' back lats lat trap traps pull row rows pulldown pullup pullups';
   }
   if (bodyPart.includes('shoulders') || target.includes('deltoids') || target.includes('shoulder') || name.includes('press') || name.includes('raise')) {
-    aliases += ' shoulder shoulders delt delts press overhead lateral';
+    aliases += ' shoulder shoulders delt delts press presses overhead lateral raises';
   }
   if (bodyPart.includes('legs') || target.includes('quadriceps') || target.includes('hamstrings') || target.includes('glutes') || target.includes('calves') || name.includes('squat') || name.includes('lunge')) {
-    aliases += ' leg legs quad quads glute glutes hamstring hamstrings calf calves squat lunge legpress';
+    aliases += ' leg legs quad quads glute glutes hamstring hamstrings calf calves squat squats lunge lunges legpress';
   }
   if (bodyPart.includes('waist') || target.includes('abs') || target.includes('abdominals') || name.includes('crunch') || name.includes('plank')) {
-    aliases += ' abs ab core stomach waist crunch plank';
+    aliases += ' abs ab core stomach waist crunch crunches plank planks';
   }
 
   const fullText = `${name} ${bodyPart} ${target} ${equipment} ${category} ${aliases} ${instructions}`;
@@ -63,6 +72,11 @@ export const loadExercisesData = async () => {
   return fetchPromise;
 };
 
+// Immediately kick off preload in browser
+if (typeof window !== 'undefined') {
+  loadExercisesData();
+}
+
 export const isFuzzyMatch = (str1, str2) => {
   if (!str1 || !str2) return false;
   const s1 = String(str1).toLowerCase();
@@ -77,7 +91,8 @@ export const searchAndRankExercises = (query, dataset) => {
   if (!query || !query.trim() || !activeDataset.length) return [];
   
   const qClean = query.toLowerCase().trim();
-  const tokens = qClean.split(/\s+/).filter(Boolean);
+  const rawTokens = qClean.split(/\s+/).filter(Boolean);
+  const normTokens = rawTokens.map(normalizeWord).filter(Boolean);
 
   const scored = [];
 
@@ -92,37 +107,36 @@ export const searchAndRankExercises = (query, dataset) => {
     const bodyPart = (ex.body_part || '').toLowerCase();
     const equipment = (ex.equipment || '').toLowerCase();
 
-    // High-performance tokenized match using String.prototype.includes()
-    const allTokensMatch = tokens.every(token => fullText.includes(token));
-    if (!allTokensMatch) continue;
+    let matchedCount = 0;
+    rawTokens.forEach((token, idx) => {
+      const norm = normTokens[idx] || normalizeWord(token);
+      if (fullText.includes(token) || (norm && fullText.includes(norm))) {
+        matchedCount++;
+      }
+    });
 
-    // Calculate Relevance Score
-    let score = 0;
+    if (matchedCount === 0) continue;
+
+    let score = matchedCount * 40;
 
     // Exact full string match in name
     if (name === qClean) score += 500;
 
-    // All query tokens are in the exercise name itself
-    const allInName = tokens.every(token => name.includes(token));
+    // All query tokens are in exercise name
+    const allInName = rawTokens.every((token, idx) => {
+      const norm = normTokens[idx];
+      return name.includes(token) || (norm && name.includes(norm));
+    });
     if (allInName) score += 300;
 
     // Substring match in name
     if (name.includes(qClean)) score += 200;
 
-    // Name starts with the query or first query token
+    // Name starts with the query
     if (name.startsWith(qClean)) score += 150;
-    else if (tokens.length > 0 && name.startsWith(tokens[0])) score += 50;
 
-    // Word boundary matches in name
-    tokens.forEach(token => {
-      if (cachedWords.includes(token)) score += 40;
-    });
-
-    // Equipment match bonus
-    if (tokens.some(t => equipment.includes(t))) score += 30;
-
-    // Target muscle or body part match bonus
-    if (tokens.some(t => target.includes(t) || bodyPart.includes(t))) score += 50;
+    // Target or body part match
+    if (rawTokens.some(t => target.includes(t) || bodyPart.includes(t))) score += 50;
 
     scored.push({ ex, score });
   }
@@ -138,59 +152,49 @@ export const getExerciseImage = (item) => {
   if (item.gif_url && typeof item.gif_url === 'string' && item.gif_url.trim().length > 0) return item.gif_url;
   if (item.image && typeof item.image === 'string' && item.image.trim().length > 0) return item.image;
 
-  // 2. Direct ID on item object
-  if (item.id) {
-    const cleanId = String(item.id).padStart(4, '0');
-    return `https://v2.exercisedb.io/image/${cleanId}`;
-  }
+  const dataset = getCachedExercises();
+  const rawName = typeof item === 'string' ? item : (item.name || item.alt || item.title || '');
+  const cleanName = rawName.toLowerCase().trim();
 
-  // 3. Dynamic lookup in loaded exercise database by name to use exact Exercise Library image/GIF
-  const nameClean = (item.name || item.alt || '').toLowerCase().trim();
-  if (nameClean) {
-    const cached = getCachedExercises();
-    if (cached && cached.length) {
-      const match = cached.find(x => (x.name || '').toLowerCase().trim() === nameClean) ||
-                    cached.find(x => (x.name || '').toLowerCase().includes(nameClean) || nameClean.includes((x.name || '').toLowerCase()));
-      if (match) {
-        if (match.gif_url && typeof match.gif_url === 'string' && match.gif_url.trim().length > 0) return match.gif_url;
-        if (match.image && typeof match.image === 'string' && match.image.trim().length > 0) return match.image;
-        if (match.id) {
-          const cleanId = String(match.id).padStart(4, '0');
-          return `https://v2.exercisedb.io/image/${cleanId}`;
-        }
-      }
+  // 2. Direct ID lookup in dataset
+  if (item.id && dataset && dataset.length) {
+    const cleanId = String(item.id).padStart(4, '0');
+    const idMatch = dataset.find(x => String(x.id).padStart(4, '0') === cleanId);
+    if (idMatch) {
+      if (idMatch.gif_url && typeof idMatch.gif_url === 'string') return idMatch.gif_url;
+      if (idMatch.image && typeof idMatch.image === 'string') return idMatch.image;
     }
   }
 
-  const name = (item.name || item.alt || '').toLowerCase();
+  // 3. Dynamic lookup in loaded dataset by name / fuzzy match
+  if (cleanName && dataset && dataset.length) {
+    // Exact or direct substring match
+    const directMatch = dataset.find(x => (x.name || '').toLowerCase().trim() === cleanName) ||
+                        dataset.find(x => (x.name || '').toLowerCase().includes(cleanName) || cleanName.includes((x.name || '').toLowerCase()));
+    if (directMatch) {
+      if (directMatch.gif_url && typeof directMatch.gif_url === 'string') return directMatch.gif_url;
+      if (directMatch.image && typeof directMatch.image === 'string') return directMatch.image;
+    }
+
+    // Tokenized fuzzy match
+    const ranked = searchAndRankExercises(cleanName, dataset);
+    if (ranked && ranked.length > 0) {
+      const topMatch = ranked[0];
+      if (topMatch.gif_url && typeof topMatch.gif_url === 'string') return topMatch.gif_url;
+      if (topMatch.image && typeof topMatch.image === 'string') return topMatch.image;
+    }
+  }
+
+  // 4. Keyword Fallback rules
+  const name = cleanName;
   const target = (item.target || item.body_part || item.muscleGroup || '').toLowerCase();
 
-  if (name.includes('incline') && name.includes('barbell'))
-    return 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&auto=format&fit=crop&q=80';
   if (name.includes('incline') && name.includes('dumbbell'))
     return 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('fly') || name.includes('pec'))
-    return 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('close grip') || name.includes('dip'))
-    return 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('reverse'))
-    return 'https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('squat'))
-    return 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('deadlift'))
-    return 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('pull') || name.includes('row') || name.includes('lat'))
-    return 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('curl') || name.includes('bicep'))
-    return 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('shoulder') || name.includes('press') || name.includes('delt'))
+  if (name.includes('overhead') || (name.includes('shoulder') && name.includes('press')))
     return 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=400&auto=format&fit=crop&q=80';
-
-  if (target.includes('chest') || target.includes('pec')) return 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&auto=format&fit=crop&q=80';
-  if (target.includes('back') || target.includes('lat')) return 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=400&auto=format&fit=crop&q=80';
-  if (target.includes('leg') || target.includes('quad') || target.includes('glute')) return 'https://images.unsplash.com/photo-1434596922112-19c563067271?w=400&auto=format&fit=crop&q=80';
-  if (target.includes('arm') || target.includes('bicep') || target.includes('tricep')) return 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&auto=format&fit=crop&q=80';
-  if (target.includes('shoulder') || target.includes('delt')) return 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=400&auto=format&fit=crop&q=80';
+  if (name.includes('dip') || name.includes('tricep'))
+    return 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&auto=format&fit=crop&q=80';
 
   return getDistinctFallback(name || target || 'exercise');
 };
