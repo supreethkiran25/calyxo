@@ -146,11 +146,11 @@ export const searchAndRankExercises = (query, dataset) => {
 };
 
 export const getExerciseImage = (item) => {
-  if (!item) return 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&auto=format&fit=crop&q=80';
+  if (!item) return null;
 
-  // 1. Direct gif_url or image on item object
-  if (item.gif_url && typeof item.gif_url === 'string' && item.gif_url.trim().length > 0) return item.gif_url;
-  if (item.image && typeof item.image === 'string' && item.image.trim().length > 0) return item.image;
+  // 1. Direct gif_url or image on item object (if not an unsplash url)
+  if (item.gif_url && typeof item.gif_url === 'string' && item.gif_url.trim().length > 0 && !item.gif_url.includes('unsplash.com')) return item.gif_url;
+  if (item.image && typeof item.image === 'string' && item.image.trim().length > 0 && !item.image.includes('unsplash.com')) return item.image;
 
   const dataset = getCachedExercises();
   const rawName = typeof item === 'string' ? item : (item.name || item.alt || item.title || '');
@@ -185,35 +185,9 @@ export const getExerciseImage = (item) => {
     }
   }
 
-  // 4. Keyword Fallback rules
-  const name = cleanName;
-  const target = (item.target || item.body_part || item.muscleGroup || '').toLowerCase();
-
-  if (name.includes('incline') && name.includes('dumbbell'))
-    return 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('overhead') || (name.includes('shoulder') && name.includes('press')))
-    return 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=400&auto=format&fit=crop&q=80';
-  if (name.includes('dip') || name.includes('tricep'))
-    return 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&auto=format&fit=crop&q=80';
-
-  return getDistinctFallback(name || target || 'exercise');
+  return null;
 };
 
 export const getDistinctFallback = (nameStr) => {
-  const photos = [
-    'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?w=400&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=400&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=400&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=400&auto=format&fit=crop&q=80'
-  ];
-  let hash = 0;
-  for (let i = 0; i < (nameStr || '').length; i++) {
-    hash = (nameStr.charCodeAt(i) + (hash << 5) - hash);
-  }
-  const idx = Math.abs(hash) % photos.length;
-  return photos[idx];
+  return null;
 };

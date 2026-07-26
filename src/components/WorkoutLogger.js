@@ -29,42 +29,47 @@ import { getTodayDateString, formatDateToLocalString, getLocalDayOfWeekIndex, is
 
 const ExerciseImage = ({ src, alt, category, muscleGroup, className = "w-full h-full object-cover" }) => {
   const [currentSrc, setCurrentSrc] = useState(() => {
-    if (src && typeof src === 'string' && src.trim().length > 0) return src;
+    if (src && typeof src === 'string' && src.trim().length > 0 && !src.includes('unsplash.com')) return src;
     return getExerciseImage({ name: alt, category, target: muscleGroup, body_part: muscleGroup });
   });
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
-    if (src && typeof src === 'string' && src.trim().length > 0) {
+    if (src && typeof src === 'string' && src.trim().length > 0 && !src.includes('unsplash.com')) {
       setCurrentSrc(src);
       setHasError(false);
       return;
     }
 
-    // Resolve immediately and also after exercise library finishes preloading
     const initial = getExerciseImage({ name: alt, category, target: muscleGroup, body_part: muscleGroup });
     setCurrentSrc(initial);
-    setHasError(false);
+    setHasError(!initial);
 
     loadExercisesData().then(() => {
       if (isMounted) {
         const resolved = getExerciseImage({ name: alt, category, target: muscleGroup, body_part: muscleGroup });
         setCurrentSrc(resolved);
+        setHasError(!resolved);
       }
     });
 
     return () => { isMounted = false; };
   }, [src, alt, category, muscleGroup]);
 
-  if (hasError) {
-    const fallback = getDistinctFallback(alt || category || muscleGroup || 'exercise');
+  if (hasError || !currentSrc || typeof currentSrc !== 'string' || currentSrc.includes('unsplash.com')) {
     return (
-      <img
-        src={fallback}
-        alt={alt || 'Exercise'}
-        className={className}
-      />
+      <div className="w-full h-full bg-gradient-to-br from-surface via-card-bg to-black flex flex-col items-center justify-center p-3 text-center border border-card-border/40 relative overflow-hidden select-none">
+        <div className="w-10 h-10 rounded-2xl bg-acid-green/10 border border-acid-green/20 flex items-center justify-center text-acid-green mb-1.5 shadow-inner">
+          <Dumbbell className="w-5 h-5 text-acid-green" />
+        </div>
+        <span className="text-[11px] font-black text-foreground uppercase tracking-wider truncate max-w-full px-1">
+          {alt || 'Exercise Visual'}
+        </span>
+        <span className="text-[8px] text-acid-green font-bold uppercase tracking-widest mt-0.5 px-2 py-0.5 rounded-full bg-acid-green/10 border border-acid-green/20">
+          {muscleGroup || category || 'Strength'}
+        </span>
+      </div>
     );
   }
 
@@ -346,23 +351,30 @@ export default function WorkoutLogger({ onNotification }) {
   }, []);
 
   const handleOpenExerciseDetail = (ex) => {
+    if (!ex) return;
     const exercisesData = getCachedExercises();
-    const match = exercisesData.find(x => x.name.toLowerCase() === (ex.name || '').toLowerCase());
+    const match = exercisesData.find(x => (x.name || '').toLowerCase().trim() === (ex.name || '').toLowerCase().trim());
+    const resolvedImage = getExerciseImage(ex);
+
     if (match) {
-      setSelectedExercise(match);
+      setSelectedExercise({
+        ...match,
+        image: match.gif_url || match.image || resolvedImage,
+        gif_url: match.gif_url || match.image || resolvedImage
+      });
     } else {
       setSelectedExercise({
         id: ex.id || Date.now(),
         name: ex.name,
         category: ex.category || 'Strength',
-        target: ex.target || ex.muscleGroup || 'Full Body',
-        body_part: ex.body_part || ex.muscleGroup || 'General',
+        target: ex.target || ex.body_part || ex.muscleGroup || 'Full Body',
+        body_part: ex.body_part || ex.target || ex.muscleGroup || 'General',
         equipment: ex.equipment || 'Free Weights',
         caloriesEstimate: ex.caloriesEstimate || 8,
         difficulty: ex.difficulty || 'intermediate',
-        image: ex.image,
-        gif_url: ex.gif_url || ex.image || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80',
-        instruction_steps: ex.instruction_steps || [
+        image: resolvedImage,
+        gif_url: resolvedImage,
+        instruction_steps: ex.instruction_steps || ex.instructions || [
           "Position yourself with posture tall and core braced.",
           "Perform movement with controlled cadence through full range of motion.",
           "Exhale at apex of contraction and slowly return to starting position."
