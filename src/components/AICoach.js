@@ -534,7 +534,7 @@ export default function AICoach({ onNotification, autoFocus = false }) {
               </p>
               <button
                 type="button"
-                onClick={() => navigate('/user/profile')}
+                onClick={() => navigate('/user/profile?section=subscription')}
                 className="w-full bg-acid-green text-accent-foreground py-2.5 rounded-xl font-black text-xs uppercase tracking-wider hover:opacity-90 transition-all border-none cursor-pointer"
               >
                 Go to Subscription Plans

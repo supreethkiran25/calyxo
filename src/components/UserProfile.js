@@ -292,6 +292,11 @@ export default function UserProfile({ onNotification }) {
         } else if (section === 'diet_preferences' || section === 'diet') {
           setEditSection('profile');
           fieldTitle = 'Diet Preferences';
+        } else if (section === 'subscription') {
+          setActivePanel('account');
+          setOpenAccordion('subscription');
+          setAdvancedOpen(true);
+          fieldTitle = 'Subscription Plans';
         }
 
         if (onNotification) {
@@ -1560,7 +1565,7 @@ export default function UserProfile({ onNotification }) {
     ];
 
     return (
-      <div className="space-y-6">
+      <div id="setup-field-subscription" className="space-y-6">
         {/* Current Active Status Badge */}
         <div className="p-4 rounded-xl bg-surface border border-card-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
