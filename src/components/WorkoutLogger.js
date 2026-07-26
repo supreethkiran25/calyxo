@@ -1245,9 +1245,6 @@ export default function WorkoutLogger({ onNotification }) {
                       <div className="space-y-3 pt-2">
                         <div className="flex justify-between items-center">
                           <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Recommended Exercises (Logger Database Suggestions)</span>
-                          <button onClick={handleAddExerciseToSplit} className="text-[9px] text-acid-green font-bold uppercase flex items-center gap-1 cursor-pointer bg-none border-none hover:underline">
-                            <Plus className="w-3 h-3" /> Add Exercise
-                          </button>
                         </div>
                         {editRoutineFields.exercises.map((ex, i) => (
                           <div key={i} className="relative flex flex-col sm:flex-row gap-2 items-stretch sm:items-center bg-card-bg/30 p-2.5 rounded-2xl border border-card-border/60 shadow-inner">
@@ -1359,13 +1356,13 @@ export default function WorkoutLogger({ onNotification }) {
                         ))}
                       </div>
 
-                      {/* Bottom Add Exercise Button (Saves scrolling up) */}
+                      {/* Bottom Add Exercise Button (Exclusively at the bottom as requested) */}
                       <button
                         type="button"
                         onClick={handleAddExerciseToSplit}
-                        className="w-full py-2.5 rounded-xl border border-dashed border-acid-green/40 hover:border-acid-green bg-acid-green/10 hover:bg-acid-green/20 text-acid-green text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99] my-2"
+                        className="w-full py-3 rounded-xl border-2 border-dashed border-acid-green/50 hover:border-acid-green bg-acid-green/10 hover:bg-acid-green/20 text-acid-green text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99] my-3 shadow-sm"
                       >
-                        <Plus className="w-4 h-4 text-acid-green" /> Add Exercise To Split
+                        <Plus className="w-4 h-4 text-acid-green" /> Add Exercise
                       </button>
 
                       <div className="flex justify-end gap-2 pt-3 border-t border-card-border">
