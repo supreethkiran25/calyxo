@@ -1199,7 +1199,7 @@ export default function WorkoutLogger({ onNotification }) {
               </div>
 
               {/* Right Column: Weekly Splits */}
-              <div className="space-y-6">
+              <div className="space-y-6 pb-32 sm:pb-24">
                 <section className="glass rounded-2xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">Weekly Splits Template Planner</h2>
@@ -1294,7 +1294,7 @@ export default function WorkoutLogger({ onNotification }) {
                                     initial={{ opacity: 0, y: 4 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0 }}
-                                    className="absolute top-full left-0 min-w-[280px] sm:min-w-[360px] max-w-md mt-1 bg-surface border border-card-border rounded-2xl shadow-2xl z-50 overflow-hidden max-h-64 overflow-y-auto"
+                                    className="absolute top-full left-0 right-0 sm:right-auto w-full sm:w-[360px] max-w-full mt-1 bg-surface border border-card-border rounded-2xl shadow-2xl z-50 overflow-hidden max-h-56 sm:max-h-64 overflow-y-auto overscroll-contain"
                                     style={{ backgroundColor: 'var(--secondary, #12121A)', opacity: 1 }}
                                   >
                                     <div className="px-3 py-1.5 bg-surface/90 border-b border-card-border text-[8.5px] font-black uppercase tracking-wider text-muted flex justify-between">
@@ -1358,6 +1358,15 @@ export default function WorkoutLogger({ onNotification }) {
                           </div>
                         ))}
                       </div>
+
+                      {/* Bottom Add Exercise Button (Saves scrolling up) */}
+                      <button
+                        type="button"
+                        onClick={handleAddExerciseToSplit}
+                        className="w-full py-2.5 rounded-xl border border-dashed border-acid-green/40 hover:border-acid-green bg-acid-green/10 hover:bg-acid-green/20 text-acid-green text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99] my-2"
+                      >
+                        <Plus className="w-4 h-4 text-acid-green" /> Add Exercise To Split
+                      </button>
 
                       <div className="flex justify-end gap-2 pt-3 border-t border-card-border">
                         <button onClick={() => setEditingSplit(false)} className="text-[10px] text-muted py-2 px-3 bg-surface border border-card-border rounded-xl flex items-center gap-1 cursor-pointer hover:text-foreground"><X className="w-3.5 h-3.5" /> Cancel</button>
