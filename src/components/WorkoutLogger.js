@@ -779,6 +779,10 @@ export default function WorkoutLogger({ onNotification }) {
   const selectSplitExSuggestion = (index, item) => {
     const nextEx = [...editRoutineFields.exercises];
     nextEx[index].name = item.name;
+    nextEx[index].gif_url = item.gif_url || item.image;
+    nextEx[index].image = item.image || item.gif_url;
+    nextEx[index].target = item.target || item.body_part;
+    nextEx[index].id = item.id;
     if (!nextEx[index].details || nextEx[index].details === "New Exercise") {
       nextEx[index].details = "3 sets × 10 reps";
     }

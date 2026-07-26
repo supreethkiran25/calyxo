@@ -134,12 +134,32 @@ export const searchAndRankExercises = (query, dataset) => {
 export const getExerciseImage = (item) => {
   if (!item) return 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&auto=format&fit=crop&q=80';
 
+  // 1. Direct gif_url or image on item object
   if (item.gif_url && typeof item.gif_url === 'string' && item.gif_url.trim().length > 0) return item.gif_url;
   if (item.image && typeof item.image === 'string' && item.image.trim().length > 0) return item.image;
 
+  // 2. Direct ID on item object
   if (item.id) {
     const cleanId = String(item.id).padStart(4, '0');
     return `https://v2.exercisedb.io/image/${cleanId}`;
+  }
+
+  // 3. Dynamic lookup in loaded exercise database by name to use exact Exercise Library image/GIF
+  const nameClean = (item.name || item.alt || '').toLowerCase().trim();
+  if (nameClean) {
+    const cached = getCachedExercises();
+    if (cached && cached.length) {
+      const match = cached.find(x => (x.name || '').toLowerCase().trim() === nameClean) ||
+                    cached.find(x => (x.name || '').toLowerCase().includes(nameClean) || nameClean.includes((x.name || '').toLowerCase()));
+      if (match) {
+        if (match.gif_url && typeof match.gif_url === 'string' && match.gif_url.trim().length > 0) return match.gif_url;
+        if (match.image && typeof match.image === 'string' && match.image.trim().length > 0) return match.image;
+        if (match.id) {
+          const cleanId = String(match.id).padStart(4, '0');
+          return `https://v2.exercisedb.io/image/${cleanId}`;
+        }
+      }
+    }
   }
 
   const name = (item.name || item.alt || '').toLowerCase();
