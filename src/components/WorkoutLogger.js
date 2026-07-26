@@ -1168,27 +1168,49 @@ export default function WorkoutLogger({ onNotification }) {
                                 className={inputStyle} 
                               />
 
-                              {/* Logger Database Suggestions Dropdown */}
+                              {/* Logger Database Suggestions Dropdown with Image Previews */}
                               <AnimatePresence>
                                 {activeSplitEditIdx === i && splitEditSuggestions.length > 0 && (
                                   <motion.div
                                     initial={{ opacity: 0, y: 4 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0 }}
-                                    className="absolute top-full left-0 right-0 mt-1 bg-surface border border-card-border rounded-xl shadow-2xl z-50 overflow-hidden max-h-48 overflow-y-auto"
+                                    className="absolute top-full left-0 min-w-[280px] sm:min-w-[360px] max-w-md mt-1 bg-surface border border-card-border rounded-2xl shadow-2xl z-50 overflow-hidden max-h-64 overflow-y-auto"
                                     style={{ backgroundColor: 'var(--secondary, #12121A)', opacity: 1 }}
                                   >
-                                    <div className="px-3 py-1 bg-surface/90 border-b border-card-border text-[8px] font-black uppercase text-muted">
-                                      Database Suggestions
+                                    <div className="px-3 py-1.5 bg-surface/90 border-b border-card-border text-[8.5px] font-black uppercase tracking-wider text-muted flex justify-between">
+                                      <span>Database Matches (With Image Previews)</span>
+                                      <span className="text-acid-green">Select to Fill</span>
                                     </div>
                                     {splitEditSuggestions.map((item, idx) => (
                                       <div
                                         key={idx}
                                         onClick={() => selectSplitExSuggestion(i, item)}
-                                        className="px-3 py-2 border-b border-card-border last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-acid-green hover:text-accent-foreground transition-colors gap-2 text-xs"
+                                        className="px-3 py-2.5 border-b border-card-border/40 last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-acid-green hover:text-black transition-colors gap-3 group/item"
                                       >
-                                        <span className="font-semibold truncate">{item.name}</span>
-                                        <span className="text-[9px] opacity-75 shrink-0">{item.category || item.body_part || 'Strength'}</span>
+                                        <div className="flex items-center gap-3 min-w-0">
+                                          <div 
+                                            onClick={(e) => { e.stopPropagation(); handleOpenExerciseDetail(item); }}
+                                            className="w-10 h-10 rounded-lg bg-surface/60 border border-card-border/50 flex items-center justify-center shrink-0 overflow-hidden bg-black/40 cursor-pointer hover:scale-105 transition-transform"
+                                            title="Click photo to preview exercise GIF"
+                                          >
+                                            <ExerciseImage 
+                                              src={item.gif_url || item.image || globalImageCache.get(item.name)} 
+                                              alt={item.name} 
+                                              category={item.category} 
+                                              muscleGroup={item.target || item.body_part} 
+                                            />
+                                          </div>
+                                          <div className="flex flex-col min-w-0 text-left">
+                                            <span className="font-bold text-xs truncate group-hover/item:text-black text-foreground capitalize">{item.name}</span>
+                                            <span className="text-[9.5px] opacity-80 truncate font-medium">
+                                              {item.target ? `Target: ${item.target}` : item.body_part ? `Body Part: ${item.body_part}` : item.category || 'Strength'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-md bg-acid-green/20 text-acid-green group-hover/item:bg-black group-hover/item:text-acid-green shrink-0">
+                                          Select
+                                        </span>
                                       </div>
                                     ))}
                                   </motion.div>

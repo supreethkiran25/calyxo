@@ -10,7 +10,30 @@ const preprocessExercise = (ex) => {
   const category = (ex.category || '').toLowerCase();
   const instructions = (ex.instructions || '').toLowerCase();
 
-  const fullText = `${name} ${bodyPart} ${target} ${equipment} ${category} ${instructions}`;
+  let aliases = '';
+  if (bodyPart.includes('chest') || target.includes('chest') || target.includes('pectoralis') || name.includes('bench') || name.includes('dip')) {
+    aliases += ' pec pecs chest chestday push fly press dip';
+  }
+  if (bodyPart.includes('arms') || target.includes('biceps') || target.includes('brachialis') || name.includes('curl')) {
+    aliases += ' bicep biceps arm arms pull curl';
+  }
+  if (bodyPart.includes('arms') || target.includes('triceps') || name.includes('extension') || name.includes('pushdown')) {
+    aliases += ' tricep triceps arm arms push skullcrusher';
+  }
+  if (bodyPart.includes('back') || target.includes('latissimus') || target.includes('trapezius') || target.includes('rhomboids') || name.includes('row') || name.includes('pull')) {
+    aliases += ' back lats lat trap traps pull row pulldown pullup';
+  }
+  if (bodyPart.includes('shoulders') || target.includes('deltoids') || target.includes('shoulder') || name.includes('press') || name.includes('raise')) {
+    aliases += ' shoulder shoulders delt delts press overhead lateral';
+  }
+  if (bodyPart.includes('legs') || target.includes('quadriceps') || target.includes('hamstrings') || target.includes('glutes') || target.includes('calves') || name.includes('squat') || name.includes('lunge')) {
+    aliases += ' leg legs quad quads glute glutes hamstring hamstrings calf calves squat lunge legpress';
+  }
+  if (bodyPart.includes('waist') || target.includes('abs') || target.includes('abdominals') || name.includes('crunch') || name.includes('plank')) {
+    aliases += ' abs ab core stomach waist crunch plank';
+  }
+
+  const fullText = `${name} ${bodyPart} ${target} ${equipment} ${category} ${aliases} ${instructions}`;
   ex._searchStr = fullText;
   ex._nameLower = name;
   ex._words = fullText.split(/[\s\-_,()]+/);
@@ -98,8 +121,8 @@ export const searchAndRankExercises = (query, dataset) => {
     // Equipment match bonus
     if (tokens.some(t => equipment.includes(t))) score += 30;
 
-    // Target muscle match bonus
-    if (tokens.some(t => target.includes(t) || bodyPart.includes(t))) score += 20;
+    // Target muscle or body part match bonus
+    if (tokens.some(t => target.includes(t) || bodyPart.includes(t))) score += 50;
 
     scored.push({ ex, score });
   }
