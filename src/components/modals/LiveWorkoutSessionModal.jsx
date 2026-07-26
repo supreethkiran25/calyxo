@@ -305,7 +305,7 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
                     type="number"
                     value={weightInput}
                     onChange={(e) => setWeightInput(e.target.value)}
-                    placeholder="0 (Bodyweight)"
+                    placeholder="0"
                     className="bg-[var(--input)] border border-card-border focus:border-acid-green text-foreground text-center font-bold text-lg py-2.5 rounded-xl outline-none"
                   />
                 </div>
