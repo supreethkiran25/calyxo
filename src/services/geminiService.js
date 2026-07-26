@@ -200,7 +200,7 @@ export async function chatWithGemini({ query, context, trainingLogs, personality
       candidates: [{
         content: {
           parts: [{
-            text: `### Calyxo Fitness Coach (Demo Mode) 🤖\nNo live API response succeeded.\n\n* **Biometrics Sync Details:** \n  - Goal: ${context.goal || 'lose'}\n  - Current Calorie intake: ${context.consumedCalories || 0} / ${context.targetCalories || 2000} kcal\n  - Water intake: ${context.water || 0} ml\n  - Workouts logged today: ${context.workoutCount || 0} exercises\n\nPlease check your internet connection or configure the API key.`
+            text: `### Calyxo Fitness Coach (Demo Mode)\nNo live API response succeeded.\n\n* **Biometrics Sync Details:** \n  - Goal: ${context.goal || 'lose'}\n  - Current Calorie intake: ${context.consumedCalories || 0} / ${context.targetCalories || 2000} kcal\n  - Water intake: ${context.water || 0} ml\n  - Workouts logged today: ${context.workoutCount || 0} exercises\n\nPlease check your internet connection or configure the API key.`
           }]
         }
       }]
@@ -243,7 +243,7 @@ export async function generateBriefing({ briefingType, userProfile, foodLogs, wo
   } catch (err) {
     console.warn("Briefing generation failed, using fallback report:", err.message);
     return {
-      report: `### Proactive ${briefingType.replace('_', ' ').toUpperCase()} (Demo Mode) 🤖\n\nHere is a personalized analysis based on your recent activity logs:\n\n* **Nutritional Alignment:** You have consumed **${totalCal} kcal** out of your daily target of **${userProfile?.dailyCalories || 2000} kcal**. Protein is currently at **${Math.round(totalProt)}g** (Target: ${userProfile?.proteinTarget || 120}g).\n* **Training & Output:** You have logged **${totalWorkouts}** workout session(s) today.\n* **Recovery Status:** Sleep was logged at **${sleepHours} hours**. To improve recovery, aim to hit at least 8 hours tonight.\n* **Hydration Checklist:** Current water intake is **${water}ml** / ${userProfile?.waterTarget || 2500}ml.\n* **Actionable Recommendation:** Drink another 500ml of water right now and schedule a 20-minute stretching session to relieve muscle tension.`
+      report: `### Proactive ${briefingType.replace('_', ' ').toUpperCase()} (Demo Mode)\n\nHere is a personalized analysis based on your recent activity logs:\n\n* **Nutritional Alignment:** You have consumed **${totalCal} kcal** out of your daily target of **${userProfile?.dailyCalories || 2000} kcal**. Protein is currently at **${Math.round(totalProt)}g** (Target: ${userProfile?.proteinTarget || 120}g).\n* **Training & Output:** You have logged **${totalWorkouts}** workout session(s) today.\n* **Recovery Status:** Sleep was logged at **${sleepHours} hours**. To improve recovery, aim to hit at least 8 hours tonight.\n* **Hydration Checklist:** Current water intake is **${water}ml** / ${userProfile?.waterTarget || 2500}ml.\n* **Actionable Recommendation:** Drink another 500ml of water right now and schedule a 20-minute stretching session to relieve muscle tension.`
     };
   }
 }

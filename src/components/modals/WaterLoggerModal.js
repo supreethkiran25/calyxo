@@ -78,10 +78,10 @@ export default function WaterLoggerModal() {
   };
 
   const getHydrationStatus = () => {
-    if (fillPct >= 100) return { label: "Goal Reached! 🌊", color: "text-emerald-400" };
-    if (fillPct >= 75) return { label: "Optimal Hydration 💧", color: "text-cyan-400" };
-    if (fillPct >= 40) return { label: "Steady Hydration 🥛", color: "text-blue-400" };
-    return { label: "Dehydrated - Keep Drinking! ⚠️", color: "text-amber-400" };
+    if (fillPct >= 100) return { label: "Goal Reached!", color: "text-emerald-400" };
+    if (fillPct >= 75) return { label: "Optimal Hydration", color: "text-cyan-400" };
+    if (fillPct >= 40) return { label: "Steady Hydration", color: "text-blue-400" };
+    return { label: "Dehydrated - Keep Drinking!", color: "text-amber-400" };
   };
 
   const status = getHydrationStatus();
@@ -198,10 +198,10 @@ export default function WaterLoggerModal() {
                 <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">Quick Fill Presets</span>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { ml: 250, label: "Glass", icon: "🥛" },
-                    { ml: 500, label: "Bottle", icon: "🍾" },
-                    { ml: 750, label: "Sport Flask", icon: "🥤" },
-                    { ml: 1000, label: "Jug (1L)", icon: "🫗" }
+                    { ml: 250, label: "Glass" },
+                    { ml: 500, label: "Bottle" },
+                    { ml: 750, label: "Sport Flask" },
+                    { ml: 1000, label: "Jug (1L)" }
                   ].map(item => (
                     <button
                       key={item.ml}
@@ -209,7 +209,6 @@ export default function WaterLoggerModal() {
                       disabled={loading}
                       className="py-3 px-2 border border-card-border rounded-xl bg-[var(--input)] hover:border-cyan-400/60 hover:bg-cyan-500/10 text-xs font-black transition-all active:scale-95 cursor-pointer text-foreground flex items-center justify-between gap-1 shadow-sm"
                     >
-                      <span className="text-sm">{item.icon}</span>
                       <span className="text-[10px] uppercase">{item.label}</span>
                       <span className="text-cyan-400 font-black">+{item.ml}ml</span>
                     </button>

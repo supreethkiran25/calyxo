@@ -380,7 +380,7 @@ export default function WorkoutLogger({ onNotification }) {
     ecoStore.syncEcosystemState({ healthLogs: nextHealth });
     try {
       await saveEcosystemState(userId, useEcosystemStore.getState());
-      if (onNotification) onNotification("Recovery metrics logged successfully! 🧘");
+      if (onNotification) onNotification("Recovery metrics logged successfully!");
     } catch (err) {
       console.error("Save recovery log failed", err);
       ecoStore.syncEcosystemState({ healthLogs: prevHealth });
@@ -426,7 +426,7 @@ export default function WorkoutLogger({ onNotification }) {
     } catch (e) {
       console.warn("AudioContext chime failed", e);
     }
-    if (onNotification) onNotification("Rest time complete! Set starts now. 💪");
+    if (onNotification) onNotification("Rest time complete! Set starts now.");
   };
 
   const handleStartRestTimer = (secs = restDuration) => {
@@ -574,7 +574,7 @@ export default function WorkoutLogger({ onNotification }) {
       setExReps('');
       setExWeight('');
       setExDuration('');
-      if (onNotification) onNotification(`Logged exercise: ${workoutItem.name} 🏋️`);
+      if (onNotification) onNotification(`Logged exercise: ${workoutItem.name}`);
       handleStartRestTimer();
     } catch (err) {
       console.error("Failed to log workout to database", err);
@@ -598,7 +598,7 @@ export default function WorkoutLogger({ onNotification }) {
       });
       updateWorkoutLogStore(updated);
       setEditingLog(null);
-      if (onNotification) onNotification("Workout entry updated! ✏️");
+      if (onNotification) onNotification("Workout entry updated!");
     } catch (err) {
       console.error("Failed to edit workout log", err);
       if (onNotification) onNotification("Failed to edit workout log.");
@@ -672,7 +672,7 @@ export default function WorkoutLogger({ onNotification }) {
     try {
       const saved = await addWorkoutLog(userId, workoutItem);
       addWorkoutLogStore(saved);
-      if (onNotification) onNotification(`Logged ${ex.name} to ${formatDisplayDate(selectedDate)}! 🏋️`);
+      if (onNotification) onNotification(`Logged ${ex.name} to ${formatDisplayDate(selectedDate)}!`);
       handleStartRestTimer();
     } catch (err) {
       console.error("Error logging split exercise", err);
@@ -712,7 +712,7 @@ export default function WorkoutLogger({ onNotification }) {
         if (saved) addWorkoutLogStore(saved);
       });
 
-      if (onNotification) onNotification(`Logged ${splits[activeDay].dayName}'s ${currentSplit.type} session! 🚀`);
+      if (onNotification) onNotification(`Logged ${splits[activeDay].dayName}'s ${currentSplit.type} session!`);
       handleStartRestTimer();
     } catch (err) {
       console.error("Error logging full day split", err);
@@ -1349,7 +1349,7 @@ export default function WorkoutLogger({ onNotification }) {
                             title={`Start interactive guided live workout session for ${splits[activeDay]?.dayName}`}
                           >
                             <Zap className="w-3.5 h-3.5 fill-current" />
-                            Start Live Session ⚡
+                            Start Live Session
                           </button>
                           <button 
                             onClick={handleLogFullDaySplit}

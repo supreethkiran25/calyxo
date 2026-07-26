@@ -101,7 +101,7 @@ export default function HealthHub({ onNotification }) {
     setRestingHR('');
     setActiveHR('');
 
-    if (onNotification) onNotification("Logged Health & Biometrics Hub stats! ❤️");
+    if (onNotification) onNotification("Logged Health & Biometrics Hub stats!");
   };
 
   // Calculations
@@ -293,7 +293,7 @@ export default function HealthHub({ onNotification }) {
         {/* Detailed Stats display */}
         <div className="glass p-6 rounded-2xl border border-card-border shadow-md space-y-4 lg:col-span-2">
           <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
-            📊 Biometrics Analysis & Advice
+            Biometrics Analysis & Advice
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -307,7 +307,7 @@ export default function HealthHub({ onNotification }) {
               <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Steps Activity</span>
               <p className="text-xs text-foreground font-black">{healthLogs.steps.toLocaleString()} steps logged</p>
               <span className="text-[9px] text-acid-green font-bold block">
-                {healthLogs.steps >= 10000 ? "✓ 10,000 steps baseline completed!" : `🚶 ${10000 - healthLogs.steps} steps remaining to hit daily target.`}
+                {healthLogs.steps >= 10000 ? "✓ 10,000 steps baseline completed!" : `${10000 - healthLogs.steps} steps remaining to hit daily target.`}
               </span>
             </div>
 

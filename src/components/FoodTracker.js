@@ -342,7 +342,7 @@ export default function FoodTracker({ onNotification }) {
       addFoodLogStore(saved);
       setAnalysedFood(null);
       setQueryVal('');
-      if (onNotification) onNotification(`Logged ${logEntry.portionWeight}g of ${logEntry.name}! 🥗`);
+      if (onNotification) onNotification(`Logged ${logEntry.portionWeight}g of ${logEntry.name}!`);
     } catch (err) {
       console.error("Error logging food", err);
       if (onNotification) onNotification("Failed to log food. Please try again.");
@@ -362,7 +362,7 @@ export default function FoodTracker({ onNotification }) {
       });
       updateFoodLogStore(updated);
       setEditingFoodLog(null);
-      if (onNotification) onNotification("Food log entry updated! ✏️");
+      if (onNotification) onNotification("Food log entry updated!");
     } catch (err) {
       console.error("Failed to edit food log", err);
       if (onNotification) onNotification("Failed to edit food log.");
@@ -416,7 +416,7 @@ export default function FoodTracker({ onNotification }) {
     try {
       const saved = await addFoodLog(userId, logEntry);
       addFoodLogStore(saved);
-      if (onNotification) onNotification(`Logged ${meal.name} to diary! 🥗`);
+      if (onNotification) onNotification(`Logged ${meal.name} to diary!`);
     } catch (err) {
       console.error("Failed logging suggested meal", err);
     }

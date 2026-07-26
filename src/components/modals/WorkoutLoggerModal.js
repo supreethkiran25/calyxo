@@ -403,7 +403,7 @@ export default function WorkoutLoggerModal() {
                               <ModalExerciseImage item={item} />
                             ) : (
                               <div className="w-11 h-11 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center shrink-0 text-blue-400 font-bold">
-                                🏋️
+                                <Dumbbell className="w-5 h-5 text-blue-400" />
                               </div>
                             )}
 

@@ -14,7 +14,7 @@ const getTimestamp = () => Date.now();
 const WELCOME_MESSAGE = {
   id: 'welcome',
   role: 'assistant',
-  text: "Yo! I'm Calyxo, your AI Fitness & Diet Coach. ⚡ I have scanned your biometric logs and intake metrics. Drop any questions about recipes, customized training adjustments, or recovery!",
+  text: "Yo! I'm Calyxo, your AI Fitness & Diet Coach. I have scanned your biometric logs and intake metrics. Drop any questions about recipes, customized training adjustments, or recovery!",
   timestamp: Date.now()
 };
 
@@ -76,11 +76,11 @@ export default function AICoach({ onNotification, autoFocus = false }) {
       if (data && data.report) {
         setBriefingText(data.report);
       } else {
-        setBriefingText("### Error ⚠️\nFailed to generate AI report. Please try again.");
+        setBriefingText("### Error\nFailed to generate AI report. Please try again.");
       }
     } catch (e) {
       console.error("AI briefing fetch error", e);
-      setBriefingText("### Error ⚠️\nNetwork error. Check connection.");
+      setBriefingText("### Error\nNetwork error. Check connection.");
     } finally {
       setLoadingBriefing(false);
     }
@@ -94,7 +94,7 @@ export default function AICoach({ onNotification, autoFocus = false }) {
         ecoStore.setCoachingPlan(data);
         try {
           await saveEcosystemState(userId, useEcosystemStore.getState());
-          if (onNotification) onNotification("AI Program Plan generated successfully! 🤖");
+          if (onNotification) onNotification("AI Program Plan generated successfully!");
         } catch (dbErr) {
           console.error("Failed to sync AI plan to database", dbErr);
           if (onNotification) onNotification("AI Plan generated but failed to sync online.");
@@ -117,7 +117,7 @@ export default function AICoach({ onNotification, autoFocus = false }) {
       const data = await generateGroceryList({ mealPlan: ecoStore.coachingPlan.mealPlan, preferences: userProfile });
       if (data && data.categories) {
         setGroceryList(data.categories);
-        if (onNotification) onNotification("Grocery list compiled successfully! 🛒");
+        if (onNotification) onNotification("Grocery list compiled successfully!");
       } else {
         if (onNotification) onNotification("Failed to generate grocery list. Try again.");
       }
@@ -291,7 +291,7 @@ export default function AICoach({ onNotification, autoFocus = false }) {
       const botMsg = {
         id: `bot-${Date.now()}`,
         role: 'assistant',
-        text: `⚠️ **Calyxo Connection Error:** Could not contact server-side AI. Please check your network or API keys.`,
+        text: `**Calyxo Connection Error:** Could not contact server-side AI. Please check your network or API keys.`,
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, botMsg]);
@@ -986,19 +986,19 @@ export default function AICoach({ onNotification, autoFocus = false }) {
                      onClick={() => handleSuggestionClick("Suggest a workout form tip for Squats")}
                      className="px-3 py-1.5 rounded-full border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--color-acid-green)]/5 text-[9px] sm:text-[10px] text-muted hover:text-[var(--color-acid-green)] font-bold whitespace-nowrap cursor-pointer transition-all bg-[var(--card-bg)]"
                    >
-                     🏋️ Squat Form Tips
+                     Squat Form Tips
                    </button>
                    <button 
                      onClick={() => handleSuggestionClick("Give me a recipe alternative to Chicken Biryani matching my goals")}
                      className="px-3 py-1.5 rounded-full border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--color-acid-green)]/5 text-[9px] sm:text-[10px] text-muted hover:text-[var(--color-acid-green)] font-bold whitespace-nowrap cursor-pointer transition-all bg-[var(--card-bg)]"
                    >
-                     🍳 Biryani Alternative
+                     Biryani Alternative
                    </button>
                    <button 
                      onClick={() => handleSuggestionClick("How can I adjust my macros for faster lean gains?")}
                      className="px-3 py-1.5 rounded-full border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--color-acid-green)]/5 text-[9px] sm:text-[10px] text-muted hover:text-[var(--color-acid-green)] font-bold whitespace-nowrap cursor-pointer transition-all bg-[var(--card-bg)]"
                    >
-                     ⚡ Lean Gains Macros
+                     Lean Gains Macros
                    </button>
                  </div>
                </div>

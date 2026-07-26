@@ -6,13 +6,13 @@ const LOCAL_ECOSYSTEM_KEY = "calyxo_ecosystem_state";
 const INITIAL_STATE = {
     streaks: { loginStreak: 1, workoutStreak: 0, nutritionStreak: 0, waterStreak: 0, lastCheckIn: new Date().toDateString() },
     achievements: [
-      { id: 'first_workout', name: 'First Workout', icon: '💪', description: 'Log your first workout session', unlocked: false },
-      { id: 'first_meal', name: 'First Meal Logged', icon: '🍽️', description: 'Log your first meal entry', unlocked: false },
-      { id: 'first_week', name: 'First Week Complete', icon: '📅', description: 'Log activities for 7 consecutive days', unlocked: false },
-      { id: 'streak_7', name: '7 Day Streak', icon: '🔥', description: 'Maintain any log streak for 7 days', unlocked: false },
-      { id: 'hydration_hero', name: 'Hydration Hero', icon: '💧', description: 'Hit 3000ml water target in a single day', unlocked: false },
-      { id: 'protein_master', name: 'Protein Master', icon: '🍗', description: 'Hit daily protein target of 120g+', unlocked: false },
-      { id: 'muscle_builder', name: 'Muscle Builder', icon: '🏋️', description: 'Log at least 10 workout sessions', unlocked: false }
+      { id: 'first_workout', name: 'First Workout', icon: 'Dumbbell', description: 'Log your first workout session', unlocked: false },
+      { id: 'first_meal', name: 'First Meal Logged', icon: 'Utensils', description: 'Log your first meal entry', unlocked: false },
+      { id: 'first_week', name: 'First Week Complete', icon: 'Calendar', description: 'Log activities for 7 consecutive days', unlocked: false },
+      { id: 'streak_7', name: '7 Day Streak', icon: 'Flame', description: 'Maintain any log streak for 7 days', unlocked: false },
+      { id: 'hydration_hero', name: 'Hydration Hero', icon: 'Droplets', description: 'Hit 3000ml water target in a single day', unlocked: false },
+      { id: 'protein_master', name: 'Protein Master', icon: 'Beef', description: 'Hit daily protein target of 120g+', unlocked: false },
+      { id: 'muscle_builder', name: 'Muscle Builder', icon: 'Activity', description: 'Log at least 10 workout sessions', unlocked: false }
     ],
     coachingPlan: null,
     predictions: null,

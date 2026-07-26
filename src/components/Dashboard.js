@@ -214,7 +214,7 @@ export default function Dashboard({ onNotification }) {
     const next = useStore.getState().waterIntake;
     try {
       await saveWaterIntake(userId, next);
-      if (onNotification) onNotification(`+${amount}ml water logged 💧`);
+      if (onNotification) onNotification(`+${amount}ml water logged`);
     } catch (err) {
       console.error("Add water database write failure", err);
       setWaterIntake(prevWater); // Rollback
@@ -322,8 +322,8 @@ export default function Dashboard({ onNotification }) {
           className="bg-acid-green/10 border border-acid-green/20 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm"
         >
           <div className="flex items-start gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-acid-green/20 flex items-center justify-center text-acid-green text-lg shrink-0 mt-0.5">
-              ⚡
+            <div className="w-10 h-10 rounded-xl bg-acid-green/20 flex items-center justify-center text-acid-green shrink-0 mt-0.5">
+              <Zap className="w-5 h-5 text-acid-green" />
             </div>
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
@@ -638,8 +638,8 @@ export default function Dashboard({ onNotification }) {
               ) : recentMeals.map((m, i) => (
                 <div key={i} className="flex justify-between items-center p-3 bg-surface rounded-xl border border-card-border">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-orange/10 border border-orange/20 flex items-center justify-center text-lg">
-                      🍽️
+                    <div className="w-9 h-9 rounded-lg bg-orange/10 border border-orange/20 flex items-center justify-center text-orange shrink-0">
+                      <Utensils className="w-4 h-4 text-orange" />
                     </div>
                     <div>
                       <div className="text-xs font-bold text-foreground truncate max-w-[110px]">{m.name}</div>

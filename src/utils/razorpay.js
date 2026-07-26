@@ -98,7 +98,7 @@ export const startRazorpayCheckout = async ({
           };
           if (updateUserProfile) updateUserProfile(updatedProfile);
           if (user?.uid) await saveUserProfile(user.uid, updatedProfile);
-          if (onNotification) onNotification(`Payment successful! Welcome to ${plan.name || plan.id}! 🚀`);
+          if (onNotification) onNotification(`Payment successful! Welcome to ${plan.name || plan.id}!`);
           if (onSuccess) onSuccess(updatedProfile);
         } else {
           if (onNotification) onNotification("Payment completion could not be verified. Please contact support.");

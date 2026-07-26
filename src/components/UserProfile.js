@@ -466,7 +466,7 @@ export default function UserProfile({ onNotification }) {
       } catch (ecoErr) {
         console.error("Failed to save personality state", ecoErr);
       }
-      if (onNotification) onNotification("Settings saved successfully! 💾");
+      if (onNotification) onNotification("Settings saved successfully!");
     } catch (err) {
       console.error("Save profile details failed", err);
       if (onNotification) onNotification("Failed to save settings. Please try again.");
@@ -522,7 +522,7 @@ export default function UserProfile({ onNotification }) {
         try {
           await updateUserAuthProfile(nickname || user?.displayName || 'Calyxo Athlete', base64);
           await saveUserProfile(userId, { ...userProfile, photoURL: base64 });
-          if (onNotification) onNotification("Profile photo updated! 📸");
+          if (onNotification) onNotification("Profile photo updated!");
         } catch (err) {
           console.error("Upload photo database write failed", err);
           updateUserProfile({ photoURL: userProfile?.photoURL || '' }); // Revert
@@ -556,7 +556,7 @@ export default function UserProfile({ onNotification }) {
   const handleExportData = async () => {
     try {
       await exportAccountData(userId);
-      if (onNotification) onNotification("Data export initiated! 📦");
+      if (onNotification) onNotification("Data export initiated!");
     } catch (e) {
       console.error("Export data failed", e);
       if (onNotification) onNotification("Failed to export data.");
@@ -632,7 +632,7 @@ export default function UserProfile({ onNotification }) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    if (onNotification) onNotification("AI Coach chat history exported! 📝");
+    if (onNotification) onNotification("AI Coach chat history exported!");
   };
 
   const handleBackupData = () => {
@@ -691,7 +691,7 @@ export default function UserProfile({ onNotification }) {
     dlAnchorElem.setAttribute("href", dataStr);
     dlAnchorElem.setAttribute("download", "calyxo_settings_backup.json");
     dlAnchorElem.click();
-    if (onNotification) onNotification("Backup JSON downloaded! 💾");
+    if (onNotification) onNotification("Backup JSON downloaded!");
   };
 
   const handleRazorpayCheckout = async (plan) => {
@@ -799,7 +799,7 @@ export default function UserProfile({ onNotification }) {
             if (app.dyslexiaFont !== undefined) setDyslexiaFont(app.dyslexiaFont);
           }
 
-          if (onNotification) onNotification("Profile settings restored from backup! 🔄");
+          if (onNotification) onNotification("Profile settings restored from backup!");
         } else {
           throw new Error("Invalid format");
         }
@@ -859,14 +859,14 @@ export default function UserProfile({ onNotification }) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    if (onNotification) onNotification(`${type.toUpperCase()} report exported successfully! 📊`);
+    if (onNotification) onNotification(`${type.toUpperCase()} report exported successfully!`);
   };
 
   const handleClearCacheSimulation = () => {
     setClearingCache(true);
     setTimeout(() => {
       setClearingCache(false);
-      if (onNotification) onNotification("Application cache purged successfully! 🧹");
+      if (onNotification) onNotification("Application cache purged successfully!");
     }, 1200);
   };
 
@@ -877,7 +877,7 @@ export default function UserProfile({ onNotification }) {
     setTimeout(() => {
       setSubmittingFeedback(false);
       setFeedbackMessage('');
-      if (onNotification) onNotification("Feedback submitted! Thank you for helping improve Calyxo. 🚀");
+      if (onNotification) onNotification("Feedback submitted! Thank you for helping improve Calyxo.");
     }, 1000);
   };
 
@@ -891,7 +891,7 @@ export default function UserProfile({ onNotification }) {
     if (onNotification) onNotification("Submitting verification request...");
     setTimeout(() => {
       setIsAccountVerified(true);
-      if (onNotification) onNotification("Account verified successfully! Checkmark badge unlocked. ✅");
+      if (onNotification) onNotification("Account verified successfully! Checkmark badge unlocked.");
     }, 1500);
   };
 
@@ -901,7 +901,7 @@ export default function UserProfile({ onNotification }) {
       setTwoFactorSuccess(true);
       setTwoFactorEnabled(true);
       setTwoFactorCode('');
-      if (onNotification) onNotification("Two-Factor Authentication is now ENABLED! 🔐");
+      if (onNotification) onNotification("Two-Factor Authentication is now ENABLED!");
     } else {
       if (onNotification) onNotification("Invalid verification code. Enter '123456' for simulation approval.");
     }
@@ -2166,7 +2166,7 @@ export default function UserProfile({ onNotification }) {
                     updateUserProfile(updatedProfile);
                     try {
                       await saveUserProfile(userId, updatedProfile);
-                      if (onNotification) onNotification(`Macro targets calculated & saved! 🎯 ${computed.calorieGoal} kcal | ${computed.protein}g protein`);
+                      if (onNotification) onNotification(`Macro targets calculated & saved! ${computed.calorieGoal} kcal | ${computed.protein}g protein`);
                     } catch (err) {
                       if (onNotification) onNotification("Macro targets calculated! Click Save to persist.");
                     }

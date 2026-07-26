@@ -240,7 +240,7 @@ export default function LandingPage() {
             >
               <div>
                 <span className="text-[8px] sm:text-[9px] text-gray-300 font-bold uppercase tracking-wider block">Compliance Streak</span>
-                <span className="text-xs sm:text-sm font-black text-white">12 DAYS ACTIVE 🔥</span>
+                <span className="text-xs sm:text-sm font-black text-white">12 DAYS ACTIVE</span>
               </div>
               <span className="text-[9px] sm:text-xs font-bold text-purple-300 bg-purple-500/10 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-purple-500/20 shrink-0">+1,450 XP</span>
             </motion.div>

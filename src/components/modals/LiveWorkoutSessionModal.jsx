@@ -98,10 +98,10 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
             playAlertChime(sessionState === 'REST_EXERCISE' ? 900 : 700);
 
             if (sessionState === 'REST_SET') {
-              sendBrowserNotification("Set Rest Over! ⚡", `Get ready for Set ${setIndex} of ${currentEx?.name}`);
+              sendBrowserNotification("Set Rest Over!", `Get ready for Set ${setIndex} of ${currentEx?.name}`);
               setSessionState('EXERCISING');
             } else if (sessionState === 'REST_EXERCISE') {
-              sendBrowserNotification("Exercise Break Finished! 🏋️", `Next exercise: ${exercises[exIndex + 1]?.name || 'Final Exercise'}`);
+              sendBrowserNotification("Exercise Break Finished!", `Next exercise: ${exercises[exIndex + 1]?.name || 'Final Exercise'}`);
               setExIndex(idx => idx + 1);
               setWaterLoggedThisBreak(false);
               setSessionState('EXERCISING');
@@ -162,7 +162,7 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
         setWaterLoggedThisBreak(false);
         setSessionState('REST_EXERCISE');
         sendBrowserNotification(
-          "💧 Hydration Break!",
+          "Hydration Break",
           "Do you need water? Go have a sip before your next exercise!"
         );
       } else {
@@ -177,7 +177,7 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
     addWaterIntakeStore(250);
     setWaterLoggedThisBreak(true);
     playAlertChime(1100);
-    if (onNotification) onNotification("Hydrated! +250ml added to your water log 💧");
+    if (onNotification) onNotification("Hydrated! +250ml added to your water log.");
   };
 
   const handleSaveCompletedSession = async () => {
@@ -187,7 +187,7 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
         await Promise.all(completedLogs.map(item => addWorkoutLog(userId, item)));
       }
       completedLogs.forEach(item => addWorkoutLogStore(item));
-      if (onNotification) onNotification(`Saved ${routine.dayName}'s Live Workout Session! 🚀`);
+      if (onNotification) onNotification(`Saved ${routine.dayName}'s Live Workout Session!`);
     } catch (err) {
       console.error("Failed to save live session logs", err);
     } finally {
@@ -330,8 +330,8 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
                 {setIndex < parsedStats.totalSets 
                   ? `Complete Set ${setIndex} (${60}s Rest Next)` 
                   : exIndex < exercises.length - 1 
-                    ? `Finish Exercise & Take 2-Min Break 💧` 
-                    : `Finish Final Exercise 🎉`}
+                    ? `Finish Exercise & Take 2-Min Break` 
+                    : `Finish Final Exercise`}
               </button>
             </div>
           )}
@@ -379,7 +379,7 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
                   <span>Hydration Push Notification</span>
                 </div>
                 <h3 className="text-base font-black text-foreground">
-                  💧 Do you need water? Go have a sip!
+                  Do you need water? Go have a sip!
                 </h3>
                 <p className="text-xs text-muted">
                   Stay hydrated between intense exercise sets for peak muscle performance and endurance.
@@ -433,7 +433,7 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
               </div>
 
               <div>
-                <h3 className="text-xl sm:text-2xl font-black text-foreground">🎉 Workout Session Complete!</h3>
+                <h3 className="text-xl sm:text-2xl font-black text-foreground">Workout Session Complete!</h3>
                 <p className="text-xs text-muted mt-1">Great job completing your live workout routine for {routine.dayName}!</p>
               </div>
 

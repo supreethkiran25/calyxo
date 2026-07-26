@@ -70,7 +70,7 @@ export default function Progress({ onNotification }) {
       setThighsInput('');
       setNeckInput('');
       
-      if (onNotification) onNotification("Logged body measurements! 📏");
+      if (onNotification) onNotification("Logged body measurements!");
     } catch (err) {
       console.error("Save measurements failed", err);
       // Revert store state
@@ -171,7 +171,7 @@ export default function Progress({ onNotification }) {
       setBeforeImage(null);
       setAfterImage(null);
       setTimelineNotes('');
-      if (onNotification) onNotification("Added transformation comparison log! 📸");
+      if (onNotification) onNotification("Added transformation comparison log!");
     } catch (err) {
       console.error("Save timeline comparison failed", err);
       ecoStore.syncEcosystemState({ timelineLogs: prevTimeline });
@@ -193,7 +193,7 @@ export default function Progress({ onNotification }) {
         ecoStore.setPredictions(data);
         try {
           await saveEcosystemState(userId, useEcosystemStore.getState());
-          if (onNotification) onNotification("AI Body Composition Forecast calculated! 📈");
+          if (onNotification) onNotification("AI Body Composition Forecast calculated!");
         } catch (dbErr) {
           console.error("Save forecast predictions failed", dbErr);
           if (onNotification) onNotification("Forecast calculated but failed to sync online.");
@@ -253,10 +253,10 @@ export default function Progress({ onNotification }) {
     
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 14px sans-serif';
-    ctx.fillText(`🔥 Login Streak: ${ecoStore.streaks.loginStreak} days`, 320, 170);
-    ctx.fillText(`🏋️ Workout Streak: ${ecoStore.streaks.workoutStreak} days`, 320, 195);
-    ctx.fillText(`🍗 Nutrition Streak: ${ecoStore.streaks.nutritionStreak} days`, 320, 220);
-    ctx.fillText(`💧 Hydration Streak: ${ecoStore.streaks.waterStreak} days`, 320, 245);
+    ctx.fillText(`Login Streak: ${ecoStore.streaks.loginStreak} days`, 320, 170);
+    ctx.fillText(`Workout Streak: ${ecoStore.streaks.workoutStreak} days`, 320, 195);
+    ctx.fillText(`Nutrition Streak: ${ecoStore.streaks.nutritionStreak} days`, 320, 220);
+    ctx.fillText(`Water Streak: ${ecoStore.streaks.waterStreak} days`, 320, 245);
 
     ctx.fillStyle = '#8e8e93';
     ctx.font = 'bold 12px sans-serif';
@@ -275,7 +275,7 @@ export default function Progress({ onNotification }) {
     a.href = url;
     a.download = `${userProfile.nickname || 'calyxo'}_stats_share.png`;
     a.click();
-    if (onNotification) onNotification("Sharing Card downloaded successfully! 🎨");
+    if (onNotification) onNotification("Sharing Card downloaded successfully!");
   };
 
   const inputStyle = {
@@ -570,7 +570,7 @@ export default function Progress({ onNotification }) {
               {/* Left Column: Form */}
               <form onSubmit={handleLogMeasurements} className="glass p-6 rounded-2xl border border-card-border shadow-md space-y-4 lg:col-span-1">
                 <h3 className="text-sm font-extrabold text-foreground uppercase tracking-widest flex items-center gap-2">
-                  📏 Log Body Measurements
+                  Log Body Measurements
                 </h3>
                 
                 <div className="grid grid-cols-2 gap-3">
@@ -650,7 +650,7 @@ export default function Progress({ onNotification }) {
                 {/* Visual Sparklines / Multi-chart */}
                 <div className="glass p-6 rounded-2xl border border-card-border shadow-md">
                   <h3 className="text-sm font-extrabold text-foreground uppercase tracking-widest mb-4">
-                    📈 Body Dimension Trends
+                    Body Dimension Trends
                   </h3>
                   
                   {ecoStore.measurementLogs && ecoStore.measurementLogs.length >= 2 ? (
@@ -707,7 +707,7 @@ export default function Progress({ onNotification }) {
                 {/* Measurement Logs List */}
                 <div className="glass p-6 rounded-2xl border border-card-border shadow-md">
                   <h3 className="text-sm font-extrabold text-foreground uppercase tracking-widest mb-4">
-                    📋 Measurement History
+                    Measurement History
                   </h3>
                   
                   {ecoStore.measurementLogs && ecoStore.measurementLogs.length > 0 ? (
@@ -822,10 +822,10 @@ export default function Progress({ onNotification }) {
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
-                    { title: 'Login Streak', val: ecoStore.streaks?.loginStreak || 0, emoji: '🔥', desc: 'Consecutive active days' },
-                    { title: 'Workout Streak', val: ecoStore.streaks?.workoutStreak || 0, emoji: '🏋️', desc: 'Routines logged' },
-                    { title: 'Nutrition Streak', val: ecoStore.streaks?.nutritionStreak || 0, emoji: '🍗', desc: 'Healthy meal counts' },
-                    { title: 'Water Streak', val: ecoStore.streaks?.waterStreak || 0, emoji: '💧', desc: 'Hydration checks' },
+                    { title: 'Login Streak', val: ecoStore.streaks?.loginStreak || 0, desc: 'Consecutive active days' },
+                    { title: 'Workout Streak', val: ecoStore.streaks?.workoutStreak || 0, desc: 'Routines logged' },
+                    { title: 'Nutrition Streak', val: ecoStore.streaks?.nutritionStreak || 0, desc: 'Healthy meal counts' },
+                    { title: 'Water Streak', val: ecoStore.streaks?.waterStreak || 0, desc: 'Hydration checks' },
                   ].map((s, idx) => (
                     <div key={idx} className="bg-surface border border-card-border p-4 rounded-xl flex flex-col justify-between h-24 shadow-inner">
                       <div>
