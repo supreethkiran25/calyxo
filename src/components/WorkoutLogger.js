@@ -571,7 +571,7 @@ export default function WorkoutLogger({ onNotification }) {
 
     // Set selected Date timestamp if not today
     let logTimestamp = Date.now();
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayDateString();
     if (selectedDate !== todayStr) {
       logTimestamp = new Date(selectedDate + "T12:00:00").getTime();
     }
@@ -676,7 +676,7 @@ export default function WorkoutLogger({ onNotification }) {
     if (!ex || !ex.name) return;
     const parsed = parseDetailsToStats(ex.details);
     let logTimestamp = Date.now();
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayDateString();
     if (selectedDate !== todayStr) {
       logTimestamp = new Date(selectedDate + "T12:00:00").getTime();
     }
@@ -709,7 +709,7 @@ export default function WorkoutLogger({ onNotification }) {
     setLoading(true);
 
     let logTimestamp = Date.now();
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayDateString();
     if (selectedDate !== todayStr) {
       logTimestamp = new Date(selectedDate + "T12:00:00").getTime();
     }

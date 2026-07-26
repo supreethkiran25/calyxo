@@ -331,7 +331,7 @@ export default function FoodTracker({ onNotification }) {
     const ratio = portion / 100;
     
     let logTimestamp = Date.now();
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayDateString();
     if (selectedDate !== todayStr) {
       logTimestamp = new Date(selectedDate + "T12:00:00").getTime();
     }
@@ -407,7 +407,7 @@ export default function FoodTracker({ onNotification }) {
 
   const handleLogSuggestedMeal = async (meal) => {
     let logTimestamp = Date.now();
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayDateString();
     if (selectedDate !== todayStr) {
       logTimestamp = new Date(selectedDate + "T12:00:00").getTime();
     }
