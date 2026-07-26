@@ -37,6 +37,19 @@ const HEALTH_INTERESTS_OPTIONS = [
   "General Wellness"
 ];
 
+const DIET_PREFERENCES_OPTIONS = [
+  "Vegetarian",
+  "Vegan",
+  "Keto",
+  "High Protein",
+  "Intermittent Fasting",
+  "Gluten-Free",
+  "Dairy-Free",
+  "Low Carb",
+  "Paleo",
+  "Halal"
+];
+
 export default function UserProfile({ onNotification }) {
   const user = useStore(state => state.user);
   const userProfile = useStore(state => state.userProfile);
@@ -259,30 +272,60 @@ export default function UserProfile({ onNotification }) {
       const params = new URLSearchParams(window.location.search);
       const section = params.get('section');
       if (section) {
-        if (section === 'name' || section === 'biometrics' || section === 'photo') {
+        let fieldTitle = 'Profile Details';
+
+        if (section === 'display_name' || section === 'name' || section === 'nickname') {
           setEditSection('profile');
-        } else if (section === 'targetWeight' || section === 'calories' || section === 'health') {
+          fieldTitle = 'Display Name';
+        } else if (section === 'profile_photo' || section === 'photo') {
+          setEditSection('profile');
+          fieldTitle = 'Profile Photo';
+        } else if (section === 'height_weight' || section === 'biometrics') {
           setEditSection('health');
-        } else if (section === 'diet') {
-          setActivePanel('account');
-          setOpenAccordion('dietary');
-          setAdvancedOpen(true);
+          fieldTitle = 'Height & Weight';
+        } else if (section === 'target_weight' || section === 'targetWeight') {
+          setEditSection('health');
+          fieldTitle = 'Target Weight';
+        } else if (section === 'calorie_target' || section === 'calories') {
+          setEditSection('health');
+          fieldTitle = 'Calorie Target';
+        } else if (section === 'diet_preferences' || section === 'diet') {
+          setEditSection('profile');
+          fieldTitle = 'Diet Preferences';
         }
 
-        setTimeout(() => {
-          const targetEl = document.getElementById(`setup-field-${section}`) || document.getElementById(`setup-section-${section}`);
+        if (onNotification) {
+          onNotification(`Update Profile Setup: ${fieldTitle}`);
+        }
+
+        let attempts = 0;
+        const scrollToField = () => {
+          attempts++;
+          const targetEl = 
+            document.getElementById(`setup-field-${section}`) ||
+            (section === 'display_name' || section === 'name' ? document.getElementById('setup-field-display_name') : null) ||
+            (section === 'profile_photo' || section === 'photo' ? document.getElementById('setup-field-profile_photo') : null) ||
+            (section === 'height_weight' || section === 'biometrics' ? document.getElementById('setup-field-height_weight') : null) ||
+            (section === 'target_weight' || section === 'targetWeight' ? document.getElementById('setup-field-target_weight') : null) ||
+            (section === 'calorie_target' || section === 'calories' ? document.getElementById('setup-field-calorie_target') : null) ||
+            (section === 'diet_preferences' || section === 'diet' ? document.getElementById('setup-field-diet_preferences') : null);
+
           if (targetEl) {
             targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
             if (targetEl.tagName === 'INPUT' || targetEl.tagName === 'SELECT' || targetEl.tagName === 'TEXTAREA') {
               targetEl.focus();
             }
-            targetEl.classList.add('ring-2', 'ring-acid-green');
-            setTimeout(() => targetEl.classList.remove('ring-2', 'ring-acid-green'), 2500);
+            targetEl.classList.add('ring-4', 'ring-acid-green', 'animate-pulse', 'rounded-xl');
+            setTimeout(() => targetEl.classList.remove('ring-4', 'ring-acid-green', 'animate-pulse', 'rounded-xl'), 4000);
+          } else if (attempts < 10) {
+            setTimeout(scrollToField, 150);
           }
-        }, 400);
+        };
+
+        setTimeout(scrollToField, 250);
       }
     }
-  }, []);
+  }, [onNotification]);
 
 
 
@@ -1828,7 +1871,7 @@ export default function UserProfile({ onNotification }) {
           <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at top right, rgba(204,255,0,0.03) 0%, transparent 60%)' }} />
           
           {/* Avatar */}
-          <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-acid-green/30 bg-surface flex items-center justify-center overflow-hidden shadow-xl shrink-0 mb-3">
+          <div id="setup-field-profile_photo" className="relative w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-acid-green/30 bg-surface flex items-center justify-center overflow-hidden shadow-xl shrink-0 mb-3">
               {photoLoading ? (
                 <RefreshCw className="w-4 h-4 animate-spin text-muted" />
               ) : userProfile?.photoURL ? (
@@ -1966,7 +2009,7 @@ export default function UserProfile({ onNotification }) {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className={labelClass}>First Name</label>
-                  <input id="setup-field-name" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                  <input id="setup-field-display_name" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
                 <div>
                   <label className={labelClass}>Last Name</label>
@@ -2048,6 +2091,33 @@ export default function UserProfile({ onNotification }) {
                       <button type="button" onClick={() => setCoverImage('')} className="absolute right-1 top-1 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center text-[8px] text-white border-none cursor-pointer">✕</button>
                     </div>
                   )}
+                </div>
+
+                <div id="setup-field-diet_preferences" className="space-y-1">
+                  <label className={labelClass}>Diet Preferences</label>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {DIET_PREFERENCES_OPTIONS.map(opt => {
+                      const selected = dietPreferences.includes(opt);
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => {
+                            setDietPreferences(prev => 
+                              prev.includes(opt) ? prev.filter(x => x !== opt) : [...prev, opt]
+                            );
+                          }}
+                          className={`px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase border cursor-pointer transition-colors ${
+                            selected 
+                              ? 'bg-acid-green/10 border-acid-green text-acid-green' 
+                              : 'bg-surface border-card-border text-muted hover:text-foreground'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div>
@@ -2177,10 +2247,10 @@ export default function UserProfile({ onNotification }) {
                 </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2" id="setup-field-height_weight">
                 <div>
                   <label className={labelClass}>Weight ({units === 'metric' ? 'kg' : 'lbs'})</label>
-                  <input id="setup-field-biometrics" type="number" step="0.1" value={weight} onFocus={(e) => e.target.select()} onChange={(e) => setWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                  <input type="number" step="0.1" value={weight} onFocus={(e) => e.target.select()} onChange={(e) => setWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
                 <div>
                   <label className={labelClass}>Height ({units === 'metric' ? 'cm' : 'in'})</label>
@@ -2188,14 +2258,14 @@ export default function UserProfile({ onNotification }) {
                 </div>
                 <div>
                   <label className={labelClass}>Goal Weight</label>
-                  <input id="setup-field-targetWeight" type="number" step="0.1" value={goalWeight} onFocus={(e) => e.target.select()} onChange={(e) => setGoalWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                  <input id="setup-field-target_weight" type="number" step="0.1" value={goalWeight} onFocus={(e) => e.target.select()} onChange={(e) => setGoalWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className={labelClass}>Daily Calories (kcal)</label>
-                  <input id="setup-field-calories" type="number" value={dailyCalories} onFocus={(e) => e.target.select()} onChange={(e) => setDailyCalories(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                  <input id="setup-field-calorie_target" type="number" value={dailyCalories} onFocus={(e) => e.target.select()} onChange={(e) => setDailyCalories(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
                 </div>
                 <div>
                   <label className={labelClass}>Water Target (ml)</label>

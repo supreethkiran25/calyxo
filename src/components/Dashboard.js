@@ -259,12 +259,12 @@ export default function Dashboard({ onNotification }) {
 
   const getSetupChecklist = () => {
     return [
-      { key: 'name', label: 'Display Name', done: !!(userProfile.firstName || userProfile.nickname || user?.displayName) },
-      { key: 'biometrics', label: 'Height & Weight', done: !!(userProfile.weight && userProfile.height) },
-      { key: 'targetWeight', label: 'Target Weight', done: !!(userProfile.goalWeight || userProfile.weightGoal) },
-      { key: 'calories', label: 'Calorie Target', done: !!(userProfile.dailyCalories || userProfile.calorieGoal) },
-      { key: 'diet', label: 'Diet Preferences', done: !!(userProfile.dietPreferences && userProfile.dietPreferences.length > 0) },
-      { key: 'photo', label: 'Profile Photo', done: !!userProfile.photoURL }
+      { key: 'display_name', label: 'Display Name', done: !!(userProfile.firstName || userProfile.nickname || user?.displayName) },
+      { key: 'height_weight', label: 'Height & Weight', done: !!(userProfile.weight && userProfile.height) },
+      { key: 'target_weight', label: 'Target Weight', done: !!(userProfile.goalWeight || userProfile.weightGoal) },
+      { key: 'calorie_target', label: 'Calorie Target', done: !!(userProfile.dailyCalories || userProfile.calorieGoal) },
+      { key: 'diet_preferences', label: 'Diet Preferences', done: !!(userProfile.dietPreferences && userProfile.dietPreferences.length > 0) },
+      { key: 'profile_photo', label: 'Profile Photo', done: !!userProfile.photoURL }
     ];
   };
 
@@ -361,7 +361,7 @@ export default function Dashboard({ onNotification }) {
           <button 
             onClick={() => {
               const firstPending = setupChecklist.find(x => !x.done);
-              const targetKey = firstPending ? firstPending.key : 'biometrics';
+              const targetKey = firstPending ? firstPending.key : 'display_name';
               navigate(`/user/profile?section=${targetKey}`);
             }}
             className="w-full sm:w-auto text-xs font-black text-accent-foreground bg-acid-green hover:shadow-lg hover:shadow-acid-green/20 px-5 py-2.5 rounded-xl uppercase tracking-widest cursor-pointer border-none shrink-0 transition-all flex items-center justify-center gap-1.5"
