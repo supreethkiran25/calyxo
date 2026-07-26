@@ -258,7 +258,12 @@ export default function WorkoutLogger({ onNotification }) {
   const [editingLog, setEditingLog] = useState(null);
 
   // Weekly Planner states (Persistent via localStorage)
-  const [activeDay, setActiveDay] = useState(0);
+  const getTodayDayIndex = () => {
+    const day = new Date().getDay();
+    return (day + 6) % 7; // Monday=0 ... Sunday=6
+  };
+
+  const [activeDay, setActiveDay] = useState(getTodayDayIndex);
   const [splits, setSplits] = useState(() => {
     try {
       const saved = localStorage.getItem('calyxo_user_workout_splits');
@@ -269,6 +274,8 @@ export default function WorkoutLogger({ onNotification }) {
   });
   const [editingSplit, setEditingSplit] = useState(false);
   const [editRoutineFields, setEditRoutineFields] = useState({ type: '', desc: '', exercises: [] });
+  const [activeSplitEditIdx, setActiveSplitEditIdx] = useState(null);
+  const [splitEditSuggestions, setSplitEditSuggestions] = useState([]);
 
   // Exercise Library States
   const [libQuery, setLibQuery] = useState('');
@@ -580,6 +587,110 @@ export default function WorkoutLogger({ onNotification }) {
   };
 
   // Weekly Splits editing & persistence
+  const parseDetailsToStats = (detailsStr, exCategory = 'Strength') => {
+    let sets = 3;
+    let reps = 10;
+    let duration = 0;
+    let category = exCategory;
+
+    if (detailsStr) {
+      const setsMatch = detailsStr.match(/(\d+)\s*sets?/i);
+      if (setsMatch) sets = parseInt(setsMatch[1], 10);
+
+      const repsMatch = detailsStr.match(/(\d+)(?:-(\d+))?\s*reps?/i);
+      if (repsMatch) {
+        if (repsMatch[2]) {
+          reps = Math.round((parseInt(repsMatch[1], 10) + parseInt(repsMatch[2], 10)) / 2);
+        } else {
+          reps = parseInt(repsMatch[1], 10);
+        }
+      }
+
+      const secMatch = detailsStr.match(/(\d+)\s*(?:sec|seconds)/i);
+      const minMatch = detailsStr.match(/(\d+)\s*(?:min|mins|minutes)/i);
+      if (secMatch || minMatch) {
+        category = 'Cardio';
+        if (minMatch) duration = parseInt(minMatch[1], 10);
+        else if (secMatch) duration = Math.ceil(parseInt(secMatch[1], 10) / 60);
+      }
+    }
+
+    return { sets, reps, duration, category };
+  };
+
+  const handleLogSplitExercise = async (ex) => {
+    if (!ex || !ex.name) return;
+    const parsed = parseDetailsToStats(ex.details);
+    let logTimestamp = Date.now();
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (selectedDate !== todayStr) {
+      logTimestamp = new Date(selectedDate + "T12:00:00").getTime();
+    }
+
+    const workoutItem = {
+      name: ex.name.trim(),
+      category: parsed.category,
+      image: ex.image || globalImageCache.get(ex.name) || null,
+      sets: parsed.category === 'Cardio' ? 0 : parsed.sets,
+      reps: parsed.category === 'Cardio' ? 0 : parsed.reps,
+      weight: 0,
+      duration: parsed.duration,
+      timestamp: logTimestamp
+    };
+
+    try {
+      const saved = await addWorkoutLog(userId, workoutItem);
+      addWorkoutLogStore(saved);
+      if (onNotification) onNotification(`Logged ${ex.name} to ${formatDisplayDate(selectedDate)}! 🏋️`);
+      handleStartRestTimer();
+    } catch (err) {
+      console.error("Error logging split exercise", err);
+      if (onNotification) onNotification("Failed to log exercise.");
+    }
+  };
+
+  const handleLogFullDaySplit = async () => {
+    const currentSplit = splits[activeDay]?.workout;
+    if (!currentSplit || !currentSplit.exercises || currentSplit.exercises.length === 0) return;
+    setLoading(true);
+
+    let logTimestamp = Date.now();
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (selectedDate !== todayStr) {
+      logTimestamp = new Date(selectedDate + "T12:00:00").getTime();
+    }
+
+    try {
+      const promises = currentSplit.exercises.map(ex => {
+        const parsed = parseDetailsToStats(ex.details);
+        const workoutItem = {
+          name: ex.name.trim(),
+          category: parsed.category,
+          image: ex.image || globalImageCache.get(ex.name) || null,
+          sets: parsed.category === 'Cardio' ? 0 : parsed.sets,
+          reps: parsed.category === 'Cardio' ? 0 : parsed.reps,
+          weight: 0,
+          duration: parsed.duration,
+          timestamp: logTimestamp
+        };
+        return addWorkoutLog(userId, workoutItem);
+      });
+
+      const savedLogs = await Promise.all(promises);
+      savedLogs.forEach(saved => {
+        if (saved) addWorkoutLogStore(saved);
+      });
+
+      if (onNotification) onNotification(`Logged ${splits[activeDay].dayName}'s ${currentSplit.type} session! 🚀`);
+      handleStartRestTimer();
+    } catch (err) {
+      console.error("Error logging full day split", err);
+      if (onNotification) onNotification("Failed to log workout session.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleStartEditSplit = () => {
     const activeSplit = splits[activeDay].workout;
     setEditRoutineFields({
@@ -588,6 +699,8 @@ export default function WorkoutLogger({ onNotification }) {
       exercises: activeSplit.exercises.map(x => ({ ...x }))
     });
     setEditingSplit(true);
+    setActiveSplitEditIdx(null);
+    setSplitEditSuggestions([]);
   };
 
   const handleAddExerciseToSplit = () => {
@@ -605,6 +718,36 @@ export default function WorkoutLogger({ onNotification }) {
       ...editRoutineFields,
       exercises: editRoutineFields.exercises.filter((_, i) => i !== index)
     });
+    if (activeSplitEditIdx === index) {
+      setActiveSplitEditIdx(null);
+      setSplitEditSuggestions([]);
+    }
+  };
+
+  const handleSplitExNameChange = (index, value) => {
+    const nextEx = [...editRoutineFields.exercises];
+    nextEx[index].name = value;
+    setEditRoutineFields({ ...editRoutineFields, exercises: nextEx });
+
+    if (!value || value.trim().length < 2) {
+      setSplitEditSuggestions([]);
+      setActiveSplitEditIdx(null);
+    } else {
+      const matches = searchAndRankExercises(value, exercisesData);
+      setSplitEditSuggestions(matches.slice(0, 8));
+      setActiveSplitEditIdx(index);
+    }
+  };
+
+  const selectSplitExSuggestion = (index, item) => {
+    const nextEx = [...editRoutineFields.exercises];
+    nextEx[index].name = item.name;
+    if (!nextEx[index].details || nextEx[index].details === "New Exercise") {
+      nextEx[index].details = "3 sets × 10 reps";
+    }
+    setEditRoutineFields({ ...editRoutineFields, exercises: nextEx });
+    setActiveSplitEditIdx(null);
+    setSplitEditSuggestions([]);
   };
 
   const handleSaveSplitEdit = () => {
@@ -621,6 +764,8 @@ export default function WorkoutLogger({ onNotification }) {
       console.error("Failed to save splits to localStorage", e);
     }
     setEditingSplit(false);
+    setActiveSplitEditIdx(null);
+    setSplitEditSuggestions([]);
     if (onNotification) onNotification("Suggested workout split updated & saved!");
   };
 
@@ -970,93 +1115,174 @@ export default function WorkoutLogger({ onNotification }) {
                   </div>
 
                   <div className="flex gap-1.5 overflow-x-auto pb-3 border-b border-card-border mb-4 scrollbar-none">
-                    {splits.map((day, idx) => (
-                      <button 
-                        key={idx}
-                        onClick={() => {
-                          setActiveDay(idx);
-                          setEditingSplit(false);
-                        }}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase cursor-pointer border transition-colors ${
-                          activeDay === idx 
-                            ? 'bg-acid-green text-accent-foreground border-acid-green' 
-                            : 'bg-surface border-card-border text-muted hover:text-foreground'
-                        }`}
-                      >
-                        {day.dayName.substring(0, 3)}
-                      </button>
-                    ))}
+                    {splits.map((day, idx) => {
+                      const isToday = activeDay === idx && idx === getTodayDayIndex();
+                      return (
+                        <button 
+                          key={idx}
+                          onClick={() => {
+                            setActiveDay(idx);
+                            setEditingSplit(false);
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase cursor-pointer border transition-colors flex items-center gap-1 ${
+                            activeDay === idx 
+                              ? 'bg-acid-green text-accent-foreground border-acid-green' 
+                              : 'bg-surface border-card-border text-muted hover:text-foreground'
+                          }`}
+                        >
+                          <span>{day.dayName.substring(0, 3)}</span>
+                          {idx === getTodayDayIndex() && (
+                            <span className={`w-1.5 h-1.5 rounded-full ${activeDay === idx ? 'bg-black' : 'bg-acid-green'}`} />
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {editingSplit ? (
                     <div className="space-y-3 p-4 bg-surface border border-card-border rounded-xl">
                       <div className="flex flex-col space-y-1">
-                        <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Routine Split</label>
-                        <input type="text" value={editRoutineFields.type} onChange={(e) => setEditRoutineFields({ ...editRoutineFields, type: e.target.value })} className={inputStyle} />
+                        <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Routine Split Name</label>
+                        <input type="text" value={editRoutineFields.type} onChange={(e) => setEditRoutineFields({ ...editRoutineFields, type: e.target.value })} className={inputStyle} placeholder="e.g. Push Day (Chest, Shoulders & Triceps)" />
                       </div>
                       <div className="flex flex-col space-y-1">
                         <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Description</label>
-                        <input type="text" value={editRoutineFields.desc} onChange={(e) => setEditRoutineFields({ ...editRoutineFields, desc: e.target.value })} className={inputStyle} />
+                        <input type="text" value={editRoutineFields.desc} onChange={(e) => setEditRoutineFields({ ...editRoutineFields, desc: e.target.value })} className={inputStyle} placeholder="Short description of routine focus" />
                       </div>
                       
                       <div className="space-y-3 pt-2">
                         <div className="flex justify-between items-center">
-                          <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Recommended Exercises</span>
-                          <button onClick={handleAddExerciseToSplit} className="text-[9px] text-acid-green font-bold uppercase flex items-center gap-1 cursor-pointer bg-none border-none">
+                          <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Recommended Exercises (Logger Database Suggestions)</span>
+                          <button onClick={handleAddExerciseToSplit} className="text-[9px] text-acid-green font-bold uppercase flex items-center gap-1 cursor-pointer bg-none border-none hover:underline">
                             <Plus className="w-3 h-3" /> Add Exercise
                           </button>
                         </div>
                         {editRoutineFields.exercises.map((ex, i) => (
-                          <div key={i} className="flex gap-2 items-center">
-                            <input type="text" value={ex.name} onChange={(e) => {
-                              const nextEx = [...editRoutineFields.exercises];
-                              nextEx[i].name = e.target.value;
-                              setEditRoutineFields({ ...editRoutineFields, exercises: nextEx });
-                            }} placeholder="Name" className={inputStyle} />
-                            <input type="text" value={ex.details} onChange={(e) => {
-                              const nextEx = [...editRoutineFields.exercises];
-                              nextEx[i].details = e.target.value;
-                              setEditRoutineFields({ ...editRoutineFields, exercises: nextEx });
-                            }} placeholder="Sets/Reps" className="bg-[var(--input)] border border-card-border rounded-xl px-2.5 py-1.5 text-xs text-foreground w-28 focus:outline-none" />
-                            <button onClick={() => handleRemoveExerciseFromSplit(i)} className="text-destructive p-1 cursor-pointer bg-none border-none">
-                              <X className="w-3.5 h-3.5" />
-                            </button>
+                          <div key={i} className="relative flex flex-col sm:flex-row gap-2 items-stretch sm:items-center bg-card-bg/30 p-2 rounded-xl border border-card-border/50">
+                            <div className="relative flex-1">
+                              <input 
+                                type="text" 
+                                value={ex.name} 
+                                onChange={(e) => handleSplitExNameChange(i, e.target.value)} 
+                                placeholder="Search exercise name (e.g. Incline Bench)..." 
+                                className={inputStyle} 
+                              />
+
+                              {/* Logger Database Suggestions Dropdown */}
+                              <AnimatePresence>
+                                {activeSplitEditIdx === i && splitEditSuggestions.length > 0 && (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: 4 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0 }}
+                                    className="absolute top-full left-0 right-0 mt-1 bg-surface border border-card-border rounded-xl shadow-2xl z-50 overflow-hidden max-h-48 overflow-y-auto"
+                                    style={{ backgroundColor: 'var(--secondary, #12121A)', opacity: 1 }}
+                                  >
+                                    <div className="px-3 py-1 bg-surface/90 border-b border-card-border text-[8px] font-black uppercase text-muted">
+                                      Database Suggestions
+                                    </div>
+                                    {splitEditSuggestions.map((item, idx) => (
+                                      <div
+                                        key={idx}
+                                        onClick={() => selectSplitExSuggestion(i, item)}
+                                        className="px-3 py-2 border-b border-card-border last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-acid-green hover:text-accent-foreground transition-colors gap-2 text-xs"
+                                      >
+                                        <span className="font-semibold truncate">{item.name}</span>
+                                        <span className="text-[9px] opacity-75 shrink-0">{item.category || item.body_part || 'Strength'}</span>
+                                      </div>
+                                    ))}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <input 
+                                type="text" 
+                                value={ex.details} 
+                                onChange={(e) => {
+                                  const nextEx = [...editRoutineFields.exercises];
+                                  nextEx[i].details = e.target.value;
+                                  setEditRoutineFields({ ...editRoutineFields, exercises: nextEx });
+                                }} 
+                                placeholder="4 sets × 10 reps" 
+                                className="bg-[var(--input)] border border-card-border rounded-xl px-2.5 py-1.5 text-xs text-foreground w-full sm:w-36 focus:outline-none focus:border-acid-green" 
+                              />
+
+                              <button onClick={() => handleRemoveExerciseFromSplit(i)} className="text-destructive p-1.5 rounded-lg hover:bg-destructive/10 cursor-pointer bg-none border-none shrink-0" title="Delete Exercise">
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
 
-                      <div className="flex justify-end gap-2 pt-2 border-t border-card-border">
-                        <button onClick={() => setEditingSplit(false)} className="text-[10px] text-muted py-1.5 px-3 bg-surface border border-card-border rounded-lg flex items-center gap-1 cursor-pointer"><X className="w-3.5 h-3.5" /> Cancel</button>
-                        <button onClick={handleSaveSplitEdit} className="text-[10px] text-accent-foreground bg-acid-green py-1.5 px-4 rounded-lg font-bold flex items-center gap-1 cursor-pointer border-none"><Check className="w-3.5 h-3.5" /> Save Split</button>
+                      <div className="flex justify-end gap-2 pt-3 border-t border-card-border">
+                        <button onClick={() => setEditingSplit(false)} className="text-[10px] text-muted py-2 px-3 bg-surface border border-card-border rounded-xl flex items-center gap-1 cursor-pointer hover:text-foreground"><X className="w-3.5 h-3.5" /> Cancel</button>
+                        <button onClick={handleSaveSplitEdit} className="text-[10px] text-accent-foreground bg-acid-green py-2 px-4 rounded-xl font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer border-none shadow-md shadow-acid-green/20 hover:brightness-110"><Check className="w-3.5 h-3.5" /> Save Split</button>
                       </div>
                     </div>
                   ) : (
                     <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-[9px] text-acid-green font-bold uppercase tracking-wider">Routine Split Type</span>
-                        <button onClick={handleStartEditSplit} className="text-[9px] text-muted hover:text-foreground cursor-pointer flex items-center gap-1 font-bold uppercase tracking-wider bg-transparent border-none">
-                          <Edit3 className="w-3 h-3" />
-                          Edit Split
-                        </button>
+                      <div className="flex justify-between items-center mb-2 gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] text-acid-green font-bold uppercase tracking-wider">Routine Split Type</span>
+                          {activeDay === getTodayDayIndex() && (
+                            <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-acid-green/20 text-acid-green border border-acid-green/30">Today</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={handleLogFullDaySplit}
+                            disabled={loading || !splits[activeDay]?.workout?.exercises?.length}
+                            className="px-3 py-1.5 rounded-xl bg-acid-green text-accent-foreground text-[10px] font-black uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-acid-green/20 disabled:opacity-50"
+                            title={`Log all ${splits[activeDay]?.dayName}'s exercises to ${formatDisplayDate(selectedDate)}`}
+                          >
+                            <Play className="w-3 h-3 fill-current" />
+                            Log {splits[activeDay]?.dayName}'s Session
+                          </button>
+                          <button 
+                            onClick={handleStartEditSplit} 
+                            className="text-[9px] text-muted hover:text-foreground cursor-pointer flex items-center gap-1 font-bold uppercase tracking-wider bg-transparent border-none py-1.5 px-2 rounded-xl hover:bg-surface"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                            Edit Split
+                          </button>
+                        </div>
                       </div>
+
                       <h3 className="text-xs font-bold text-foreground">{splits[activeDay]?.workout?.type}</h3>
                       <p className="text-[10.5px] text-muted mt-1 leading-relaxed">{splits[activeDay]?.workout?.desc}</p>
                       
                       <div className="mt-4 border-t border-card-border pt-3 space-y-3">
-                        <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Exercises Recommended (Tap photo for GIF):</span>
+                        <div className="flex justify-between items-center">
+                          <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Exercises Recommended (Tap photo for GIF):</span>
+                          <span className="text-[9px] text-acid-green font-bold uppercase">Click + Log to record</span>
+                        </div>
+
                         {splits[activeDay]?.workout?.exercises?.map((ex, i) => (
-                          <div key={i} className="flex justify-between items-center text-xs gap-3">
-                            <div className="flex items-center gap-2 min-w-0">
+                          <div key={i} className="flex justify-between items-center text-xs gap-3 p-2 rounded-xl hover:bg-surface/40 transition-colors border border-transparent hover:border-card-border/50">
+                            <div className="flex items-center gap-2.5 min-w-0">
                               <div 
                                 onClick={() => handleOpenExerciseDetail(ex)}
-                                className="w-8 h-8 rounded border border-card-border/50 bg-black/20 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                                className="w-9 h-9 rounded-lg border border-card-border/50 bg-black/20 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
                                 title="Click to view GIF animation"
                               >
                                 <ExerciseImage src={ex.image || globalImageCache.get(ex.name)} alt={ex.name} category={ex.category || 'Strength'} muscleGroup={ex.muscleGroup} />
                               </div>
-                              <span className="font-semibold text-foreground truncate cursor-pointer hover:text-acid-green" onClick={() => handleOpenExerciseDetail(ex)}>{ex.name}</span>
+                              <div className="flex flex-col min-w-0">
+                                <span className="font-semibold text-foreground truncate cursor-pointer hover:text-acid-green" onClick={() => handleOpenExerciseDetail(ex)}>{ex.name}</span>
+                                <span className="text-muted text-[10px] truncate">{ex.details}</span>
+                              </div>
                             </div>
-                            <span className="text-muted text-[11px] shrink-0 text-right max-w-[120px] sm:max-w-[160px] md:max-w-none">{ex.details}</span>
+
+                            <button
+                              onClick={() => handleLogSplitExercise(ex)}
+                              className="px-2.5 py-1.5 rounded-lg bg-surface border border-card-border hover:border-acid-green hover:bg-acid-green/15 text-acid-green font-black text-[10px] uppercase tracking-wider transition-all cursor-pointer border-none shrink-0 flex items-center gap-1 shadow-sm active:scale-95"
+                              title={`Log ${ex.name}`}
+                            >
+                              <Plus className="w-3 h-3" /> Log
+                            </button>
                           </div>
                         ))}
                       </div>

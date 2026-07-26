@@ -1,14 +1,35 @@
-import React from 'react';
-import { Lock, Zap, ArrowRight, CreditCard } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Lock, Zap, ArrowRight, CreditCard, Loader2 } from 'lucide-react';
 import Logo from './Logo';
+import { useStore } from '../store/useStore';
+import { startRazorpayCheckout } from '../utils/razorpay';
 
 export default function PremiumGate({ 
   title = "Premium Feature Locked", 
   description = "This module requires an active subscription to access.",
-  requiredTier = "MEDIUM"
+  requiredTier = "MEDIUM",
+  onNotification
 }) {
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const user = useStore(state => state.user);
+  const userProfile = useStore(state => state.userProfile);
+  const updateUserProfile = useStore(state => state.updateUserProfile);
+
+  const handleSubscribe = () => {
+    const plan = {
+      id: requiredTier,
+      name: `${requiredTier} Tier`,
+      amountPaise: requiredTier === 'HIGH' ? 200 : 100
+    };
+    startRazorpayCheckout({
+      plan,
+      user,
+      userProfile,
+      updateUserProfile,
+      onNotification,
+      onLoadingChange: setLoading
+    });
+  };
 
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center select-none relative overflow-hidden">
@@ -46,12 +67,17 @@ export default function PremiumGate({
 
         {/* Unlock Action Button */}
         <button
-          onClick={() => navigate('/user/profile')}
-          className="w-full py-3.5 px-6 rounded-2xl bg-acid-green text-black font-black text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all border-none cursor-pointer shadow-lg shadow-acid-green/15 flex items-center justify-center gap-2"
+          onClick={handleSubscribe}
+          disabled={loading}
+          className="w-full py-3.5 px-6 rounded-2xl bg-acid-green text-black font-black text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all border-none cursor-pointer shadow-lg shadow-acid-green/15 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <CreditCard className="w-4 h-4" />
-          <span>Subscribe to Unlock</span>
-          <ArrowRight className="w-4 h-4" />
+          {loading ? (
+            <Loader2 className="w-4 h-4 animate-spin text-black" />
+          ) : (
+            <CreditCard className="w-4 h-4" />
+          )}
+          <span>{loading ? 'Opening Payment...' : 'Subscribe to Unlock'}</span>
+          {!loading && <ArrowRight className="w-4 h-4" />}
         </button>
       </div>
     </div>

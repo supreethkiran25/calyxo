@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { calculateMacroTargets } from '../utils/macroCalculator';
+import { startRazorpayCheckout } from '../utils/razorpay';
 import { 
   saveUserProfile, 
   signOutUser,
@@ -693,133 +694,15 @@ export default function UserProfile({ onNotification }) {
     if (onNotification) onNotification("Backup JSON downloaded! 💾");
   };
 
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-      if (window.Razorpay) {
-        resolve(true);
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
   const handleRazorpayCheckout = async (plan) => {
-    if (plan.id === 'FREE') return;
-    setSaving(true);
-
-    try {
-      // 1. Ensure Razorpay Checkout script is loaded
-      const isScriptLoaded = await loadRazorpayScript();
-      if (!isScriptLoaded) {
-        if (onNotification) onNotification("Failed to load Razorpay SDK. Please check your internet connection.");
-        setSaving(false);
-        return;
-      }
-
-      const amountPaise = plan.id === 'MEDIUM' ? 100 : plan.id === 'HIGH' ? 200 : (plan.amountPaise || 100);
-      let orderData = null;
-
-      // 2. Attempt backend /api/create-order
-      try {
-        const orderRes = await fetch('/api/create-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            amount: amountPaise,
-            currency: 'INR',
-            receipt: `rcpt_${userId ? userId.substring(0, 8) : 'usr'}_${Date.now()}`
-          })
-        });
-
-        if (orderRes.ok) {
-          orderData = await orderRes.json();
-        }
-      } catch (apiErr) {
-        console.warn("Backend create-order endpoint unavailable, proceeding with standard client checkout:", apiErr);
-      }
-
-      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_THntfStnhzEiO8';
-
-      // 3. Configure Razorpay Standard Checkout options
-      const options = {
-        key: razorpayKey,
-        amount: orderData?.amount || amountPaise,
-        currency: orderData?.currency || 'INR',
-        name: 'Calyxo Nutrition & Fitness',
-        description: `${plan.name} Subscription`,
-        ...(orderData?.order_id ? { order_id: orderData.order_id } : {}),
-        handler: async function (response) {
-          let verified = false;
-
-          // Attempt backend /api/verify-payment if order_id was created
-          if (response.razorpay_signature && response.razorpay_order_id) {
-            try {
-              const verifyRes = await fetch('/api/verify-payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_signature: response.razorpay_signature
-                })
-              });
-              const verifyData = await verifyRes.json();
-              if (verifyRes.ok && verifyData.success) {
-                verified = true;
-              }
-            } catch (vErr) {
-              console.warn("Signature verify API skipped/failed, validating payment ID:", vErr);
-            }
-          }
-
-          // If payment ID is present from Razorpay checkout modal
-          if (verified || response.razorpay_payment_id) {
-            const updatedProfile = { 
-              ...userProfile, 
-              subscriptionPlan: plan.id,
-              isSubscribed: true,
-              lastPaymentId: response.razorpay_payment_id || `pay_${Date.now()}`
-            };
-            updateUserProfile(updatedProfile);
-            await saveUserProfile(userId, updatedProfile);
-            if (onNotification) onNotification(`Payment successful! Welcome to ${plan.name}! 🚀`);
-          } else {
-            if (onNotification) onNotification("Payment completion could not be verified. Please contact support.");
-          }
-          setSaving(false);
-        },
-        prefill: {
-          name: nickname || user?.displayName || 'Calyxo Athlete',
-          email: user?.email || '',
-        },
-        theme: {
-          color: '#86efac'
-        },
-        modal: {
-          ondismiss: function () {
-            if (onNotification) onNotification("Payment cancelled.");
-            setSaving(false);
-          }
-        }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function (response) {
-        console.error("Razorpay Payment Failed:", response.error);
-        if (onNotification) onNotification(`Payment failed: ${response.error.description || response.error.reason || 'Transaction declined'}`);
-        setSaving(false);
-      });
-
-      rzp.open();
-    } catch (err) {
-      console.error("Razorpay checkout exception:", err);
-      if (onNotification) onNotification(`Checkout error: ${err.message}`);
-      setSaving(false);
-    }
+    await startRazorpayCheckout({
+      plan,
+      user,
+      userProfile,
+      updateUserProfile,
+      onNotification,
+      onLoadingChange: setSaving
+    });
   };
 
   const handleCancelSubscription = async () => {
