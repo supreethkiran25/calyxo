@@ -101,55 +101,30 @@ async function callGeminiAPI(model, payload) {
     throw new Error("Gemini API rate limit cooldown active; using local offline twin");
   }
 
-  // 1. Primary: Route via Serverless Backend Proxy (/api/gemini)
-  // Keeps API Keys 100% hidden on server side - NO client devtools access
-  try {
-    const proxyRes = await fetch('/api/gemini', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, payload })
-    });
-
-    if (proxyRes.ok) {
-      const data = await proxyRes.json();
-      if (data && data.candidates && data.candidates.length > 0) {
-        return data;
-      }
-      console.warn("Proxy returned response without candidates, falling back...", data);
-    }
-
-    if (proxyRes.status === 429) {
-      lastRateLimitTime = Date.now();
-      throw new Error("Gemini API 429 (Too Many Requests)");
-    }
-  } catch (proxyErr) {
-    console.warn("Serverless AI Proxy unavailable, attempting local dev fallback...", proxyErr?.message || proxyErr);
-  }
-
-  // 2. Local Development Fallback (Only used if /api/gemini route is un-routable in standalone dev)
-  const apiKey = (typeof process !== 'undefined' && (process.env?.VITE_GEMINI_API_KEY || process.env?.GEMINI_API_KEY)) || 
-                 (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_GEMINI_API_KEY || import.meta.env?.GEMINI_API_KEY));
-  
-  if (!apiKey) {
-    throw new Error("Local AI twin mode (No remote API key set)");
-  }
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const res = await fetch(url, {
+  // Route exclusively via Serverless Backend Proxy (/api/gemini)
+  // Keeps API Keys 100% hidden on server side - NEVER exposed in browser Network tab or DevTools
+  const proxyRes = await fetch('/api/gemini', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({ model, payload })
   });
 
-  if (!res.ok) {
-    if (res.status === 429) {
-      lastRateLimitTime = Date.now();
-      throw new Error("Gemini API 429 (Too Many Requests)");
+  if (proxyRes.ok) {
+    const data = await proxyRes.json();
+    if (data && data.candidates && data.candidates.length > 0) {
+      return data;
     }
-    throw new Error(`Gemini API request failed: ${res.status} ${res.statusText}`);
+    if (data && data.error) {
+      throw new Error(data.error.message || "Gemini API error from server proxy");
+    }
   }
 
-  return await res.json();
+  if (proxyRes.status === 429) {
+    lastRateLimitTime = Date.now();
+    throw new Error("Gemini API 429 (Too Many Requests)");
+  }
+
+  throw new Error(`Serverless Gemini Proxy failed with status: ${proxyRes.status}`);
 }
 
 // =====================================================================
