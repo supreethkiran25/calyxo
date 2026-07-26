@@ -1196,7 +1196,7 @@ export default function WorkoutLogger({ onNotification }) {
 
                   <div className="flex gap-1.5 overflow-x-auto pb-3 border-b border-card-border mb-4 scrollbar-none">
                     {splits.map((day, idx) => {
-                      const isToday = activeDay === idx && idx === getTodayDayIndex();
+                      const isToday = activeDay === idx && idx === getLocalDayOfWeekIndex();
                       return (
                         <button 
                           key={idx}
@@ -1211,7 +1211,7 @@ export default function WorkoutLogger({ onNotification }) {
                           }`}
                         >
                           <span>{day.dayName.substring(0, 3)}</span>
-                          {idx === getTodayDayIndex() && (
+                          {idx === getLocalDayOfWeekIndex() && (
                             <span className={`w-1.5 h-1.5 rounded-full ${activeDay === idx ? 'bg-black' : 'bg-acid-green'}`} />
                           )}
                         </button>
@@ -1357,7 +1357,7 @@ export default function WorkoutLogger({ onNotification }) {
                       <div className="flex justify-between items-center mb-2 gap-2 flex-wrap">
                         <div className="flex items-center gap-2">
                           <span className="text-[9px] text-acid-green font-bold uppercase tracking-wider">Routine Split Type</span>
-                          {activeDay === getTodayDayIndex() && (
+                          {activeDay === getLocalDayOfWeekIndex() && (
                             <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-acid-green/20 text-acid-green border border-acid-green/30">Today</span>
                           )}
                         </div>
