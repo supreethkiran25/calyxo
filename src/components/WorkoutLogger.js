@@ -15,7 +15,7 @@ import { useEcosystemStore } from '../store/useEcosystemStore';
 import { 
   Plus, Dumbbell, Clock, Edit3, X, Check, Search, Trophy, Activity, Move, 
   PersonStanding, Target, User, Crosshair, Heart, Share2, ChevronLeft, ChevronRight, 
-  Calendar, Trash2, Edit2, Play
+  Calendar, Trash2, Edit2, Play, ChevronUp, ChevronDown
 } from 'lucide-react';
 
 const globalImageCache = new Map();
@@ -739,6 +739,28 @@ export default function WorkoutLogger({ onNotification }) {
     }
   };
 
+  const handleMoveExerciseUp = (index) => {
+    if (index <= 0) return;
+    const nextEx = [...editRoutineFields.exercises];
+    const temp = nextEx[index];
+    nextEx[index] = nextEx[index - 1];
+    nextEx[index - 1] = temp;
+    setEditRoutineFields({ ...editRoutineFields, exercises: nextEx });
+    if (activeSplitEditIdx === index) setActiveSplitEditIdx(index - 1);
+    else if (activeSplitEditIdx === index - 1) setActiveSplitEditIdx(index);
+  };
+
+  const handleMoveExerciseDown = (index) => {
+    if (index >= editRoutineFields.exercises.length - 1) return;
+    const nextEx = [...editRoutineFields.exercises];
+    const temp = nextEx[index];
+    nextEx[index] = nextEx[index + 1];
+    nextEx[index + 1] = temp;
+    setEditRoutineFields({ ...editRoutineFields, exercises: nextEx });
+    if (activeSplitEditIdx === index) setActiveSplitEditIdx(index + 1);
+    else if (activeSplitEditIdx === index + 1) setActiveSplitEditIdx(index);
+  };
+
   const handleSplitExNameChange = (index, value) => {
     const nextEx = [...editRoutineFields.exercises];
     nextEx[index].name = value;
@@ -1173,8 +1195,35 @@ export default function WorkoutLogger({ onNotification }) {
                           </button>
                         </div>
                         {editRoutineFields.exercises.map((ex, i) => (
-                          <div key={i} className="relative flex flex-col sm:flex-row gap-2 items-stretch sm:items-center bg-card-bg/30 p-2 rounded-xl border border-card-border/50">
-                            <div className="relative flex-1">
+                          <div key={i} className="relative flex flex-col sm:flex-row gap-2 items-stretch sm:items-center bg-card-bg/30 p-2.5 rounded-2xl border border-card-border/60 shadow-inner">
+                            <div className="flex items-center gap-1 shrink-0">
+                              <span className="w-6 h-6 rounded-full bg-surface border border-card-border flex items-center justify-center text-[10px] font-black text-acid-green shrink-0 shadow-sm" title={`Step ${i + 1}`}>
+                                {i + 1}
+                              </span>
+
+                              <div className="flex flex-col gap-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoveExerciseUp(i)}
+                                  disabled={i === 0}
+                                  className="p-0.5 text-muted hover:text-acid-green disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer bg-none border-none transition-colors"
+                                  title="Move Exercise Up"
+                                >
+                                  <ChevronUp className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoveExerciseDown(i)}
+                                  disabled={i === editRoutineFields.exercises.length - 1}
+                                  className="p-0.5 text-muted hover:text-acid-green disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer bg-none border-none transition-colors"
+                                  title="Move Exercise Down"
+                                >
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="relative flex-1 min-w-0">
                               <input 
                                 type="text" 
                                 value={ex.name} 
@@ -1301,12 +1350,15 @@ export default function WorkoutLogger({ onNotification }) {
                         {splits[activeDay]?.workout?.exercises?.map((ex, i) => (
                           <div key={i} className="flex justify-between items-center text-xs gap-3 p-2 rounded-xl hover:bg-surface/40 transition-colors border border-transparent hover:border-card-border/50">
                             <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="w-5 h-5 rounded-full bg-surface border border-card-border/80 flex items-center justify-center text-[9.5px] font-black text-muted shrink-0" title={`Sequence #${i + 1}`}>
+                                {i + 1}
+                              </span>
                               <div 
                                 onClick={() => handleOpenExerciseDetail(ex)}
                                 className="w-9 h-9 rounded-lg border border-card-border/50 bg-black/20 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
                                 title="Click to view GIF animation"
                               >
-                                <ExerciseImage src={ex.image || globalImageCache.get(ex.name)} alt={ex.name} category={ex.category || 'Strength'} muscleGroup={ex.muscleGroup} />
+                                <ExerciseImage src={ex.image || globalImageCache.get(ex.name)} item={ex} alt={ex.name} category={ex.category || 'Strength'} muscleGroup={ex.muscleGroup} />
                               </div>
                               <div className="flex flex-col min-w-0">
                                 <span className="font-semibold text-foreground truncate cursor-pointer hover:text-acid-green" onClick={() => handleOpenExerciseDetail(ex)}>{ex.name}</span>
@@ -1329,8 +1381,8 @@ export default function WorkoutLogger({ onNotification }) {
                 </section>
               </div>
             </div>
-            </div>
-          )}
+          </div>
+        )}
 
           {/* LIBRARY TAB VIEW */}
           {activeSubTab === 'library' && (
