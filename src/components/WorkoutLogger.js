@@ -22,7 +22,42 @@ const globalImageCache = new Map();
 const activeFetches = new Set();
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { searchAndRankExercises, loadExercisesData, getCachedExercises } from '../utils/exerciseSearch';
+import { searchAndRankExercises, loadExercisesData, getCachedExercises, getExerciseImage, getDistinctFallback } from '../utils/exerciseSearch';
+
+const ExerciseImage = ({ src, alt, category, muscleGroup, className = "w-full h-full object-cover" }) => {
+  const resolvedSrc = useMemo(() => {
+    if (src && typeof src === 'string' && src.trim().length > 0) return src;
+    return getExerciseImage({ name: alt, category, target: muscleGroup, body_part: muscleGroup });
+  }, [src, alt, category, muscleGroup]);
+
+  const [currentSrc, setCurrentSrc] = useState(resolvedSrc);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setCurrentSrc(resolvedSrc);
+    setHasError(false);
+  }, [resolvedSrc]);
+
+  if (hasError) {
+    const fallback = getDistinctFallback(alt || category || muscleGroup || 'exercise');
+    return (
+      <img
+        src={fallback}
+        alt={alt || 'Exercise'}
+        className={className}
+      />
+    );
+  }
+
+  return (
+    <img
+      src={currentSrc}
+      alt={alt || 'Exercise'}
+      className={className}
+      onError={() => setHasError(true)}
+    />
+  );
+};
 
 const INITIAL_WORKOUT_SPLITS = [
   {
@@ -128,26 +163,6 @@ const FallbackIcon = ({ category, muscleGroup, className }) => {
   }
 };
 
-const ExerciseImage = ({ src, alt, category, muscleGroup, className = "w-full h-full object-cover" }) => {
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    setHasError(false);
-  }, [src]);
-
-  if (!src || hasError) {
-    return <FallbackIcon category={category} muscleGroup={muscleGroup} className="w-4 h-4 text-muted" />;
-  }
-
-  return (
-    <img
-      src={src}
-      alt={alt}
-      className={className}
-      onError={() => setHasError(true)}
-    />
-  );
-};
 
 export default function WorkoutLogger({ onNotification }) {
   const user = useStore(state => state.user);
@@ -1196,6 +1211,7 @@ export default function WorkoutLogger({ onNotification }) {
                                           >
                                             <ExerciseImage 
                                               src={item.gif_url || item.image || globalImageCache.get(item.name)} 
+                                              item={item}
                                               alt={item.name} 
                                               category={item.category} 
                                               muscleGroup={item.target || item.body_part} 
