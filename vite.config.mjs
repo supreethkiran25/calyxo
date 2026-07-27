@@ -22,7 +22,10 @@ export default defineConfig(({ mode }) => {
             req.on('end', async () => {
               try {
                 const body = JSON.parse(bodyStr || '{}');
-                const { model = 'gemini-2.5-flash', payload } = body;
+                let { model = 'gemini-1.5-flash', payload } = body;
+                if (!model || model === 'gemini-2.5-flash') {
+                  model = 'gemini-1.5-flash';
+                }
                 const apiKey = env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
                 if (!apiKey) {
@@ -32,17 +35,30 @@ export default defineConfig(({ mode }) => {
                   return;
                 }
 
-                const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-                const fetchRes = await fetch(googleUrl, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(payload)
-                });
+                const modelsToTry = Array.from(new Set([model, 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']));
+                let lastData = null;
+                let lastStatus = 500;
 
-                const data = await fetchRes.json();
-                res.statusCode = fetchRes.status;
+                for (const targetModel of modelsToTry) {
+                  const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`;
+                  const fetchRes = await fetch(googleUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                  });
+
+                  const data = await fetchRes.json();
+                  lastStatus = fetchRes.status;
+                  lastData = data;
+
+                  if (fetchRes.ok && data && !data.error) {
+                    break;
+                  }
+                }
+
+                res.statusCode = lastStatus;
                 res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify(data));
+                res.end(JSON.stringify(lastData));
               } catch (err) {
                 res.statusCode = 500;
                 res.setHeader('Content-Type', 'application/json');

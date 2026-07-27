@@ -12,7 +12,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { model = 'gemini-2.5-flash', payload } = req.body || {};
+  let { model = 'gemini-1.5-flash', payload } = req.body || {};
+  if (!model || model === 'gemini-2.5-flash') {
+    model = 'gemini-1.5-flash';
+  }
   
   // Retrieve API Key exclusively from Server Environment Variables (Completely hidden from browser clients)
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
@@ -25,19 +28,30 @@ export default async function handler(req, res) {
     });
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const modelsToTry = Array.from(new Set([model, 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']));
+  let lastData = null;
+  let lastStatus = 500;
 
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    for (const targetModel of modelsToTry) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-    const data = await response.json();
-    return res.status(response.status).json(data);
+      const data = await response.json();
+      lastStatus = response.status;
+      lastData = data;
+
+      if (response.ok && data && !data.error) {
+        return res.status(response.status).json(data);
+      }
+    }
+    return res.status(lastStatus).json(lastData);
   } catch (error) {
     console.error("Serverless Gemini proxy exception:", error);
-    return res.status(500).json({ error: { message: "Secure AI Proxy Exception" } });
+    return res.status(500).json({ error: { message: "Secure AI Proxy Exception: " + error.message } });
   }
 }

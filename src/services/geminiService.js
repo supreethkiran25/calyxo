@@ -173,7 +173,7 @@ CRITICAL RESPONSE RULES (STRICT COMPLIANCE):
   }
 
   try {
-    const data = await callGeminiAPI("gemini-2.5-flash", {
+    const data = await callGeminiAPI("gemini-1.5-flash", {
       contents: [{ role: 'user', parts: [{ text: query }] }],
       systemInstruction: { parts: [{ text: systemPrompt }] }
     });
@@ -219,7 +219,7 @@ export async function generateBriefing({ briefingType, userProfile, foodLogs, wo
   const systemPrompt = `You are Calyxo, a smart, encouraging, and highly knowledgeable AI fitness & nutrition coach.\nHere is the user's current health biometrics and activity context:\n${dynamicContext}\n\nYour Task:\n${instruction}\n\nFormatting Rules:\n1. Use markdown formatting with clear headings (###), bold text (**), and lists (-).\n2. Avoid generic intros or outtros. Start directly with the briefing content.\n3. Reference their actual metrics (e.g. remaining calories, water intake, sleep) in the text to make it extremely personalized.`;
 
   try {
-    const data = await callGeminiAPI("gemini-2.5-flash", {
+    const data = await callGeminiAPI("gemini-1.5-flash", {
       contents: [{ parts: [{ text: systemPrompt }] }]
     });
     const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "Briefing unavailable. Try again.";
@@ -242,7 +242,7 @@ export async function generateGroceryList({ mealPlan, preferences, program }) {
   const systemPrompt = `Compile a structured weekly grocery shopping list based on these meal plans: ${JSON.stringify(actualMealPlan)}. \nPreferences: ${JSON.stringify(actualPrefs || {})}.\nCategorize item requirements logically (e.g., Produce, Meats, Grains, Dairy).\nOutput a JSON response conforming strictly to this format:\n{\n  "categories": [\n    { "name": "string", "items": ["string", "string"] }\n  ]\n}\nDo not write markdown quotes or wraps. Return pure JSON.`;
 
   try {
-    const data = await callGeminiAPI("gemini-2.5-flash", {
+    const data = await callGeminiAPI("gemini-1.5-flash", {
       contents: [{ parts: [{ text: systemPrompt }] }],
       generationConfig: { responseMimeType: "application/json" }
     });
@@ -288,7 +288,7 @@ export async function generatePostMagic({ media = [], intent = 'caption', style 
   const systemPrompt = `You are a context-aware AI assistant for a health & fitness platform called Calyxo. \nThe user wants you to: ${intent}. \nTheir requested writing style is: ${style}. \nContext: ${JSON.stringify(context)}.\nCustom instructions: ${customText}.\nIf media is provided, analyze ALL images together and base your response heavily on them.\n\nYou MUST output pure JSON matching this exact schema:\n{\n  "text": "The generated caption, story, or analysis formatted with markdown if necessary.",\n  "isMeal": boolean,\n  "isWorkout": boolean,\n  "isProgress": boolean,\n  "suggestedActions": array of strings\n}`;
 
   try {
-    const data = await callGeminiAPI("gemini-2.5-flash", {
+    const data = await callGeminiAPI("gemini-1.5-flash", {
       contents: [{ parts: [{ text: systemPrompt }, ...imageParts] }],
       generationConfig: { responseMimeType: "application/json" }
     });
@@ -312,7 +312,7 @@ export async function predictBodyComposition({ userProfile, currentWeight, targe
   const systemPrompt = `Analyze the user biometrics and target calorie setup to forecast body composition trends.\nProfile: ${JSON.stringify(userProfile)}, Current Weight: ${currentWeight}, Target Calorie Intake: ${targetCalories}, Expected Deficit: ${activeDeficit || 500} kcal/day.\nCalculate forecast metrics at 30, 60, 90, and 180 days.\nOutput a JSON response conforming strictly to this format:\n{\n  "predictions": [\n    { "day": 30, "weight": number, "fatLoss": number, "muscleGain": number },\n    { "day": 60, "weight": number, "fatLoss": number, "muscleGain": number },\n    { "day": 90, "weight": number, "fatLoss": number, "muscleGain": number },\n    { "day": 180, "weight": number, "fatLoss": number, "muscleGain": number }\n  ],\n  "confidence": number,\n  "reasoning": "string"\n}\nDo not write markdown quotes or wraps. Return pure JSON.`;
 
   try {
-    const data = await callGeminiAPI("gemini-2.5-flash", {
+    const data = await callGeminiAPI("gemini-1.5-flash", {
       contents: [{ parts: [{ text: systemPrompt }] }],
       generationConfig: { responseMimeType: "application/json" }
     });
@@ -340,7 +340,7 @@ export async function generateProgram({ goal, userProfile }) {
   const systemPrompt = `Generate a customized 1-week fitness and diet plan. The user goal is "${goal}". \nUser profile: ${JSON.stringify(userProfile)}.\nReturn a JSON object conforming strictly to this format:\n{\n  "goal": "string",\n  "waterTarget": number,\n  "recoveryTarget": "string",\n  "mealPlan": [\n    {\n      "dayName": "Monday",\n      "meals": [\n        { "category": "Breakfast|Lunch|Dinner|Snacks", "name": "string", "calories": number, "protein": number, "carbs": number, "fat": number }\n      ]\n    }\n  ],\n  "workoutPlan": [\n    {\n      "dayName": "Monday",\n      "workout": {\n        "type": "string",\n        "desc": "string",\n        "exercises": [\n          { "name": "string", "details": "string" }\n        ]\n      }\n    }\n  ]\n}\nDo not write markdown quotes or wraps. Return pure JSON.`;
 
   try {
-    const data = await callGeminiAPI("gemini-2.5-flash", {
+    const data = await callGeminiAPI("gemini-1.5-flash", {
       contents: [{ parts: [{ text: systemPrompt }] }],
       generationConfig: { responseMimeType: "application/json" }
     });
@@ -371,7 +371,7 @@ export async function generateTrainerReport({ reportType, workouts, foods }) {
   const prompt = `\nYou are a professional fitness coach analyzing client data for a trainer.\nGenerate a ${reportType} for this client based on their data from the last 30 days:\n\nWorkout logs: ${JSON.stringify(workouts.map(w => ({ name: w.name, duration: w.duration, timestamp: w.timestamp })))}\nFood logs: ${JSON.stringify(foods.map(f => ({ name: f.name || f.food_name, calories: f.calories, timestamp: f.timestamp })))}\n\nProvide: executive summary, key insights, areas of improvement, recommendations.\nFormat as structured sections with clear headings in markdown.\nKeep it concise and professional.\n`;
 
   try {
-    const data = await callGeminiAPI("gemini-2.5-flash", {
+    const data = await callGeminiAPI("gemini-1.5-flash", {
       contents: [{ role: "user", parts: [{ text: prompt }] }]
     });
     const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "Trainer report unavailable.";
@@ -408,7 +408,7 @@ export async function syncHealthTwin({ userProfile, metrics, recentLogs, activeD
   const systemPrompt = `You are Calyxo AI, an advanced Health OS digital twin engine.\nAnalyze the following user data to compute a comprehensive daily health snapshot.\nProfile: ${JSON.stringify(userProfile)}\nCurrent Metrics (BMR, TDEE, etc.): ${JSON.stringify(metrics)}\nRecent Logs (Food, Workout, Sleep, Water): ${JSON.stringify(recentLogs)}\nTarget Deficit: ${activeDeficit || 0} kcal/day.\n\nCalculate and return the following metrics in a pure JSON object:\n{\n  "recoveryScore": number (0-100 based on sleep and workout intensity),\n  "fitnessAge": number (estimated biological age based on activity),\n  "sleepDebt": number (hours),\n  "dailyHealthScore": number (0-100 overall score),\n  "predictedWeight": number (estimated weight in 30 days based on current deficit),\n  "predictedMuscleGain": number (estimated lbs/kg gained in 30 days),\n  "predictedFatLoss": number (estimated lbs/kg lost in 30 days),\n  "calorieForecast": number (recommended intake for tomorrow),\n  "weeklyHealthForecast": "string (short paragraph forecasting the week)",\n  "riskDetection": "string (any overtraining, undereating, or dehydration risks)",\n  "personalizedRecommendations": ["string", "string"]\n}\nDo not write markdown quotes or wraps. Return pure JSON.`;
 
   try {
-    const data = await callGeminiAPI("gemini-2.5-flash", {
+    const data = await callGeminiAPI("gemini-1.5-flash", {
       contents: [{ parts: [{ text: systemPrompt }] }],
       generationConfig: { responseMimeType: "application/json" }
     });
