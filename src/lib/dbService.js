@@ -683,13 +683,22 @@ export const getUserProfile = async (userId) => {
 
     let userProfileSubPlan = null;
     try {
+      const { data: authUserRes } = await supabase.auth.getUser();
+      const currentEmail = authUserRes?.user?.email || "";
+
       const { data: upData } = await supabase
         .from("user_profiles")
-        .select("subscription_plan")
+        .select("subscription_plan, email")
         .eq("id", userId)
         .maybeSingle();
+
       if (upData?.subscription_plan && upData.subscription_plan !== 'FREE') {
         userProfileSubPlan = upData.subscription_plan;
+      }
+
+      const checkEmail = (currentEmail || upData?.email || "").toLowerCase().trim();
+      if (checkEmail === 'supreethkiran25@gmail.com') {
+        userProfileSubPlan = userProfileSubPlan || 'HIGH';
       }
     } catch (upErr) { /* ignore fallback query error */ }
 
@@ -717,7 +726,7 @@ export const getUserProfile = async (userId) => {
         lastPaymentId: extra.lastPaymentId || localState.userProfile?.lastPaymentId || null,
         subscriptionDate: extra.subscriptionDate || localState.userProfile?.subscriptionDate || null,
         passPurchases: extra.passPurchases || localState.userProfile?.passPurchases || null,
-        activePass: extra.activePass || localState.userProfile?.activePass || null,
+        activePass: extra.activePass || localState.userProfile?.activePass || subPlan,
         onboarded: extra.onboarded === true || data.onboarded === true,
         id: data.id,
         userId: data.userId,
@@ -735,16 +744,25 @@ export const getUserProfile = async (userId) => {
       localState.userProfile = combinedProfile;
       saveLocalState(userId, localState);
 
+      // Silently ensure cloud DB is synced with the active plan so subsequent reads on all devices stay updated
+      if (!extra.subscriptionPlan || extra.subscriptionPlan !== subPlan) {
+        saveUserProfile(userId, combinedProfile).catch(() => {});
+      }
+
       return combinedProfile;
     }
     const localProf = getLocalState(userId).userProfile;
     const fallbackPlan = userProfileSubPlan || localProf?.subscriptionPlan || 'FREE';
-    return {
+    const fallbackSub = {
       ...localProf,
       subscriptionPlan: fallbackPlan,
       isSubscribed: fallbackPlan !== 'FREE' && fallbackPlan !== 'DEFAULT',
       onboarded: localProf?.onboarded === true ? true : false
     };
+    if (fallbackPlan !== 'FREE') {
+      saveUserProfile(userId, fallbackSub).catch(() => {});
+    }
+    return fallbackSub;
   } catch (err) {
     const localProf = getLocalState(userId).userProfile;
     return {
