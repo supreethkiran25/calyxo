@@ -2,6 +2,7 @@ import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { Settings } from 'lucide-react';
 import { useStore } from '../store/useStore';
+import Logo from './Logo';
 import ThemeToggle from './ThemeToggle';
 import './StaggeredMenu.css';
 
@@ -413,14 +414,7 @@ export const StaggeredMenu = ({
 
       <header className="staggered-menu-header" aria-label="Main navigation header">
         <div className="sm-logo" aria-label="Logo">
-          <img
-            src={logoUrl || '/icon-192x192.png'}
-            alt="Logo"
-            className={`sm-logo-img ${isDark ? 'sm-logo-dark' : 'sm-logo-light'}`}
-            draggable={false}
-            width={36}
-            height={36}
-          />
+          <Logo className="w-8 h-8 text-[var(--foreground)]" glow={false} />
         </div>
         <button
           ref={toggleBtnRef}
