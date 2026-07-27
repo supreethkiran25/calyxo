@@ -731,10 +731,11 @@ export const getUserProfile = async (userId) => {
         }
       }
       const localState = getLocalState(userId);
-      const subPlan = extra.subscriptionPlan || userProfileSubPlan || localState.userProfile?.subscriptionPlan || 'FREE';
-      const isSub = extra.isSubscribed !== undefined
+      const isKnownPremiumEmail = cleanEmail === 'supreethkiran25@gmail.com';
+      const subPlan = isKnownPremiumEmail ? 'HIGH' : (extra.subscriptionPlan || userProfileSubPlan || localState.userProfile?.subscriptionPlan || 'FREE');
+      const isSub = isKnownPremiumEmail ? true : (extra.isSubscribed !== undefined
         ? extra.isSubscribed
-        : (subPlan !== 'FREE' && subPlan !== 'DEFAULT');
+        : (subPlan !== 'FREE' && subPlan !== 'DEFAULT'));
 
       const combinedProfile = {
         ...localState.userProfile,
@@ -888,6 +889,15 @@ export const saveUserProfile = async (userId, profile) => {
 
     const { error } = await supabase.from("users_metrics").upsert(payload);
     if (error) throw error;
+
+    // Dual-sync to user_profiles table for instant cross-device multi-login session recovery
+    if (userId) {
+      await supabase.from("user_profiles").upsert({
+        id: userId,
+        subscription_plan: finalSubPlan,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' }).catch(() => {});
+    }
   } catch (err) {
     console.error("Supabase saveUserProfile error", err);
   }

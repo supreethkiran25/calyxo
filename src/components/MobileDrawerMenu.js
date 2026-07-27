@@ -7,9 +7,6 @@ export default function MobileDrawerMenu({ isOpen, onClose }) {
   const navigate = useNavigate();
 
   const menuItems = [
-    { label: 'Dashboard', ariaLabel: 'Go to Dashboard', link: '/user/dashboard' },
-    { label: 'Nutrition', ariaLabel: 'Log Food & Nutrition', link: '/user/nutrition' },
-    { label: 'Workouts', ariaLabel: 'Log Workouts', link: '/user/workout' },
     { label: 'Progress', ariaLabel: 'View Analytics & Progress', link: '/user/progress' },
     { label: 'Health Hub', ariaLabel: 'Open Health Hub', link: '/user/healthhub' },
     { label: 'AI Coach', ariaLabel: 'Open AI Assistant', link: '/user/ai' },

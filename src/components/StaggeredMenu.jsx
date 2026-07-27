@@ -1,5 +1,6 @@
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
+import ThemeToggle from './ThemeToggle';
 import './StaggeredMenu.css';
 
 export const StaggeredMenu = ({
@@ -468,7 +469,13 @@ export const StaggeredMenu = ({
           </ul>
           {displaySocials && socialItems && socialItems.length > 0 && (
             <div className="sm-socials" aria-label="Social links">
-              <h3 className="sm-socials-title">Quick Links</h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="sm-socials-title">Quick Links</h3>
+                <div className="flex items-center gap-2">
+                  <ThemeToggle />
+                  <span className="text-xs font-bold text-muted">Theme</span>
+                </div>
+              </div>
               <ul className="sm-socials-list" role="list">
                 {socialItems.map((s, i) => (
                   <li key={s.label + i} className="sm-socials-item">
