@@ -36,7 +36,6 @@ const DESKTOP_NAV = [
     items: [
       { id: 'nutrition', href: '/user/nutrition', label: 'Nutrition', icon: BookOpen },
       { id: 'workout', href: '/user/workout', label: 'Workouts', icon: BarChart2 },
-      { id: 'healthhub', href: '/user/healthhub', label: 'Health Hub', icon: Heart, isPremium: true },
     ]
   },
   {

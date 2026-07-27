@@ -1534,36 +1534,19 @@ export default function UserProfile({ onNotification }) {
       },
       {
         id: 'MEDIUM',
-        name: 'MEDIUM TIER',
+        name: 'PREMIUM AI ACCESS',
         price: '₹1',
         period: 'per month',
-        badge: 'MOST POPULAR',
+        badge: 'AI PREMIUM ACCESS',
         accentColor: 'border-acid-green',
         bgGradient: 'bg-acid-green/10',
         amountPaise: 100,
         features: [
-          'Everything in Free',
-          'Unlimited AI Coach Long-term Memory',
-          'Custom Macro & Micro Nutrient Targets',
-          '3D Core View & Compliance Metrics',
-          'Priority Processing Speed'
-        ]
-      },
-      {
-        id: 'HIGH',
-        name: 'HIGH TIER',
-        price: '₹2',
-        period: 'per month',
-        badge: 'ULTRA ACCESS',
-        accentColor: 'border-purple-500/50',
-        bgGradient: 'bg-purple-500/10',
-        amountPaise: 200,
-        features: [
-          'Everything in Medium',
-          'AI Coach Concierge & Unlimited Messages',
-          'Dynamic GPU Visual Background Effects',
-          'Full Personal Trainer CRM & CSV Exports',
-          'Priority AI Processing & Direct Support'
+          'Everything in Free Athlete',
+          'Unlimited Calyxo AI Coach Concierge',
+          'Long-Term AI Fitness & Diet Memory',
+          'Custom Macro & Micro Target Engine',
+          'Priority Ultra-Fast AI Processing'
         ]
       }
     ];

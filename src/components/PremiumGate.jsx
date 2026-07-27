@@ -17,9 +17,9 @@ export default function PremiumGate({
 
   const handleSubscribe = () => {
     const plan = {
-      id: requiredTier,
-      name: `${requiredTier} Tier`,
-      amountPaise: requiredTier === 'HIGH' ? 200 : 100
+      id: 'MEDIUM',
+      name: 'PREMIUM AI ACCESS',
+      amountPaise: 100
     };
     startRazorpayCheckout({
       plan,
@@ -58,10 +58,10 @@ export default function PremiumGate({
 
         {/* Tier Requirements Badge */}
         <div className="p-3 bg-surface/60 rounded-xl border border-card-border flex items-center justify-between text-xs">
-          <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Required Tier:</span>
+          <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Subscription Tier:</span>
           <span className="px-2.5 py-0.5 rounded-full bg-acid-green/20 text-acid-green border border-acid-green/30 font-black text-[10px] uppercase tracking-wider flex items-center gap-1">
             <Zap className="w-3 h-3" />
-            {requiredTier} (₹{requiredTier === 'MEDIUM' ? '1' : '2'}/mo)
+            AI PREMIUM (₹1/mo)
           </span>
         </div>
 

@@ -58,7 +58,6 @@ const WorkoutLogger = lazy(() => import('../components/WorkoutLogger'));
 const AICoach = lazy(() => import('../components/AICoach'));
 const UserProfile = lazy(() => import('../components/UserProfile'));
 const Progress = lazy(() => import('../components/Progress'));
-const HealthHub = lazy(() => import('../components/HealthHub'));
 
 const DESKTOP_NAV = [
   {
@@ -73,7 +72,6 @@ const DESKTOP_NAV = [
     items: [
       { id: 'nutrition', label: 'Nutrition', icon: BookOpen },
       { id: 'workout', label: 'Workouts', icon: BarChart2 },
-      { id: 'healthhub', label: 'Health Hub', icon: Heart },
     ]
   },
 
@@ -415,7 +413,6 @@ export default function UserPortal() {
                 {activeTab === 'dashboard' && <Dashboard onNotification={showNotification} />}
                 {activeTab === 'coach' && <AICoach onNotification={showNotification} />}
                 {activeTab === 'ai' && <AIWorkspace onNotification={showNotification} />}
-                {activeTab === 'healthhub' && <HealthHub onNotification={showNotification} />}
                 {activeTab === 'nutrition' && <FoodTracker onNotification={showNotification} />}
                 {activeTab === 'workout' && <WorkoutLogger onNotification={showNotification} />}
                 {activeTab === 'progress' && <Progress />}

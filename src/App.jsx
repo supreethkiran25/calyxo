@@ -17,7 +17,6 @@ const UserDashboardPage = lazyWithRetry(() => import('./pages/user/DashboardPage
 const UserNutritionPage = lazyWithRetry(() => import('./pages/user/NutritionPage'));
 const UserWorkoutPage = lazyWithRetry(() => import('./pages/user/WorkoutPage'));
 const UserProgressPage = lazyWithRetry(() => import('./pages/user/ProgressPage'));
-const UserHealthHubPage = lazyWithRetry(() => import('./pages/user/HealthHubPage'));
 const UserAIPage = lazyWithRetry(() => import('./pages/user/AIPage'));
 const UserProfilePage = lazyWithRetry(() => import('./pages/user/ProfilePage'));
 
@@ -43,7 +42,6 @@ function App() {
                 <Route path="nutrition" element={<UserNutritionPage />} />
                 <Route path="workout" element={<UserWorkoutPage />} />
                 <Route path="progress" element={<UserProgressPage />} />
-                <Route path="healthhub" element={<UserHealthHubPage />} />
                 <Route path="ai" element={<UserAIPage />} />
                 <Route path="profile" element={<UserProfilePage />} />
                 <Route path="about" element={<AboutPage />} />

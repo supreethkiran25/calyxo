@@ -10,7 +10,6 @@ export default function MobileDrawerMenu({ isOpen, onClose }) {
 
   const menuItems = [
     { label: 'Progress', ariaLabel: 'View Analytics & Progress', link: '/user/progress' },
-    { label: 'Health Hub', ariaLabel: 'Open Health Hub', link: '/user/healthhub' },
     { label: 'AI Coach', ariaLabel: 'Open AI Assistant', link: '/user/ai' },
     { label: 'Profile', ariaLabel: 'User Profile', link: '/user/profile' },
     { 
