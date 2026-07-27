@@ -680,6 +680,19 @@ export const getUserProfile = async (userId) => {
       .maybeSingle();
     
     if (error && error.code !== 'PGRST116') throw error;
+
+    let userProfileSubPlan = null;
+    try {
+      const { data: upData } = await supabase
+        .from("user_profiles")
+        .select("subscription_plan")
+        .eq("id", userId)
+        .maybeSingle();
+      if (upData?.subscription_plan && upData.subscription_plan !== 'FREE') {
+        userProfileSubPlan = upData.subscription_plan;
+      }
+    } catch (upErr) { /* ignore fallback query error */ }
+
     if (data) {
       let extra = {};
       if (data.bio) {
@@ -689,10 +702,22 @@ export const getUserProfile = async (userId) => {
           extra = { bio: data.bio };
         }
       }
-      return {
-        ...getLocalState(userId).userProfile,
+      const localState = getLocalState(userId);
+      const subPlan = extra.subscriptionPlan || userProfileSubPlan || localState.userProfile?.subscriptionPlan || 'FREE';
+      const isSub = extra.isSubscribed !== undefined 
+        ? extra.isSubscribed 
+        : (subPlan !== 'FREE' && subPlan !== 'DEFAULT');
+
+      const combinedProfile = {
+        ...localState.userProfile,
         ...data,
         ...extra,
+        subscriptionPlan: subPlan,
+        isSubscribed: isSub,
+        lastPaymentId: extra.lastPaymentId || localState.userProfile?.lastPaymentId || null,
+        subscriptionDate: extra.subscriptionDate || localState.userProfile?.subscriptionDate || null,
+        passPurchases: extra.passPurchases || localState.userProfile?.passPurchases || null,
+        activePass: extra.activePass || localState.userProfile?.activePass || null,
         onboarded: extra.onboarded === true || data.onboarded === true,
         id: data.id,
         userId: data.userId,
@@ -704,12 +729,20 @@ export const getUserProfile = async (userId) => {
         height: data.height || extra.height || 175,
         activity: data.activity || extra.activity || 1.55,
         goal: data.goal || extra.goal || 'lose',
-        bio: ('bio' in extra) ? (extra.bio || "") : ""
+        bio: ('bio' in extra && typeof extra.bio === 'string') ? extra.bio : ""
       };
+
+      localState.userProfile = combinedProfile;
+      saveLocalState(userId, localState);
+
+      return combinedProfile;
     }
     const localProf = getLocalState(userId).userProfile;
+    const fallbackPlan = userProfileSubPlan || localProf?.subscriptionPlan || 'FREE';
     return {
       ...localProf,
+      subscriptionPlan: fallbackPlan,
+      isSubscribed: fallbackPlan !== 'FREE' && fallbackPlan !== 'DEFAULT',
       onboarded: localProf?.onboarded === true ? true : false
     };
   } catch (err) {
@@ -723,68 +756,84 @@ export const getUserProfile = async (userId) => {
 
 export const saveUserProfile = async (userId, profile) => {
   const state = getLocalState(userId);
-  state.userProfile = profile;
+  const mergedProfile = {
+    ...state.userProfile,
+    ...profile
+  };
+  state.userProfile = mergedProfile;
   saveLocalState(userId, state);
 
   if (isMockMode || !userId) return;
 
-  // Protect role: once assigned, never allow clearing it
-  if (!profile.role) {
-    try {
-      const { data: existing } = await supabase
-        .from("users_metrics")
-        .select("bio")
-        .eq("id", `${userId}_profile`)
-        .maybeSingle();
-      if (existing?.bio) {
-        try {
-          const parsed = JSON.parse(existing.bio);
-          if (parsed.role) {
-            profile.role = parsed.role;
-            profile.onboarded = parsed.onboarded === true;
-          }
-        } catch (e) { /* bio isn't JSON, ignore */ }
-      }
-    } catch (e) { /* query failed, proceed */ }
-  }
+  let existingBio = {};
+  try {
+    const { data: existing } = await supabase
+      .from("users_metrics")
+      .select("bio")
+      .eq("id", `${userId}_profile`)
+      .maybeSingle();
+    if (existing?.bio) {
+      try {
+        existingBio = JSON.parse(existing.bio);
+      } catch (e) { /* bio isn't JSON */ }
+    }
+  } catch (e) { /* query failed */ }
+
+  const finalRole = profile.role || mergedProfile.role || existingBio.role;
+  const finalSubPlan = profile.subscriptionPlan || mergedProfile.subscriptionPlan || existingBio.subscriptionPlan || 'FREE';
+  const finalIsSubscribed = profile.isSubscribed !== undefined 
+    ? profile.isSubscribed 
+    : (mergedProfile.isSubscribed !== undefined 
+      ? mergedProfile.isSubscribed 
+      : (existingBio.isSubscribed !== undefined ? existingBio.isSubscribed : (finalSubPlan !== 'FREE' && finalSubPlan !== 'DEFAULT')));
+  const finalLastPaymentId = profile.lastPaymentId || mergedProfile.lastPaymentId || existingBio.lastPaymentId || null;
+  const finalSubscriptionDate = profile.subscriptionDate || mergedProfile.subscriptionDate || existingBio.subscriptionDate || null;
+  const finalPassPurchases = profile.passPurchases || mergedProfile.passPurchases || existingBio.passPurchases || null;
+  const finalActivePass = profile.activePass || mergedProfile.activePass || existingBio.activePass || null;
 
   try {
     const extraFields = {
-      onboarded: profile.onboarded,
-      dob: profile.dob,
-      units: profile.units,
-      experience: profile.experience,
-      dietPreferences: profile.dietPreferences,
-      allergies: profile.allergies,
-      medicalRestrictions: profile.medicalRestrictions,
-      foodDislikes: profile.foodDislikes,
-      favoriteFoods: profile.favoriteFoods,
-      firstName: profile.firstName,
-      lastName: profile.lastName,
-      nickname: profile.nickname,
-      role: profile.role,
-      coachPersonality: profile.coachPersonality,
-      responseLength: profile.responseLength,
-      coachingStyle: profile.coachingStyle,
-      motivationLevel: profile.motivationLevel,
-      reminderFrequency: profile.reminderFrequency,
-      notifications: profile.notifications,
-      analyticsTracking: profile.analyticsTracking,
-      bio: profile.bio || ""
+      onboarded: mergedProfile.onboarded ?? existingBio.onboarded,
+      subscriptionPlan: finalSubPlan,
+      isSubscribed: finalIsSubscribed,
+      lastPaymentId: finalLastPaymentId,
+      subscriptionDate: finalSubscriptionDate,
+      passPurchases: finalPassPurchases,
+      activePass: finalActivePass,
+      dob: mergedProfile.dob ?? existingBio.dob,
+      units: mergedProfile.units ?? existingBio.units,
+      experience: mergedProfile.experience ?? existingBio.experience,
+      dietPreferences: mergedProfile.dietPreferences ?? existingBio.dietPreferences,
+      allergies: mergedProfile.allergies ?? existingBio.allergies,
+      medicalRestrictions: mergedProfile.medicalRestrictions ?? existingBio.medicalRestrictions,
+      foodDislikes: mergedProfile.foodDislikes ?? existingBio.foodDislikes,
+      favoriteFoods: mergedProfile.favoriteFoods ?? existingBio.favoriteFoods,
+      firstName: mergedProfile.firstName ?? existingBio.firstName,
+      lastName: mergedProfile.lastName ?? existingBio.lastName,
+      nickname: mergedProfile.nickname ?? existingBio.nickname,
+      role: finalRole,
+      coachPersonality: mergedProfile.coachPersonality ?? existingBio.coachPersonality,
+      responseLength: mergedProfile.responseLength ?? existingBio.responseLength,
+      coachingStyle: mergedProfile.coachingStyle ?? existingBio.coachingStyle,
+      motivationLevel: mergedProfile.motivationLevel ?? existingBio.motivationLevel,
+      reminderFrequency: mergedProfile.reminderFrequency ?? existingBio.reminderFrequency,
+      notifications: mergedProfile.notifications ?? existingBio.notifications,
+      analyticsTracking: mergedProfile.analyticsTracking ?? existingBio.analyticsTracking,
+      bio: mergedProfile.bio || existingBio.bio || ""
     };
 
     const payload = {
       id: `${userId}_profile`,
       userId,
-      displayName: profile.displayName || profile.nickname || 
-        (profile.firstName ? `${profile.firstName} ${profile.lastName || ''}`.trim() : ''),
-      photoURL: profile.photoURL || null,
-      gender: profile.gender || null,
-      age: profile.age ? Number(profile.age) : null,
-      weight: profile.weight ? Number(profile.weight) : null,
-      height: profile.height ? Number(profile.height) : null,
-      activity: profile.activity ? Number(profile.activity) : null,
-      goal: profile.goal || null,
+      displayName: mergedProfile.displayName || mergedProfile.nickname || 
+        (mergedProfile.firstName ? `${mergedProfile.firstName} ${mergedProfile.lastName || ''}`.trim() : '') || existingBio.displayName,
+      photoURL: mergedProfile.photoURL ?? existingBio.photoURL ?? null,
+      gender: mergedProfile.gender ?? existingBio.gender ?? null,
+      age: mergedProfile.age ? Number(mergedProfile.age) : (existingBio.age ? Number(existingBio.age) : null),
+      weight: mergedProfile.weight ? Number(mergedProfile.weight) : (existingBio.weight ? Number(existingBio.weight) : null),
+      height: mergedProfile.height ? Number(mergedProfile.height) : (existingBio.height ? Number(existingBio.height) : null),
+      activity: mergedProfile.activity ? Number(mergedProfile.activity) : (existingBio.activity ? Number(existingBio.activity) : null),
+      goal: mergedProfile.goal || existingBio.goal || null,
       bio: JSON.stringify(extraFields)
     };
 

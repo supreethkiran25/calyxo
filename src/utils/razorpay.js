@@ -93,8 +93,10 @@ export const startRazorpayCheckout = async ({
           const updatedProfile = { 
             ...userProfile, 
             subscriptionPlan: plan.id,
+            activePass: plan.id,
             isSubscribed: true,
-            lastPaymentId: response.razorpay_payment_id || `pay_${Date.now()}`
+            lastPaymentId: response.razorpay_payment_id || `pay_${Date.now()}`,
+            subscriptionDate: new Date().toISOString()
           };
           if (updateUserProfile) updateUserProfile(updatedProfile);
           if (user?.uid) await saveUserProfile(user.uid, updatedProfile);
