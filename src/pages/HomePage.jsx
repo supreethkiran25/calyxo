@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useStore } from '../store/useStore';
-import { subscribeToAuth, getUserProfile, saveUserProfile } from '../lib/dbService';
+import { subscribeToAuth, loadUserData, saveUserProfile } from '../lib/dbService';
 import { useNavigate } from 'react-router-dom';
 
 import LaunchScreen from '../components/LaunchScreen';
@@ -23,8 +23,13 @@ export default function HomePage() {
     const unsubscribe = subscribeToAuth(async (authUser) => {
       setUser(authUser);
       if (authUser) {
-        const profile = await getUserProfile(authUser.uid || authUser.id);
+        const uid = authUser.uid || authUser.id;
+        const { profile, foods, workouts, weights, water } = await loadUserData(uid);
         setUserProfile(profile || { onboarded: false });
+        if (foods) useStore.getState().setFoodLogs(foods);
+        if (workouts) useStore.getState().setWorkoutLogs(workouts);
+        if (weights) useStore.getState().setWeightLogs(weights);
+        if (water !== undefined && water !== null) useStore.getState().setWaterIntake(water);
         setLoading(false);
       } else {
         setUserProfile({ onboarded: false });

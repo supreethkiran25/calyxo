@@ -4,7 +4,7 @@ import { Home as HomeIcon, BookOpen, BarChart2, User, Users, LogOut, Sparkles, X
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import useQuickActionsStore from '../store/useQuickActionsStore';
-import { signOutUser, subscribeToAuth, getUserProfile, getFoodLogs, getWorkoutLogs, getWeightLogs, getWaterIntake } from '../lib/dbService';
+import { signOutUser, subscribeToAuth, loadUserData } from '../lib/dbService';
 
 import Logo from '../components/Logo';
 import ThemeToggle from '../components/ThemeToggle';
@@ -112,13 +112,7 @@ export default function UserLayout() {
         setUser(authUser);
         const uid = authUser.uid || authUser.id;
 
-        const [profile, foods, workouts, weights, water] = await Promise.all([
-          getUserProfile(uid),
-          getFoodLogs(uid),
-          getWorkoutLogs(uid),
-          getWeightLogs(uid),
-          getWaterIntake(uid)
-        ]);
+        const { profile, foods, workouts, weights, water } = await loadUserData(uid);
 
         if (profile) {
           setUserProfile(profile);

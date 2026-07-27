@@ -7,14 +7,14 @@ const getEnvVal = (key) => {
       if (import.meta.env[`VITE_${key}`]) return import.meta.env[`VITE_${key}`];
       if (import.meta.env[`NEXT_PUBLIC_${key}`]) return import.meta.env[`NEXT_PUBLIC_${key}`];
     }
-  } catch (e) {}
+  } catch (e) { }
   try {
     if (typeof process !== 'undefined' && process && process.env) {
       if (process.env[key]) return process.env[key];
       if (process.env[`VITE_${key}`]) return process.env[`VITE_${key}`];
       if (process.env[`NEXT_PUBLIC_${key}`]) return process.env[`NEXT_PUBLIC_${key}`];
     }
-  } catch (e) {}
+  } catch (e) { }
   return undefined;
 };
 
@@ -34,7 +34,7 @@ export const getCurrentUserId = async () => {
         const mock = JSON.parse(mockUserRaw);
         return mock?.uid || mock?.id || "";
       }
-    } catch (e) {}
+    } catch (e) { }
     return "";
   }
   const { data } = await supabase.auth.getUser();
@@ -50,18 +50,18 @@ export const getCurrentUserIdSync = () => {
         const mock = JSON.parse(mockUserRaw);
         return mock?.uid || mock?.id || "";
       }
-    } catch (e) {}
+    } catch (e) { }
     return "";
   }
   // Fallback for sync contexts
   try {
-     const url = activeSupabaseUrl;
-     const projectRef = url.includes('//') ? url.split('//')[1].split('.')[0] : 'nwcatvlfoayzrwatvyrf';
-     const sessionStr = localStorage.getItem(`sb-${projectRef}-auth-token`);
-     if (sessionStr) {
-       return JSON.parse(sessionStr)?.user?.id || "";
-     }
-  } catch(e) {}
+    const url = activeSupabaseUrl;
+    const projectRef = url.includes('//') ? url.split('//')[1].split('.')[0] : 'nwcatvlfoayzrwatvyrf';
+    const sessionStr = localStorage.getItem(`sb-${projectRef}-auth-token`);
+    if (sessionStr) {
+      return JSON.parse(sessionStr)?.user?.id || "";
+    }
+  } catch (e) { }
   return "";
 };
 
@@ -108,7 +108,7 @@ export const getSecureItem = (key, keyDerivation = ENCRYPTION_SALT) => {
   if (saved.startsWith("{") || saved.startsWith("[")) {
     try {
       return JSON.parse(saved);
-    } catch (e) {}
+    } catch (e) { }
   }
   const derivationKey = targetUser ? `${targetUser}_${ENCRYPTION_SALT}` : ENCRYPTION_SALT;
 
@@ -116,7 +116,7 @@ export const getSecureItem = (key, keyDerivation = ENCRYPTION_SALT) => {
   if (decrypted) {
     try {
       return JSON.parse(decrypted);
-    } catch (e) {}
+    } catch (e) { }
   }
   return null;
 };
@@ -151,13 +151,13 @@ const getLocalState = (userId) => {
     weightLogs: [],
     waterIntake: 0,
     waterDate: today,
-    userProfile: { 
+    userProfile: {
       onboarded: false,
-      gender: "male", 
-      age: 25, 
-      weight: 70, 
-      height: 175, 
-      activity: 1.55, 
+      gender: "male",
+      age: 25,
+      weight: 70,
+      height: 175,
+      activity: 1.55,
       goal: "lose",
       bio: "",
       website: "",
@@ -303,8 +303,8 @@ const mergeLogs = (remoteLogs, localLogs) => {
     const key = item.id || item.timestamp;
     if (key) {
       const existing = map.get(String(key)) || {};
-      map.set(String(key), { 
-        ...existing, 
+      map.set(String(key), {
+        ...existing,
         ...item,
         name: item.name || item.title || existing.name || "Log Item",
         title: item.title || item.name || existing.title || "Log Item"
@@ -328,7 +328,7 @@ export const subscribeToAuth = (callback) => {
     callback(mockUser);
     return () => { };
   }
-  
+
   let lastUid = null;
   supabase.auth.getSession().then(({ data: { session } }) => {
     let user = session?.user || null;
@@ -379,11 +379,11 @@ export const getFoodLogs = async (userId) => {
 };
 
 export const addFoodLog = async (userId, item) => {
-  const logItem = { 
-    ...item, 
+  const logItem = {
+    ...item,
     id: item.id || `food_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    userId, 
-    timestamp: Number(item.timestamp) || Date.now() 
+    userId,
+    timestamp: Number(item.timestamp) || Date.now()
   };
 
   const state = getLocalState(userId);
@@ -478,11 +478,11 @@ export const getWorkoutLogs = async (userId) => {
 };
 
 export const addWorkoutLog = async (userId, workout) => {
-  const logItem = { 
-    ...workout, 
+  const logItem = {
+    ...workout,
     id: workout.id || `workout_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    userId, 
-    timestamp: Number(workout.timestamp) || Date.now() 
+    userId,
+    timestamp: Number(workout.timestamp) || Date.now()
   };
 
   const state = getLocalState(userId);
@@ -571,9 +571,9 @@ export const getWaterIntake = async (userId) => {
       .select("*")
       .eq("id", `${userId}_water`)
       .maybeSingle();
-      
+
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 is not found
-    
+
     if (data) {
       const today = new Date().toDateString();
       if (data.date === today) {
@@ -678,7 +678,7 @@ export const getUserProfile = async (userId) => {
       .select("*")
       .eq("id", `${userId}_profile`)
       .maybeSingle();
-    
+
     if (error && error.code !== 'PGRST116') throw error;
 
     let userProfileSubPlan = null;
@@ -704,8 +704,8 @@ export const getUserProfile = async (userId) => {
       }
       const localState = getLocalState(userId);
       const subPlan = extra.subscriptionPlan || userProfileSubPlan || localState.userProfile?.subscriptionPlan || 'FREE';
-      const isSub = extra.isSubscribed !== undefined 
-        ? extra.isSubscribed 
+      const isSub = extra.isSubscribed !== undefined
+        ? extra.isSubscribed
         : (subPlan !== 'FREE' && subPlan !== 'DEFAULT');
 
       const combinedProfile = {
@@ -781,10 +781,10 @@ export const saveUserProfile = async (userId, profile) => {
 
   const finalRole = profile.role || mergedProfile.role || existingBio.role;
   const finalSubPlan = profile.subscriptionPlan || mergedProfile.subscriptionPlan || existingBio.subscriptionPlan || 'FREE';
-  const finalIsSubscribed = profile.isSubscribed !== undefined 
-    ? profile.isSubscribed 
-    : (mergedProfile.isSubscribed !== undefined 
-      ? mergedProfile.isSubscribed 
+  const finalIsSubscribed = profile.isSubscribed !== undefined
+    ? profile.isSubscribed
+    : (mergedProfile.isSubscribed !== undefined
+      ? mergedProfile.isSubscribed
       : (existingBio.isSubscribed !== undefined ? existingBio.isSubscribed : (finalSubPlan !== 'FREE' && finalSubPlan !== 'DEFAULT')));
   const finalLastPaymentId = profile.lastPaymentId || mergedProfile.lastPaymentId || existingBio.lastPaymentId || null;
   const finalSubscriptionDate = profile.subscriptionDate || mergedProfile.subscriptionDate || existingBio.subscriptionDate || null;
@@ -825,7 +825,7 @@ export const saveUserProfile = async (userId, profile) => {
     const payload = {
       id: `${userId}_profile`,
       userId,
-      displayName: mergedProfile.displayName || mergedProfile.nickname || 
+      displayName: mergedProfile.displayName || mergedProfile.nickname ||
         (mergedProfile.firstName ? `${mergedProfile.firstName} ${mergedProfile.lastName || ''}`.trim() : '') || existingBio.displayName,
       photoURL: mergedProfile.photoURL ?? existingBio.photoURL ?? null,
       gender: mergedProfile.gender ?? existingBio.gender ?? null,
@@ -842,6 +842,21 @@ export const saveUserProfile = async (userId, profile) => {
   } catch (err) {
     console.error("Supabase saveUserProfile error", err);
   }
+};
+
+/* Helper to load all user data in parallel */
+export const loadUserData = async (userId) => {
+  if (!userId) {
+    return { profile: null, foods: [], workouts: [], weights: [], water: 0 };
+  }
+  const [profile, foods, workouts, weights, water] = await Promise.all([
+    getUserProfile(userId),
+    getFoodLogs(userId),
+    getWorkoutLogs(userId),
+    getWeightLogs(userId),
+    getWaterIntake(userId)
+  ]);
+  return { profile, foods, workouts, weights, water };
 };
 
 /* ==========================================================================
@@ -887,7 +902,7 @@ export const getPositiveTrainingLogs = async (userId) => {
       .select("*")
       .eq("userId", userId)
       .eq("rating", 1);
-      
+
     if (error) throw error;
 
     const allLogs = [...(data || []), ...positiveLocal];
@@ -1003,7 +1018,7 @@ export const saveEcosystemState = async (userId, state) => {
   }
   if (isMockMode) return;
   try {
-    const payload = { 
+    const payload = {
       id: userId,
       data: cleanState,
       aiCoachPlan: cleanState.coachingPlan || null,
@@ -1346,7 +1361,7 @@ export const getAvailableTrainers = async (filters = {}) => {
   let query = supabase.from('trainer_profiles').select('*').eq('onboarding_complete', true);
   if (filters.specialization) query = query.contains('specializations', [filters.specialization]);
   if (filters.pricing_tier) query = query.eq('pricing_tier', filters.pricing_tier);
-  
+
   const { data, error } = await query;
   if (error) {
     console.error('getAvailableTrainers error:', error);
@@ -1376,7 +1391,7 @@ export const getTrainerAnalytics = async (trainerId) => {
     supabase.from('trainer_assignments').select('type', { count: 'exact' }).eq('trainer_id', trainerId),
     supabase.from('trainer_messages').select('*', { count: 'exact' }).eq('trainer_id', trainerId).eq('sender', 'trainer')
   ]);
-  
+
   return {
     activeClients: connections.count || 0,
     workoutPlans: assignments.data?.filter(a => a.type === 'workout_plan').length || 0,
@@ -1431,9 +1446,9 @@ export const uploadTrainerDocument = async (trainerId, file, meta) => {
     console.error('Upload Error:', uploadError);
     return;
   }
-  
+
   const { data: urlData } = supabase.storage.from('trainer-documents').getPublicUrl(filePath);
-  
+
   const docPayload = {
     trainer_id: trainerId,
     client_id: meta.clientId || null,
@@ -1442,7 +1457,7 @@ export const uploadTrainerDocument = async (trainerId, file, meta) => {
     category: meta.category || 'other',
     file_size: file.size
   };
-  
+
   const { error } = await supabase.from('trainer_documents').insert(docPayload);
   if (error) console.error('Insert doc metadata error:', error);
 };

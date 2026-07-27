@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Shield, Eye, EyeOff, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { signUpUser, signInWithUsernameOrEmail, signInWithGoogle, signInWithApple, sendPasswordReset, getUserProfile } from '../lib/dbService';
+import { signUpUser, signInWithUsernameOrEmail, signInWithGoogle, signInWithApple, sendPasswordReset, loadUserData } from '../lib/dbService';
 import { useStore } from '../store/useStore';
 import Logo from './Logo';
 
@@ -30,8 +30,13 @@ export default function AuthFlow({ isInitialSignUp = false }) {
   const redirectAfterAuth = async (authUser) => {
     setUser(authUser);
     if (authUser) {
-      const profile = await getUserProfile(authUser.uid || authUser.id);
+      const uid = authUser.uid || authUser.id;
+      const { profile, foods, workouts, weights, water } = await loadUserData(uid);
       setUserProfile(profile || { onboarded: false });
+      if (foods) useStore.getState().setFoodLogs(foods);
+      if (workouts) useStore.getState().setWorkoutLogs(workouts);
+      if (weights) useStore.getState().setWeightLogs(weights);
+      if (water !== undefined && water !== null) useStore.getState().setWaterIntake(water);
       navigate('/user/dashboard');
     }
   };
