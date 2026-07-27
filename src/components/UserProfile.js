@@ -996,7 +996,11 @@ export default function UserProfile({ onNotification }) {
   const xpPercent = Math.min(100, Math.round((xp / xpToNext) * 100));
   const unlockedAchievements = (ecoStore.achievements || []).filter(a => a.unlocked).length;
   const totalAchievements = (ecoStore.achievements || []).length;
-  const goalLabel = goal === 'lose' ? 'Weight Loss' : goal === 'gains' ? 'Lean Gains' : 'Maintenance';
+  const goalLabel = (goal === 'gain' || goal === 'gains' || (Array.isArray(healthInterests) && healthInterests.includes("Muscle Gain") && !healthInterests.includes("Weight Loss")))
+    ? 'Muscle Gain'
+    : (goal === 'lose' || (Array.isArray(healthInterests) && healthInterests.includes("Weight Loss") && !healthInterests.includes("Muscle Gain")))
+      ? 'Weight Loss'
+      : (Array.isArray(healthInterests) && healthInterests.length > 0 ? healthInterests[0] : (goal === 'maintain' ? 'Maintenance' : 'Weight Loss'));
   const mobileBmi = bmi;
 
   const toggleAccordion = (id) => {
@@ -2063,6 +2067,14 @@ export default function UserProfile({ onNotification }) {
                       <option value="elite">Elite Athlete</option>
                     </select>
                   </div>
+                  <div>
+                    <label className={labelClass}>Fitness Goal</label>
+                    <select value={goal} onChange={(e) => setGoal(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
+                      <option value="lose">Weight Loss</option>
+                      <option value="gain">Muscle Gain</option>
+                      <option value="maintain">Maintain Weight</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div>
@@ -2135,9 +2147,16 @@ export default function UserProfile({ onNotification }) {
                           key={opt}
                           type="button"
                           onClick={() => {
-                            setHealthInterests(prev => 
-                              prev.includes(opt) ? prev.filter(x => x !== opt) : [...prev, opt]
-                            );
+                            setHealthInterests(prev => {
+                              const isAdding = !prev.includes(opt);
+                              const next = isAdding ? [...prev, opt] : prev.filter(x => x !== opt);
+                              if (isAdding) {
+                                if (opt === "Muscle Gain" || opt === "Strength Training") setGoal("gain");
+                                else if (opt === "Weight Loss") setGoal("lose");
+                                else if (opt === "General Wellness") setGoal("maintain");
+                              }
+                              return next;
+                            });
                           }}
                           className={`px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase border cursor-pointer transition-colors ${
                             selected 
