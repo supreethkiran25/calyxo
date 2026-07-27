@@ -1,8 +1,8 @@
 import webpush from 'web-push';
 import { createClient } from '@supabase/supabase-js';
 
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY || 'BNjL43MXpIg8wnNgibvfU57zGt0Qtj8zjWYAjkQgt7QbIzG1jmCjmT7xYXV57S3SedgXQCjS4CalD2IyvuRpAis';
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'o9CYICRCB-op99pXF5DLqNli7RFdC6b_Z-7UGlfO91o';
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY || 'BJEqrp7IotPHK2FR8qvgATPii4lV3KY3jirYWe1b6X9vRdY6rwbsnyCQiOR2J4VUHuP-eWLfX4cHAmhFqnWSBWs';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '3AASSWF8bDu3EJG5_GHSbBozW_OvI--jfYlJoJyUByg';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:support@calyxo.app';
 
 try {
