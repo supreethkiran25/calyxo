@@ -277,6 +277,16 @@ export const signInWithApple = async (remember = true) => {
 };
 
 export const signOutUser = async () => {
+  try {
+    const { data } = await supabase.auth.getUser();
+    if (data?.user?.id) {
+      const endpoint = (await (await navigator.serviceWorker?.getRegistration())?.pushManager?.getSubscription())?.endpoint;
+      if (endpoint) {
+        await supabase.from('push_subscriptions').delete().eq('user_id', data.user.id).eq('endpoint', endpoint);
+      }
+    }
+  } catch (e) {}
+
   if (isMockMode) {
     localStorage.removeItem("calyxo_mock_user");
     return;

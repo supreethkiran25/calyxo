@@ -9,6 +9,7 @@ import ThemeToggle from './ThemeToggle';
 import { saveUserProfile, signOutUser } from '../lib/dbService';
 import { startRazorpayCheckout } from '../utils/razorpay';
 import { applyAppearanceSettings } from '../utils/appearanceUtils';
+import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '../services/notificationService';
 
 const SETTINGS_CATEGORIES = [
   { id: 'appearance', label: 'Appearance & Themes', icon: Eye, desc: 'Themes, dark mode, background effects' },
@@ -407,6 +408,36 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
       case 'notifications':
         return (
           <form onSubmit={(e) => handleSaveAll(e, 'Notifications')} className="space-y-4 text-xs">
+            <div className="bg-[var(--surface)] border border-[var(--card-border)] p-3.5 rounded-2xl">
+              <label className="flex justify-between items-center cursor-pointer select-none">
+                <div className="pr-4">
+                  <span className="text-xs font-bold text-[var(--foreground)] flex items-center gap-1.5">
+                    <Bell className="w-4 h-4 text-[var(--color-acid-green)]" /> Push Notifications
+                  </span>
+                  <span className="text-[10px] text-[var(--muted-foreground)] block mt-0.5">
+                    Receive background alerts on device lockscreen & PWA even when closed.
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted'}
+                  onChange={async (e) => {
+                    const userId = user?.id;
+                    if (e.target.checked) {
+                      const res = await subscribeToPushNotifications(userId);
+                      if (res?.success) setSaveStatus('Push notifications enabled!');
+                      else setSaveStatus(res?.error || 'Failed to enable notifications.');
+                    } else {
+                      await unsubscribeFromPushNotifications(userId);
+                      setSaveStatus('Push notifications disabled.');
+                    }
+                    setTimeout(() => setSaveStatus(''), 3000);
+                  }}
+                  className="w-5 h-5 rounded border-[var(--card-border)] accent-[var(--color-acid-green)] cursor-pointer shrink-0"
+                />
+              </label>
+            </div>
+
             <div className="flex flex-col space-y-1">
               <label className={labelClass}>Digest & Check-in Frequency</label>
               <select value={notificationFrequency} onChange={(e) => setNotificationFrequency(e.target.value)} className={inputClass}>
