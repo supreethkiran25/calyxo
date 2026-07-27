@@ -92,15 +92,8 @@ function findFewShotExamples(queryText, logs) {
 }
 
 // Rate limit cooldown manager (5 minute cooldown after 429)
-let lastRateLimitTime = 0;
-const RATE_LIMIT_COOLDOWN_MS = 5 * 60 * 1000;
-
 // Secure proxy helper function with automatic direct client API fallback
 async function callGeminiAPI(model = 'gemini-2.5-flash', payload) {
-  if (Date.now() - lastRateLimitTime < RATE_LIMIT_COOLDOWN_MS) {
-    throw new Error("Gemini API rate limit cooldown active; using local offline twin");
-  }
-
   // 1. Try serverless backend proxy (/api/gemini)
   try {
     const proxyRes = await fetch('/api/gemini', {
@@ -114,21 +107,16 @@ async function callGeminiAPI(model = 'gemini-2.5-flash', payload) {
       if (data && data.candidates && data.candidates.length > 0) {
         return data;
       }
-      if (data && data.error) {
-        console.warn("Proxy returned error, falling back to direct API:", data.error.message);
-      }
-    } else if (proxyRes.status === 429) {
-      lastRateLimitTime = Date.now();
-      throw new Error("Gemini API 429 (Too Many Requests)");
     }
   } catch (proxyErr) {
-    console.warn("Serverless /api/gemini proxy 404/error, attempting direct Google Gemini API call:", proxyErr.message);
+    console.warn("Serverless /api/gemini proxy 404/error, fallback to direct API:", proxyErr.message);
   }
 
   // 2. Direct fallback to Google Gemini REST API
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || (typeof process !== 'undefined' && process.env ? (process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY) : '') || 'AIzaSyC_kwCmfgILI3UirtKpyxnhTNDhXMHvsZ4';
 
   const modelsToTry = Array.from(new Set([model, 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-3.5-flash']));
+  let lastError = null;
 
   for (const targetModel of modelsToTry) {
     try {
@@ -139,21 +127,20 @@ async function callGeminiAPI(model = 'gemini-2.5-flash', payload) {
         body: JSON.stringify(payload)
       });
 
-      if (directRes.ok) {
-        const data = await directRes.json();
-        if (data && data.candidates && data.candidates.length > 0) {
-          return data;
-        }
-      } else if (directRes.status === 429) {
-        lastRateLimitTime = Date.now();
-        throw new Error("Gemini API 429 (Too Many Requests)");
+      const data = await directRes.json();
+      if (directRes.ok && data && data.candidates && data.candidates.length > 0) {
+        return data;
+      }
+      if (data && data.error) {
+        lastError = data.error.message;
       }
     } catch (e) {
       console.warn(`Direct API call to model ${targetModel} failed:`, e.message);
+      lastError = e.message;
     }
   }
 
-  throw new Error("All Gemini API calls (proxy & direct) failed");
+  throw new Error(lastError || "All Gemini API calls (proxy & direct) failed");
 }
 
 // =====================================================================
