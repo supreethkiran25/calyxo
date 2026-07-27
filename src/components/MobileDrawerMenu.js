@@ -10,7 +10,8 @@ export default function MobileDrawerMenu({ isOpen, onClose }) {
     { label: 'Progress', ariaLabel: 'View Analytics & Progress', link: '/user/progress' },
     { label: 'Health Hub', ariaLabel: 'Open Health Hub', link: '/user/healthhub' },
     { label: 'AI Coach', ariaLabel: 'Open AI Assistant', link: '/user/ai' },
-    { label: 'Profile', ariaLabel: 'User Profile Settings', link: '/user/profile' },
+    { label: 'Profile', ariaLabel: 'User Profile', link: '/user/profile' },
+    { label: 'Settings', ariaLabel: 'Open App Settings', link: '/user/profile' },
   ];
 
   const socialItems = [

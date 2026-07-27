@@ -1,5 +1,6 @@
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
+import { Settings } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import './StaggeredMenu.css';
 
@@ -507,12 +508,23 @@ export const StaggeredMenu = ({
                 })}
               </div>
 
-              {/* Handcrafted Theme Switcher Bar */}
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-[var(--surface)] border border-[var(--card-border)] mt-2">
-                <span className="text-xs font-bold text-[var(--foreground)]">Appearance</span>
-                <div className="flex items-center gap-2">
+              {/* Dual Controls: Theme Toggle & Settings */}
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <div className="flex items-center justify-between p-2.5 px-3 rounded-2xl bg-[var(--surface)] border border-[var(--card-border)]">
+                  <span className="text-xs font-bold text-[var(--foreground)]">Theme</span>
                   <ThemeToggle />
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigate?.('/user/profile');
+                    closeMenu();
+                  }}
+                  className="flex items-center justify-between p-2.5 px-3 rounded-2xl bg-[var(--surface)] border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--surface)] text-[var(--foreground)] hover:text-[var(--color-acid-green)] transition-all cursor-pointer text-left"
+                >
+                  <span className="text-xs font-bold">Settings</span>
+                  <Settings className="w-4 h-4 text-[var(--muted-foreground)]" />
+                </button>
               </div>
             </div>
           )}
