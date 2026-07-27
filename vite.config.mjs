@@ -62,6 +62,7 @@ export default defineConfig(({ mode }) => {
       loader: 'jsx',
       include: /src\/.*\.jsx?$/,
       exclude: [],
+      drop: mode === 'production' ? ['console', 'debugger'] : [],
     },
     optimizeDeps: {
       esbuildOptions: {

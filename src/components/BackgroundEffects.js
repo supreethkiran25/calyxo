@@ -143,6 +143,10 @@ export default function BackgroundEffects({ activeTab }) {
 
     // Core Canvas Loop
     const render = () => {
+      if (document.hidden) {
+        animationId = requestAnimationFrame(render);
+        return;
+      }
       ctx.clearRect(0, 0, width, height);
 
       const activeSpeed = getSpeedMultiplier();

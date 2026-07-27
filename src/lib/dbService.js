@@ -893,11 +893,29 @@ export const saveUserProfile = async (userId, profile) => {
   }
 };
 
-/* Helper to load all user data in parallel */
+/* Helper to load all user data in parallel with 15-second in-memory cache */
+let userDataCacheMap = {};
+const USER_DATA_CACHE_TTL_MS = 15000; // 15s session cache
+
+export const invalidateUserDataCache = (userId) => {
+  if (userId) {
+    delete userDataCacheMap[userId];
+  } else {
+    userDataCacheMap = {};
+  }
+};
+
 export const loadUserData = async (userId) => {
   if (!userId) {
     return { profile: null, foods: [], workouts: [], weights: [], water: 0 };
   }
+
+  const now = Date.now();
+  const cachedEntry = userDataCacheMap[userId];
+  if (cachedEntry && (now - cachedEntry.timestamp < USER_DATA_CACHE_TTL_MS)) {
+    return cachedEntry.data;
+  }
+
   const [profile, foods, workouts, weights, water] = await Promise.all([
     getUserProfile(userId),
     getFoodLogs(userId),
@@ -905,7 +923,9 @@ export const loadUserData = async (userId) => {
     getWeightLogs(userId),
     getWaterIntake(userId)
   ]);
-  return { profile, foods, workouts, weights, water };
+  const result = { profile, foods, workouts, weights, water };
+  userDataCacheMap[userId] = { data: result, timestamp: now };
+  return result;
 };
 
 /* ==========================================================================

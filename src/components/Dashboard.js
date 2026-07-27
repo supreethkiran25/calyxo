@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
@@ -235,23 +235,23 @@ export default function Dashboard({ onNotification }) {
     }
   };
 
-  const todaysFoodLogs = foodLogs.filter(x => isToday(x.timestamp));
-  const todaysWorkoutLogs = workoutLogs.filter(x => isToday(x.timestamp));
+  const todaysFoodLogs = useMemo(() => foodLogs.filter(x => isToday(x.timestamp)), [foodLogs]);
+  const todaysWorkoutLogs = useMemo(() => workoutLogs.filter(x => isToday(x.timestamp)), [workoutLogs]);
 
   // Consumed aggregates (resets after 24 hours)
-  const totalCal = todaysFoodLogs.reduce((s, x) => s + x.calories, 0);
-  const totalProt = todaysFoodLogs.reduce((s, x) => s + (x.protein || 0), 0);
-  const totalCarb = todaysFoodLogs.reduce((s, x) => s + (x.carbs || 0), 0);
-  const totalFat = todaysFoodLogs.reduce((s, x) => s + (x.fat || 0), 0);
+  const totalCal = useMemo(() => todaysFoodLogs.reduce((s, x) => s + x.calories, 0), [todaysFoodLogs]);
+  const totalProt = useMemo(() => todaysFoodLogs.reduce((s, x) => s + (x.protein || 0), 0), [todaysFoodLogs]);
+  const totalCarb = useMemo(() => todaysFoodLogs.reduce((s, x) => s + (x.carbs || 0), 0), [todaysFoodLogs]);
+  const totalFat = useMemo(() => todaysFoodLogs.reduce((s, x) => s + (x.fat || 0), 0), [todaysFoodLogs]);
 
   // Estimated burned from workouts
-  const totalBurned = todaysWorkoutLogs.reduce((s, x) => s + (x.caloriesBurned || 0), 0);
+  const totalBurned = useMemo(() => todaysWorkoutLogs.reduce((s, x) => s + (x.caloriesBurned || 0), 0), [todaysWorkoutLogs]);
 
   // Recent meals (last 4 today)
-  const recentMeals = [...todaysFoodLogs].reverse().slice(0, 4);
+  const recentMeals = useMemo(() => [...todaysFoodLogs].reverse().slice(0, 4), [todaysFoodLogs]);
 
   // Recent workouts (last 3 today)
-  const recentWorkouts = [...todaysWorkoutLogs].reverse().slice(0, 3);
+  const recentWorkouts = useMemo(() => [...todaysWorkoutLogs].reverse().slice(0, 3), [todaysWorkoutLogs]);
 
   // Water hydration percentage
   const waterGoal = 3000;
