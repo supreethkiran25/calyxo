@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useEcosystemStore } from './useEcosystemStore';
+import { applyAppearanceSettings, loadSavedAppearance } from '../utils/appearanceUtils';
 
 const DEFAULT_USER_PROFILE = {
   onboarded: false,
@@ -68,7 +69,6 @@ const DEFAULT_USER_PROFILE = {
     themeMode: 'system',
     largeTextMode: false,
     highContrastMode: false,
-    dyslexiaFont: false,
     enable3DExperience: true
   },
 
@@ -80,7 +80,7 @@ const DEFAULT_USER_PROFILE = {
 export const useStore = create((set, get) => ({
   user: null,
   activeTab: 'dashboard',
-  theme: typeof window !== 'undefined' ? (localStorage.getItem('calyxo_theme') || 'light') : 'light',
+  theme: typeof window !== 'undefined' ? (localStorage.getItem('calyxo_theme') || 'dark') : 'dark',
   
   // Data State
   foodLogs: [],
@@ -105,28 +105,14 @@ export const useStore = create((set, get) => ({
   // Tab Navigation Actions
   setActiveTab: (activeTab) => set({ activeTab }),
 
-  // Theme Actions
+  // Theme & Appearance Actions
   setTheme: (theme) => {
-    if (typeof window !== 'undefined') {
-      const root = window.document.documentElement;
-      root.classList.remove('dark');
-      root.removeAttribute('data-theme');
+    const currentApp = get().userProfile?.appearance || {};
+    applyAppearanceSettings({
+      ...currentApp,
+      theme
+    });
 
-      if (theme === 'dark' || theme === 'obsidian') {
-        root.classList.add('dark');
-        root.setAttribute('data-theme', 'obsidian');
-        localStorage.setItem('calyxo_theme', 'obsidian');
-      } else if (theme === 'solarized') {
-        root.setAttribute('data-theme', 'solarized');
-        localStorage.setItem('calyxo_theme', 'solarized');
-      } else if (theme === 'emerald') {
-        root.setAttribute('data-theme', 'emerald');
-        localStorage.setItem('calyxo_theme', 'emerald');
-      } else {
-        root.setAttribute('data-theme', 'light');
-        localStorage.setItem('calyxo_theme', 'light');
-      }
-    }
     set((state) => ({
       theme,
       userProfile: {
@@ -147,8 +133,16 @@ export const useStore = create((set, get) => ({
 
   initializeTheme: () => {
     if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('calyxo_theme') || 'light';
-      get().setTheme(savedTheme);
+      const saved = loadSavedAppearance();
+      const currentApp = get().userProfile?.appearance || {};
+      applyAppearanceSettings({
+        ...currentApp,
+        theme: saved.theme || 'dark',
+        largeText: currentApp.largeTextMode ?? saved.largeText,
+        highContrast: currentApp.highContrastMode ?? saved.highContrast,
+        reduceMotion: currentApp.reduceMotion ?? saved.reduceMotion
+      });
+      set({ theme: saved.theme || 'dark' });
     }
   },
 

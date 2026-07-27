@@ -8,6 +8,7 @@ import { useStore } from '../store/useStore';
 import ThemeToggle from './ThemeToggle';
 import { saveUserProfile, signOutUser } from '../lib/dbService';
 import { startRazorpayCheckout } from '../utils/razorpay';
+import { applyAppearanceSettings } from '../utils/appearanceUtils';
 
 const SETTINGS_CATEGORIES = [
   { id: 'appearance', label: 'Appearance & Themes', icon: Eye, desc: 'Themes, dark mode, background effects' },
@@ -40,7 +41,6 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
   const [reduceMotionState, setReduceMotionState] = useState(userProfile?.appearance?.reduceMotion || false);
   const [largeTextMode, setLargeTextMode] = useState(userProfile?.appearance?.largeText || false);
   const [highContrastMode, setHighContrastMode] = useState(userProfile?.appearance?.highContrast || false);
-  const [dyslexiaFont, setDyslexiaFont] = useState(userProfile?.appearance?.dyslexiaFont || false);
 
   // AI Coach States
   const [coachPersonality, setCoachPersonality] = useState(userProfile?.coachPersonality || 'motivational');
@@ -108,8 +108,7 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
         performanceMode,
         reduceMotion: reduceMotionState,
         largeText: largeTextMode,
-        highContrast: highContrastMode,
-        dyslexiaFont
+        highContrast: highContrastMode
       },
       privacy: {
         aiDataUsage,
@@ -286,7 +285,20 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
                 <input
                   type="checkbox"
                   checked={reduceMotionState}
-                  onChange={(e) => setReduceMotionState(e.target.checked)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setReduceMotionState(checked);
+                    applyAppearanceSettings({
+                      theme: themeMode,
+                      largeText: largeTextMode,
+                      highContrast: highContrastMode,
+                      reduceMotion: checked,
+                      bgEffectsEnabled,
+                      bgStyle,
+                      animationIntensity,
+                      performanceMode
+                    });
+                  }}
                   className="w-4 h-4 rounded border-[var(--card-border)] accent-[var(--color-acid-green)] cursor-pointer"
                 />
                 <div>
@@ -302,7 +314,6 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
                 {[
                   { key: 'largeText', label: 'Large Text', state: largeTextMode, setter: setLargeTextMode, desc: 'Increases font size' },
                   { key: 'highContrast', label: 'High Contrast', state: highContrastMode, setter: setHighContrastMode, desc: 'Sharper boundaries' },
-                  { key: 'dyslexiaFont', label: 'Dyslexia Font', state: dyslexiaFont, setter: setDyslexiaFont, desc: 'High-readability font' },
                 ].map(item => (
                   <label key={item.key} className="flex justify-between items-center bg-[var(--surface)] border border-[var(--card-border)] p-3 rounded-2xl cursor-pointer select-none">
                     <div>
@@ -312,7 +323,20 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
                     <input
                       type="checkbox"
                       checked={item.state}
-                      onChange={(e) => item.setter(e.target.checked)}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        item.setter(checked);
+                        applyAppearanceSettings({
+                          theme: themeMode,
+                          largeText: item.key === 'largeText' ? checked : largeTextMode,
+                          highContrast: item.key === 'highContrast' ? checked : highContrastMode,
+                          reduceMotion: reduceMotionState,
+                          bgEffectsEnabled,
+                          bgStyle,
+                          animationIntensity,
+                          performanceMode
+                        });
+                      }}
                       className="w-4 h-4 rounded border-[var(--card-border)] accent-[var(--color-acid-green)] cursor-pointer shrink-0"
                     />
                   </label>

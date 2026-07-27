@@ -6,6 +6,7 @@ import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { calculateMacroTargets } from '../utils/macroCalculator';
 import { startRazorpayCheckout } from '../utils/razorpay';
+import { applyAppearanceSettings } from '../utils/appearanceUtils';
 import { 
   saveUserProfile, 
   signOutUser,
@@ -243,28 +244,17 @@ export default function UserProfile({ onNotification }) {
 
   // Handle accessibility overrides on the root layout
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const root = window.document.documentElement;
-      
-      if (largeTextMode) {
-        root.classList.add('accessibility-large-text');
-      } else {
-        root.classList.remove('accessibility-large-text');
-      }
-
-      if (highContrastMode) {
-        root.classList.add('accessibility-high-contrast');
-      } else {
-        root.classList.remove('accessibility-high-contrast');
-      }
-
-      if (dyslexiaFont) {
-        root.classList.add('accessibility-dyslexic-font');
-      } else {
-        root.classList.remove('accessibility-dyslexic-font');
-      }
-    }
-  }, [largeTextMode, highContrastMode, dyslexiaFont]);
+    applyAppearanceSettings({
+      theme: themeMode,
+      largeText: largeTextMode,
+      highContrast: highContrastMode,
+      reduceMotion: reduceMotionState,
+      bgEffectsEnabled,
+      bgStyle,
+      animationIntensity,
+      performanceMode
+    });
+  }, [largeTextMode, highContrastMode, reduceMotionState, themeMode]);
 
   // Handle URL section redirect when finishing setup from dashboard
   useEffect(() => {
@@ -1127,11 +1117,10 @@ export default function UserProfile({ onNotification }) {
 
       <div className="space-y-2 pt-2 border-t border-card-border">
         <h4 className="text-[10px] font-bold text-foreground uppercase tracking-wider">Accessibility Options</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {[
             { key: 'largeText', label: 'Large Text', state: largeTextMode, setter: setLargeTextMode, desc: 'Increases font size' },
             { key: 'highContrast', label: 'High Contrast', state: highContrastMode, setter: setHighContrastMode, desc: 'Sharper boundaries' },
-            { key: 'dyslexiaFont', label: 'Dyslexia Font', state: dyslexiaFont, setter: setDyslexiaFont, desc: 'High-readability font' },
           ].map(item => (
             <label key={item.key} className="flex flex-col justify-between bg-surface border border-card-border p-2 rounded-lg cursor-pointer select-none min-h-[60px]">
               <div className="flex justify-between items-start w-full">

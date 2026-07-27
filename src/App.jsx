@@ -1,9 +1,10 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import ErrorBoundary from './components/ErrorBoundary';
 import LaunchScreen from './components/LaunchScreen';
 import { lazyWithRetry } from './utils/lazyWithRetry';
+import { useStore } from './store/useStore';
 
 // Layout — lazy loaded with chunk retry protection
 const UserLayout = lazyWithRetry(() => import('./layouts/UserLayout'));
@@ -27,6 +28,12 @@ const PrivacyPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(
 const TermsPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(m => ({ default: m.TermsPage })));
 
 function App() {
+  const initializeTheme = useStore(state => state.initializeTheme);
+
+  useEffect(() => {
+    initializeTheme();
+  }, [initializeTheme]);
+
   return (
     <HelmetProvider>
       <ErrorBoundary>

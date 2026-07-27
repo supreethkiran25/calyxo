@@ -690,17 +690,6 @@ textarea:focus {
   text-shadow: none !important;
 }
 
-/* 3. Dyslexia Friendly Typography override */
-.accessibility-dyslexic-font {
-  font-family: 'Comic Sans MS', 'OpenDyslexic', 'Chalkboard SE', cursive, sans-serif !important;
-}
-
-.accessibility-dyslexic-font * {
-  font-family: 'Comic Sans MS', 'OpenDyslexic', 'Chalkboard SE', cursive, sans-serif !important;
-  letter-spacing: 0.05em !important;
-  word-spacing: 0.1em !important;
-}
-
 /* ── Mobile / Responsive Utilities ─────────────────────── */
 
 /* Hide scrollbar but keep scrollability */
