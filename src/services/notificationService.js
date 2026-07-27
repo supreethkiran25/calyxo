@@ -8,6 +8,7 @@ export async function registerServiceWorker() {
   try {
     const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     swRegistration = reg;
+    if (reg.update) reg.update();
     console.log('Calyxo Service Worker registered successfully:', reg.scope);
     return reg;
   } catch (error) {
