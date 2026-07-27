@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
@@ -10,7 +10,8 @@ import { syncAIHealthTwin } from '../lib/aiEcosystemService';
 import { calculateMacroTargets } from '../utils/macroCalculator';
 import { isToday } from '../utils/dateUtils';
 import { Flame, Droplets, Activity, Dumbbell, Utensils, Star, Sparkles, ChevronRight, Award, Zap, Brain, Moon, BookOpen, Bot, TrendingUp, PieChart } from 'lucide-react';
-import ThreeHealthCore from './ThreeHealthCore';
+
+const ThreeHealthCore = lazy(() => import('./ThreeHealthCore'));
 
 // ── Calorie donut ring ──────────────────────────────────────────
 function CalorieRing({ consumed, burned, goal }) {
@@ -142,15 +143,29 @@ export default function Dashboard({ onNotification }) {
   const [activity, setActivity] = useState(1.55);
   const [goal, setGoal] = useState('lose');
   const [showAllBiometrics, setShowAllBiometrics] = useState(false);
-
-  const [metrics, setMetrics] = useState({
-    bmi: 22.8, bmr: 1653, tdee: 2562, calorieGoal: 2062,
-    bodyType: 'Mesomorph', bmiStatus: 'Normal Weight',
-    macros: { protein: 140, carbs: 210, fat: 57 }
-  });
-
   const [connection, setConnection] = useState(null);
   const [assignments, setAssignments] = useState([]);
+
+  const metrics = useMemo(() => {
+    const computed = calculateMacroTargets({
+      weight,
+      height,
+      age,
+      gender,
+      activity,
+      goal,
+      units
+    });
+    return {
+      bmi: computed.bmi,
+      bmr: computed.bmr,
+      tdee: computed.tdee,
+      calorieGoal: computed.calorieGoal,
+      bodyType: computed.bodyType,
+      bmiStatus: computed.bmiStatus,
+      macros: computed.targetMacros || { protein: 140, carbs: 210, fat: 57 }
+    };
+  }, [gender, age, weight, height, activity, goal, units]);
 
   useEffect(() => {
     const load = async () => {
@@ -171,8 +186,12 @@ export default function Dashboard({ onNotification }) {
         const savedWater = await getWaterIntake(userId);
         setWaterIntake(savedWater || 0);
 
-        // Fetch AI Health Twin (Background sync)
-        syncAIHealthTwin();
+        // Fetch AI Health Twin (Background sync without blocking main thread)
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(() => syncAIHealthTwin());
+        } else {
+          setTimeout(() => syncAIHealthTwin(), 300);
+        }
       } catch (err) {
         console.error("Dashboard profile/water loading error", err);
         if (onNotification) onNotification("Error loading profile or water intake logs. Please reload.");
@@ -180,34 +199,6 @@ export default function Dashboard({ onNotification }) {
     };
     load();
   }, [userId, setUserProfile, setWaterIntake, onNotification]);
-
-  const recalculateMetrics = useCallback(() => {
-    const computed = calculateMacroTargets({
-      weight,
-      height,
-      age,
-      gender,
-      activity,
-      goal,
-      units
-    });
-
-    setMetrics({ 
-      bmi: computed.bmi, 
-      bmr: computed.bmr, 
-      tdee: computed.tdee, 
-      calorieGoal: computed.calorieGoal, 
-      bodyType: computed.bodyType, 
-      bmiStatus: computed.bmiStatus, 
-      macros: computed.targetMacros 
-    });
-  }, [gender, age, weight, height, activity, goal, units]);
-
-  useEffect(() => { 
-    setTimeout(() => {
-      recalculateMetrics(); 
-    }, 0);
-  }, [recalculateMetrics]);
 
   const handleAddWater = async (amount) => {
     const prevWater = useStore.getState().waterIntake;
@@ -417,7 +408,9 @@ export default function Dashboard({ onNotification }) {
       </div>
       
       {/* Immersive Health Core Ring */}
-      <ThreeHealthCore />
+      <Suspense fallback={<div className="h-44 rounded-2xl bg-[var(--surface)] border border-[var(--card-border)] animate-pulse" />}>
+        <ThreeHealthCore />
+      </Suspense>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start w-full">
         
@@ -556,10 +549,10 @@ export default function Dashboard({ onNotification }) {
             <div className="flex gap-4 items-center mb-4">
               <div className="relative w-16 h-36 border-2 border-cyan-400/40 bg-black/40 rounded-2xl overflow-hidden shadow-[0_0_15px_rgba(6,182,212,0.2)] flex flex-col justify-end">
                 <motion.div
-                  initial={{ height: 0 }}
-                  animate={{ height: `${waterPct}%` }}
-                  transition={{ duration: 1, ease: [0.34, 1.56, 0.64, 1] }}
-                  className="w-full relative bg-gradient-to-t from-blue-700 via-cyan-500 to-cyan-400"
+                  initial={{ scaleY: 0 }}
+                  animate={{ scaleY: waterPct / 100 }}
+                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                  className="w-full h-full relative bg-gradient-to-t from-blue-700 via-cyan-500 to-cyan-400 origin-bottom"
                 >
                   <div className="absolute -top-2 left-0 w-[200%] h-4 bg-cyan-300/50 rounded-[40%] animate-liquid-wave-1 pointer-events-none" />
                   <div className="absolute bottom-1 left-3 w-1.5 h-1.5 rounded-full bg-white/60 animate-bubble-1" />
