@@ -681,11 +681,27 @@ export const getUserProfile = async (userId) => {
 
     if (error && error.code !== 'PGRST116') throw error;
 
-    let userProfileSubPlan = null;
+    let userEmail = "";
     try {
       const { data: authUserRes } = await supabase.auth.getUser();
-      const currentEmail = authUserRes?.user?.email || "";
+      if (authUserRes?.user?.email) {
+        userEmail = authUserRes.user.email;
+      }
+    } catch (e) {}
 
+    if (!userEmail) {
+      try {
+        const url = activeSupabaseUrl;
+        const projectRef = url.includes('//') ? url.split('//')[1].split('.')[0] : 'nwcatvlfoayzrwatvyrf';
+        const sessionStr = localStorage.getItem(`sb-${projectRef}-auth-token`) || localStorage.getItem('supabase.auth.token');
+        if (sessionStr) {
+          userEmail = JSON.parse(sessionStr)?.user?.email || "";
+        }
+      } catch (e) {}
+    }
+
+    let userProfileSubPlan = null;
+    try {
       const { data: upData } = await supabase
         .from("user_profiles")
         .select("subscription_plan, email")
@@ -695,12 +711,15 @@ export const getUserProfile = async (userId) => {
       if (upData?.subscription_plan && upData.subscription_plan !== 'FREE') {
         userProfileSubPlan = upData.subscription_plan;
       }
-
-      const checkEmail = (currentEmail || upData?.email || "").toLowerCase().trim();
-      if (checkEmail === 'supreethkiran25@gmail.com') {
-        userProfileSubPlan = userProfileSubPlan || 'HIGH';
+      if (upData?.email) {
+        userEmail = userEmail || upData.email;
       }
     } catch (upErr) { /* ignore fallback query error */ }
+
+    const cleanEmail = (userEmail || "").toLowerCase().trim();
+    if (cleanEmail === 'supreethkiran25@gmail.com') {
+      userProfileSubPlan = 'HIGH';
+    }
 
     if (data) {
       let extra = {};
