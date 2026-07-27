@@ -1,9 +1,13 @@
--- =========================================================================
--- CALYXO MASTER DATABASE SCHEMA & ALL MIGRATIONS (CONSOLIDATED FOR SQL EDITOR)
--- Copy and paste this complete script into the Supabase SQL Editor and run it.
--- =========================================================================
+-- =============================================================
+-- Calyxo — Full Combined Database Schema
+-- Merges: 01_init.sql + 02_assigned_plans.sql + 03_streak_freeze.sql
+-- Run this in Supabase SQL editor to set up the entire schema.
+-- =============================================================
 
--- 1. Helper Functions & Triggers
+-- Combined Database Schema and Initialization
+-- Consolidated from migrations 01 to 12
+
+-- 1. Create helper functions & triggers
 CREATE OR REPLACE FUNCTION public.check_sensitive_fields()
 RETURNS TRIGGER
 SECURITY DEFINER
@@ -12,6 +16,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
   IF NEW.role IS DISTINCT FROM OLD.role OR NEW.subscription_plan IS DISTINCT FROM OLD.subscription_plan THEN
+    -- Block authenticated and anon users explicitly. The service_role bypasses this naturally.
     IF auth.role() IN ('authenticated', 'anon') THEN
       RAISE EXCEPTION 'Not authorized to modify role or subscription_plan';
     END IF;
@@ -32,8 +37,6 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   "photoURL" text,
   role text default 'USER' not null,
   subscription_plan text default 'FREE' not null,
-  freeze_tokens integer default 1,
-  last_freeze_granted timestamp with time zone,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -147,18 +150,6 @@ CREATE TABLE IF NOT EXISTS public.assigned_meal_plans (
 
 ALTER TABLE public.assigned_meal_plans ENABLE ROW LEVEL SECURITY;
 
-CREATE TABLE IF NOT EXISTS public.assigned_plans (
-  id uuid default gen_random_uuid() primary key,
-  trainer_id uuid references public.user_profiles(id) on delete cascade not null,
-  client_id uuid references public.user_profiles(id) on delete cascade not null,
-  plan_type text check (plan_type in ('workout', 'nutrition')) not null,
-  plan_data jsonb default '{}'::jsonb not null,
-  assigned_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  status text check (status in ('active', 'completed', 'dismissed')) default 'active' not null
-);
-
-ALTER TABLE public.assigned_plans ENABLE ROW LEVEL SECURITY;
-
 -- 7. Trainer Permissions
 CREATE TABLE IF NOT EXISTS public.trainer_permissions (
   id uuid default gen_random_uuid() primary key,
@@ -268,7 +259,7 @@ CREATE TABLE IF NOT EXISTS public.trainer_assignments (
 
 ALTER TABLE public.trainer_assignments ENABLE ROW LEVEL SECURITY;
 
--- 12. Trainer Messages
+-- 12. Trainer Messages (Final Single-threaded Chat structure)
 CREATE TABLE IF NOT EXISTS public.trainer_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   trainer_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -390,7 +381,7 @@ CREATE TABLE IF NOT EXISTS public."TrainingLogs" (
 
 ALTER TABLE public."TrainingLogs" ENABLE ROW LEVEL SECURITY;
 
--- 14. Trainer Tasks
+-- 14. Trainer Tasks (Merged fields from Migrations 08 and 12)
 CREATE TABLE IF NOT EXISTS public.trainer_tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   trainer_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -410,7 +401,7 @@ CREATE TABLE IF NOT EXISTS public.trainer_tasks (
 
 ALTER TABLE public.trainer_tasks ENABLE ROW LEVEL SECURITY;
 
--- 15. Trainer Documents
+-- 15. Trainer Documents (Merged fields from Migrations 09 and 12)
 CREATE TABLE IF NOT EXISTS public.trainer_documents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   trainer_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -428,129 +419,271 @@ CREATE TABLE IF NOT EXISTS public.trainer_documents (
 
 ALTER TABLE public.trainer_documents ENABLE ROW LEVEL SECURITY;
 
--- 16. Push Subscriptions (Web Push & PWA Native OS Notification Engine)
-CREATE TABLE IF NOT EXISTS public.push_subscriptions (
-  id uuid default gen_random_uuid() primary key,
-  user_id uuid references public.user_profiles(id) on delete cascade not null,
-  subscription jsonb not null,
-  endpoint text not null unique,
-  platform text default 'web',
-  browser text default 'browser',
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  last_used_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
 
-ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can manage their own push subscriptions"
-  ON public.push_subscriptions
-  FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON public.push_subscriptions(user_id);
-CREATE INDEX IF NOT EXISTS idx_push_subscriptions_endpoint ON public.push_subscriptions(endpoint);
-
--- 17. Security Policies for Core Tables
+-- 16. Security Policies for All Tables
 
 -- User Profiles
 DROP POLICY IF EXISTS "Users can insert own profile" ON public.user_profiles;
-CREATE POLICY "Users can insert own profile" ON public.user_profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can insert own profile" 
+ON public.user_profiles FOR INSERT 
+WITH CHECK (auth.uid() = id);
 
 DROP POLICY IF EXISTS "Users can view own profile" ON public.user_profiles;
-CREATE POLICY "Users can view own profile" ON public.user_profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can view own profile" 
+ON public.user_profiles FOR SELECT 
+USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can view accepted relationships" ON public.user_profiles;
+CREATE POLICY "Users can view accepted relationships" 
+ON public.user_profiles FOR SELECT 
+USING (
+  EXISTS (
+    SELECT 1 FROM public.relationships
+    WHERE status = 'ACCEPTED' 
+    AND (
+      (requester_id = auth.uid() AND addressee_id = public.user_profiles.id)
+      OR 
+      (addressee_id = auth.uid() AND requester_id = public.user_profiles.id)
+    )
+  )
+);
+
+DROP POLICY IF EXISTS "Users and trainers can view connected profiles" ON public.user_profiles;
+CREATE POLICY "Users and trainers can view connected profiles" 
+ON public.user_profiles FOR SELECT 
+USING (
+  id = auth.uid() 
+  OR EXISTS (
+    SELECT 1 FROM public.pt_connections
+    WHERE (user_id = public.user_profiles.id AND trainer_id = auth.uid() AND status = 'accepted')
+       OR (trainer_id = public.user_profiles.id AND user_id = auth.uid() AND status = 'accepted')
+  )
+);
 
 DROP POLICY IF EXISTS "Users can update own profile non-sensitive fields" ON public.user_profiles;
-CREATE POLICY "Users can update own profile non-sensitive fields" ON public.user_profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can update own profile non-sensitive fields" 
+ON public.user_profiles FOR UPDATE 
+USING (auth.uid() = id)
+WITH CHECK (auth.uid() = id);
 
 -- Relationships
 DROP POLICY IF EXISTS "Users can read own relationships" ON public.relationships;
-CREATE POLICY "Users can read own relationships" ON public.relationships FOR SELECT USING (auth.uid() = requester_id OR auth.uid() = addressee_id);
+CREATE POLICY "Users can read own relationships"
+ON public.relationships FOR SELECT
+USING (auth.uid() = requester_id OR auth.uid() = addressee_id);
 
 DROP POLICY IF EXISTS "Users can create relationship requests" ON public.relationships;
-CREATE POLICY "Users can create relationship requests" ON public.relationships FOR INSERT WITH CHECK (auth.uid() = requester_id AND status = 'PENDING');
+CREATE POLICY "Users can create relationship requests"
+ON public.relationships FOR INSERT
+WITH CHECK (
+  auth.uid() = requester_id AND status = 'PENDING'
+);
+
+DROP POLICY IF EXISTS "Addressee can accept or block" ON public.relationships;
+CREATE POLICY "Addressee can accept or block"
+ON public.relationships FOR UPDATE
+USING (auth.uid() = addressee_id)
+WITH CHECK (
+  auth.uid() = addressee_id AND status IN ('ACCEPTED', 'BLOCKED')
+);
 
 -- Trainer Clients
 DROP POLICY IF EXISTS "Trainers can view and manage their clients" ON public.trainer_clients;
-CREATE POLICY "Trainers can view and manage their clients" ON public.trainer_clients FOR ALL USING (auth.uid() = trainer_id);
+CREATE POLICY "Trainers can view and manage their clients" 
+ON public.trainer_clients FOR ALL 
+USING (auth.uid() = trainer_id);
 
 DROP POLICY IF EXISTS "Clients can view their trainer mapping" ON public.trainer_clients;
-CREATE POLICY "Clients can view their trainer mapping" ON public.trainer_clients FOR SELECT USING (auth.uid() = client_id);
-
--- Assigned Plans
-DROP POLICY IF EXISTS "Trainer can insert own assignments" ON public.assigned_plans;
-CREATE POLICY "Trainer can insert own assignments" ON public.assigned_plans FOR INSERT TO authenticated WITH CHECK (auth.uid() = trainer_id);
-
-DROP POLICY IF EXISTS "Trainer can select own assignments" ON public.assigned_plans;
-CREATE POLICY "Trainer can select own assignments" ON public.assigned_plans FOR SELECT TO authenticated USING (auth.uid() = trainer_id);
-
-DROP POLICY IF EXISTS "Client can select own assignments" ON public.assigned_plans;
-CREATE POLICY "Client can select own assignments" ON public.assigned_plans FOR SELECT TO authenticated USING (auth.uid() = client_id);
+CREATE POLICY "Clients can view their trainer mapping" 
+ON public.trainer_clients FOR SELECT 
+USING (auth.uid() = client_id);
 
 -- Trainer Notes
 DROP POLICY IF EXISTS "Trainers manage their private notes" ON public.trainer_notes;
-CREATE POLICY "Trainers manage their private notes" ON public.trainer_notes FOR ALL USING (auth.uid() = trainer_id);
+CREATE POLICY "Trainers manage their private notes" 
+ON public.trainer_notes FOR ALL 
+USING (auth.uid() = trainer_id);
 
--- Workout & Meal Templates
+-- Workout Templates
 DROP POLICY IF EXISTS "Trainers manage their own workout templates" ON public.workout_templates;
-CREATE POLICY "Trainers manage their own workout templates" ON public.workout_templates FOR ALL USING (auth.uid() = trainer_id);
+CREATE POLICY "Trainers manage their own workout templates" 
+ON public.workout_templates FOR ALL 
+USING (auth.uid() = trainer_id);
 
+DROP POLICY IF EXISTS "Clients can view assigned workout templates" ON public.workout_templates;
+CREATE POLICY "Clients can view assigned workout templates" 
+ON public.workout_templates FOR SELECT 
+USING (
+  auth.uid() IN (
+    SELECT client_id FROM public.assigned_workouts WHERE template_id = public.workout_templates.id
+  )
+);
+
+-- Meal Templates
 DROP POLICY IF EXISTS "Trainers manage their own meal templates" ON public.meal_templates;
-CREATE POLICY "Trainers manage their own meal templates" ON public.meal_templates FOR ALL USING (auth.uid() = trainer_id);
+CREATE POLICY "Trainers manage their own meal templates" 
+ON public.meal_templates FOR ALL 
+USING (auth.uid() = trainer_id);
 
--- Assigned Workouts & Meal Plans
+DROP POLICY IF EXISTS "Clients can view assigned meal templates" ON public.meal_templates;
+CREATE POLICY "Clients can view assigned meal templates" 
+ON public.meal_templates FOR SELECT 
+USING (
+  auth.uid() IN (
+    SELECT client_id FROM public.assigned_meal_plans WHERE template_id = public.meal_templates.id
+  )
+);
+
+-- Assigned Workouts
 DROP POLICY IF EXISTS "Trainers manage assigned workouts" ON public.assigned_workouts;
-CREATE POLICY "Trainers manage assigned workouts" ON public.assigned_workouts FOR ALL USING (auth.uid() = trainer_id);
+CREATE POLICY "Trainers manage assigned workouts" 
+ON public.assigned_workouts FOR ALL 
+USING (auth.uid() = trainer_id);
 
-DROP POLICY IF EXISTS "Clients can view assigned workouts" ON public.assigned_workouts;
-CREATE POLICY "Clients can view assigned workouts" ON public.assigned_workouts FOR SELECT USING (auth.uid() = client_id);
+DROP POLICY IF EXISTS "Clients can view and update completion of assigned workouts" ON public.assigned_workouts;
+CREATE POLICY "Clients can view and update completion of assigned workouts" 
+ON public.assigned_workouts FOR SELECT 
+USING (auth.uid() = client_id);
 
+DROP POLICY IF EXISTS "Clients can complete assigned workouts" ON public.assigned_workouts;
+CREATE POLICY "Clients can complete assigned workouts" 
+ON public.assigned_workouts FOR UPDATE 
+USING (auth.uid() = client_id)
+WITH CHECK (auth.uid() = client_id);
+
+-- Assigned Meal Plans
 DROP POLICY IF EXISTS "Trainers manage assigned meals" ON public.assigned_meal_plans;
-CREATE POLICY "Trainers manage assigned meals" ON public.assigned_meal_plans FOR ALL USING (auth.uid() = trainer_id);
+CREATE POLICY "Trainers manage assigned meals" 
+ON public.assigned_meal_plans FOR ALL 
+USING (auth.uid() = trainer_id);
 
 DROP POLICY IF EXISTS "Clients can view assigned meals" ON public.assigned_meal_plans;
-CREATE POLICY "Clients can view assigned meals" ON public.assigned_meal_plans FOR SELECT USING (auth.uid() = client_id);
+CREATE POLICY "Clients can view assigned meals" 
+ON public.assigned_meal_plans FOR SELECT 
+USING (auth.uid() = client_id);
 
--- Logs & Metrics
+DROP POLICY IF EXISTS "Clients can complete assigned meals" ON public.assigned_meal_plans;
+CREATE POLICY "Clients can complete assigned meals" 
+ON public.assigned_meal_plans FOR UPDATE 
+USING (auth.uid() = client_id)
+WITH CHECK (auth.uid() = client_id);
+
+-- Trainer Permissions
+DROP POLICY IF EXISTS "Trainers can view client permissions" ON public.trainer_permissions;
+CREATE POLICY "Trainers can view client permissions" 
+ON public.trainer_permissions FOR SELECT 
+USING (auth.uid() = trainer_id);
+
+DROP POLICY IF EXISTS "Clients can manage their own trainer permissions" ON public.trainer_permissions;
+CREATE POLICY "Clients can manage their own trainer permissions" 
+ON public.trainer_permissions FOR ALL 
+USING (auth.uid() = client_id);
+
+-- Appointments
+DROP POLICY IF EXISTS "Trainers can manage appointments" ON public.appointments;
+CREATE POLICY "Trainers can manage appointments" 
+ON public.appointments FOR ALL 
+USING (auth.uid() = trainer_id);
+
+DROP POLICY IF EXISTS "Clients can view their appointments" ON public.appointments;
+CREATE POLICY "Clients can view their appointments" 
+ON public.appointments FOR SELECT 
+USING (auth.uid() = client_id);
+
+DROP POLICY IF EXISTS "Clients can respond to appointments" ON public.appointments;
+CREATE POLICY "Clients can respond to appointments" 
+ON public.appointments FOR UPDATE 
+USING (auth.uid() = client_id)
+WITH CHECK (auth.uid() = client_id);
+
+-- Trainer Profiles
+DROP POLICY IF EXISTS "Trainers can manage own profile" ON public.trainer_profiles;
+CREATE POLICY "Trainers can manage own profile" ON public.trainer_profiles FOR ALL USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can read trainer profiles" ON public.trainer_profiles;
+CREATE POLICY "Users can read trainer profiles" ON public.trainer_profiles FOR SELECT USING (true);
+
+-- PT Connections
+DROP POLICY IF EXISTS "Users and Trainers can manage connections" ON public.pt_connections;
+CREATE POLICY "Users and Trainers can manage connections" ON public.pt_connections FOR ALL USING (auth.uid() = user_id OR auth.uid() = trainer_id);
+
+-- Trainer Assignments
+DROP POLICY IF EXISTS "Trainers can manage assignments" ON public.trainer_assignments;
+CREATE POLICY "Trainers can manage assignments" ON public.trainer_assignments FOR ALL USING (auth.uid() = trainer_id);
+
+DROP POLICY IF EXISTS "Users can read assignments" ON public.trainer_assignments;
+CREATE POLICY "Users can read assignments" ON public.trainer_assignments FOR SELECT USING (auth.uid() = user_id);
+
+-- Trainer Messages
+DROP POLICY IF EXISTS "Users and Trainers can manage messages" ON public.trainer_messages;
+CREATE POLICY "Users and Trainers can manage messages" ON public.trainer_messages FOR ALL USING (auth.uid() = user_id OR auth.uid() = trainer_id);
+
+-- Food Logs
 DROP POLICY IF EXISTS "Users can manage own food_logs" ON public.food_logs;
 CREATE POLICY "Users can manage own food_logs" ON public.food_logs FOR ALL USING (auth.uid() = "userId");
 
+DROP POLICY IF EXISTS "Trainers can read client food logs" ON public.food_logs;
+CREATE POLICY "Trainers can read client food logs" ON public.food_logs FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.pt_connections WHERE pt_connections.user_id = food_logs."userId" AND pt_connections.trainer_id = auth.uid() AND pt_connections.status = 'accepted')
+);
+
+-- Workout Logs
 DROP POLICY IF EXISTS "Users can manage own workout_logs" ON public.workout_logs;
 CREATE POLICY "Users can manage own workout_logs" ON public.workout_logs FOR ALL USING (auth.uid() = "userId");
 
+DROP POLICY IF EXISTS "Trainers can read client workout logs" ON public.workout_logs;
+CREATE POLICY "Trainers can read client workout logs" ON public.workout_logs FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.pt_connections WHERE pt_connections.user_id = workout_logs."userId" AND pt_connections.trainer_id = auth.uid() AND pt_connections.status = 'accepted')
+);
+
+-- Weight Logs
 DROP POLICY IF EXISTS "Users can manage own weight_logs" ON public.weight_logs;
 CREATE POLICY "Users can manage own weight_logs" ON public.weight_logs FOR ALL USING (auth.uid() = "userId");
 
+-- Chat Sessions
 DROP POLICY IF EXISTS "Users can manage own chat_sessions" ON public.chat_sessions;
 CREATE POLICY "Users can manage own chat_sessions" ON public.chat_sessions FOR ALL USING (auth.uid() = "userId");
 
+-- Users Ecosystem
 DROP POLICY IF EXISTS "Users can manage own users_ecosystem" ON public.users_ecosystem;
 CREATE POLICY "Users can manage own users_ecosystem" ON public.users_ecosystem FOR ALL USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Trainers can read client ecosystem" ON public.users_ecosystem;
+CREATE POLICY "Trainers can read client ecosystem" ON public.users_ecosystem FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.pt_connections WHERE pt_connections.user_id = users_ecosystem.id AND pt_connections.trainer_id = auth.uid() AND pt_connections.status = 'accepted')
+);
+
+-- Users Metrics
 DROP POLICY IF EXISTS "Users can manage own users_metrics" ON public.users_metrics;
 CREATE POLICY "Users can manage own users_metrics" ON public.users_metrics FOR ALL USING (auth.uid() = "userId");
 
+-- Meal Scans
 DROP POLICY IF EXISTS "Users can manage own meal_scans" ON public.meal_scans;
 CREATE POLICY "Users can manage own meal_scans" ON public.meal_scans FOR ALL USING (auth.uid() = "userId");
 
+-- Training Logs
 DROP POLICY IF EXISTS "Users can manage own TrainingLogs" ON public."TrainingLogs";
 CREATE POLICY "Users can manage own TrainingLogs" ON public."TrainingLogs" FOR ALL USING (auth.uid() = "userId");
 
--- Trainer Tasks & Documents
+-- Trainer Tasks
 DROP POLICY IF EXISTS "Trainer manages own tasks" ON public.trainer_tasks;
 CREATE POLICY "Trainer manages own tasks" ON public.trainer_tasks FOR ALL USING (auth.uid() = trainer_id);
 
 DROP POLICY IF EXISTS "Clients can view their own tasks" ON public.trainer_tasks;
 CREATE POLICY "Clients can view their own tasks" ON public.trainer_tasks FOR SELECT USING (auth.uid() = client_id);
 
+DROP POLICY IF EXISTS "Clients can update/complete their own tasks" ON public.trainer_tasks;
+CREATE POLICY "Clients can update/complete their own tasks" ON public.trainer_tasks FOR UPDATE USING (auth.uid() = client_id);
+
+-- Trainer Documents
 DROP POLICY IF EXISTS "Trainer manages own documents" ON public.trainer_documents;
 CREATE POLICY "Trainer manages own documents" ON public.trainer_documents FOR ALL USING (auth.uid() = trainer_id);
 
 DROP POLICY IF EXISTS "Clients can view their documents" ON public.trainer_documents;
 CREATE POLICY "Clients can view their documents" ON public.trainer_documents FOR SELECT USING (auth.uid() = client_id);
 
--- 18. Enable Realtime Publications
+-- 17. Enable Realtime Publications
+-- Add helper block to dynamically handle adding to publication to avoid errors if already present
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -564,7 +697,7 @@ BEGIN
 END;
 $$;
 
--- 19. Sync Users Metrics Profiles to User Profiles Trigger
+-- 18. Sync Users Metrics Profiles to User Profiles Trigger
 CREATE OR REPLACE FUNCTION public.sync_users_metrics_to_user_profiles()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -596,3 +729,101 @@ CREATE TRIGGER trigger_sync_users_metrics_to_user_profiles
 AFTER INSERT OR UPDATE ON public.users_metrics
 FOR EACH ROW
 EXECUTE FUNCTION public.sync_users_metrics_to_user_profiles();
+
+
+
+-- -----------------------------------------------------------------
+-- 02 — ASSIGNED PLANS TABLE
+-- -----------------------------------------------------------------
+-- Migration: Create assigned_plans table and enable RLS policies
+CREATE TABLE IF NOT EXISTS public.assigned_plans (
+  id uuid default gen_random_uuid() primary key,
+  trainer_id uuid references public.user_profiles(id) on delete cascade not null,
+  client_id uuid references public.user_profiles(id) on delete cascade not null,
+  plan_type text check (plan_type in ('workout', 'nutrition')) not null,
+  plan_data jsonb default '{}'::jsonb not null,
+  assigned_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  status text check (status in ('active', 'completed', 'dismissed')) default 'active' not null
+);
+
+ALTER TABLE public.assigned_plans ENABLE ROW LEVEL SECURITY;
+
+-- Trainer Policies: INSERT, SELECT, UPDATE, DELETE own assignments
+DROP POLICY IF EXISTS "Trainer can insert own assignments" ON public.assigned_plans;
+CREATE POLICY "Trainer can insert own assignments" ON public.assigned_plans
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    auth.uid() = trainer_id 
+    AND EXISTS (
+      SELECT 1 FROM public.user_profiles 
+      WHERE id = auth.uid() 
+        AND (lower(role) = 'trainer')
+    )
+  );
+
+DROP POLICY IF EXISTS "Trainer can select own assignments" ON public.assigned_plans;
+CREATE POLICY "Trainer can select own assignments" ON public.assigned_plans
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = trainer_id);
+
+DROP POLICY IF EXISTS "Trainer can update own assignments" ON public.assigned_plans;
+CREATE POLICY "Trainer can update own assignments" ON public.assigned_plans
+  FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = trainer_id)
+  WITH CHECK (auth.uid() = trainer_id);
+
+DROP POLICY IF EXISTS "Trainer can delete own assignments" ON public.assigned_plans;
+CREATE POLICY "Trainer can delete own assignments" ON public.assigned_plans
+  FOR DELETE
+  TO authenticated
+  USING (auth.uid() = trainer_id);
+
+-- Client Policies: SELECT own assignments only (read-only)
+DROP POLICY IF EXISTS "Client can select own assignments" ON public.assigned_plans;
+CREATE POLICY "Client can select own assignments" ON public.assigned_plans
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = client_id);
+
+
+
+-- -----------------------------------------------------------------
+-- 03 — STREAK FREEZE COLUMNS
+-- -----------------------------------------------------------------
+-- Migration: Add streak freeze support columns to user_profiles
+ALTER TABLE public.user_profiles
+ADD COLUMN IF NOT EXISTS freeze_tokens integer DEFAULT 1,
+ADD COLUMN IF NOT EXISTS last_freeze_granted timestamp with time zone;
+
+-- -----------------------------------------------------------------
+-- 04 — PUSH SUBSCRIPTIONS TABLE & POLICIES (Web Push & PWA)
+-- -----------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.push_subscriptions (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.user_profiles(id) on delete cascade not null,
+  subscription jsonb not null,
+  endpoint text not null unique,
+  platform text default 'web',
+  browser text default 'browser',
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  last_used_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can manage their own push subscriptions" ON public.push_subscriptions;
+CREATE POLICY "Users can manage their own push subscriptions"
+  ON public.push_subscriptions
+  FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON public.push_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_endpoint ON public.push_subscriptions(endpoint);
+
+
+
