@@ -120,20 +120,6 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
         Notification.requestPermission();
       }
 
-      if (!restEndTimeRef.current) {
-        restEndTimeRef.current = Date.now() + timerSeconds * 1000;
-        
-        scheduleExactNotification({
-          id: `rest-${sessionState}-${Date.now()}`,
-          title: sessionState === 'REST_SET' ? "Rest Time Finished! 💪" : "Exercise Break Complete! 🏋️‍♂️",
-          body: sessionState === 'REST_SET' 
-            ? `Set rest complete! Time to start Set ${setIndex} of ${currentEx?.name || 'Exercise'}`
-            : `Break over! Next exercise: ${exercises[exIndex + 1]?.name || 'Final Exercise'}`,
-          delayMs: timerSeconds * 1000,
-          tag: 'live-workout-rest'
-        });
-      }
-
       const handleTimerCompletion = () => {
         restEndTimeRef.current = null;
         playAlertChime(sessionState === 'REST_EXERCISE' ? 900 : 700);
@@ -152,12 +138,14 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
         }
       };
 
-      const remainingMs = Math.max(0, restEndTimeRef.current - Date.now());
+      const remainingMs = restEndTimeRef.current ? Math.max(0, restEndTimeRef.current - Date.now()) : timerSeconds * 1000;
       timeout = setTimeout(handleTimerCompletion, remainingMs);
 
       interval = setInterval(() => {
-        const leftSecs = Math.max(0, Math.ceil((restEndTimeRef.current - Date.now()) / 1000));
-        setTimerSeconds(leftSecs);
+        if (restEndTimeRef.current) {
+          const leftSecs = Math.max(0, Math.ceil((restEndTimeRef.current - Date.now()) / 1000));
+          setTimerSeconds(leftSecs);
+        }
       }, 1000);
 
       const handleVisibilityChange = () => {
@@ -217,18 +205,36 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
 
     if (setIndex < parsedStats.totalSets) {
       // Advance to next set with 1-min rest
-      setSetIndex(s => s + 1);
+      const nextSetIndex = setIndex + 1;
+      setSetIndex(nextSetIndex);
       setTimerSeconds(60); // 1-minute set rest
       restEndTimeRef.current = Date.now() + 60 * 1000;
       setSessionState('REST_SET');
+
+      scheduleExactNotification({
+        id: `rest-set-${Date.now()}`,
+        title: "Rest Time Finished! 💪",
+        body: `Set rest complete! Time to start Set ${nextSetIndex} of ${currentEx?.name || 'Exercise'}`,
+        delayMs: 60 * 1000,
+        tag: 'live-workout-rest'
+      });
     } else {
       // All sets for this exercise finished
       if (exIndex < exercises.length - 1) {
         // Move to 2-min inter-exercise break & on-screen hydration card
+        const nextExName = exercises[exIndex + 1]?.name || 'Next Exercise';
         setTimerSeconds(120); // 2-minute exercise break
         restEndTimeRef.current = Date.now() + 120 * 1000;
         setWaterLoggedThisBreak(false);
         setSessionState('REST_EXERCISE');
+
+        scheduleExactNotification({
+          id: `rest-ex-${Date.now()}`,
+          title: "Exercise Break Complete! 🏋️‍♂️",
+          body: `Break over! Next exercise: ${nextExName}`,
+          delayMs: 120 * 1000,
+          tag: 'live-workout-rest'
+        });
       } else {
         // All exercises in routine completed!
         setSessionState('COMPLETED');
