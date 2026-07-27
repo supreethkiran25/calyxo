@@ -23,7 +23,8 @@ export const StaggeredMenu = ({
   closeOnClickAway = true,
   onMenuOpen,
   onMenuClose,
-  onNavigate
+  onNavigate,
+  onOpenSettings
 }) => {
   const [open, setOpen] = useState(false);
   const openRef = useRef(false);
@@ -517,8 +518,12 @@ export const StaggeredMenu = ({
                 <button
                   type="button"
                   onClick={() => {
-                    onNavigate?.('/user/profile');
-                    closeMenu();
+                    if (onOpenSettings) {
+                      onOpenSettings();
+                    } else {
+                      onNavigate?.('/user/profile');
+                      closeMenu();
+                    }
                   }}
                   className="flex items-center justify-between p-2.5 px-3 rounded-2xl bg-[var(--surface)] border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--surface)] text-[var(--foreground)] hover:text-[var(--color-acid-green)] transition-all cursor-pointer text-left"
                 >
