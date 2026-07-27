@@ -1,11 +1,15 @@
 {
-  "name": "Calyxo",
+  "name": "Calyxo — AI Fitness & Nutrition Engine",
   "short_name": "Calyxo",
-  "description": "Track Today. Transform Tomorrow.",
+  "description": "Track Today. Transform Tomorrow. AI-powered fitness, macro tracking, and personalized coaching.",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#0d0d0d",
   "theme_color": "#0d0d0d",
+  "categories": ["fitness", "health", "lifestyle"],
   "icons": [
     {
       "src": "/favicon.ico",
@@ -22,6 +26,29 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "User Dashboard",
+      "short_name": "Dashboard",
+      "description": "Open your Calyxo fitness dashboard",
+      "url": "/user/dashboard",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Log Workout",
+      "short_name": "Workout",
+      "description": "Log your training session",
+      "url": "/user/workout",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Log Nutrition",
+      "short_name": "Nutrition",
+      "description": "Log your daily meals and macros",
+      "url": "/user/nutrition",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     }
   ]
 }

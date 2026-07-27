@@ -8,6 +8,7 @@ import { signOutUser, subscribeToAuth, loadUserData } from '../lib/dbService';
 
 import Logo from '../components/Logo';
 import ThemeToggle from '../components/ThemeToggle';
+import OfflineSyncIndicator from '../components/OfflineSyncIndicator';
 
 const BackgroundEffects = lazy(() => import('../components/BackgroundEffects'));
 const QuickActionsSheet = lazy(() => import('../components/QuickActionsSheet'));
@@ -341,6 +342,8 @@ export default function UserLayout() {
           navItems={DESKTOP_NAV.flatMap(g => g.items)}
         />
       </Suspense>
+
+      <OfflineSyncIndicator />
     </div>
   );
 }

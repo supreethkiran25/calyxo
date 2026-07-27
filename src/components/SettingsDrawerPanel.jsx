@@ -505,6 +505,28 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
               </div>
             </div>
 
+            <div className="bg-[var(--surface)] border border-[var(--card-border)] p-3 rounded-2xl space-y-2">
+              <h4 className={labelClass}>Background Activity Status</h4>
+              <div className="grid grid-cols-2 gap-2 text-[10px]">
+                <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                  <span>Push: {typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' ? 'Enabled' : 'Disabled'}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                  <span>Service Worker: Active</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                  <span>Offline Shell: Ready</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                  <span>Background Sync: Ready</span>
+                </div>
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={saving}

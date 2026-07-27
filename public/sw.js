@@ -1,15 +1,33 @@
-// Calyxo Native OS & PWA Web Push Notification Service Worker
-const CACHE_NAME = 'calyxo-pwa-cache-v2';
-const activeTimers = new Map();
+// Calyxo Enterprise PWA Service Worker & Background Sync Engine
+const CACHE_NAME = 'calyxo-static-v3';
+const DYNAMIC_CACHE = 'calyxo-dynamic-v3';
+const SHELL_CACHE = 'calyxo-shell-v3';
 
-// Helper to open / access IndexedDB inside Service Worker
-function openDB() {
+const APP_SHELL_ROUTES = [
+  '/',
+  '/user/dashboard',
+  '/user/nutrition',
+  '/user/workout',
+  '/user/progress',
+  '/user/ai',
+  '/user/profile',
+  '/manifest.json',
+  '/favicon.ico',
+  '/icon-192x192.png',
+  '/icon-512x512.png'
+];
+
+// Helper: Open IndexedDB for offline queue & push timers
+function openOfflineDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('calyxo_sw_notifications_db', 1);
+    const request = indexedDB.open('calyxo_offline_db', 2);
     request.onupgradeneeded = (e) => {
       const db = e.target.result;
-      if (!db.objectStoreNames.contains('scheduled')) {
-        db.createObjectStore('scheduled', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('queue')) {
+        db.createObjectStore('queue', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('push_timers')) {
+        db.createObjectStore('push_timers', { keyPath: 'id' });
       }
     };
     request.onsuccess = (e) => resolve(e.target.result);
@@ -17,120 +35,102 @@ function openDB() {
   });
 }
 
-async function saveScheduledNotification(item) {
-  try {
-    const db = await openDB();
-    const tx = db.transaction('scheduled', 'readwrite');
-    tx.objectStore('scheduled').put(item);
-    return tx.complete;
-  } catch (e) {
-    console.warn('[SW] DB save error:', e);
-  }
-}
-
-async function removeScheduledNotification(id) {
-  try {
-    const db = await openDB();
-    const tx = db.transaction('scheduled', 'readwrite');
-    tx.objectStore('scheduled').delete(id);
-    return tx.complete;
-  } catch (e) {
-    console.warn('[SW] DB delete error:', e);
-  }
-}
-
-async function checkPendingNotifications() {
-  try {
-    const db = await openDB();
-    const tx = db.transaction('scheduled', 'readonly');
-    const store = tx.objectStore('scheduled');
-    const request = store.getAll();
-    request.onsuccess = () => {
-      const items = request.result || [];
-      const now = Date.now();
-      for (const item of items) {
-        if (item.targetTime <= now) {
-          triggerNativeOSNotification(item);
-          removeScheduledNotification(item.id);
-        } else {
-          scheduleLocalTimer(item);
-        }
-      }
-    };
-  } catch (e) {
-    console.warn('[SW] DB check error:', e);
-  }
-}
-
-function triggerNativeOSNotification(data) {
-  const options = {
-    body: data.body || 'Time for your daily workout and nutrition check-in!',
-    icon: '/icon-192x192.png',
-    badge: '/icon-192x192.png',
-    tag: data.tag || data.id || 'calyxo-reminder',
-    vibrate: [300, 100, 300, 100, 300],
-    renotify: true,
-    requireInteraction: true,
-    silent: false,
-    data: { url: data.url || '/user/dashboard' }
-  };
-
-  self.registration.showNotification(data.title || 'Calyxo Health & Fitness', options);
-}
-
-function scheduleLocalTimer(item) {
-  const delayMs = Math.max(10, item.targetTime - Date.now());
-
-  // 1. Check if Native OS TimestampTrigger is supported
-  if ('showTrigger' in Notification.prototype && typeof TimestampTrigger !== 'undefined') {
-    try {
-      const options = {
-        body: item.body,
-        icon: '/icon-192x192.png',
-        badge: '/icon-192x192.png',
-        tag: item.tag || item.id,
-        vibrate: [300, 100, 300, 100, 300],
-        renotify: true,
-        showTrigger: new TimestampTrigger(item.targetTime),
-        data: { url: '/user/dashboard' }
-      };
-      self.registration.showNotification(item.title, options);
-      return;
-    } catch (e) {
-      console.warn('[SW] TimestampTrigger fallback to setTimeout:', e);
-    }
-  }
-
-  // 2. Standard Service Worker background setTimeout
-  if (activeTimers.has(item.id)) {
-    clearTimeout(activeTimers.get(item.id));
-  }
-
-  const timer = setTimeout(() => {
-    triggerNativeOSNotification(item);
-    removeScheduledNotification(item.id);
-    activeTimers.delete(item.id);
-  }, delayMs);
-
-  activeTimers.set(item.id, timer);
-}
-
+// Service Worker Install Lifecycle
 self.addEventListener('install', (event) => {
   self.skipWaiting();
+  event.waitUntil(
+    caches.open(SHELL_CACHE).then((cache) => {
+      return cache.addAll(APP_SHELL_ROUTES).catch((err) => {
+        console.warn('[SW] Pre-caching shell routes warning:', err);
+      });
+    })
+  );
 });
 
+// Service Worker Activate Lifecycle & Stale Cache Cleanup
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     Promise.all([
       self.clients.claim(),
-      checkPendingNotifications()
+      caches.keys().then((keys) => {
+        return Promise.all(
+          keys.map((key) => {
+            if (key !== CACHE_NAME && key !== DYNAMIC_CACHE && key !== SHELL_CACHE) {
+              return caches.delete(key);
+            }
+          })
+        );
+      })
     ])
   );
 });
 
-// Handle Web Push event from Push Server (VAPID)
+// Fetch Intercept — Smart Hybrid Caching Engine
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  const url = new URL(req.url);
+
+  // Bypass non-GET requests and Supabase Auth / Gemini API endpoints
+  if (req.method !== 'GET' || url.pathname.includes('/auth/v1') || url.hostname.includes('googleapis.com')) {
+    return;
+  }
+
+  // 1. App Shell / Navigation Routes -> Stale-While-Revalidate
+  if (req.mode === 'navigate' || APP_SHELL_ROUTES.includes(url.pathname)) {
+    event.respondWith(
+      caches.match(req).then((cachedResponse) => {
+        const fetchPromise = fetch(req).then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(SHELL_CACHE).then((cache) => cache.put(req, responseClone));
+          }
+          return networkResponse;
+        }).catch(() => cachedResponse);
+
+        return cachedResponse || fetchPromise;
+      })
+    );
+    return;
+  }
+
+  // 2. Static Assets (JS, CSS, Images, Fonts) -> Cache-First
+  if (req.destination === 'style' || req.destination === 'script' || req.destination === 'image' || req.destination === 'font') {
+    event.respondWith(
+      caches.match(req).then((cached) => {
+        if (cached) return cached;
+        return fetch(req).then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // 3. Dynamic API Data -> Network-First
+  event.respondWith(
+    fetch(req).then((response) => {
+      if (response && response.status === 200) {
+        const clone = response.clone();
+        caches.open(DYNAMIC_CACHE).then((cache) => cache.put(req, clone));
+      }
+      return response;
+    }).catch(() => caches.match(req))
+  );
+});
+
+// Handle W3C Remote Web Push Event
 self.addEventListener('push', (event) => {
-  let data = { title: 'Calyxo Health & Fitness 🚀', body: 'Daily workout and nutrition check-in is due!' };
+  let data = { 
+    title: 'Calyxo Health & Fitness 🚀', 
+    body: 'Time for your daily workout and nutrition check-in!',
+    url: '/user/dashboard',
+    tag: 'calyxo-push-event'
+  };
+
   if (event.data) {
     try {
       data = event.data.json();
@@ -139,60 +139,22 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: '/icon-192x192.png',
-      badge: '/icon-192x192.png',
-      tag: data.tag || 'calyxo-push-remote',
-      vibrate: [300, 100, 300, 100, 300],
-      renotify: true,
-      requireInteraction: true,
-      data: { url: data.url || '/user/dashboard' }
-    })
-  );
+  const options = {
+    body: data.body,
+    icon: data.icon || '/icon-192x192.png',
+    badge: data.badge || '/icon-192x192.png',
+    tag: data.tag || 'calyxo-push',
+    vibrate: [300, 100, 300, 100, 300],
+    renotify: true,
+    requireInteraction: true,
+    silent: false,
+    data: { url: data.url || '/user/dashboard' }
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title, options));
 });
 
-// Handle client messages
-self.addEventListener('message', (event) => {
-  const data = event.data;
-  if (!data || !data.type) return;
-
-  if (data.type === 'SCHEDULE_NOTIFICATION') {
-    const { id, title, body, delayMs, tag } = data;
-    const targetTime = Date.now() + Math.max(100, delayMs || 0);
-
-    const item = {
-      id: id || `notif-${Date.now()}`,
-      title: title || 'Calyxo Fitness',
-      body: body || 'Reminder from Calyxo',
-      targetTime,
-      tag: tag || id || 'calyxo-notif'
-    };
-
-    saveScheduledNotification(item);
-    scheduleLocalTimer(item);
-  }
-
-  if (data.type === 'CANCEL_NOTIFICATION') {
-    if (activeTimers.has(data.id)) {
-      clearTimeout(activeTimers.get(data.id));
-      activeTimers.delete(data.id);
-    }
-    removeScheduledNotification(data.id);
-  }
-
-  if (data.type === 'SHOW_IMMEDIATE_NOTIFICATION') {
-    triggerNativeOSNotification({
-      id: 'immediate-' + Date.now(),
-      title: data.title || 'Calyxo Notification',
-      body: data.body || 'Notification system active.',
-      tag: data.tag || 'calyxo-instant'
-    });
-  }
-});
-
-// Handle OS Notification click event
+// Handle Notification Click & Smart Tab Focus Routing
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const targetUrl = (event.notification.data && event.notification.data.url) || '/user/dashboard';
@@ -201,6 +163,9 @@ self.addEventListener('notificationclick', (event) => {
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
         if (client.url.includes('/user/') && 'focus' in client) {
+          if ('navigate' in client) {
+            client.navigate(targetUrl);
+          }
           return client.focus();
         }
       }
@@ -209,4 +174,60 @@ self.addEventListener('notificationclick', (event) => {
       }
     })
   );
+});
+
+// Background Sync Handler for Offline Action Queues
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'calyxo-offline-sync') {
+    event.waitUntil(
+      self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'TRIGGER_OFFLINE_SYNC' });
+        });
+      })
+    );
+  }
+});
+
+// Handle Messages from Client React Application
+self.addEventListener('message', (event) => {
+  const data = event.data;
+  if (!data || !data.type) return;
+
+  if (data.type === 'SCHEDULE_NOTIFICATION') {
+    const targetTime = Date.now() + Math.max(100, data.delayMs || 0);
+    const options = {
+      body: data.body,
+      icon: '/icon-192x192.png',
+      badge: '/icon-192x192.png',
+      tag: data.tag || data.id,
+      vibrate: [300, 100, 300, 100, 300],
+      renotify: true,
+      requireInteraction: true,
+      data: { url: '/user/dashboard' }
+    };
+
+    // Native OS TimestampTrigger support
+    if ('showTrigger' in Notification.prototype && typeof TimestampTrigger !== 'undefined') {
+      try {
+        options.showTrigger = new TimestampTrigger(targetTime);
+        self.registration.showNotification(data.title, options);
+        return;
+      } catch (e) {}
+    }
+
+    setTimeout(() => {
+      self.registration.showNotification(data.title, options);
+    }, Math.max(100, data.delayMs || 0));
+  }
+
+  if (data.type === 'SHOW_IMMEDIATE_NOTIFICATION') {
+    self.registration.showNotification(data.title || 'Calyxo Alert', {
+      body: data.body || 'Notification system active.',
+      icon: '/icon-192x192.png',
+      badge: '/icon-192x192.png',
+      vibrate: [200, 100, 200],
+      data: { url: '/user/dashboard' }
+    });
+  }
 });
