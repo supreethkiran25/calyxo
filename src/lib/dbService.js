@@ -742,6 +742,10 @@ export const getUserProfile = async (userId) => {
         ...extra,
         subscriptionPlan: subPlan,
         isSubscribed: isSub,
+        healthInterests: Array.isArray(extra.healthInterests)
+          ? extra.healthInterests
+          : (Array.isArray(profile?.healthInterests) ? profile.healthInterests : (localState.userProfile?.healthInterests || [])),
+        fitnessLevel: extra.fitnessLevel || extra.experience || localState.userProfile?.fitnessLevel || 'Intermediate',
         lastPaymentId: extra.lastPaymentId || localState.userProfile?.lastPaymentId || null,
         subscriptionDate: extra.subscriptionDate || localState.userProfile?.subscriptionDate || null,
         passPurchases: extra.passPurchases || localState.userProfile?.passPurchases || null,
@@ -830,6 +834,8 @@ export const saveUserProfile = async (userId, profile) => {
 
   try {
     const extraFields = {
+      ...existingBio,
+      ...mergedProfile,
       onboarded: mergedProfile.onboarded ?? existingBio.onboarded,
       subscriptionPlan: finalSubPlan,
       isSubscribed: finalIsSubscribed,
@@ -837,6 +843,12 @@ export const saveUserProfile = async (userId, profile) => {
       subscriptionDate: finalSubscriptionDate,
       passPurchases: finalPassPurchases,
       activePass: finalActivePass,
+      healthInterests: Array.isArray(profile.healthInterests) 
+        ? profile.healthInterests 
+        : (Array.isArray(mergedProfile.healthInterests) 
+          ? mergedProfile.healthInterests 
+          : (Array.isArray(existingBio.healthInterests) ? existingBio.healthInterests : [])),
+      fitnessLevel: mergedProfile.fitnessLevel ?? existingBio.fitnessLevel ?? mergedProfile.experience ?? existingBio.experience,
       dob: mergedProfile.dob ?? existingBio.dob,
       units: mergedProfile.units ?? existingBio.units,
       experience: mergedProfile.experience ?? existingBio.experience,
@@ -856,7 +868,7 @@ export const saveUserProfile = async (userId, profile) => {
       reminderFrequency: mergedProfile.reminderFrequency ?? existingBio.reminderFrequency,
       notifications: mergedProfile.notifications ?? existingBio.notifications,
       analyticsTracking: mergedProfile.analyticsTracking ?? existingBio.analyticsTracking,
-      bio: mergedProfile.bio || existingBio.bio || ""
+      bio: typeof mergedProfile.bio === 'string' ? mergedProfile.bio : (existingBio.bio || "")
     };
 
     const payload = {
