@@ -7,6 +7,7 @@ import {
 import { useStore } from '../../store/useStore';
 import { getExerciseImage, getDistinctFallback } from '../../utils/exerciseSearch';
 import { addWorkoutLog } from '../../lib/dbService';
+import { scheduleExactNotification } from '../../services/notificationService';
 
 export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNotification }) {
   const user = useStore(state => state.user);
@@ -121,6 +122,16 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
 
       if (!restEndTimeRef.current) {
         restEndTimeRef.current = Date.now() + timerSeconds * 1000;
+        
+        scheduleExactNotification({
+          id: `rest-${sessionState}-${Date.now()}`,
+          title: sessionState === 'REST_SET' ? "Rest Time Finished! 💪" : "Exercise Break Complete! 🏋️‍♂️",
+          body: sessionState === 'REST_SET' 
+            ? `Set rest complete! Time to start Set ${setIndex} of ${currentEx?.name || 'Exercise'}`
+            : `Break over! Next exercise: ${exercises[exIndex + 1]?.name || 'Final Exercise'}`,
+          delayMs: timerSeconds * 1000,
+          tag: 'live-workout-rest'
+        });
       }
 
       const handleTimerCompletion = () => {

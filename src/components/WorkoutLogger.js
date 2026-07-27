@@ -23,6 +23,7 @@ import {
 const globalImageCache = new Map();
 const activeFetches = new Set();
 import { motion, AnimatePresence } from 'framer-motion';
+import { scheduleExactNotification } from '../services/notificationService';
 
 import { searchAndRankExercises, loadExercisesData, getCachedExercises, getExerciseImage, getDistinctFallback } from '../utils/exerciseSearch';
 import { getTodayDateString, formatDateToLocalString, getLocalDayOfWeekIndex, isSameLocalDate } from '../utils/dateUtils';
@@ -537,6 +538,14 @@ export default function WorkoutLogger({ onNotification }) {
     }
     restEndTimeRef.current = Date.now() + secs * 1000;
     setRestSecondsLeft(secs);
+
+    scheduleExactNotification({
+      id: 'workout-rest-timer',
+      title: 'Rest Time Finished! 💪',
+      body: 'Rest period complete! Time to start your next set.',
+      delayMs: secs * 1000,
+      tag: 'workout-rest-timer'
+    });
   };
 
   // Hydrate Initial Workout state & Trainer Assignments

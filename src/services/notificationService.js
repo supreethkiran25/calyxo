@@ -44,22 +44,28 @@ export function sendImmediateNotification(title, body) {
   if (typeof window === 'undefined' || !('Notification' in window)) return;
 
   if (Notification.permission === 'granted') {
+    const msg = {
+      type: 'SHOW_IMMEDIATE_NOTIFICATION',
+      title,
+      body
+    };
+
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: 'SHOW_IMMEDIATE_NOTIFICATION',
-        title,
-        body
+      navigator.serviceWorker.controller.postMessage(msg);
+    } else if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(reg => {
+        if (reg && reg.active) reg.active.postMessage(msg);
+      }).catch(() => {});
+    }
+
+    try {
+      new Notification(title, {
+        body,
+        icon: '/icon-192x192.png',
+        badge: '/icon-192x192.png'
       });
-    } else {
-      try {
-        new Notification(title, {
-          body,
-          icon: '/icon-192x192.png',
-          badge: '/icon-192x192.png'
-        });
-      } catch (e) {
-        console.warn('Direct notification error:', e);
-      }
+    } catch (e) {
+      console.warn('Direct notification fallback:', e);
     }
   }
 }
@@ -67,16 +73,40 @@ export function sendImmediateNotification(title, body) {
 export function scheduleExactNotification({ id, title, body, delayMs, tag }) {
   if (typeof window === 'undefined' || !('Notification' in window)) return;
 
-  if (Notification.permission === 'granted' && navigator.serviceWorker && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage({
-      type: 'SCHEDULE_NOTIFICATION',
-      id: id || `notif-${Date.now()}`,
-      title,
-      body,
-      delayMs: Math.max(100, delayMs || 0),
-      tag
-    });
+  if (Notification.permission !== 'granted') return;
+
+  const msg = {
+    type: 'SCHEDULE_NOTIFICATION',
+    id: id || `notif-${Date.now()}`,
+    title,
+    body,
+    delayMs: Math.max(100, delayMs || 0),
+    tag
+  };
+
+  // 1. Primary: Post to active Service Worker controller
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage(msg);
+  } else if ('serviceWorker' in navigator) {
+    // 2. Fallback: Wait for Service Worker registration ready
+    navigator.serviceWorker.ready.then(reg => {
+      if (reg && reg.active) reg.active.postMessage(msg);
+    }).catch(() => {});
   }
+
+  // 3. Independent client timer fallback
+  setTimeout(() => {
+    try {
+      if (Notification.permission === 'granted') {
+        new Notification(title, {
+          body,
+          icon: '/icon-192x192.png',
+          badge: '/icon-192x192.png',
+          tag: tag || id
+        });
+      }
+    } catch (e) {}
+  }, Math.max(100, delayMs || 0));
 }
 
 export function scheduleDailyReminders() {
