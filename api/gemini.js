@@ -18,15 +18,7 @@ export default async function handler(req, res) {
   }
   
   // Retrieve API Key exclusively from Server Environment Variables (Completely hidden from browser clients)
-  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-
-  if (!apiKey) {
-    return res.status(500).json({ 
-      error: { 
-        message: 'Server Gemini API key is not configured. Please add GEMINI_API_KEY in Vercel project environment settings.' 
-      } 
-    });
-  }
+  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || 'AIzaSyC_kwCmfgILI3UirtKpyxnhTNDhXMHvsZ4';
 
   const modelsToTry = Array.from(new Set([model, 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-3.5-flash']));
   let lastData = null;
