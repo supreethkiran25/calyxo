@@ -8,7 +8,7 @@ export const StaggeredMenu = ({
   items = [],
   socialItems = [],
   displaySocials = true,
-  displayItemNumbering = true,
+  displayItemNumbering = false,
   className,
   logoUrl = '/icon-192x192.png',
   menuButtonColor = 'var(--foreground, #ffffff)',

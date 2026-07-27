@@ -41,7 +41,7 @@ export default function MobileDrawerMenu({ isOpen, onClose }) {
         items={menuItems}
         socialItems={socialItems}
         displaySocials={true}
-        displayItemNumbering={true}
+        displayItemNumbering={false}
         menuButtonColor="var(--foreground, #ffffff)"
         openMenuButtonColor="var(--foreground, #ffffff)"
         changeMenuColorOnOpen={true}

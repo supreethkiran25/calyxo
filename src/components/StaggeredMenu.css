@@ -275,16 +275,16 @@
 .sm-panel-item {
   position: relative;
   color: var(--foreground, #ffffff);
-  font-weight: 900;
-  font-size: 2.1rem;
+  font-weight: 800;
+  font-size: 1.35rem;
   cursor: pointer;
-  line-height: 1.1;
-  letter-spacing: -1px;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
-  transition: background 0.25s, color 0.25s;
+  transition: color 0.2s ease, transform 0.2s ease;
   display: inline-block;
   text-decoration: none;
-  padding-right: 1.4em;
+  padding: 0.4rem 0;
   font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
 }
 
@@ -298,23 +298,8 @@
   color: var(--sm-accent, #b5f23d);
 }
 
-.sm-panel-list[data-numbering] {
-  counter-reset: smItem;
-}
-
 .sm-panel-list[data-numbering] .sm-panel-item::after {
-  counter-increment: smItem;
-  content: counter(smItem, decimal-leading-zero);
-  position: absolute;
-  top: 0.15em;
-  right: 0.2em;
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--sm-accent, #b5f23d);
-  letter-spacing: 0;
-  pointer-events: none;
-  user-select: none;
-  opacity: var(--sm-num-opacity, 0);
+  display: none !important;
 }
 
 @media (max-width: 640px) {
@@ -327,6 +312,6 @@
     width: 100vw;
   }
   .sm-panel-item {
-    font-size: 1.85rem;
+    font-size: 1.25rem;
   }
 }
