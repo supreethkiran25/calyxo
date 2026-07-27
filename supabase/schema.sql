@@ -101,6 +101,7 @@ CREATE TABLE IF NOT EXISTS public.workout_templates (
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+ALTER TABLE public.workout_templates ADD COLUMN IF NOT EXISTS is_public boolean default false not null;
 ALTER TABLE public.workout_templates ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.meal_templates (
@@ -113,10 +114,12 @@ CREATE TABLE IF NOT EXISTS public.meal_templates (
   fat integer not null,
   meals jsonb default '[]'::jsonb not null,
   notes text,
+  is_public boolean default false not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+ALTER TABLE public.meal_templates ADD COLUMN IF NOT EXISTS is_public boolean default false not null;
 ALTER TABLE public.meal_templates ENABLE ROW LEVEL SECURITY;
 
 -- 6. Assigned Workouts and Meal Plans
