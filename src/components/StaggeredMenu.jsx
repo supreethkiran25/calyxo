@@ -1,6 +1,7 @@
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { Settings } from 'lucide-react';
+import { useStore } from '../store/useStore';
 import ThemeToggle from './ThemeToggle';
 import './StaggeredMenu.css';
 
@@ -26,7 +27,9 @@ export const StaggeredMenu = ({
   onNavigate,
   onOpenSettings
 }) => {
+  const { theme, toggleTheme } = useStore();
   const [open, setOpen] = useState(false);
+  const isDark = theme === 'dark' || theme === 'obsidian';
   const openRef = useRef(false);
   const panelRef = useRef(null);
   const preLayersRef = useRef(null);
@@ -413,10 +416,10 @@ export const StaggeredMenu = ({
           <img
             src={logoUrl || '/icon-192x192.png'}
             alt="Logo"
-            className="sm-logo-img"
+            className={`sm-logo-img ${isDark ? 'sm-logo-dark' : 'sm-logo-light'}`}
             draggable={false}
-            width={32}
-            height={32}
+            width={36}
+            height={36}
           />
         </div>
         <button
@@ -511,10 +514,14 @@ export const StaggeredMenu = ({
 
               {/* Dual Controls: Theme Toggle & Settings */}
               <div className="grid grid-cols-2 gap-2 mt-2">
-                <div className="flex items-center justify-between p-2.5 px-3 rounded-2xl bg-[var(--surface)] border border-[var(--card-border)]">
-                  <span className="text-xs font-bold text-[var(--foreground)]">Theme</span>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="flex items-center justify-between p-2.5 px-3 rounded-2xl bg-[var(--surface)] border border-[var(--card-border)] hover:border-[var(--color-acid-green)] hover:bg-[var(--surface)] text-[var(--foreground)] hover:text-[var(--color-acid-green)] transition-all cursor-pointer text-left w-full group"
+                >
+                  <span className="text-xs font-bold group-hover:text-[var(--color-acid-green)] transition-colors">Theme</span>
                   <ThemeToggle />
-                </div>
+                </button>
                 <button
                   type="button"
                   onClick={() => {

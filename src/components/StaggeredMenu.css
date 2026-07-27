@@ -41,13 +41,31 @@
   display: flex;
   align-items: center;
   user-select: none;
+  background: transparent !important;
 }
 
 .sm-logo-img {
   display: block;
-  height: 32px;
-  width: 32px;
+  height: 36px;
+  width: auto;
+  max-width: 44px;
   object-fit: contain;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  transition: filter 0.3s ease, opacity 0.3s ease;
+}
+
+.sm-logo-dark {
+  filter: invert(1) brightness(1.6) contrast(1.2);
+  mix-blend-mode: screen;
+}
+
+.sm-logo-light {
+  filter: none;
+  mix-blend-mode: multiply;
 }
 
 .sm-toggle {
