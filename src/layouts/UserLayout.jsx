@@ -266,55 +266,55 @@ export default function UserLayout() {
           </div>
         </main>
         {/* Mobile Bottom Navigation */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-2xl border-t border-card-border z-30 px-2 pb-safe shadow-2xl">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-card-border z-30 px-2 pb-safe shadow-2xl transform-gpu will-change-transform">
           <div className="flex items-center justify-around h-16 max-w-md mx-auto">
             <Link
               to="/user/dashboard"
-              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none ${
+              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
                 pathname === '/user/dashboard' ? 'text-acid-green font-black' : 'text-muted hover:text-foreground'
               }`}
             >
-              <HomeIcon className="w-5 h-5" />
-              <span className="text-[9.5px] tracking-wide">Home</span>
+              <HomeIcon className="w-5 h-5 pointer-events-none" />
+              <span className="text-[9.5px] tracking-wide pointer-events-none">Home</span>
             </Link>
             <Link
               to="/user/nutrition"
-              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none ${
+              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
                 pathname === '/user/nutrition' ? 'text-acid-green font-black' : 'text-muted hover:text-foreground'
               }`}
             >
-              <BookOpen className="w-5 h-5" />
-              <span className="text-[9.5px] tracking-wide">Nutrition</span>
+              <BookOpen className="w-5 h-5 pointer-events-none" />
+              <span className="text-[9.5px] tracking-wide pointer-events-none">Nutrition</span>
             </Link>
             
             {/* Quick Create Action Button */}
             <button
               onClick={() => setIsQuickActionsOpen(true)}
               aria-label="Quick Action Menu"
-              className="flex flex-col items-center justify-center -mt-5 border-none bg-transparent outline-none cursor-pointer group"
+              className="flex flex-col items-center justify-center -mt-5 border-none bg-transparent outline-none cursor-pointer group touch-manipulation transform-gpu"
             >
               <div className="w-12 h-12 rounded-full bg-acid-green text-black flex items-center justify-center shadow-lg shadow-acid-green/40 active:scale-90 group-hover:scale-105 transition-all">
-                <Plus className="w-6 h-6 stroke-[3]" />
+                <Plus className="w-6 h-6 stroke-[3] pointer-events-none" />
               </div>
             </button>
 
             <Link
               to="/user/workout"
-              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none ${
+              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
                 pathname === '/user/workout' ? 'text-acid-green font-black' : 'text-muted hover:text-foreground'
               }`}
             >
-              <BarChart2 className="w-5 h-5" />
-              <span className="text-[9.5px] tracking-wide">Workout</span>
+              <BarChart2 className="w-5 h-5 pointer-events-none" />
+              <span className="text-[9.5px] tracking-wide pointer-events-none">Workout</span>
             </Link>
             <Link
               to="/user/profile"
-              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none ${
+              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
                 pathname === '/user/profile' ? 'text-acid-green font-black' : 'text-muted hover:text-foreground'
               }`}
             >
-              <User className="w-5 h-5" />
-              <span className="text-[9.5px] tracking-wide">Profile</span>
+              <User className="w-5 h-5 pointer-events-none" />
+              <span className="text-[9.5px] tracking-wide pointer-events-none">Profile</span>
             </Link>
           </div>
         </nav>

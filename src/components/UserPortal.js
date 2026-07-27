@@ -451,12 +451,12 @@ export default function UserPortal() {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors outline-none ${
-                  isActive ? 'text-[var(--color-acid-green)]' : 'text-[var(--text-muted)] hover:text-[var(--foreground)]'
+                className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors outline-none border-none bg-transparent touch-manipulation active:scale-95 transform-gpu ${
+                  isActive ? 'text-[var(--color-acid-green)] font-black' : 'text-[var(--text-muted)] hover:text-[var(--foreground)]'
                 }`}
               >
-                <Icon className={`w-6 h-6 ${isActive ? 'fill-[var(--color-acid-green)]/20' : ''}`} />
-                <span className="text-[9px] font-bold tracking-wide">{item.label}</span>
+                <Icon className={`w-6 h-6 pointer-events-none ${isActive ? 'fill-[var(--color-acid-green)]/20' : ''}`} />
+                <span className="text-[9px] font-bold tracking-wide pointer-events-none">{item.label}</span>
               </button>
             );
           })}
