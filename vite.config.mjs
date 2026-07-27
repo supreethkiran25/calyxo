@@ -72,6 +72,9 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      target: 'es2022',
+      cssMinify: true,
+      modulePreload: { polyfill: false },
       chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
