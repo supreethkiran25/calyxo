@@ -266,10 +266,11 @@ export default function UserLayout() {
           </div>
         </main>
         {/* Mobile Bottom Navigation */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-card-border z-30 px-2 pb-safe shadow-2xl transform-gpu will-change-transform">
+        <nav aria-label="Mobile Navigation" className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-card-border z-30 px-2 pb-safe shadow-2xl transform-gpu will-change-transform">
           <div className="flex items-center justify-around h-16 max-w-md mx-auto">
             <Link
               to="/user/dashboard"
+              aria-label="Home Dashboard"
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
                 pathname === '/user/dashboard' ? 'text-acid-green font-black' : 'text-muted hover:text-foreground'
               }`}
@@ -279,6 +280,7 @@ export default function UserLayout() {
             </Link>
             <Link
               to="/user/nutrition"
+              aria-label="Nutrition Page"
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
                 pathname === '/user/nutrition' ? 'text-acid-green font-black' : 'text-muted hover:text-foreground'
               }`}
@@ -300,6 +302,7 @@ export default function UserLayout() {
 
             <Link
               to="/user/workout"
+              aria-label="Workout Page"
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
                 pathname === '/user/workout' ? 'text-acid-green font-black' : 'text-muted hover:text-foreground'
               }`}
@@ -309,6 +312,7 @@ export default function UserLayout() {
             </Link>
             <Link
               to="/user/profile"
+              aria-label="Profile Settings Page"
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
                 pathname === '/user/profile' ? 'text-acid-green font-black' : 'text-muted hover:text-foreground'
               }`}

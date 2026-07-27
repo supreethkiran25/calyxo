@@ -106,10 +106,11 @@ function MacroBar({ label, current, total, color }) {
 function SectionHeader({ title, onSeeAll }) {
   return (
     <div className="flex justify-between items-center mb-4">
-      <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">{title}</h3>
+      <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">{title}</h2>
       {onSeeAll && (
         <button
           onClick={onSeeAll}
+          aria-label={`See all ${title}`}
           className="text-xs font-bold text-acid-green hover:underline background-none border-none cursor-pointer p-0"
         >
           See All
@@ -345,6 +346,7 @@ export default function Dashboard({ onNotification }) {
                     key={idx}
                     type="button"
                     onClick={() => navigate(`/user/profile?section=${item.key}`)}
+                    aria-label={`Complete ${item.label}`}
                     className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md border flex items-center gap-1 cursor-pointer transition-all ${
                       item.done
                         ? 'bg-acid-green/10 border-acid-green/30 text-acid-green hover:bg-acid-green/20'
@@ -364,6 +366,7 @@ export default function Dashboard({ onNotification }) {
               const targetKey = firstPending ? firstPending.key : 'display_name';
               navigate(`/user/profile?section=${targetKey}`);
             }}
+            aria-label="Finish Profile Setup"
             className="w-full sm:w-auto text-xs font-black text-accent-foreground bg-acid-green hover:shadow-lg hover:shadow-acid-green/20 px-5 py-2.5 rounded-xl uppercase tracking-widest cursor-pointer border-none shrink-0 transition-all flex items-center justify-center gap-1.5"
           >
             <span>Finish Setup</span>
@@ -398,6 +401,7 @@ export default function Dashboard({ onNotification }) {
           <button
             key={idx}
             onClick={item.action}
+            aria-label={`Open ${item.label}`}
             className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all active:scale-95 cursor-pointer outline-none ${
               item.isPrimary 
                 ? 'bg-[var(--color-acid-green)]/10 border-[var(--color-acid-green)]/30 hover:bg-[var(--color-acid-green)]/20' 
@@ -420,10 +424,10 @@ export default function Dashboard({ onNotification }) {
         {/* AI Health Twin Widget */}
         <div className="glass p-4 sm:p-6 rounded-2xl border border-card-border shadow-md flex flex-col justify-between h-full min-h-[340px]">
           <div>
-            <h3 className="text-sm font-extrabold text-foreground uppercase tracking-widest mb-4 flex items-center gap-1.5">
+            <h2 className="text-sm font-extrabold text-foreground uppercase tracking-widest mb-4 flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-acid-green animate-pulse" />
               AI Health Twin
-            </h3>
+            </h2>
             
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 py-2">
               <div className="relative w-24 h-24 shrink-0 flex items-center justify-center">
@@ -510,6 +514,7 @@ export default function Dashboard({ onNotification }) {
           </div>
           <button 
             onClick={() => navigate('/user/ai')}
+            aria-label="Open AI Workspace"
             className="w-full py-2.5 mt-4 bg-acid-green/10 hover:bg-acid-green/20 text-acid-green border border-acid-green/30 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
           >
             Open AI Workspace →
@@ -523,6 +528,7 @@ export default function Dashboard({ onNotification }) {
               <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">Today&apos;s Nutrition Summary</h2>
               <button 
                 onClick={() => navigate('/user/nutrition')}
+                aria-label="Open Nutrition Logger"
                 className="p-1.5 rounded-lg bg-surface border border-card-border text-[var(--text-muted)] hover:text-foreground cursor-pointer"
               >
                 <Activity className="w-4 h-4" />
@@ -542,10 +548,10 @@ export default function Dashboard({ onNotification }) {
         {/* Daily Hydration Logger */}
         <div id="water-logger-section" className="glass p-4 sm:p-6 rounded-2xl border border-card-border shadow-md flex flex-col justify-between h-full min-h-[320px]">
           <div>
-            <h3 className="text-sm font-extrabold text-foreground uppercase tracking-widest mb-4 flex items-center gap-1.5">
+            <h2 className="text-sm font-extrabold text-foreground uppercase tracking-widest mb-4 flex items-center gap-1.5">
               <Droplets className="w-4 h-4 text-blue-400" />
               Water Intake Log
-            </h3>
+            </h2>
             
             <div className="flex gap-4 items-center mb-4">
               <div className="relative w-16 h-36 border-2 border-cyan-400/40 bg-black/40 rounded-2xl overflow-hidden shadow-[0_0_15px_rgba(6,182,212,0.2)] flex flex-col justify-end">
@@ -577,6 +583,7 @@ export default function Dashboard({ onNotification }) {
                     <button
                       key={ml}
                       onClick={() => handleAddWater(ml)}
+                      aria-label={`Add ${ml}ml water`}
                       className="w-full py-2 bg-surface border border-card-border rounded-xl text-xs font-bold text-foreground hover:border-[var(--blue-theme)] hover:bg-[var(--blue-theme)]/5 transition-all cursor-pointer"
                     >
                       +{ml}ml
@@ -584,6 +591,7 @@ export default function Dashboard({ onNotification }) {
                   ))}
                   <button 
                     onClick={handleResetWater}
+                    aria-label="Reset water intake"
                     className="w-full py-2 bg-surface border border-card-border rounded-xl text-[10px] uppercase font-bold text-muted hover:border-destructive hover:bg-destructive/5 transition-all cursor-pointer col-span-2"
                   >
                     Reset
@@ -658,12 +666,13 @@ export default function Dashboard({ onNotification }) {
         {/* ── Biometrics Quick Stats Card ── */}
         <div className="glass rounded-2xl border border-[var(--card-border)] overflow-hidden shadow-md md:col-span-2 lg:col-span-3">
           <div className="flex justify-between items-center px-6 py-4 border-b border-card-border">
-            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+            <h2 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
               <Activity className="w-4 h-4 text-[var(--color-acid-green)] animate-pulse" />
               Biometric Summary Indices
-            </h3>
+            </h2>
             <button
               onClick={() => navigate('/user/profile')}
+              aria-label="Adjust Biometrics Settings"
               className="text-xs font-bold text-[var(--color-acid-green)] hover:underline background-none border-none cursor-pointer p-0"
             >
               Adjust Biometrics
@@ -695,6 +704,7 @@ export default function Dashboard({ onNotification }) {
           <div className="md:hidden flex justify-center border-t border-card-border p-2 bg-surface">
             <button
               onClick={() => setShowAllBiometrics(!showAllBiometrics)}
+              aria-label="Toggle biometrics detail view"
               className="text-[10px] font-black text-acid-green uppercase tracking-wider bg-transparent border-none cursor-pointer p-1"
             >
               {showAllBiometrics ? 'View Less ▲' : 'View More ▼'}
