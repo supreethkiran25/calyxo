@@ -22,9 +22,9 @@ export default defineConfig(({ mode }) => {
             req.on('end', async () => {
               try {
                 const body = JSON.parse(bodyStr || '{}');
-                let { model = 'gemini-1.5-flash', payload } = body;
-                if (!model || model === 'gemini-2.5-flash') {
-                  model = 'gemini-1.5-flash';
+                let { model = 'gemini-2.5-flash', payload } = body;
+                if (!model) {
+                  model = 'gemini-2.5-flash';
                 }
                 const apiKey = env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => {
                   return;
                 }
 
-                const modelsToTry = Array.from(new Set([model, 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']));
+                const modelsToTry = Array.from(new Set([model, 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-3.5-flash']));
                 let lastData = null;
                 let lastStatus = 500;
 
