@@ -1,10 +1,20 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Dumbbell, Apple, ScanLine, TrendingUp, MessageSquare, Droplets, Scale, Zap } from 'lucide-react';
+import { X, Dumbbell, Apple, ScanLine, TrendingUp, MessageSquare, Droplets, Scale, Zap, Lock } from 'lucide-react';
 import useQuickActionsStore from '../store/useQuickActionsStore';
+import { useStore } from '../store/useStore';
 
 export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
   const setActiveWorkflow = useQuickActionsStore((state) => state.setActiveWorkflow);
+  const user = useStore(state => state.user);
+  const userProfile = useStore(state => state.userProfile);
+  const plan = userProfile?.subscriptionPlan;
+  const email = (user?.email || userProfile?.email || "").toLowerCase().trim();
+  const isSubscribed = Boolean(
+    userProfile?.isSubscribed || 
+    (plan && plan !== 'FREE' && plan !== 'DEFAULT') ||
+    email === 'supreethkiran25@gmail.com'
+  );
 
   if (!isOpen) return null;
 
@@ -16,7 +26,7 @@ export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
     { id: 'log_water', label: 'Log Water', icon: Droplets, color: 'text-cyan-500', bg: 'bg-cyan-500/10', section: 'Health' },
     { id: 'update_weight', label: 'Update Weight', icon: Scale, color: 'text-amber-500', bg: 'bg-amber-500/10', section: 'Health' },
 
-    { id: 'start_chat', label: 'AI Coach Chat', icon: MessageSquare, color: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]/10', section: 'AI' }
+    { id: 'start_chat', label: 'AI Coach Chat', icon: MessageSquare, color: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]/10', section: 'AI', isPremium: true }
   ];
 
   const sections = ['Health', 'AI'];
@@ -82,20 +92,31 @@ export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
                     {sectionName}
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
-                    {secActions.map(action => (
-                      <button 
-                        key={action.id}
-                        onClick={() => handleAction(action.id)}
-                        className="flex items-center gap-3 p-3.5 rounded-2xl bg-surface border border-card-border hover:border-[var(--accent)]/40 hover:bg-[var(--input)] transition-all duration-200 outline-none group text-left min-h-[48px] active:scale-[0.98] select-none"
-                      >
-                        <div className={`w-10 h-10 shrink-0 rounded-xl ${action.bg} flex items-center justify-center group-hover:scale-105 transition-transform`}>
-                          <action.icon className={`w-5 h-5 ${action.color}`} />
-                        </div>
-                        <span className="text-[11px] font-black text-foreground group-hover:text-[var(--accent)] transition-colors leading-tight">
-                          {action.label}
-                        </span>
-                      </button>
-                    ))}
+                    {secActions.map(action => {
+                      const locked = action.isPremium && !isSubscribed;
+                      return (
+                        <button 
+                          key={action.id}
+                          onClick={() => handleAction(action.id)}
+                          className="flex items-center justify-between p-3.5 rounded-2xl bg-surface border border-card-border hover:border-[var(--accent)]/40 hover:bg-[var(--input)] transition-all duration-200 outline-none group text-left min-h-[48px] active:scale-[0.98] select-none relative"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 shrink-0 rounded-xl ${action.bg} flex items-center justify-center group-hover:scale-105 transition-transform`}>
+                              <action.icon className={`w-5 h-5 ${action.color}`} />
+                            </div>
+                            <span className="text-[11px] font-black text-foreground group-hover:text-[var(--accent)] transition-colors leading-tight">
+                              {action.label}
+                            </span>
+                          </div>
+
+                          {locked && (
+                            <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] font-bold uppercase flex items-center gap-1 shrink-0">
+                              <Lock className="w-2.5 h-2.5" /> ₹1/mo
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               );
