@@ -1115,29 +1115,6 @@ export default function UserProfile({ onNotification }) {
         </div>
       </div>
 
-      <div className="space-y-2 pt-2 border-t border-card-border">
-        <h4 className="text-[10px] font-bold text-foreground uppercase tracking-wider">Accessibility Options</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {[
-            { key: 'largeText', label: 'Large Text', state: largeTextMode, setter: setLargeTextMode, desc: 'Increases font size' },
-            { key: 'highContrast', label: 'High Contrast', state: highContrastMode, setter: setHighContrastMode, desc: 'Sharper boundaries' },
-          ].map(item => (
-            <label key={item.key} className="flex flex-col justify-between bg-surface border border-card-border p-2 rounded-lg cursor-pointer select-none min-h-[60px]">
-              <div className="flex justify-between items-start w-full">
-                <span className="text-xs font-bold text-foreground block">{item.label}</span>
-                <input
-                  type="checkbox"
-                  checked={item.state}
-                  onChange={(e) => item.setter(e.target.checked)}
-                  className="w-4 h-4 rounded border-card-border text-acid-green focus:ring-0 cursor-pointer accent-acid-green shrink-0"
-                />
-              </div>
-              <span className="text-[9px] text-muted block mt-1 leading-normal">{item.desc}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-
       <button
         type="submit"
         disabled={saving}

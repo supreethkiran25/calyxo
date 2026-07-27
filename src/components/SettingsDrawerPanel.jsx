@@ -308,42 +308,6 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
               </label>
             </div>
 
-            <div className="space-y-2 pt-2 border-t border-[var(--card-border)]">
-              <h4 className={labelClass}>Accessibility Options</h4>
-              <div className="grid grid-cols-1 gap-2">
-                {[
-                  { key: 'largeText', label: 'Large Text', state: largeTextMode, setter: setLargeTextMode, desc: 'Increases font size' },
-                  { key: 'highContrast', label: 'High Contrast', state: highContrastMode, setter: setHighContrastMode, desc: 'Sharper boundaries' },
-                ].map(item => (
-                  <label key={item.key} className="flex justify-between items-center bg-[var(--surface)] border border-[var(--card-border)] p-3 rounded-2xl cursor-pointer select-none">
-                    <div>
-                      <span className="text-xs font-bold text-[var(--foreground)] block">{item.label}</span>
-                      <span className="text-[10px] text-[var(--muted-foreground)] block mt-0.5">{item.desc}</span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={item.state}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        item.setter(checked);
-                        applyAppearanceSettings({
-                          theme: themeMode,
-                          largeText: item.key === 'largeText' ? checked : largeTextMode,
-                          highContrast: item.key === 'highContrast' ? checked : highContrastMode,
-                          reduceMotion: reduceMotionState,
-                          bgEffectsEnabled,
-                          bgStyle,
-                          animationIntensity,
-                          performanceMode
-                        });
-                      }}
-                      className="w-4 h-4 rounded border-[var(--card-border)] accent-[var(--color-acid-green)] cursor-pointer shrink-0"
-                    />
-                  </label>
-                ))}
-              </div>
-            </div>
-
             <button
               type="submit"
               disabled={saving}

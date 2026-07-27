@@ -27,11 +27,16 @@ const SupportPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(
 const PrivacyPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(m => ({ default: m.PrivacyPage })));
 const TermsPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(m => ({ default: m.TermsPage })));
 
+import { registerServiceWorker, scheduleDailyReminders } from './services/notificationService';
+
 function App() {
   const initializeTheme = useStore(state => state.initializeTheme);
 
   useEffect(() => {
     initializeTheme();
+    registerServiceWorker().then(() => {
+      scheduleDailyReminders();
+    });
   }, [initializeTheme]);
 
   return (
