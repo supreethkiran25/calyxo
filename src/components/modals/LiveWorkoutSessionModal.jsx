@@ -75,47 +75,102 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
     }
   };
 
+  const restEndTimeRef = useRef(null);
+
   const sendBrowserNotification = (title, body) => {
-    if ("Notification" in window) {
+    if (typeof window !== "undefined" && "Notification" in window) {
       if (Notification.permission === "granted") {
-        new Notification(title, { body });
+        try {
+          new Notification(title, { 
+            body, 
+            icon: "/favicon.ico", 
+            tag: "rest-timer",
+            requireInteraction: true 
+          });
+        } catch (e) {
+          console.warn("Browser notification failed", e);
+        }
       } else if (Notification.permission !== "denied") {
         Notification.requestPermission().then(perm => {
-          if (perm === "granted") new Notification(title, { body });
+          if (perm === "granted") {
+            try {
+              new Notification(title, { 
+                body, 
+                icon: "/favicon.ico", 
+                tag: "rest-timer",
+                requireInteraction: true 
+              });
+            } catch (e) {
+              console.warn("Browser notification failed", e);
+            }
+          }
         });
       }
     }
   };
 
-  // Timer Interval Effect
+  // Background-Resilient Rest Timer Effect with Push Notifications
   useEffect(() => {
     let interval = null;
-    if (sessionState === 'REST_SET' || sessionState === 'REST_EXERCISE') {
-      interval = setInterval(() => {
-        setTimerSeconds(prev => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            playAlertChime(sessionState === 'REST_EXERCISE' ? 900 : 700);
+    let timeout = null;
 
-            if (sessionState === 'REST_SET') {
-              sendBrowserNotification("Set Rest Over!", `Get ready for Set ${setIndex} of ${currentEx?.name}`);
-              setSessionState('EXERCISING');
-            } else if (sessionState === 'REST_EXERCISE') {
-              sendBrowserNotification("Exercise Break Finished!", `Next exercise: ${exercises[exIndex + 1]?.name || 'Final Exercise'}`);
-              setExIndex(idx => idx + 1);
-              setWaterLoggedThisBreak(false);
-              setSessionState('EXERCISING');
-            }
-            return 0;
-          }
-          return prev - 1;
-        });
+    if (sessionState === 'REST_SET' || sessionState === 'REST_EXERCISE') {
+      if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+
+      if (!restEndTimeRef.current) {
+        restEndTimeRef.current = Date.now() + timerSeconds * 1000;
+      }
+
+      const handleTimerCompletion = () => {
+        restEndTimeRef.current = null;
+        playAlertChime(sessionState === 'REST_EXERCISE' ? 900 : 700);
+        if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+
+        if (sessionState === 'REST_SET') {
+          sendBrowserNotification("Rest Time Finished! 💪", `Set rest complete! Time to start Set ${setIndex} of ${currentEx?.name || 'Exercise'}`);
+          if (onNotification) onNotification(`Rest time complete! Start Set ${setIndex} of ${currentEx?.name || 'Exercise'}`);
+          setSessionState('EXERCISING');
+        } else if (sessionState === 'REST_EXERCISE') {
+          sendBrowserNotification("Exercise Break Complete! 🏋️‍♂️", `Break over! Next exercise: ${exercises[exIndex + 1]?.name || 'Final Exercise'}`);
+          if (onNotification) onNotification(`Exercise break complete! Starting ${exercises[exIndex + 1]?.name || 'Next Exercise'}`);
+          setExIndex(idx => idx + 1);
+          setWaterLoggedThisBreak(false);
+          setSessionState('EXERCISING');
+        }
+      };
+
+      const remainingMs = Math.max(0, restEndTimeRef.current - Date.now());
+      timeout = setTimeout(handleTimerCompletion, remainingMs);
+
+      interval = setInterval(() => {
+        const leftSecs = Math.max(0, Math.ceil((restEndTimeRef.current - Date.now()) / 1000));
+        setTimerSeconds(leftSecs);
       }, 1000);
+
+      const handleVisibilityChange = () => {
+        if (!document.hidden && restEndTimeRef.current) {
+          const leftSecs = Math.max(0, Math.ceil((restEndTimeRef.current - Date.now()) / 1000));
+          setTimerSeconds(leftSecs);
+          if (leftSecs <= 0) {
+            if (timeout) clearTimeout(timeout);
+            handleTimerCompletion();
+          }
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+        if (interval) clearInterval(interval);
+        if (timeout) clearTimeout(timeout);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
+    } else {
+      restEndTimeRef.current = null;
     }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [sessionState, setIndex, currentEx, exIndex, exercises]);
+  }, [sessionState, setIndex, currentEx, exIndex, exercises, onNotification]);
 
   if (!isOpen || !routine) return null;
 
@@ -153,18 +208,16 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
       // Advance to next set with 1-min rest
       setSetIndex(s => s + 1);
       setTimerSeconds(60); // 1-minute set rest
+      restEndTimeRef.current = Date.now() + 60 * 1000;
       setSessionState('REST_SET');
     } else {
       // All sets for this exercise finished
       if (exIndex < exercises.length - 1) {
-        // Move to 2-min inter-exercise break & hydration reminder
+        // Move to 2-min inter-exercise break & on-screen hydration card
         setTimerSeconds(120); // 2-minute exercise break
+        restEndTimeRef.current = Date.now() + 120 * 1000;
         setWaterLoggedThisBreak(false);
         setSessionState('REST_EXERCISE');
-        sendBrowserNotification(
-          "Hydration Break",
-          "Do you need water? Go have a sip before your next exercise!"
-        );
       } else {
         // All exercises in routine completed!
         setSessionState('COMPLETED');

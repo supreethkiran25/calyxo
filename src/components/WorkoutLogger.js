@@ -429,23 +429,43 @@ export default function WorkoutLogger({ onNotification }) {
   // Rest Timer States & Logic
   const [restSecondsLeft, setRestSecondsLeft] = useState(null);
   const [restDuration, setRestDuration] = useState(60);
-  const timerRef = useRef(null);
+  const restEndTimeRef = useRef(null);
 
-  useEffect(() => {
-    if (restSecondsLeft !== null && restSecondsLeft > 0) {
-      timerRef.current = setTimeout(() => {
-        setRestSecondsLeft(prev => prev - 1);
-      }, 1000);
-    } else if (restSecondsLeft === 0) {
-      triggerTimerCompletion();
-      setRestSecondsLeft(null);
+  const sendBrowserNotification = (title, body) => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "granted") {
+        try {
+          new Notification(title, { 
+            body, 
+            icon: "/favicon.ico", 
+            tag: "workout-rest-timer",
+            requireInteraction: true 
+          });
+        } catch (e) {
+          console.warn("Browser notification failed", e);
+        }
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(perm => {
+          if (perm === "granted") {
+            try {
+              new Notification(title, { 
+                body, 
+                icon: "/favicon.ico", 
+                tag: "workout-rest-timer",
+                requireInteraction: true 
+              });
+            } catch (e) {
+              console.warn("Browser notification failed", e);
+            }
+          }
+        });
+      }
     }
-    return () => clearTimeout(timerRef.current);
-  }, [restSecondsLeft]);
+  };
 
   const triggerTimerCompletion = () => {
     if (navigator.vibrate) {
-      navigator.vibrate([200, 100, 200]);
+      navigator.vibrate([300, 100, 300, 100, 300]);
     }
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -461,10 +481,61 @@ export default function WorkoutLogger({ onNotification }) {
     } catch (e) {
       console.warn("AudioContext chime failed", e);
     }
+    sendBrowserNotification("Rest Time Finished! 💪", "Rest period complete! Time to start your next set.");
     if (onNotification) onNotification("Rest time complete! Set starts now.");
   };
 
+  useEffect(() => {
+    let interval = null;
+    let timeout = null;
+
+    if (restSecondsLeft !== null && restSecondsLeft > 0) {
+      if (!restEndTimeRef.current) {
+        restEndTimeRef.current = Date.now() + restSecondsLeft * 1000;
+      }
+      const remainingMs = Math.max(0, restEndTimeRef.current - Date.now());
+
+      timeout = setTimeout(() => {
+        triggerTimerCompletion();
+        setRestSecondsLeft(null);
+        restEndTimeRef.current = null;
+      }, remainingMs);
+
+      interval = setInterval(() => {
+        const leftSecs = Math.max(0, Math.ceil((restEndTimeRef.current - Date.now()) / 1000));
+        setRestSecondsLeft(leftSecs);
+      }, 1000);
+
+      const handleVisibilityChange = () => {
+        if (!document.hidden && restEndTimeRef.current) {
+          const leftSecs = Math.max(0, Math.ceil((restEndTimeRef.current - Date.now()) / 1000));
+          setRestSecondsLeft(leftSecs);
+          if (leftSecs <= 0) {
+            if (timeout) clearTimeout(timeout);
+            triggerTimerCompletion();
+            setRestSecondsLeft(null);
+            restEndTimeRef.current = null;
+          }
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+        if (interval) clearInterval(interval);
+        if (timeout) clearTimeout(timeout);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
+    } else {
+      restEndTimeRef.current = null;
+    }
+  }, [restSecondsLeft, onNotification]);
+
   const handleStartRestTimer = (secs = restDuration) => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+    restEndTimeRef.current = Date.now() + secs * 1000;
     setRestSecondsLeft(secs);
   };
 
