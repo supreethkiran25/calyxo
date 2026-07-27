@@ -687,7 +687,7 @@ export const getUserProfile = async (userId) => {
       if (authUserRes?.user?.email) {
         userEmail = authUserRes.user.email;
       }
-    } catch (e) {}
+    } catch (e) { }
 
     if (!userEmail) {
       try {
@@ -697,7 +697,7 @@ export const getUserProfile = async (userId) => {
         if (sessionStr) {
           userEmail = JSON.parse(sessionStr)?.user?.email || "";
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     let userProfileSubPlan = null;
@@ -770,7 +770,7 @@ export const getUserProfile = async (userId) => {
 
       // Silently ensure cloud DB is synced with the active plan so subsequent reads on all devices stay updated
       if (!extra.subscriptionPlan || extra.subscriptionPlan !== subPlan) {
-        saveUserProfile(userId, combinedProfile).catch(() => {});
+        saveUserProfile(userId, combinedProfile).catch(() => { });
       }
 
       return combinedProfile;
@@ -784,7 +784,7 @@ export const getUserProfile = async (userId) => {
       onboarded: localProf?.onboarded === true ? true : false
     };
     if (fallbackPlan !== 'FREE') {
-      saveUserProfile(userId, fallbackSub).catch(() => {});
+      saveUserProfile(userId, fallbackSub).catch(() => { });
     }
     return fallbackSub;
   } catch (err) {
@@ -844,10 +844,10 @@ export const saveUserProfile = async (userId, profile) => {
       subscriptionDate: finalSubscriptionDate,
       passPurchases: finalPassPurchases,
       activePass: finalActivePass,
-      healthInterests: Array.isArray(profile.healthInterests) 
-        ? profile.healthInterests 
-        : (Array.isArray(mergedProfile.healthInterests) 
-          ? mergedProfile.healthInterests 
+      healthInterests: Array.isArray(profile.healthInterests)
+        ? profile.healthInterests
+        : (Array.isArray(mergedProfile.healthInterests)
+          ? mergedProfile.healthInterests
           : (Array.isArray(existingBio.healthInterests) ? existingBio.healthInterests : [])),
       fitnessLevel: mergedProfile.fitnessLevel ?? existingBio.fitnessLevel ?? mergedProfile.experience ?? existingBio.experience,
       dob: mergedProfile.dob ?? existingBio.dob,
@@ -896,7 +896,7 @@ export const saveUserProfile = async (userId, profile) => {
         id: userId,
         subscription_plan: finalSubPlan,
         updated_at: new Date().toISOString()
-      }, { onConflict: 'id' }).catch(() => {});
+      }, { onConflict: 'id' }).catch(() => { });
     }
   } catch (err) {
     console.error("Supabase saveUserProfile error", err);

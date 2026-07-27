@@ -468,18 +468,19 @@ export const StaggeredMenu = ({
             )}
           </ul>
           {displaySocials && socialItems && socialItems.length > 0 && (
-            <div className="sm-socials" aria-label="Social links">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="sm-socials-title">Quick Links</h3>
-                <div className="flex items-center gap-2">
-                  <ThemeToggle />
-                  <span className="text-xs font-bold text-muted">Theme</span>
-                </div>
+            <div className="sm-socials border-t border-[var(--card-border)] pt-5 mt-auto flex flex-col gap-4" aria-label="Quick links and settings">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--muted-foreground)]">
+                  Quick Links
+                </span>
               </div>
-              <ul className="sm-socials-list" role="list">
-                {socialItems.map((s, i) => (
-                  <li key={s.label + i} className="sm-socials-item">
+              
+              <div className="grid grid-cols-2 gap-2">
+                {socialItems.map((s, i) => {
+                  const isSignOut = s.label === 'Sign Out';
+                  return (
                     <a
+                      key={s.label + i}
                       href={s.link || '#'}
                       onClick={(e) => {
                         if (s.onClick) {
@@ -494,13 +495,25 @@ export const StaggeredMenu = ({
                       }}
                       target={s.link && s.link.startsWith('http') ? '_blank' : '_self'}
                       rel="noopener noreferrer"
-                      className="sm-socials-link"
+                      className={`text-xs font-bold px-3 py-2.5 rounded-xl border border-transparent hover:border-[var(--card-border)] hover:bg-[var(--surface)] transition-all flex items-center gap-2 ${
+                        isSignOut 
+                          ? 'text-red-500 hover:text-red-600 hover:bg-red-500/10 col-span-2 mt-1' 
+                          : 'text-[var(--foreground)] hover:text-[var(--color-acid-green)]'
+                      }`}
                     >
-                      {s.label}
+                      <span>{s.label}</span>
                     </a>
-                  </li>
-                ))}
-              </ul>
+                  );
+                })}
+              </div>
+
+              {/* Handcrafted Theme Switcher Bar */}
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-[var(--surface)] border border-[var(--card-border)] mt-2">
+                <span className="text-xs font-bold text-[var(--foreground)]">Appearance</span>
+                <div className="flex items-center gap-2">
+                  <ThemeToggle />
+                </div>
+              </div>
             </div>
           )}
         </div>
