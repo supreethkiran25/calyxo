@@ -10,6 +10,7 @@ import { signOutUser, subscribeToAuth, loadUserData } from '../lib/dbService';
 import Logo from '../components/Logo';
 import ThemeToggle from '../components/ThemeToggle';
 import OfflineSyncIndicator from '../components/OfflineSyncIndicator';
+import PWAInstallBanner from '../components/PWAInstallBanner';
 
 const BackgroundEffects = lazy(() => import('../components/BackgroundEffects'));
 const QuickActionsSheet = lazy(() => import('../components/QuickActionsSheet'));
@@ -347,6 +348,7 @@ export default function UserLayout() {
       </Suspense>
 
       <OfflineSyncIndicator />
+      <PWAInstallBanner />
     </div>
   );
 }
