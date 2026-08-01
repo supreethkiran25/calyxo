@@ -5,7 +5,7 @@ import useQuickActionsStore from '../../store/useQuickActionsStore';
 import { useEcosystemStore } from '../../store/useEcosystemStore';
 import { useStore } from '../../store/useStore';
 import { addFoodLog, getCurrentUserId } from '../../lib/dbService';
-import { INDIAN_FOODS } from '../../lib/indianFoods';
+import { INDIAN_FOODS, searchCalyxoFoods } from '../../lib/indianFoods';
 
 const FOODS_CATALOG = [
   { name: "Chicken Biryani", unitType: "bowl", pieceWeight: 200, calsPer100g: 140, protPer100g: 9.3, carbsPer100g: 16, fatPer100g: 4.6 },
@@ -128,23 +128,21 @@ export default function MealLoggerModal() {
       return;
     }
 
-    const indianMatches = INDIAN_FOODS.filter(item =>
-      item.name.toLowerCase().includes(q) ||
-      (item.aliases && item.aliases.some(a => a.toLowerCase().includes(q)))
-    ).map(item => {
-      const n = item.name.toLowerCase();
+    const matchedFoods = searchCalyxoFoods(q, 15);
+    const indianMatches = matchedFoods.map(item => {
+      const n = (item.displayName || item.name).toLowerCase();
       let defaultUnit = 'grams';
       let defaultQty = 100;
-      let pw = 50;
+      let pw = item.pieceWeight || 100;
 
       if (n.includes('roti') || n.includes('chapati') || n.includes('phulka') || n.includes('naan') || n.includes('paratha')) {
         defaultUnit = 'piece';
         defaultQty = 1;
-        pw = 35; // 1 roti is approx 35g
+        pw = 35;
       } else if (n.includes('dosa')) {
         defaultUnit = 'piece';
         defaultQty = 1;
-        pw = 100; // 1 dosa is approx 100g
+        pw = 100;
       } else if (n.includes('idli')) {
         defaultUnit = 'piece';
         defaultQty = 1;
@@ -160,16 +158,16 @@ export default function MealLoggerModal() {
       }
 
       return {
-        name: item.name,
+        name: item.displayName || item.name,
         category: item.category,
         servingSize: item.servingSize,
         unitType: defaultUnit,
         defaultQty,
         pieceWeight: pw,
-        calsPer100g: item.calories,
-        protPer100g: item.protein,
-        carbsPer100g: item.carbs,
-        fatPer100g: item.fat
+        calsPer100g: item.calsPer100g || item.calories,
+        protPer100g: item.protPer100g || item.protein,
+        carbsPer100g: item.carbsPer100g || item.carbs,
+        fatPer100g: item.fatPer100g || item.fat
       };
     });
 

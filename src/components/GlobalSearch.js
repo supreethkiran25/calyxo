@@ -8,7 +8,7 @@ import {
   Settings, ChevronRight, Sparkles, Activity 
 } from 'lucide-react';
 import useQuickActionsStore from '../store/useQuickActionsStore';
-import { INDIAN_FOODS } from '../lib/indianFoods';
+import { INDIAN_FOODS, searchCalyxoFoods } from '../lib/indianFoods';
 import { searchAndRankExercises, loadExercisesData, getCachedExercises } from '../utils/exerciseSearch';
 
 export default function GlobalSearch({ isOpen, onClose }) {
@@ -97,18 +97,18 @@ export default function GlobalSearch({ isOpen, onClose }) {
       });
     });
 
-    // 3. Matching Foods (top 5)
-    const foodMatches = INDIAN_FOODS.filter(f => 
-      f.name.toLowerCase().includes(qLower) || 
-      (f.aliases && f.aliases.some(a => a.toLowerCase().includes(qLower)))
-    ).slice(0, 5);
+    // 3. Matching Foods (top 5 from 10,000+ dataset)
+    const foodMatches = searchCalyxoFoods(query, 5);
 
     foodMatches.forEach(f => {
+      const displayName = f.displayName || f.name;
+      const cals = f.calsPer100g || f.calories || 0;
+      const prot = f.protPer100g || f.protein || 0;
       results.push({
-        id: `food-${f.name}`,
+        id: `food-${f.id || displayName}`,
         type: 'food',
-        title: f.name,
-        subtitle: `${f.calories} kcal per 100g • ${f.protein}g Protein (${f.category || 'General'})`,
+        title: displayName,
+        subtitle: `${cals} kcal per 100g • ${prot}g Protein (${f.category || 'General'})`,
         icon: Utensils,
         action: () => {
           setActiveWorkflow('log_meal', { initialFood: f });
