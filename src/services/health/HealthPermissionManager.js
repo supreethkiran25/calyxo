@@ -3,6 +3,8 @@
  * Platform Support: Apple Health (iOS) & Android Health Connect (Android)
  */
 
+import { PWAPedometerService } from './PWAPedometerService';
+
 export const REQUIRED_PERMISSIONS = [
   'steps',
   'distance',
@@ -64,6 +66,9 @@ export class HealthPermissionManager {
     };
 
     let grantedResults = { ...currentGranted };
+
+    // Trigger PWA Accelerometer Motion Sensor Tracking
+    await PWAPedometerService.requestAndStartTracking();
 
     try {
       if (platform === 'ios_apple_health') {

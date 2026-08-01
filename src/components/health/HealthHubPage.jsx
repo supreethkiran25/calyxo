@@ -14,6 +14,8 @@ import { AIHealthInsightService } from '../../services/health/AIHealthInsightSer
 import { HealthGoalManager } from '../../services/health/HealthGoalManager';
 import HealthSettingsModal from './HealthSettingsModal';
 
+import { PWAPedometerService } from '../../services/health/PWAPedometerService';
+
 export default function HealthHubPage({ onNotification }) {
   const [isConnected, setIsConnected] = useState(HealthPermissionManager.isConnected());
   const [showOnboarding, setShowOnboarding] = useState(!HealthPermissionManager.isConnected());
@@ -28,7 +30,7 @@ export default function HealthHubPage({ onNotification }) {
   const platform = HealthPermissionManager.getPlatform();
   const platformLabel = platform === 'ios_apple_health' ? 'Apple Health' : platform === 'android_health_connect' ? 'Android Health Connect' : 'Health Platform';
 
-  // Initial Load & Subscription to Sync Engine
+  // Initial Load & Subscription to Sync Engine + PWA Pedometer
   useEffect(() => {
     async function loadInitialHealthData() {
       const today = await HealthDataService.fetchTodayMetrics();
@@ -42,16 +44,38 @@ export default function HealthHubPage({ onNotification }) {
 
     loadInitialHealthData();
 
+    // Start motion pedometer if connected
+    if (HealthPermissionManager.isConnected()) {
+      PWAPedometerService.requestAndStartTracking();
+    }
+
+    // Subscribe to live motion pedometer step ticks
+    const unsubscribePedometer = PWAPedometerService.subscribe((liveSteps) => {
+      setMetrics(prev => {
+        if (!prev) return prev;
+        const newDist = Number((liveSteps * 0.00075).toFixed(2));
+        const newCals = Math.round(liveSteps * 0.042);
+        return {
+          ...prev,
+          steps: liveSteps,
+          distanceKm: newDist,
+          activeCalories: newCals,
+          lastSyncTimestamp: Date.now()
+        };
+      });
+    });
+
     // Start auto-sync interval
     const unsubscribeSync = HealthSyncEngine.subscribe((syncData) => {
       if (syncData.metrics) setMetrics(syncData.metrics);
       if (syncData.workouts) setWorkouts(syncData.workouts);
     });
 
-    const cleanupAuto = HealthSyncEngine.startAutoSync(45000);
+    const cleanupAuto = HealthSyncEngine.startAutoSync(30000);
 
     return () => {
       unsubscribeSync();
+      unsubscribePedometer();
       if (cleanupAuto) cleanupAuto();
     };
   }, []);

@@ -5,6 +5,7 @@
 
 import { HealthPermissionManager } from './HealthPermissionManager';
 import { HealthCache } from './HealthCache';
+import { PWAPedometerService } from './PWAPedometerService';
 
 export class HealthDataService {
   /**
@@ -13,15 +14,20 @@ export class HealthDataService {
   static async fetchTodayMetrics() {
     const isConn = HealthPermissionManager.isConnected();
     const cached = HealthCache.getMetrics();
+    const pwaSteps = PWAPedometerService.getTodaySteps();
 
-    // Default baseline metric state
+    const realSteps = pwaSteps > 0 ? pwaSteps : (cached?.steps || 3480);
+    const realDist = Number((realSteps * 0.00075).toFixed(2));
+    const realCals = Math.round(realSteps * 0.042);
+
+    // Default metric state
     let metrics = {
-      steps: 8420,
+      steps: realSteps,
       stepGoal: 10000,
-      distanceKm: 5.8,
-      activeCalories: 340,
+      distanceKm: realDist,
+      activeCalories: realCals,
       calorieGoal: 500,
-      activeMinutes: 45,
+      activeMinutes: Math.min(180, Math.round(realSteps / 110)),
       activeMinutesGoal: 60,
       heartRateBpm: 72,
       restingHeartRateBpm: 62,
@@ -35,7 +41,7 @@ export class HealthDataService {
     };
 
     if (cached) {
-      metrics = { ...metrics, ...cached };
+      metrics = { ...metrics, ...cached, steps: realSteps, distanceKm: realDist, activeCalories: realCals };
     }
 
     if (!isConn) {
@@ -54,10 +60,9 @@ export class HealthDataService {
         metrics = { ...metrics, ...parsed, lastSyncTimestamp: Date.now() };
       } else {
         // Device motion / PWA sensors & realistic daily step accumulation sync
-        const liveStepIncrement = Math.floor(Math.random() * 15);
-        metrics.steps += liveStepIncrement;
-        metrics.distanceKm = Number((metrics.steps * 0.00075).toFixed(2));
-        metrics.activeCalories = Math.round(metrics.steps * 0.042);
+        metrics.steps = realSteps;
+        metrics.distanceKm = realDist;
+        metrics.activeCalories = realCals;
         metrics.lastSyncTimestamp = Date.now();
       }
 
