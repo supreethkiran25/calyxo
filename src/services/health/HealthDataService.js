@@ -16,7 +16,7 @@ export class HealthDataService {
     const cached = HealthCache.getMetrics();
     const pwaSteps = PWAPedometerService.getTodaySteps();
 
-    const realSteps = pwaSteps > 0 ? pwaSteps : (cached?.steps || 3480);
+    const realSteps = pwaSteps > 0 ? pwaSteps : (cached?.steps || 0);
     const realDist = Number((realSteps * 0.00075).toFixed(2));
     const realCals = Math.round(realSteps * 0.042);
 

@@ -116,19 +116,20 @@ export default function HealthHubPage({ onNotification }) {
     return HealthGoalManager.calculateProgress(metrics || {});
   }, [metrics]);
 
-  const stepCount = metrics?.steps || 8420;
+  const isConn = HealthPermissionManager.isConnected();
+  const stepCount = metrics?.steps || 0;
   const stepGoal = metrics?.stepGoal || 10000;
-  const stepPct = Math.min(100, Math.round((stepCount / stepGoal) * 100));
+  const stepPct = stepGoal > 0 ? Math.min(100, Math.round((stepCount / stepGoal) * 100)) : 0;
 
-  const calCount = metrics?.activeCalories || 340;
+  const calCount = metrics?.activeCalories || 0;
   const calGoal = metrics?.calorieGoal || 500;
-  const calPct = Math.min(100, Math.round((calCount / calGoal) * 100));
+  const calPct = calGoal > 0 ? Math.min(100, Math.round((calCount / calGoal) * 100)) : 0;
 
-  const minCount = metrics?.activeMinutes || 45;
+  const minCount = metrics?.activeMinutes || 0;
   const minGoal = metrics?.activeMinutesGoal || 60;
-  const minPct = Math.min(100, Math.round((minCount / minGoal) * 100));
+  const minPct = minGoal > 0 ? Math.min(100, Math.round((minCount / minGoal) * 100)) : 0;
 
-  const distanceKm = metrics?.distanceKm || 5.8;
+  const distanceKm = metrics?.distanceKm || 0;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-24 text-foreground">
