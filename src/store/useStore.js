@@ -204,25 +204,60 @@ export const useStore = create((set, get) => ({
   // Trainer Data
   trainerClients: [],
   setTrainerClients: (clients) => set({ trainerClients: clients }),
-  setUserProfile: (profile) => set((state) => ({
-    userProfile: profile 
-      ? {
-          ...DEFAULT_USER_PROFILE,
-          ...profile,
-          notifications: {
-            ...DEFAULT_USER_PROFILE.notifications,
-            ...(profile.notifications || {})
-          },
-          appearance: {
-            ...DEFAULT_USER_PROFILE.appearance,
-            ...(profile.appearance || {})
-          }
-        }
-      : DEFAULT_USER_PROFILE
-  })),
-  updateUserProfile: (profileUpdates) => set((state) => ({
-    userProfile: { ...state.userProfile, ...profileUpdates }
-  })),
+  setUserProfile: (profile) => set((state) => {
+    const raw = profile ? {
+      ...DEFAULT_USER_PROFILE,
+      ...profile,
+      notifications: {
+        ...DEFAULT_USER_PROFILE.notifications,
+        ...(profile.notifications || {})
+      },
+      appearance: {
+        ...DEFAULT_USER_PROFILE.appearance,
+        ...(profile.appearance || {})
+      }
+    } : DEFAULT_USER_PROFILE;
+
+    const targetCals = Number(raw.calorieGoal || raw.dailyCalories || raw.calTarget || 2000);
+    const targetProt = Number(raw.proteinGoal || raw.proteinTarget || raw.protein || raw.protTarget || 120);
+    const targetWater = Number(raw.waterGoal || raw.waterTarget || 3000);
+
+    return {
+      userProfile: {
+        ...raw,
+        calorieGoal: targetCals,
+        dailyCalories: targetCals,
+        calTarget: targetCals,
+        proteinGoal: targetProt,
+        proteinTarget: targetProt,
+        protein: targetProt,
+        protTarget: targetProt,
+        waterGoal: targetWater,
+        waterTarget: targetWater
+      }
+    };
+  }),
+  updateUserProfile: (profileUpdates) => set((state) => {
+    const raw = { ...state.userProfile, ...profileUpdates };
+    const targetCals = Number(raw.calorieGoal || raw.dailyCalories || raw.calTarget || 2000);
+    const targetProt = Number(raw.proteinGoal || raw.proteinTarget || raw.protein || raw.protTarget || 120);
+    const targetWater = Number(raw.waterGoal || raw.waterTarget || 3000);
+
+    return {
+      userProfile: {
+        ...raw,
+        calorieGoal: targetCals,
+        dailyCalories: targetCals,
+        calTarget: targetCals,
+        proteinGoal: targetProt,
+        proteinTarget: targetProt,
+        protein: targetProt,
+        protTarget: targetProt,
+        waterGoal: targetWater,
+        waterTarget: targetWater
+      }
+    };
+  }),
 
   toggleFavoriteExercise: (id) => set((state) => {
     const isFav = state.favoriteExercises.includes(id);

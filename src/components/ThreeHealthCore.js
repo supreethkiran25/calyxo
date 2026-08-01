@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { Flame, Droplets, Dumbbell } from 'lucide-react';
-import { isToday } from '../utils/dateUtils';
+import { isToday, getTodayDateString, isSameLocalDate } from '../utils/dateUtils';
 
 export default function ThreeHealthCore() {
   const [mounted, setMounted] = useState(false);
@@ -20,25 +20,27 @@ export default function ThreeHealthCore() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Daily totals
-  const todaysFoodLogs = foodLogs.filter(x => isToday(x.timestamp));
-  const totalCal = todaysFoodLogs.reduce((s, x) => s + (x.calories || 0), 0);
-  const totalProt = todaysFoodLogs.reduce((s, x) => s + (x.protein || 0), 0);
+  // Filter today's food logs using strict local YYYY-MM-DD date matching
+  const todayStr = getTodayDateString();
+  const todaysFoodLogs = (foodLogs || []).filter(x => isSameLocalDate(x.timestamp, todayStr) || isToday(x.timestamp));
+  const totalCal = todaysFoodLogs.reduce((s, x) => s + (Number(x.calories) || 0), 0);
+  const totalProt = todaysFoodLogs.reduce((s, x) => s + (Number(x.protein) || 0), 0);
 
-  const calTarget = userProfile?.calTarget || userProfile?.dailyCalories || 2000;
-  const protTarget = userProfile?.protTarget || userProfile?.proteinTarget || 120;
-  const waterTarget = 3000;
+  // Standardized Target Fallbacks across all devices & profiles
+  const calTarget = Number(userProfile?.calorieGoal || userProfile?.dailyCalories || userProfile?.calTarget || 2000);
+  const protTarget = Number(userProfile?.proteinGoal || userProfile?.proteinTarget || userProfile?.protein || userProfile?.protTarget || 120);
+  const waterTarget = Number(userProfile?.waterGoal || userProfile?.waterTarget || 3000);
 
-  const calPct = Math.min(100, Math.round((totalCal / calTarget) * 100));
-  const waterPct = Math.min(100, Math.round((waterIntake / waterTarget) * 100));
-  const protPct = Math.min(100, Math.round((totalProt / protTarget) * 100));
+  const calPct = calTarget > 0 ? Math.min(100, Math.round((totalCal / calTarget) * 100)) : 0;
+  const waterPct = waterTarget > 0 ? Math.min(100, Math.round((waterIntake / waterTarget) * 100)) : 0;
+  const protPct = protTarget > 0 ? Math.min(100, Math.round((totalProt / protTarget) * 100)) : 0;
 
-  // 3 distinct side-by-side rings with 3 unique vibrant colors
+  // 3 distinct side-by-side rings with unique vibrant colors
   const rings = [
     {
       id: 'calories',
       label: 'CALORIES',
-      rawVal: totalCal,
+      rawVal: Math.round(totalCal),
       targetVal: calTarget,
       unit: 'kcal',
       percentage: calPct,
@@ -50,7 +52,7 @@ export default function ThreeHealthCore() {
     {
       id: 'hydration',
       label: 'HYDRATION',
-      rawVal: waterIntake,
+      rawVal: Math.round(waterIntake),
       targetVal: waterTarget,
       unit: 'ml',
       percentage: waterPct,
@@ -84,7 +86,7 @@ export default function ThreeHealthCore() {
   return (
     <div className="w-full bg-surface/30 border border-card-border rounded-3xl p-5 shadow-xl space-y-4">
       
-      {/* 3 Distinct Side-by-Side Circular Progress Rings with Unique Colors */}
+      {/* 3 Distinct Side-by-Side Circular Progress Rings */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center justify-items-center">
         {rings.map((ring, idx) => {
           const radius = 42;
