@@ -895,6 +895,63 @@ export default function WorkoutLogger({ onNotification }) {
     }
   };
 
+  const handleMarkChallengeCompleted = async (challenge) => {
+    let estBurned = 250;
+    const nameLower = challenge.name.toLowerCase();
+    
+    if (nameLower.includes('10,000') || nameLower.includes('10k')) {
+      estBurned = 420;
+    } else if (nameLower.includes('5,000') || nameLower.includes('shatapavali')) {
+      estBurned = 220;
+    } else if (nameLower.includes('surya') || nameLower.includes('namaskar')) {
+      estBurned = 140;
+    } else if (nameLower.includes('100,000') || nameLower.includes('100k')) {
+      estBurned = 600;
+    } else if (nameLower.includes('pushup') || nameLower.includes('push-up')) {
+      estBurned = 280;
+    } else if (nameLower.includes('bodyweight') || nameLower.includes('home')) {
+      estBurned = 120;
+    } else if (nameLower.includes('gym')) {
+      estBurned = 350;
+    }
+
+    // Mark challenge in ecosystem store
+    if (challenge.id) {
+      ecoStore.updateChallengeProgress(challenge.id, challenge.targetVal || 1);
+      ecoStore.joinChallenge(challenge);
+    }
+
+    let logTimestamp = Date.now();
+    const todayStr = getTodayDateString();
+    if (selectedDate !== todayStr) {
+      logTimestamp = new Date(selectedDate + "T12:00:00").getTime();
+    }
+
+    const workoutItem = {
+      name: challenge.name.trim(),
+      category: nameLower.includes('steps') || nameLower.includes('walk') || nameLower.includes('surya') ? 'Cardio' : 'Strength',
+      sets: 1,
+      reps: challenge.targetVal || 1,
+      weight: 0,
+      duration: 30,
+      caloriesBurned: estBurned,
+      timestamp: logTimestamp
+    };
+
+    try {
+      const saved = await addWorkoutLog(userId, workoutItem);
+      addWorkoutLogStore(saved || workoutItem);
+      ecoStore.addXP(200);
+      ecoStore.updateStreaks({ workoutStreak: (ecoStore.streaks?.workoutStreak || 0) + 1 });
+      if (onNotification) {
+        onNotification(`🎉 Marked "${challenge.name}" as DONE! Logged +${estBurned} kcal burned (-${estBurned} net calories today). +200 XP earned!`);
+      }
+    } catch (err) {
+      console.error("Error auto-logging completed target", err);
+      if (onNotification) onNotification("Logged target to workout logs!");
+    }
+  };
+
   const handleStartEditSplit = () => {
     const activeSplit = splits[activeDay].workout;
     setEditRoutineFields({
@@ -1118,6 +1175,59 @@ export default function WorkoutLogger({ onNotification }) {
                   >
                     Today
                   </button>
+                </div>
+              </div>
+
+              {/* DESI DAILY TARGETS (TICK & AUTO-BURN LOG) WIDGET */}
+              <div className="glass border border-card-border rounded-2xl p-5 space-y-3 shadow-md bg-gradient-to-r from-surface via-card-bg to-acid-green/5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-acid-green" />
+                    <h3 className="text-xs font-black uppercase tracking-wider text-foreground">Desi Daily Targets (Tick to Auto-Log Burned Calories)</h3>
+                  </div>
+                  <span className="text-[10px] font-bold text-muted uppercase">Tick to Auto-Subtract Calories Today</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {[
+                    { id: 'target_10k_steps', name: '10,000 Step Count Master', estKcal: 420, tier: 'MEDIUM' },
+                    { id: 'target_5k_walk', name: '5,000 Step Shatapavali Walk', estKcal: 220, tier: 'EASY' },
+                    { id: 'target_surya', name: '15-Min Surya Namaskar Flow', estKcal: 140, tier: 'EASY' },
+                    { id: 'target_bodyweight', name: '10-Min Home Bodyweight Circuit', estKcal: 120, tier: 'EASY' },
+                    { id: 'target_desi_gym', name: 'Desi Gym Full Body Workout', estKcal: 350, tier: 'MEDIUM' },
+                    { id: 'target_heavy_lifting', name: '100,000 KG Heavy Lifting Session', estKcal: 600, tier: 'HARD' }
+                  ].map((target) => {
+                    const isAlreadyLogged = selectedDateWorkoutLogs.some(log => log.name.toLowerCase().includes(target.name.toLowerCase().substring(0, 8)));
+
+                    return (
+                      <div key={target.id} className="p-3 bg-surface/90 border border-card-border rounded-xl flex items-center justify-between gap-2 hover:border-acid-green/40 transition-all">
+                        <div className="space-y-0.5 min-w-0">
+                          <span className="text-xs font-black text-foreground truncate block">{target.name}</span>
+                          <span className="text-[10px] font-bold text-acid-green block">-{target.estKcal} kcal from net today</span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleMarkChallengeCompleted(target)}
+                          className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer border-none shrink-0 transition-all active:scale-95 flex items-center gap-1 ${
+                            isAlreadyLogged
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-acid-green text-black hover:brightness-110 shadow-sm'
+                          }`}
+                        >
+                          {isAlreadyLogged ? (
+                            <>
+                              <Check className="w-3 h-3" /> Done
+                            </>
+                          ) : (
+                            <>
+                              ✓ Tick
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1936,9 +2046,16 @@ export default function WorkoutLogger({ onNotification }) {
                                     if (onNotification) onNotification(`Logged +${val}${challenge.unit} to ${challenge.name}!`);
                                   }
                                 }}
-                                className="px-3.5 py-1.5 rounded-xl bg-acid-green text-accent-foreground font-black text-xs uppercase tracking-wider cursor-pointer border-none shrink-0 hover:brightness-110 active:scale-95 transition-all shadow-sm"
+                                className="px-3.5 py-1.5 rounded-xl bg-surface border border-card-border hover:border-acid-green text-foreground font-black text-xs uppercase tracking-wider cursor-pointer shrink-0 transition-all shadow-sm"
                               >
                                 Log
+                              </button>
+
+                              <button
+                                onClick={() => handleMarkChallengeCompleted(challenge)}
+                                className="px-3.5 py-1.5 rounded-xl bg-acid-green text-black font-black text-xs uppercase tracking-wider cursor-pointer border-none shrink-0 hover:brightness-110 active:scale-95 transition-all shadow-sm flex items-center gap-1"
+                              >
+                                <Check className="w-3.5 h-3.5" /> Tick Done
                               </button>
                             </div>
                           )}
@@ -1980,15 +2097,23 @@ export default function WorkoutLogger({ onNotification }) {
                         <span className="text-[10px] font-bold text-acid-green uppercase block">{comm.reward}</span>
                       </div>
 
-                      <button
-                        onClick={() => {
-                          ecoStore.joinChallenge(comm);
-                          if (onNotification) onNotification(`Joined ${comm.name}! Keep crushing your fitness goals.`);
-                        }}
-                        className="px-3.5 py-2 rounded-xl bg-surface border border-card-border hover:border-acid-green hover:bg-acid-green/15 text-acid-green text-xs font-black uppercase tracking-wider cursor-pointer border-none shrink-0 transition-all active:scale-95"
-                      >
-                        Join
-                      </button>
+                      <div className="flex flex-col gap-1.5 shrink-0">
+                        <button
+                          onClick={() => handleMarkChallengeCompleted(comm)}
+                          className="px-3 py-1.5 rounded-xl bg-acid-green text-black text-xs font-black uppercase tracking-wider cursor-pointer border-none shadow-sm hover:brightness-110 active:scale-95 transition-all flex items-center gap-1"
+                        >
+                          <Check className="w-3.5 h-3.5" /> Tick Done
+                        </button>
+                        <button
+                          onClick={() => {
+                            ecoStore.joinChallenge(comm);
+                            if (onNotification) onNotification(`Joined ${comm.name}! Keep crushing your fitness goals.`);
+                          }}
+                          className="px-3 py-1 rounded-xl bg-surface border border-card-border hover:border-acid-green hover:bg-acid-green/15 text-muted hover:text-acid-green text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all text-center"
+                        >
+                          + Track
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
