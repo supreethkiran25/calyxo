@@ -4,48 +4,48 @@ import { getSecureItem, setSecureItem, getCurrentUserIdSync } from '../lib/dbSer
 const LOCAL_ECOSYSTEM_KEY = "calyxo_ecosystem_state";
 
 const INITIAL_STATE = {
-    streaks: { loginStreak: 1, workoutStreak: 0, nutritionStreak: 0, waterStreak: 0, lastCheckIn: new Date().toDateString() },
-    achievements: [
-      { id: 'first_workout', name: 'First Workout', icon: 'Dumbbell', description: 'Log your first workout session', unlocked: false },
-      { id: 'first_meal', name: 'First Meal Logged', icon: 'Utensils', description: 'Log your first meal entry', unlocked: false },
-      { id: 'first_week', name: 'First Week Complete', icon: 'Calendar', description: 'Log activities for 7 consecutive days', unlocked: false },
-      { id: 'streak_7', name: '7 Day Streak', icon: 'Flame', description: 'Maintain any log streak for 7 days', unlocked: false },
-      { id: 'hydration_hero', name: 'Hydration Hero', icon: 'Droplets', description: 'Hit 3000ml water target in a single day', unlocked: false },
-      { id: 'protein_master', name: 'Protein Master', icon: 'Beef', description: 'Hit daily protein target of 120g+', unlocked: false },
-      { id: 'muscle_builder', name: 'Muscle Builder', icon: 'Activity', description: 'Log at least 10 workout sessions', unlocked: false }
-    ],
-    coachingPlan: null,
-    predictions: null,
-    timelineLogs: [],
-    fitnessScore: { dailyScore: 70, weeklyScore: 72, monthlyScore: 75, recommendations: ["Hit your protein target today", "Log 3000ml of water to hit hydration goals"] },
-    healthTwin: {
-      recoveryScore: 85,
-      fitnessAge: 25,
-      sleepDebt: 0,
-      dailyHealthScore: 80,
-      predictedWeight: 70,
-      predictedMuscleGain: 0.5,
-      predictedFatLoss: 0.5,
-      calorieForecast: 2200,
-      weeklyHealthForecast: "Maintained steady progress.",
-      riskDetection: "None",
-      personalizedRecommendations: ["Stay hydrated", "Increase protein"]
-    },
-    activeChallenges: [
-      { id: 'easy_surya_namaskar', tier: 'EASY', name: '15-Day Morning Surya Namaskar', target: 'Complete 12 rounds of Surya Namaskar daily', progress: 3, targetVal: 15, completed: false, unit: 'days' },
-      { id: 'easy_shatapavali_walk', tier: 'EASY', name: '5,000 Step Shatapavali Walk', target: 'Walk 5,000 brisk steps every evening after dinner', progress: 4, targetVal: 10, completed: false, unit: 'days' },
-      { id: 'medium_10k_steps', tier: 'MEDIUM', name: '10,000 Daily Step Count Master', target: 'Achieve 10,000 total steps daily', progress: 5, targetVal: 14, completed: false, unit: 'days' },
-      { id: 'medium_desi_gym', tier: 'MEDIUM', name: 'Desi Gym Muscle Builder', target: 'Complete 20 total strength workout sessions', progress: 6, targetVal: 20, completed: false, unit: 'sessions' },
-      { id: 'hard_100k_volume', tier: 'HARD', name: '100,000 KG Heavy Lifters Club', target: 'Lift 100,000 kg total volume across compound lifts', progress: 18500, targetVal: 100000, completed: false, unit: 'kg' },
-      { id: 'hard_1000_pushups', tier: 'HARD', name: '1,000 Push-ups Upper Body Challenge', target: 'Complete 1,000 cumulative push-ups over 30 days', progress: 240, targetVal: 1000, completed: false, unit: 'reps' }
-    ],
-    personality: 'motivational',
-    mealScans: [],
-    measurementLogs: [],
-    xp: 0,
-    level: 1,
-    clientAssignments: {}
-  };
+  streaks: { loginStreak: 1, workoutStreak: 0, nutritionStreak: 0, waterStreak: 0, lastCheckIn: new Date().toDateString() },
+  achievements: [
+    { id: 'first_workout', name: 'First Workout', icon: 'Dumbbell', description: 'Log your first workout session', unlocked: false },
+    { id: 'first_meal', name: 'First Meal Logged', icon: 'Utensils', description: 'Log your first meal entry', unlocked: false },
+    { id: 'first_week', name: 'First Week Complete', icon: 'Calendar', description: 'Log activities for 7 consecutive days', unlocked: false },
+    { id: 'streak_7', name: '7 Day Streak', icon: 'Flame', description: 'Maintain any log streak for 7 days', unlocked: false },
+    { id: 'hydration_hero', name: 'Hydration Hero', icon: 'Droplets', description: 'Hit 3000ml water target in a single day', unlocked: false },
+    { id: 'protein_master', name: 'Protein Master', icon: 'Beef', description: 'Hit daily protein target of 120g+', unlocked: false },
+    { id: 'muscle_builder', name: 'Muscle Builder', icon: 'Activity', description: 'Log at least 10 workout sessions', unlocked: false }
+  ],
+  coachingPlan: null,
+  predictions: null,
+  timelineLogs: [],
+  fitnessScore: { dailyScore: 70, weeklyScore: 72, monthlyScore: 75, recommendations: ["Hit your protein target today", "Log 3000ml of water to hit hydration goals"] },
+  healthTwin: {
+    recoveryScore: 85,
+    fitnessAge: 25,
+    sleepDebt: 0,
+    dailyHealthScore: 80,
+    predictedWeight: 70,
+    predictedMuscleGain: 0.5,
+    predictedFatLoss: 0.5,
+    calorieForecast: 2200,
+    weeklyHealthForecast: "Maintained steady progress.",
+    riskDetection: "None",
+    personalizedRecommendations: ["Stay hydrated", "Increase protein"]
+  },
+  activeChallenges: [
+    { id: 'easy_surya_namaskar', tier: 'EASY', name: '15-Day Morning Surya Namaskar', target: 'Complete 12 rounds of Surya Namaskar daily', progress: 3, targetVal: 15, completed: false, unit: 'days' },
+    { id: 'easy_walk', tier: 'EASY', name: '5,000 Step Walk', target: 'Walk 5,000 brisk steps every evening after dinner', progress: 4, targetVal: 10, completed: false, unit: 'days' },
+    { id: 'medium_10k_steps', tier: 'MEDIUM', name: '10,000 Daily Step Count Master', target: 'Achieve 10,000 total steps daily', progress: 5, targetVal: 14, completed: false, unit: 'days' },
+    { id: 'medium_desi_gym', tier: 'MEDIUM', name: 'Desi Gym Muscle Builder', target: 'Complete 20 total strength workout sessions', progress: 6, targetVal: 20, completed: false, unit: 'sessions' },
+    { id: 'hard_100k_volume', tier: 'HARD', name: '100,000 KG Heavy Lifters Club', target: 'Lift 100,000 kg total volume across compound lifts', progress: 18500, targetVal: 100000, completed: false, unit: 'kg' },
+    { id: 'hard_1000_pushups', tier: 'HARD', name: '1,000 Push-ups Upper Body Challenge', target: 'Complete 1,000 cumulative push-ups over 30 days', progress: 240, targetVal: 1000, completed: false, unit: 'reps' }
+  ],
+  personality: 'motivational',
+  mealScans: [],
+  measurementLogs: [],
+  xp: 0,
+  level: 1,
+  clientAssignments: {}
+};
 
 const getLocalEcosystemState = () => {
   const saved = getSecureItem(LOCAL_ECOSYSTEM_KEY);

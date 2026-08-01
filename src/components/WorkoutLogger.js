@@ -2,21 +2,21 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../store/useStore';
-import { 
-  getWorkoutLogs, 
-  addWorkoutLog, 
-  updateWorkoutLog, 
-  deleteWorkoutLog, 
-  saveEcosystemState, 
-  getUserAssignments 
+import {
+  getWorkoutLogs,
+  addWorkoutLog,
+  updateWorkoutLog,
+  deleteWorkoutLog,
+  saveEcosystemState,
+  getUserAssignments
 } from '../lib/dbService';
 
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import useQuickActionsStore from '../store/useQuickActionsStore';
 import LiveWorkoutSessionModal from './modals/LiveWorkoutSessionModal';
-import { 
-  Plus, Dumbbell, Clock, Edit3, X, Check, Search, Trophy, Activity, Move, 
-  PersonStanding, Target, User, Crosshair, Heart, Share2, ChevronLeft, ChevronRight, 
+import {
+  Plus, Dumbbell, Clock, Edit3, X, Check, Search, Trophy, Activity, Move,
+  PersonStanding, Target, User, Crosshair, Heart, Share2, ChevronLeft, ChevronRight,
   Calendar, Trash2, Edit2, Play, ChevronUp, ChevronDown, Zap, BarChart2, Flame, Award
 } from 'lucide-react';
 
@@ -463,10 +463,10 @@ export default function WorkoutLogger({ onNotification }) {
       fatigue: selectedFatigue,
       recovery: recoveryScore
     };
-    
+
     const prevHealth = ecoStore.healthLogs;
     const prevScore = ecoStore.fitnessScore;
-    
+
     ecoStore.updateFitnessScore({ dailyScore: Math.max(50, Math.min(100, recoveryScore)) });
     ecoStore.syncEcosystemState({ healthLogs: nextHealth });
     try {
@@ -491,11 +491,11 @@ export default function WorkoutLogger({ onNotification }) {
     if (typeof window !== "undefined" && "Notification" in window) {
       if (Notification.permission === "granted") {
         try {
-          new Notification(title, { 
-            body, 
-            icon: "/favicon.ico", 
+          new Notification(title, {
+            body,
+            icon: "/favicon.ico",
             tag: "workout-rest-timer",
-            requireInteraction: true 
+            requireInteraction: true
           });
         } catch (e) {
           console.warn("Browser notification failed", e);
@@ -504,11 +504,11 @@ export default function WorkoutLogger({ onNotification }) {
         Notification.requestPermission().then(perm => {
           if (perm === "granted") {
             try {
-              new Notification(title, { 
-                body, 
-                icon: "/favicon.ico", 
+              new Notification(title, {
+                body,
+                icon: "/favicon.ico",
                 tag: "workout-rest-timer",
-                requireInteraction: true 
+                requireInteraction: true
               });
             } catch (e) {
               console.warn("Browser notification failed", e);
@@ -610,7 +610,7 @@ export default function WorkoutLogger({ onNotification }) {
       try {
         const data = await getWorkoutLogs(userId);
         setWorkoutLogs(data || []);
-        
+
         const assigns = await getUserAssignments(userId);
         if (assigns && assigns.length > 0) {
           const workoutPlans = assigns.filter(a => a.type === 'workout_plan');
@@ -738,7 +738,7 @@ export default function WorkoutLogger({ onNotification }) {
     try {
       const saved = await addWorkoutLog(userId, workoutItem);
       addWorkoutLogStore(saved);
-      
+
       setExName('');
       setExImage(null);
       setExSets('');
@@ -898,10 +898,10 @@ export default function WorkoutLogger({ onNotification }) {
   const handleMarkChallengeCompleted = async (challenge) => {
     let estBurned = 250;
     const nameLower = challenge.name.toLowerCase();
-    
+
     if (nameLower.includes('10,000') || nameLower.includes('10k')) {
       estBurned = 420;
-    } else if (nameLower.includes('5,000') || nameLower.includes('shatapavali')) {
+    } else if (nameLower.includes('5,000') || nameLower.includes('walk')) {
       estBurned = 220;
     } else if (nameLower.includes('surya') || nameLower.includes('namaskar')) {
       estBurned = 140;
@@ -1088,7 +1088,7 @@ export default function WorkoutLogger({ onNotification }) {
 
   return (
     <div className="space-y-6">
-      
+
       {/* Sub tabs nav */}
       <div className="flex flex-col gap-3 border-b border-card-border pb-3">
         <div className="flex items-center justify-between gap-2">
@@ -1108,11 +1108,10 @@ export default function WorkoutLogger({ onNotification }) {
             <button
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id)}
-              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex-1 text-center shrink-0 ${
-                activeSubTab === tab.id
+              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex-1 text-center shrink-0 ${activeSubTab === tab.id
                   ? 'bg-acid-green text-accent-foreground shadow-sm'
                   : 'text-muted hover:text-foreground'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -1128,7 +1127,7 @@ export default function WorkoutLogger({ onNotification }) {
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.18 }}
         >
-          
+
           {/* LOGGER TAB VIEW */}
           {activeSubTab === 'logger' && (
             <div className="space-y-6">
@@ -1141,7 +1140,7 @@ export default function WorkoutLogger({ onNotification }) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button 
+                  <button
                     onClick={handlePrevDate}
                     className="p-1.5 rounded-lg bg-surface border border-card-border hover:border-acid-green text-muted hover:text-foreground transition-colors cursor-pointer"
                     title="Previous Day"
@@ -1150,7 +1149,7 @@ export default function WorkoutLogger({ onNotification }) {
                   </button>
 
                   <div className="relative flex items-center bg-[var(--input)] border border-card-border px-3 py-1.5 rounded-xl">
-                    <input 
+                    <input
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
@@ -1161,7 +1160,7 @@ export default function WorkoutLogger({ onNotification }) {
                     </span>
                   </div>
 
-                  <button 
+                  <button
                     onClick={handleNextDate}
                     className="p-1.5 rounded-lg bg-surface border border-card-border hover:border-acid-green text-muted hover:text-foreground transition-colors cursor-pointer"
                     title="Next Day"
@@ -1169,7 +1168,7 @@ export default function WorkoutLogger({ onNotification }) {
                     <ChevronRight className="w-4 h-4" />
                   </button>
 
-                  <button 
+                  <button
                     onClick={handleTodayDate}
                     className="px-2.5 py-1.5 rounded-xl bg-acid-green text-accent-foreground text-[10px] font-black uppercase tracking-wider cursor-pointer border-none"
                   >
@@ -1183,476 +1182,474 @@ export default function WorkoutLogger({ onNotification }) {
 
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-              
-              {/* Form columns */}
-              <div className="space-y-6">
-                <section className="glass rounded-2xl p-6">
-                  <h2 className="text-xs font-bold text-foreground uppercase tracking-wider mb-1">Log Exercise Sets</h2>
-                  <p className="text-muted text-[10px] uppercase font-bold tracking-wider mb-4">Select items and specify targets ({formatDisplayDate(selectedDate)})</p>
 
-                  <form onSubmit={handleWorkoutSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Search Autocomplete */}
-                      <div ref={dropdownRef} className="relative flex flex-col space-y-1">
-                        <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Search exercise database</label>
-                        <div className="relative flex items-center">
-                          <Search className="absolute left-3 w-4 h-4 text-muted" />
-                          <input 
-                            type="text"
-                            value={exQuery}
-                            onChange={(e) => {
-                              setExQuery(e.target.value);
-                              setExName(e.target.value);
-                            }}
-                            placeholder="Bench press, squat, pullup..."
-                            className="w-full bg-[var(--input)] border border-card-border focus:border-acid-green rounded-xl pl-10 pr-4 py-3 text-sm text-foreground focus:outline-none shadow-inner"
+                {/* Form columns */}
+                <div className="space-y-6">
+                  <section className="glass rounded-2xl p-6">
+                    <h2 className="text-xs font-bold text-foreground uppercase tracking-wider mb-1">Log Exercise Sets</h2>
+                    <p className="text-muted text-[10px] uppercase font-bold tracking-wider mb-4">Select items and specify targets ({formatDisplayDate(selectedDate)})</p>
+
+                    <form onSubmit={handleWorkoutSubmit} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Search Autocomplete */}
+                        <div ref={dropdownRef} className="relative flex flex-col space-y-1">
+                          <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Search exercise database</label>
+                          <div className="relative flex items-center">
+                            <Search className="absolute left-3 w-4 h-4 text-muted" />
+                            <input
+                              type="text"
+                              value={exQuery}
+                              onChange={(e) => {
+                                setExQuery(e.target.value);
+                                setExName(e.target.value);
+                              }}
+                              placeholder="Bench press, squat, pullup..."
+                              className="w-full bg-[var(--input)] border border-card-border focus:border-acid-green rounded-xl pl-10 pr-4 py-3 text-sm text-foreground focus:outline-none shadow-inner"
+                            />
+                          </div>
+
+                          {exName && exName !== exQuery && (
+                            <div className="text-[9px] text-acid-green font-bold uppercase mt-1">
+                              Selected: {exName}
+                            </div>
+                          )}
+
+                          <AnimatePresence>
+                            {showDropdown && searchResults.length > 0 && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute top-[calc(100%+8px)] left-0 w-full bg-surface border border-card-border z-50 rounded-2xl max-h-56 overflow-y-auto shadow-2xl"
+                                style={{ backgroundColor: 'var(--secondary, #12121A)', opacity: 1 }}
+                              >
+                                {searchResults.map((item, idx) => (
+                                  <div
+                                    key={idx}
+                                    onClick={() => selectExercise(item)}
+                                    className="px-4 py-2.5 border-b border-card-border last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-acid-green hover:text-accent-foreground transition-colors gap-3"
+                                  >
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      <div
+                                        onClick={(e) => { e.stopPropagation(); handleOpenExerciseDetail(item); }}
+                                        className="w-10 h-10 rounded-md bg-surface/50 border border-card-border/50 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                                        title="Click to view GIF"
+                                      >
+                                        <ExerciseImage src={item.gif_url || item.image || globalImageCache.get(item.name)} alt={item.name} category={item.category} muscleGroup={item.muscleGroup} />
+                                      </div>
+                                      <span className="text-xs font-semibold truncate">{item.name}</span>
+                                    </div>
+                                    <span className="text-[9px] opacity-75 shrink-0">{item.category}</span>
+                                  </div>
+                                ))}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        <div className="flex flex-col space-y-1 md:col-span-1">
+                          <label className="text-[9px] text-muted font-bold uppercase tracking-wider mb-1">Category</label>
+                          <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-none shrink-0 w-full">
+                            {[
+                              { id: 'Strength', label: 'Strength' },
+                              { id: 'Cardio', label: 'Cardio / HIIT' },
+                              { id: 'Hypertrophy', label: 'Hypertrophy' }
+                            ].map((cat) => (
+                              <button
+                                type="button"
+                                key={cat.id}
+                                onClick={() => setExCategory(cat.id)}
+                                className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all border shrink-0 cursor-pointer ${exCategory === cat.id
+                                    ? 'bg-acid-green text-accent-foreground border-acid-green shadow-sm'
+                                    : 'bg-[var(--input)] border-card-border text-muted hover:text-foreground'
+                                  }`}
+                              >
+                                {cat.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="flex flex-col space-y-1">
+                          <label className="text-[8px] text-muted font-bold uppercase tracking-wider text-center">Sets</label>
+                          <input
+                            type="number"
+                            value={exSets}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => setExSets(e.target.value.replace(/^0+(?=\d)/, ''))}
+                            placeholder="4"
+                            className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
+                            disabled={exCategory === "Cardio"}
                           />
                         </div>
-
-                        {exName && exName !== exQuery && (
-                          <div className="text-[9px] text-acid-green font-bold uppercase mt-1">
-                            Selected: {exName}
-                          </div>
-                        )}
-
-                        <AnimatePresence>
-                          {showDropdown && searchResults.length > 0 && (
-                            <motion.div 
-                              initial={{ opacity: 0, y: 5 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0 }}
-                              className="absolute top-[calc(100%+8px)] left-0 w-full bg-surface border border-card-border z-50 rounded-2xl max-h-56 overflow-y-auto shadow-2xl"
-                              style={{ backgroundColor: 'var(--secondary, #12121A)', opacity: 1 }}
-                            >
-                              {searchResults.map((item, idx) => (
-                                <div 
-                                  key={idx}
-                                  onClick={() => selectExercise(item)}
-                                  className="px-4 py-2.5 border-b border-card-border last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-acid-green hover:text-accent-foreground transition-colors gap-3"
-                                >
-                                  <div className="flex items-center gap-3 min-w-0">
-                                    <div 
-                                      onClick={(e) => { e.stopPropagation(); handleOpenExerciseDetail(item); }}
-                                      className="w-10 h-10 rounded-md bg-surface/50 border border-card-border/50 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
-                                      title="Click to view GIF"
-                                    >
-                                      <ExerciseImage src={item.gif_url || item.image || globalImageCache.get(item.name)} alt={item.name} category={item.category} muscleGroup={item.muscleGroup} />
-                                    </div>
-                                    <span className="text-xs font-semibold truncate">{item.name}</span>
-                                  </div>
-                                  <span className="text-[9px] opacity-75 shrink-0">{item.category}</span>
-                                </div>
-                              ))}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                      
-                      <div className="flex flex-col space-y-1 md:col-span-1">
-                        <label className="text-[9px] text-muted font-bold uppercase tracking-wider mb-1">Category</label>
-                        <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-none shrink-0 w-full">
-                          {[
-                            { id: 'Strength', label: 'Strength' },
-                            { id: 'Cardio', label: 'Cardio / HIIT' },
-                            { id: 'Hypertrophy', label: 'Hypertrophy' }
-                          ].map((cat) => (
-                            <button
-                              type="button"
-                              key={cat.id}
-                              onClick={() => setExCategory(cat.id)}
-                              className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all border shrink-0 cursor-pointer ${
-                                exCategory === cat.id
-                                  ? 'bg-acid-green text-accent-foreground border-acid-green shadow-sm'
-                                  : 'bg-[var(--input)] border-card-border text-muted hover:text-foreground'
-                              }`}
-                            >
-                              {cat.label}
-                            </button>
-                          ))}
+                        <div className="flex flex-col space-y-1">
+                          <label className="text-[8px] text-muted font-bold uppercase tracking-wider text-center">Reps</label>
+                          <input
+                            type="number"
+                            value={exReps}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => setExReps(e.target.value.replace(/^0+(?=\d)/, ''))}
+                            placeholder="10"
+                            className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
+                            disabled={exCategory === "Cardio"}
+                          />
+                        </div>
+                        <div className="flex flex-col space-y-1">
+                          <label className="text-[8px] text-muted font-bold uppercase tracking-wider text-center">Weight</label>
+                          <input
+                            type="number"
+                            value={exWeight}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => setExWeight(e.target.value.replace(/^0+(?=\d)/, ''))}
+                            placeholder="kg"
+                            className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
+                            disabled={exCategory === "Cardio"}
+                          />
+                        </div>
+                        <div className="flex flex-col space-y-1">
+                          <label className="text-[8px] text-muted font-bold uppercase tracking-wider text-center">Mins</label>
+                          <input
+                            type="number"
+                            value={exDuration}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => setExDuration(e.target.value.replace(/^0+(?=\d)/, ''))}
+                            placeholder="mins"
+                            className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
+                            disabled={exCategory !== "Cardio"}
+                          />
                         </div>
                       </div>
+
+                      <button
+                        type="submit"
+                        disabled={loading || !exName}
+                        className="w-full bg-foreground text-[var(--background)] font-bold text-xs py-3 rounded-xl cursor-pointer hover:bg-acid-green hover:text-accent-foreground hover:shadow-[0_0_12px_rgba(204,255,0,0.15)] transition-all disabled:opacity-50 border-none"
+                      >
+                        {loading ? "Logging..." : "Log Workout Session"}
+                      </button>
+                    </form>
+                  </section>
+
+                  {/* Logged Workouts timeline logs list */}
+                  <section className="glass rounded-2xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">Logged Workouts History</h2>
+                      <span className="text-[10px] font-bold text-acid-green">{selectedDateWorkoutLogs.length} Sessions Logged</span>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-2">
-                      <div className="flex flex-col space-y-1">
-                        <label className="text-[8px] text-muted font-bold uppercase tracking-wider text-center">Sets</label>
-                        <input 
-                          type="number"
-                          value={exSets}
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) => setExSets(e.target.value.replace(/^0+(?=\d)/, ''))}
-                          placeholder="4"
-                          className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
-                          disabled={exCategory === "Cardio"}
-                        />
-                      </div>
-                      <div className="flex flex-col space-y-1">
-                        <label className="text-[8px] text-muted font-bold uppercase tracking-wider text-center">Reps</label>
-                        <input 
-                          type="number"
-                          value={exReps}
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) => setExReps(e.target.value.replace(/^0+(?=\d)/, ''))}
-                          placeholder="10"
-                          className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
-                          disabled={exCategory === "Cardio"}
-                        />
-                      </div>
-                      <div className="flex flex-col space-y-1">
-                        <label className="text-[8px] text-muted font-bold uppercase tracking-wider text-center">Weight</label>
-                        <input 
-                          type="number"
-                          value={exWeight}
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) => setExWeight(e.target.value.replace(/^0+(?=\d)/, ''))}
-                          placeholder="kg"
-                          className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
-                          disabled={exCategory === "Cardio"}
-                        />
-                      </div>
-                      <div className="flex flex-col space-y-1">
-                        <label className="text-[8px] text-muted font-bold uppercase tracking-wider text-center">Mins</label>
-                        <input 
-                          type="number"
-                          value={exDuration}
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) => setExDuration(e.target.value.replace(/^0+(?=\d)/, ''))}
-                          placeholder="mins"
-                          className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
-                          disabled={exCategory !== "Cardio"}
-                        />
-                      </div>
-                    </div>
-
-                    <button 
-                      type="submit"
-                      disabled={loading || !exName}
-                      className="w-full bg-foreground text-[var(--background)] font-bold text-xs py-3 rounded-xl cursor-pointer hover:bg-acid-green hover:text-accent-foreground hover:shadow-[0_0_12px_rgba(204,255,0,0.15)] transition-all disabled:opacity-50 border-none"
-                    >
-                      {loading ? "Logging..." : "Log Workout Session"}
-                    </button>
-                  </form>
-                </section>
-
-                {/* Logged Workouts timeline logs list */}
-                <section className="glass rounded-2xl p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">Logged Workouts History</h2>
-                    <span className="text-[10px] font-bold text-acid-green">{selectedDateWorkoutLogs.length} Sessions Logged</span>
-                  </div>
-
-                  <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                    {selectedDateWorkoutLogs && selectedDateWorkoutLogs.length > 0 ? (
-                      selectedDateWorkoutLogs.map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-center bg-surface/50 border border-card-border px-4 py-3 rounded-xl gap-3">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div 
-                              onClick={() => handleOpenExerciseDetail(item)}
-                              className="w-9 h-9 rounded border border-card-border/50 bg-black/20 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
-                              title="Click photo to view GIF animation"
-                            >
-                              <ExerciseImage src={item.image || globalImageCache.get(item.name)} alt={item.name} category={item.category} muscleGroup={item.muscleGroup} />
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-xs font-bold text-foreground truncate hover:text-acid-green cursor-pointer" onClick={() => handleOpenExerciseDetail(item)}>{item.name}</span>
-                              <span className="text-[9px] text-muted mt-0.5 font-medium truncate">Category: {item.category}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3 shrink-0">
-                            <div className="text-xs font-bold text-acid-green text-right">
-                              {item.category === "Cardio" ? (
-                                <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {item.duration} Mins</span>
-                              ) : (
-                                `${item.sets} Sets × ${item.reps} Reps (${item.weight}kg)`
-                              )}
-                            </div>
-
-                            <button 
-                              onClick={() => setEditingLog({ ...item })}
-                              className="p-1 rounded text-muted hover:text-acid-green transition-colors cursor-pointer border-none bg-transparent"
-                              title="Edit Log"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-
-                            <button 
-                              onClick={() => handleDeleteWorkoutLog(item.id)}
-                              className="p-1 rounded text-muted hover:text-destructive transition-colors cursor-pointer border-none bg-transparent"
-                              title="Delete Log"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center text-xs text-muted py-8 font-medium">
-                        No workouts logged on {formatDisplayDate(selectedDate)}.
-                      </div>
-                    )}
-                  </div>
-                </section>
-              </div>
-
-              {/* Right Column: Weekly Splits */}
-              <div className="space-y-6 pb-32 sm:pb-24">
-                <section className="glass rounded-2xl p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">Weekly Splits Template Planner</h2>
-                    <span className="text-[9px] text-acid-green font-bold uppercase tracking-wider bg-acid-green/10 px-2 py-0.5 rounded border border-acid-green/20">Editable & Saved</span>
-                  </div>
-
-                  <div className="flex gap-1.5 overflow-x-auto pb-3 border-b border-card-border mb-4 scrollbar-none">
-                    {splits.map((day, idx) => {
-                      const isToday = activeDay === idx && idx === getLocalDayOfWeekIndex();
-                      return (
-                        <button 
-                          key={idx}
-                          onClick={() => {
-                            setActiveDay(idx);
-                            setEditingSplit(false);
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase cursor-pointer border transition-colors flex items-center gap-1 ${
-                            activeDay === idx 
-                              ? 'bg-acid-green text-accent-foreground border-acid-green' 
-                              : 'bg-surface border-card-border text-muted hover:text-foreground'
-                          }`}
-                        >
-                          <span>{day.dayName.substring(0, 3)}</span>
-                          {idx === getLocalDayOfWeekIndex() && (
-                            <span className={`w-1.5 h-1.5 rounded-full ${activeDay === idx ? 'bg-black' : 'bg-acid-green'}`} />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {editingSplit ? (
-                    <div className="space-y-3 p-4 bg-surface border border-card-border rounded-xl">
-                      <div className="flex flex-col space-y-1">
-                        <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Routine Split Name</label>
-                        <input type="text" value={editRoutineFields.type} onChange={(e) => setEditRoutineFields({ ...editRoutineFields, type: e.target.value })} className={inputStyle} placeholder="e.g. Push Day (Chest, Shoulders & Triceps)" />
-                      </div>
-                      <div className="flex flex-col space-y-1">
-                        <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Description</label>
-                        <input type="text" value={editRoutineFields.desc} onChange={(e) => setEditRoutineFields({ ...editRoutineFields, desc: e.target.value })} className={inputStyle} placeholder="Short description of routine focus" />
-                      </div>
-                      
-                      <div className="space-y-3 pt-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Recommended Exercises (Logger Database Suggestions)</span>
-                        </div>
-                        {editRoutineFields.exercises.map((ex, i) => (
-                          <div key={i} className="relative flex flex-col sm:flex-row gap-2 items-stretch sm:items-center bg-card-bg/30 p-2.5 rounded-2xl border border-card-border/60 shadow-inner">
-                            <div className="flex items-center gap-1 shrink-0">
-                              <span className="w-6 h-6 rounded-full bg-surface border border-card-border flex items-center justify-center text-[10px] font-black text-acid-green shrink-0 shadow-sm" title={`Step ${i + 1}`}>
-                                {i + 1}
-                              </span>
-
-                              <div className="flex flex-col gap-0.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleMoveExerciseUp(i)}
-                                  disabled={i === 0}
-                                  className="p-0.5 text-muted hover:text-acid-green disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer bg-none border-none transition-colors"
-                                  title="Move Exercise Up"
-                                >
-                                  <ChevronUp className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleMoveExerciseDown(i)}
-                                  disabled={i === editRoutineFields.exercises.length - 1}
-                                  className="p-0.5 text-muted hover:text-acid-green disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer bg-none border-none transition-colors"
-                                  title="Move Exercise Down"
-                                >
-                                  <ChevronDown className="w-3.5 h-3.5" />
-                                </button>
+                    <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                      {selectedDateWorkoutLogs && selectedDateWorkoutLogs.length > 0 ? (
+                        selectedDateWorkoutLogs.map((item, idx) => (
+                          <div key={idx} className="flex justify-between items-center bg-surface/50 border border-card-border px-4 py-3 rounded-xl gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div
+                                onClick={() => handleOpenExerciseDetail(item)}
+                                className="w-9 h-9 rounded border border-card-border/50 bg-black/20 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                                title="Click photo to view GIF animation"
+                              >
+                                <ExerciseImage src={item.image || globalImageCache.get(item.name)} alt={item.name} category={item.category} muscleGroup={item.muscleGroup} />
+                              </div>
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-xs font-bold text-foreground truncate hover:text-acid-green cursor-pointer" onClick={() => handleOpenExerciseDetail(item)}>{item.name}</span>
+                                <span className="text-[9px] text-muted mt-0.5 font-medium truncate">Category: {item.category}</span>
                               </div>
                             </div>
 
-                            <div className="relative flex-1 min-w-0">
-                              <input 
-                                type="text" 
-                                value={ex.name} 
-                                onChange={(e) => handleSplitExNameChange(i, e.target.value)} 
-                                placeholder="Search exercise name (e.g. Incline Bench)..." 
-                                className={inputStyle} 
-                              />
-
-                              {/* Logger Database Suggestions Dropdown with Image Previews */}
-                              <AnimatePresence>
-                                {activeSplitEditIdx === i && splitEditSuggestions.length > 0 && (
-                                  <motion.div
-                                    initial={{ opacity: 0, y: 4 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0 }}
-                                    className="absolute top-full left-0 right-0 sm:right-auto w-full sm:w-[360px] max-w-full mt-1 bg-surface border border-card-border rounded-2xl shadow-2xl z-50 overflow-hidden max-h-56 sm:max-h-64 overflow-y-auto overscroll-contain"
-                                    style={{ backgroundColor: 'var(--secondary, #12121A)', opacity: 1 }}
-                                  >
-                                    <div className="px-3 py-1.5 bg-surface/90 border-b border-card-border text-[8.5px] font-black uppercase tracking-wider text-muted flex justify-between">
-                                      <span>Database Matches (With Image Previews)</span>
-                                      <span className="text-acid-green">Select to Fill</span>
-                                    </div>
-                                    {splitEditSuggestions.map((item, idx) => (
-                                      <div
-                                        key={idx}
-                                        onClick={() => selectSplitExSuggestion(i, item)}
-                                        className="px-3 py-2.5 border-b border-card-border/40 last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-acid-green hover:text-black transition-colors gap-3 group/item"
-                                      >
-                                        <div className="flex items-center gap-3 min-w-0">
-                                          <div 
-                                            onClick={(e) => { e.stopPropagation(); handleOpenExerciseDetail(item); }}
-                                            className="w-10 h-10 rounded-lg bg-surface/60 border border-card-border/50 flex items-center justify-center shrink-0 overflow-hidden bg-black/40 cursor-pointer hover:scale-105 transition-transform"
-                                            title="Click photo to preview exercise GIF"
-                                          >
-                                            <ExerciseImage 
-                                              src={item.gif_url || item.image || globalImageCache.get(item.name)} 
-                                              item={item}
-                                              alt={item.name} 
-                                              category={item.category} 
-                                              muscleGroup={item.target || item.body_part} 
-                                            />
-                                          </div>
-                                          <div className="flex flex-col min-w-0 text-left">
-                                            <span className="font-bold text-xs truncate group-hover/item:text-black text-foreground capitalize">{item.name}</span>
-                                            <span className="text-[9.5px] opacity-80 truncate font-medium">
-                                              {item.target ? `Target: ${item.target}` : item.body_part ? `Body Part: ${item.body_part}` : item.category || 'Strength'}
-                                            </span>
-                                          </div>
-                                        </div>
-                                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-md bg-acid-green/20 text-acid-green group-hover/item:bg-black group-hover/item:text-acid-green shrink-0">
-                                          Select
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </motion.div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <div className="text-xs font-bold text-acid-green text-right">
+                                {item.category === "Cardio" ? (
+                                  <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {item.duration} Mins</span>
+                                ) : (
+                                  `${item.sets} Sets × ${item.reps} Reps (${item.weight}kg)`
                                 )}
-                              </AnimatePresence>
-                            </div>
+                              </div>
 
-                            <div className="flex items-center gap-2">
-                              <input 
-                                type="text" 
-                                value={ex.details} 
-                                onChange={(e) => {
-                                  const nextEx = [...editRoutineFields.exercises];
-                                  nextEx[i].details = e.target.value;
-                                  setEditRoutineFields({ ...editRoutineFields, exercises: nextEx });
-                                }} 
-                                placeholder="4 sets × 10 reps" 
-                                className="bg-[var(--input)] border border-card-border rounded-xl px-2.5 py-1.5 text-xs text-foreground w-full sm:w-36 focus:outline-none focus:border-acid-green" 
-                              />
+                              <button
+                                onClick={() => setEditingLog({ ...item })}
+                                className="p-1 rounded text-muted hover:text-acid-green transition-colors cursor-pointer border-none bg-transparent"
+                                title="Edit Log"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
 
-                              <button onClick={() => handleRemoveExerciseFromSplit(i)} className="text-destructive p-1.5 rounded-lg hover:bg-destructive/10 cursor-pointer bg-none border-none shrink-0" title="Delete Exercise">
-                                <X className="w-4 h-4" />
+                              <button
+                                onClick={() => handleDeleteWorkoutLog(item.id)}
+                                className="p-1 rounded text-muted hover:text-destructive transition-colors cursor-pointer border-none bg-transparent"
+                                title="Delete Log"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </div>
-                        ))}
-                      </div>
-
-                      {/* Bottom Add Exercise Button (Exclusively at the bottom as requested) */}
-                      <button
-                        type="button"
-                        onClick={handleAddExerciseToSplit}
-                        className="w-full py-3 rounded-xl border-2 border-dashed border-acid-green/50 hover:border-acid-green bg-acid-green/10 hover:bg-acid-green/20 text-acid-green text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99] my-3 shadow-sm"
-                      >
-                        <Plus className="w-4 h-4 text-acid-green" /> Add Exercise
-                      </button>
-
-                      <div className="flex justify-end gap-2 pt-3 border-t border-card-border">
-                        <button onClick={() => setEditingSplit(false)} className="text-[10px] text-muted py-2 px-3 bg-surface border border-card-border rounded-xl flex items-center gap-1 cursor-pointer hover:text-foreground"><X className="w-3.5 h-3.5" /> Cancel</button>
-                        <button onClick={handleSaveSplitEdit} className="text-[10px] text-accent-foreground bg-acid-green py-2 px-4 rounded-xl font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer border-none shadow-md shadow-acid-green/20 hover:brightness-110"><Check className="w-3.5 h-3.5" /> Save Split</button>
-                      </div>
+                        ))
+                      ) : (
+                        <div className="text-center text-xs text-muted py-8 font-medium">
+                          No workouts logged on {formatDisplayDate(selectedDate)}.
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div>
-                      <div className="flex justify-between items-center mb-2 gap-2 flex-wrap">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[9px] text-acid-green font-bold uppercase tracking-wider">Routine Split Type</span>
-                          {activeDay === getLocalDayOfWeekIndex() && (
-                            <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-acid-green/20 text-acid-green border border-acid-green/30">Today</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button 
+                  </section>
+                </div>
+
+                {/* Right Column: Weekly Splits */}
+                <div className="space-y-6 pb-32 sm:pb-24">
+                  <section className="glass rounded-2xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">Weekly Splits Template Planner</h2>
+                      <span className="text-[9px] text-acid-green font-bold uppercase tracking-wider bg-acid-green/10 px-2 py-0.5 rounded border border-acid-green/20">Editable & Saved</span>
+                    </div>
+
+                    <div className="flex gap-1.5 overflow-x-auto pb-3 border-b border-card-border mb-4 scrollbar-none">
+                      {splits.map((day, idx) => {
+                        const isToday = activeDay === idx && idx === getLocalDayOfWeekIndex();
+                        return (
+                          <button
+                            key={idx}
                             onClick={() => {
-                              setLiveSessionRoutine(splits[activeDay]);
-                              setShowLiveSessionModal(true);
+                              setActiveDay(idx);
+                              setEditingSplit(false);
                             }}
-                            disabled={!splits[activeDay]?.workout?.exercises?.length}
-                            className="px-3.5 py-1.5 rounded-xl bg-acid-green text-black font-black text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-acid-green/20 disabled:opacity-50"
-                            title={`Start interactive guided live workout session for ${splits[activeDay]?.dayName}`}
+                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase cursor-pointer border transition-colors flex items-center gap-1 ${activeDay === idx
+                                ? 'bg-acid-green text-accent-foreground border-acid-green'
+                                : 'bg-surface border-card-border text-muted hover:text-foreground'
+                              }`}
                           >
-                            <Zap className="w-3.5 h-3.5 fill-current" />
-                            Start Live Session
+                            <span>{day.dayName.substring(0, 3)}</span>
+                            {idx === getLocalDayOfWeekIndex() && (
+                              <span className={`w-1.5 h-1.5 rounded-full ${activeDay === idx ? 'bg-black' : 'bg-acid-green'}`} />
+                            )}
                           </button>
-                          <button 
-                            onClick={handleLogFullDaySplit}
-                            disabled={loading || !splits[activeDay]?.workout?.exercises?.length}
-                            className="px-3 py-1.5 rounded-xl bg-surface border border-card-border text-foreground text-[10px] font-black uppercase tracking-wider hover:border-acid-green active:scale-95 transition-all border-none cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                            title={`Quick Log all ${splits[activeDay]?.dayName}'s exercises`}
-                          >
-                            <Play className="w-3 h-3 fill-current text-acid-green" />
-                            Quick Log
-                          </button>
-                          <button 
-                            onClick={handleStartEditSplit} 
-                            className="text-[9px] text-muted hover:text-foreground cursor-pointer flex items-center gap-1 font-bold uppercase tracking-wider bg-transparent border-none py-1.5 px-2 rounded-xl hover:bg-surface"
-                          >
-                            <Edit3 className="w-3 h-3" />
-                            Edit Split
-                          </button>
-                        </div>
-                      </div>
+                        );
+                      })}
+                    </div>
 
-                      <h3 className="text-xs font-bold text-foreground">{splits[activeDay]?.workout?.type}</h3>
-                      <p className="text-[10.5px] text-muted mt-1 leading-relaxed">{splits[activeDay]?.workout?.desc}</p>
-                      
-                      <div className="mt-4 border-t border-card-border pt-3 space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Exercises Recommended (Tap photo for GIF):</span>
-                          <span className="text-[9px] text-acid-green font-bold uppercase">Click + Log to record</span>
+                    {editingSplit ? (
+                      <div className="space-y-3 p-4 bg-surface border border-card-border rounded-xl">
+                        <div className="flex flex-col space-y-1">
+                          <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Routine Split Name</label>
+                          <input type="text" value={editRoutineFields.type} onChange={(e) => setEditRoutineFields({ ...editRoutineFields, type: e.target.value })} className={inputStyle} placeholder="e.g. Push Day (Chest, Shoulders & Triceps)" />
+                        </div>
+                        <div className="flex flex-col space-y-1">
+                          <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Description</label>
+                          <input type="text" value={editRoutineFields.desc} onChange={(e) => setEditRoutineFields({ ...editRoutineFields, desc: e.target.value })} className={inputStyle} placeholder="Short description of routine focus" />
                         </div>
 
-                        {splits[activeDay]?.workout?.exercises?.map((ex, i) => (
-                          <div key={i} className="flex justify-between items-center text-xs gap-3 p-2 rounded-xl hover:bg-surface/40 transition-colors border border-transparent hover:border-card-border/50">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <span className="w-5 h-5 rounded-full bg-surface border border-card-border/80 flex items-center justify-center text-[9.5px] font-black text-muted shrink-0" title={`Sequence #${i + 1}`}>
-                                {i + 1}
-                              </span>
-                              <div 
-                                onClick={() => handleOpenExerciseDetail(ex)}
-                                className="w-9 h-9 rounded-lg border border-card-border/50 bg-black/20 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
-                                title="Click to view GIF animation"
-                              >
-                                <ExerciseImage src={ex.image || globalImageCache.get(ex.name)} item={ex} alt={ex.name} category={ex.category || 'Strength'} muscleGroup={ex.muscleGroup} />
+                        <div className="space-y-3 pt-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Recommended Exercises (Logger Database Suggestions)</span>
+                          </div>
+                          {editRoutineFields.exercises.map((ex, i) => (
+                            <div key={i} className="relative flex flex-col sm:flex-row gap-2 items-stretch sm:items-center bg-card-bg/30 p-2.5 rounded-2xl border border-card-border/60 shadow-inner">
+                              <div className="flex items-center gap-1 shrink-0">
+                                <span className="w-6 h-6 rounded-full bg-surface border border-card-border flex items-center justify-center text-[10px] font-black text-acid-green shrink-0 shadow-sm" title={`Step ${i + 1}`}>
+                                  {i + 1}
+                                </span>
+
+                                <div className="flex flex-col gap-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMoveExerciseUp(i)}
+                                    disabled={i === 0}
+                                    className="p-0.5 text-muted hover:text-acid-green disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer bg-none border-none transition-colors"
+                                    title="Move Exercise Up"
+                                  >
+                                    <ChevronUp className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMoveExerciseDown(i)}
+                                    disabled={i === editRoutineFields.exercises.length - 1}
+                                    className="p-0.5 text-muted hover:text-acid-green disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer bg-none border-none transition-colors"
+                                    title="Move Exercise Down"
+                                  >
+                                    <ChevronDown className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
-                              <div className="flex flex-col min-w-0">
-                                <span className="font-semibold text-foreground truncate cursor-pointer hover:text-acid-green" onClick={() => handleOpenExerciseDetail(ex)}>{ex.name}</span>
-                                <span className="text-muted text-[10px] truncate">{ex.details}</span>
+
+                              <div className="relative flex-1 min-w-0">
+                                <input
+                                  type="text"
+                                  value={ex.name}
+                                  onChange={(e) => handleSplitExNameChange(i, e.target.value)}
+                                  placeholder="Search exercise name (e.g. Incline Bench)..."
+                                  className={inputStyle}
+                                />
+
+                                {/* Logger Database Suggestions Dropdown with Image Previews */}
+                                <AnimatePresence>
+                                  {activeSplitEditIdx === i && splitEditSuggestions.length > 0 && (
+                                    <motion.div
+                                      initial={{ opacity: 0, y: 4 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      exit={{ opacity: 0 }}
+                                      className="absolute top-full left-0 right-0 sm:right-auto w-full sm:w-[360px] max-w-full mt-1 bg-surface border border-card-border rounded-2xl shadow-2xl z-50 overflow-hidden max-h-56 sm:max-h-64 overflow-y-auto overscroll-contain"
+                                      style={{ backgroundColor: 'var(--secondary, #12121A)', opacity: 1 }}
+                                    >
+                                      <div className="px-3 py-1.5 bg-surface/90 border-b border-card-border text-[8.5px] font-black uppercase tracking-wider text-muted flex justify-between">
+                                        <span>Database Matches (With Image Previews)</span>
+                                        <span className="text-acid-green">Select to Fill</span>
+                                      </div>
+                                      {splitEditSuggestions.map((item, idx) => (
+                                        <div
+                                          key={idx}
+                                          onClick={() => selectSplitExSuggestion(i, item)}
+                                          className="px-3 py-2.5 border-b border-card-border/40 last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-acid-green hover:text-black transition-colors gap-3 group/item"
+                                        >
+                                          <div className="flex items-center gap-3 min-w-0">
+                                            <div
+                                              onClick={(e) => { e.stopPropagation(); handleOpenExerciseDetail(item); }}
+                                              className="w-10 h-10 rounded-lg bg-surface/60 border border-card-border/50 flex items-center justify-center shrink-0 overflow-hidden bg-black/40 cursor-pointer hover:scale-105 transition-transform"
+                                              title="Click photo to preview exercise GIF"
+                                            >
+                                              <ExerciseImage
+                                                src={item.gif_url || item.image || globalImageCache.get(item.name)}
+                                                item={item}
+                                                alt={item.name}
+                                                category={item.category}
+                                                muscleGroup={item.target || item.body_part}
+                                              />
+                                            </div>
+                                            <div className="flex flex-col min-w-0 text-left">
+                                              <span className="font-bold text-xs truncate group-hover/item:text-black text-foreground capitalize">{item.name}</span>
+                                              <span className="text-[9.5px] opacity-80 truncate font-medium">
+                                                {item.target ? `Target: ${item.target}` : item.body_part ? `Body Part: ${item.body_part}` : item.category || 'Strength'}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <span className="text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-md bg-acid-green/20 text-acid-green group-hover/item:bg-black group-hover/item:text-acid-green shrink-0">
+                                            Select
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={ex.details}
+                                  onChange={(e) => {
+                                    const nextEx = [...editRoutineFields.exercises];
+                                    nextEx[i].details = e.target.value;
+                                    setEditRoutineFields({ ...editRoutineFields, exercises: nextEx });
+                                  }}
+                                  placeholder="4 sets × 10 reps"
+                                  className="bg-[var(--input)] border border-card-border rounded-xl px-2.5 py-1.5 text-xs text-foreground w-full sm:w-36 focus:outline-none focus:border-acid-green"
+                                />
+
+                                <button onClick={() => handleRemoveExerciseFromSplit(i)} className="text-destructive p-1.5 rounded-lg hover:bg-destructive/10 cursor-pointer bg-none border-none shrink-0" title="Delete Exercise">
+                                  <X className="w-4 h-4" />
+                                </button>
                               </div>
                             </div>
+                          ))}
+                        </div>
 
+                        {/* Bottom Add Exercise Button (Exclusively at the bottom as requested) */}
+                        <button
+                          type="button"
+                          onClick={handleAddExerciseToSplit}
+                          className="w-full py-3 rounded-xl border-2 border-dashed border-acid-green/50 hover:border-acid-green bg-acid-green/10 hover:bg-acid-green/20 text-acid-green text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99] my-3 shadow-sm"
+                        >
+                          <Plus className="w-4 h-4 text-acid-green" /> Add Exercise
+                        </button>
+
+                        <div className="flex justify-end gap-2 pt-3 border-t border-card-border">
+                          <button onClick={() => setEditingSplit(false)} className="text-[10px] text-muted py-2 px-3 bg-surface border border-card-border rounded-xl flex items-center gap-1 cursor-pointer hover:text-foreground"><X className="w-3.5 h-3.5" /> Cancel</button>
+                          <button onClick={handleSaveSplitEdit} className="text-[10px] text-accent-foreground bg-acid-green py-2 px-4 rounded-xl font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer border-none shadow-md shadow-acid-green/20 hover:brightness-110"><Check className="w-3.5 h-3.5" /> Save Split</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex justify-between items-center mb-2 gap-2 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-acid-green font-bold uppercase tracking-wider">Routine Split Type</span>
+                            {activeDay === getLocalDayOfWeekIndex() && (
+                              <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-acid-green/20 text-acid-green border border-acid-green/30">Today</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
                             <button
-                              onClick={() => handleLogSplitExercise(ex)}
-                              className="px-2.5 py-1.5 rounded-lg bg-surface border border-card-border hover:border-acid-green hover:bg-acid-green/15 text-acid-green font-black text-[10px] uppercase tracking-wider transition-all cursor-pointer border-none shrink-0 flex items-center gap-1 shadow-sm active:scale-95"
-                              title={`Log ${ex.name}`}
+                              onClick={() => {
+                                setLiveSessionRoutine(splits[activeDay]);
+                                setShowLiveSessionModal(true);
+                              }}
+                              disabled={!splits[activeDay]?.workout?.exercises?.length}
+                              className="px-3.5 py-1.5 rounded-xl bg-acid-green text-black font-black text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-acid-green/20 disabled:opacity-50"
+                              title={`Start interactive guided live workout session for ${splits[activeDay]?.dayName}`}
                             >
-                              <Plus className="w-3 h-3" /> Log
+                              <Zap className="w-3.5 h-3.5 fill-current" />
+                              Start Live Session
+                            </button>
+                            <button
+                              onClick={handleLogFullDaySplit}
+                              disabled={loading || !splits[activeDay]?.workout?.exercises?.length}
+                              className="px-3 py-1.5 rounded-xl bg-surface border border-card-border text-foreground text-[10px] font-black uppercase tracking-wider hover:border-acid-green active:scale-95 transition-all border-none cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                              title={`Quick Log all ${splits[activeDay]?.dayName}'s exercises`}
+                            >
+                              <Play className="w-3 h-3 fill-current text-acid-green" />
+                              Quick Log
+                            </button>
+                            <button
+                              onClick={handleStartEditSplit}
+                              className="text-[9px] text-muted hover:text-foreground cursor-pointer flex items-center gap-1 font-bold uppercase tracking-wider bg-transparent border-none py-1.5 px-2 rounded-xl hover:bg-surface"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              Edit Split
                             </button>
                           </div>
-                        ))}
+                        </div>
+
+                        <h3 className="text-xs font-bold text-foreground">{splits[activeDay]?.workout?.type}</h3>
+                        <p className="text-[10.5px] text-muted mt-1 leading-relaxed">{splits[activeDay]?.workout?.desc}</p>
+
+                        <div className="mt-4 border-t border-card-border pt-3 space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Exercises Recommended (Tap photo for GIF):</span>
+                            <span className="text-[9px] text-acid-green font-bold uppercase">Click + Log to record</span>
+                          </div>
+
+                          {splits[activeDay]?.workout?.exercises?.map((ex, i) => (
+                            <div key={i} className="flex justify-between items-center text-xs gap-3 p-2 rounded-xl hover:bg-surface/40 transition-colors border border-transparent hover:border-card-border/50">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className="w-5 h-5 rounded-full bg-surface border border-card-border/80 flex items-center justify-center text-[9.5px] font-black text-muted shrink-0" title={`Sequence #${i + 1}`}>
+                                  {i + 1}
+                                </span>
+                                <div
+                                  onClick={() => handleOpenExerciseDetail(ex)}
+                                  className="w-9 h-9 rounded-lg border border-card-border/50 bg-black/20 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                                  title="Click to view GIF animation"
+                                >
+                                  <ExerciseImage src={ex.image || globalImageCache.get(ex.name)} item={ex} alt={ex.name} category={ex.category || 'Strength'} muscleGroup={ex.muscleGroup} />
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                  <span className="font-semibold text-foreground truncate cursor-pointer hover:text-acid-green" onClick={() => handleOpenExerciseDetail(ex)}>{ex.name}</span>
+                                  <span className="text-muted text-[10px] truncate">{ex.details}</span>
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={() => handleLogSplitExercise(ex)}
+                                className="px-2.5 py-1.5 rounded-lg bg-surface border border-card-border hover:border-acid-green hover:bg-acid-green/15 text-acid-green font-black text-[10px] uppercase tracking-wider transition-all cursor-pointer border-none shrink-0 flex items-center gap-1 shadow-sm active:scale-95"
+                                title={`Log ${ex.name}`}
+                              >
+                                <Plus className="w-3 h-3" /> Log
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </section>
+                    )}
+                  </section>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
           {/* LIBRARY TAB VIEW */}
           {activeSubTab === 'library' && (
@@ -1672,8 +1669,8 @@ export default function WorkoutLogger({ onNotification }) {
                       className="w-full bg-[var(--input)] border border-card-border focus:border-acid-green rounded-xl pl-11 pr-4 py-3 text-sm text-foreground focus:outline-none shadow-inner"
                     />
                     {libQuery && (
-                      <button 
-                        onClick={() => { setLibQuery(''); setLibLimit(24); }} 
+                      <button
+                        onClick={() => { setLibQuery(''); setLibLimit(24); }}
                         className="absolute right-3 text-xs text-muted hover:text-foreground cursor-pointer bg-transparent border-none"
                       >
                         Clear
@@ -1683,8 +1680,8 @@ export default function WorkoutLogger({ onNotification }) {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1 border-t border-card-border/50">
-                  <select 
-                    value={libBodyPart} 
+                  <select
+                    value={libBodyPart}
                     onChange={(e) => { setLibBodyPart(e.target.value); setLibLimit(24); }}
                     className="bg-[var(--input)] text-foreground border border-card-border rounded-xl px-3 py-2 text-xs focus:outline-none"
                   >
@@ -1694,8 +1691,8 @@ export default function WorkoutLogger({ onNotification }) {
                     ))}
                   </select>
 
-                  <select 
-                    value={libTarget} 
+                  <select
+                    value={libTarget}
                     onChange={(e) => { setLibTarget(e.target.value); setLibLimit(24); }}
                     className="bg-[var(--input)] text-foreground border border-card-border rounded-xl px-3 py-2 text-xs focus:outline-none"
                   >
@@ -1705,8 +1702,8 @@ export default function WorkoutLogger({ onNotification }) {
                     ))}
                   </select>
 
-                  <select 
-                    value={libEquipment} 
+                  <select
+                    value={libEquipment}
                     onChange={(e) => { setLibEquipment(e.target.value); setLibLimit(24); }}
                     className="bg-[var(--input)] text-foreground border border-card-border rounded-xl px-3 py-2 text-xs focus:outline-none"
                   >
@@ -1718,11 +1715,10 @@ export default function WorkoutLogger({ onNotification }) {
 
                   <button
                     onClick={() => setLibOnlyFavorites(!libOnlyFavorites)}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                      libOnlyFavorites 
-                        ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' 
+                    className={`px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${libOnlyFavorites
+                        ? 'bg-rose-500/20 text-rose-400 border-rose-500/40'
                         : 'bg-surface border-card-border text-muted hover:text-foreground'
-                    }`}
+                      }`}
                   >
                     <Heart className={`w-3.5 h-3.5 ${libOnlyFavorites ? 'fill-rose-400' : ''}`} />
                     Favorites ({favoriteExercises.length})
@@ -1739,8 +1735,8 @@ export default function WorkoutLogger({ onNotification }) {
                     className="glass border border-card-border rounded-2xl p-4 flex flex-col justify-between hover:border-acid-green/40 transition-all cursor-pointer group shadow-sm relative overflow-hidden"
                   >
                     <div className="relative w-full h-40 bg-black/40 rounded-xl overflow-hidden mb-3 border border-card-border/50">
-                      <ExerciseImage 
-                        src={ex.gif_url || ex.image} 
+                      <ExerciseImage
+                        src={ex.gif_url || ex.image}
                         alt={ex.name}
                         category={ex.category}
                         muscleGroup={ex.target || ex.body_part}
@@ -1875,9 +1871,9 @@ export default function WorkoutLogger({ onNotification }) {
                           <span className="text-acid-green">{item.count} logs ({item.pct}%)</span>
                         </div>
                         <div className="w-full h-2.5 bg-black/40 border border-card-border rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-acid-green/80 to-acid-green rounded-full transition-all duration-500" 
-                            style={{ width: `${item.pct}%` }} 
+                          <div
+                            className="h-full bg-gradient-to-r from-acid-green/80 to-acid-green rounded-full transition-all duration-500"
+                            style={{ width: `${item.pct}%` }}
                           />
                         </div>
                       </div>
@@ -1910,11 +1906,10 @@ export default function WorkoutLogger({ onNotification }) {
                     <button
                       key={tier}
                       onClick={() => setChallengeFilter(tier)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer border-none transition-all ${
-                        challengeFilter === tier 
-                          ? 'bg-acid-green text-black shadow-md' 
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer border-none transition-all ${challengeFilter === tier
+                          ? 'bg-acid-green text-black shadow-md'
                           : 'text-muted hover:text-foreground hover:bg-white/5'
-                      }`}
+                        }`}
                     >
                       {tier}
                     </button>
@@ -1937,10 +1932,10 @@ export default function WorkoutLogger({ onNotification }) {
                       const isDone = challenge.completed || pct >= 100;
                       const tier = challenge.tier || 'EASY';
 
-                      const tierBadgeStyle = 
+                      const tierBadgeStyle =
                         tier === 'EASY' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
-                        tier === 'MEDIUM' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' :
-                        'bg-amber-500/20 text-amber-400 border-amber-500/30';
+                          tier === 'MEDIUM' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' :
+                            'bg-amber-500/20 text-amber-400 border-amber-500/30';
 
                       return (
                         <div key={challenge.id} className="glass p-5 rounded-2xl border border-card-border shadow-md flex flex-col justify-between space-y-4 relative overflow-hidden">
@@ -1969,8 +1964,8 @@ export default function WorkoutLogger({ onNotification }) {
                             </div>
 
                             <div className="w-full h-3 bg-black/40 border border-card-border rounded-full overflow-hidden p-0.5">
-                              <div 
-                                className={`h-full rounded-full transition-all duration-500 ${isDone ? 'bg-gradient-to-r from-emerald-500 to-green-400' : 'bg-gradient-to-r from-acid-green/80 to-acid-green'}`} 
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${isDone ? 'bg-gradient-to-r from-emerald-500 to-green-400' : 'bg-gradient-to-r from-acid-green/80 to-acid-green'}`}
                                 style={{ width: `${pct}%` }}
                               />
                             </div>
@@ -1979,7 +1974,7 @@ export default function WorkoutLogger({ onNotification }) {
                           {/* Log Challenge Progress */}
                           {!isDone && (
                             <div className="pt-2 border-t border-card-border/60 flex items-center gap-2">
-                              <input 
+                              <input
                                 type="number"
                                 placeholder={`Add ${challenge.unit}`}
                                 value={challengeInputs[challenge.id] || ''}
@@ -2036,7 +2031,7 @@ export default function WorkoutLogger({ onNotification }) {
                   <label className="text-[9px] font-bold text-muted uppercase block mb-1">Exercise Name</label>
                   <input type="text" value={editingLog.name} onChange={(e) => setEditingLog({ ...editingLog, name: e.target.value })} className={inputStyle} />
                 </div>
-                
+
                 <div>
                   <label className="text-[9px] font-bold text-muted uppercase block mb-1">Category</label>
                   <select value={editingLog.category} onChange={(e) => setEditingLog({ ...editingLog, category: e.target.value })} className={inputStyle}>
@@ -2097,8 +2092,8 @@ export default function WorkoutLogger({ onNotification }) {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative w-full h-64 md:h-80 bg-black flex items-center justify-center overflow-hidden border-b border-card-border">
-                <ExerciseImage 
-                  src={selectedExercise.gif_url || selectedExercise.image} 
+                <ExerciseImage
+                  src={selectedExercise.gif_url || selectedExercise.image}
                   alt={`${selectedExercise.name} Animation`}
                   category={selectedExercise.category}
                   muscleGroup={selectedExercise.target || selectedExercise.body_part}
