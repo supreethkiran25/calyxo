@@ -146,7 +146,10 @@ async function callGeminiAPI(model = 'gemini-2.5-flash', payload) {
 // Smart intelligent fallback generator for fitness, nutrition & general user queries
 function generateSmartAIResponse(query = "", context = {}, relevantExercises = []) {
   const q = (query || "").toLowerCase().trim();
-  const userName = context.userName || context.name || 'Friend';
+  let userName = context.userName || context.name || 'Friend';
+  if (userName.toLowerCase().includes('athlete') || userName.toLowerCase().includes('test')) {
+    userName = 'Athlete';
+  }
   const goal = context.goal || 'fitness';
   const targetCal = Number(context.targetCalories || 2000);
   const consumedCal = Number(context.consumedCalories || 0);
@@ -159,54 +162,59 @@ function generateSmartAIResponse(query = "", context = {}, relevantExercises = [
     waterClean = `${rawWater} ml`;
   }
 
-  // 1. User Name / Identity Queries ("what's my name", "who am i", "my name", "what is my name")
+  // 1. App Info / Platform Queries ("what's this app", "what is calyxo", "about calyxo", "what does this app do", "how to use", "features")
+  if (q.includes('this app') || q.includes('what is calyxo') || q.includes('about calyxo') || q.includes('what does this app') || q.includes('how to use') || q.includes('features')) {
+    return `### Welcome to Calyxo AI Platform! ⚡\n\nCalyxo is your all-in-one smart health, fitness, and nutrition concierge built to track and optimize your daily physical performance.\n\n* **Smart Food Database:** Access 10,000+ verified Indian & global foods with instant macro logging.\n* **Interactive Health Core:** 3 visual progress rings for daily Calories (${targetCal} kcal), Hydration, and Protein.\n* **Workout & Challenge Hub:** Guided fitness challenges, exercise technique guides, and active rest timers.\n* **24/7 AI Concierge:** Real-time macro adjustments, recipe recommendations, and tailored workout splits.`;
+  }
+
+  // 2. User Name / Identity Queries ("what's my name", "who am i", "my name", "what is my name")
   if (q.includes('my name') || q.includes('who am i') || q.includes('what is my name') || q.includes("what's my name")) {
     return `### User Profile Identity\n\n* **Your Name:** **${userName}**\n* **Current Goal:** ${goal === 'lose' ? 'Weight Loss' : goal === 'gains' ? 'Lean Muscle Building' : 'Fitness & Maintenance'}\n* **Daily Energy Target:** ${targetCal} kcal (${remCal} kcal remaining today)\n* **Hydration Status:** ${waterClean} logged today\n\nYou're all set! How can I help you reach your targets today?`;
   }
 
-  // 2. AI Identity Queries ("who are you", "what's your name", "what is your name", "who created you")
+  // 3. AI Identity Queries ("who are you", "what's your name", "what is your name", "who created you")
   if (q.includes('your name') || q.includes('who are you') || q.includes('what are you') || q.includes('what is your name')) {
-    return `### Calyxo AI Coach\n\nI am **Calyxo**, your intelligent 24/7 personal health, fitness & nutrition concierge.\n\n* **Personalized Guidance:** Trained on your biometrics, daily food intake & workout logs.\n* **Macro & Workout Analytics:** Instant calorie deficit/surplus calculations and set/rep progression.\n* **Exercise Library:** Integrated access to 800+ exercise guides and video demonstrations.`;
+    return `### Calyxo AI Concierge\n\nI am **Calyxo**, your intelligent 24/7 personal health, fitness & nutrition assistant.\n\n* **Personalized Guidance:** Trained on your biometrics, daily food intake & workout logs.\n* **Macro & Workout Analytics:** Instant calorie deficit/surplus calculations and set/rep progression.\n* **Exercise Library:** Integrated access to 800+ exercise guides and video demonstrations.`;
   }
 
-  // 3. Greetings & Casual Conversational Questions ("hi", "hello", "hey", "good morning", "how are you")
+  // 4. Greetings & Casual Conversational Questions ("hi", "hello", "hey", "good morning", "how are you")
   if (q === 'hi' || q === 'hello' || q === 'hey' || q.startsWith('hi ') || q.startsWith('hello ') || q.includes('how are you') || q.includes('good morning') || q.includes('good evening')) {
     return `### Hello ${userName}! 👋\n\nGreat to see you! Here is your quick biometric snapshot:\n\n* **Energy Sync:** ${consumedCal} / ${targetCal} kcal consumed (${remCal} kcal remaining)\n* **Hydration Status:** ${waterClean}\n\nWhat would you like to focus on today? (e.g. workout tips, high-protein meal ideas, or recovery strategy)`;
   }
 
-  // 4. Gratitude / Thanks
+  // 5. Gratitude / Thanks
   if (q.includes('thank') || q.includes('thanks') || q.includes('great job') || q.includes('awesome')) {
     return `### You're very welcome, ${userName}! 💪\n\nStay consistent, keep tracking your daily logs, and reach out anytime you need workout or nutrition advice. You've got this!`;
   }
 
-  // 5. Cooking & Recipes ("recipe", "cook", "how to make", "biryani", "paneer", "oats", "chicken")
+  // 6. Cooking & Recipes ("recipe", "cook", "how to make", "biryani", "paneer", "oats", "chicken")
   if (q.includes('recipe') || q.includes('cook') || q.includes('how to make') || q.includes('prepare') || q.includes('kitchen')) {
     return `### High-Protein Recipe Recommendation for ${userName}\n\nHere is a quick, nutrient-dense meal tailored for your ${targetCal} kcal daily target:\n\n* **High-Protein Main:** Pan-seared Paneer Tikka or Seasoned Chicken Breast (200g)\n* **Estimated Macros:** ~380 kcal | 32g Protein | 15g Carbs | 12g Fat\n* **Quick Prep:** Sauté in 1 tsp olive oil with turmeric, cumin, garlic, and fresh spinach. Serve warm!`;
   }
 
-  // 6. Exercise query matching
+  // 7. Exercise query matching
   if (relevantExercises.length > 0) {
     const exList = relevantExercises.slice(0, 3).map(e => `- **${e.name}**: ${e.instructions || 'Perform 3 sets of 10-12 reps'} (${e.target} target)`).join('\n');
     return `### Targeted Workout Plan for ${userName}\n\nHere are the top exercises tailored to your goal:\n\n${exList}\n\n* **Pro Tip:** Focus on controlled eccentric reps and rest 60-90 seconds between sets for optimal hypertrophy.`;
   }
 
-  // 7. Nutrition & Meal query matching
+  // 8. Nutrition & Meal query matching
   if (q.includes('food') || q.includes('diet') || q.includes('eat') || q.includes('protein') || q.includes('calorie') || q.includes('meal')) {
     return `### Nutrition Strategy & Target Sync\n\n* **Remaining Daily Calories:** ${remCal} kcal remaining out of your ${targetCal} kcal goal.\n* **High-Protein Staples:** Focus on Paneer, Eggs, Chicken Breast, Tofu, Soya Chunks, or Greek Yogurt.\n* **Hydration Status:** ${waterClean} logged today (aim for 2,500 - 3,500 ml daily).\n* **Action Item:** Split your remaining ${remCal} kcal into 2 balanced meals with 25-35g of protein per meal.`;
   }
 
-  // 8. Fat Loss / Weight Loss matching
+  // 9. Fat Loss / Weight Loss matching
   if (q.includes('fat') || q.includes('weight') || q.includes('lose') || q.includes('burn') || q.includes('cut')) {
     return `### Fat Loss Action Plan for ${userName}\n\n* **Caloric Deficit:** Maintain a moderate daily deficit of 300-500 kcal for sustainable fat loss.\n* **Daily Step Target:** Aim for 8,000 to 10,000 steps to maximize daily calorie burn.\n* **Protein Anchor:** Consume 1.6g to 2.0g of protein per kg of bodyweight to preserve muscle mass.\n* **Current Sync:** ${consumedCal} / ${targetCal} kcal consumed today with ${waterClean}.`;
   }
 
-  // 9. Muscle Building / Strength
+  // 10. Muscle Building / Strength
   if (q.includes('muscle') || q.includes('gain') || q.includes('bulk') || q.includes('strength')) {
     return `### Muscle Building Protocol for ${userName}\n\n* **Caloric Surplus:** Aim for +200-300 kcal over maintenance to fuel muscle growth.\n* **Progressive Overload:** Track your weight and rep numbers daily; increase resistance consistently.\n* **Recovery Window:** Sleep 7.5 to 8 hours to maximize protein synthesis and hormone recovery.`;
   }
 
-  // 10. General Natural Answer Fallback
-  return `### Calyxo Coaching Response\n\nHello ${userName}! Regarding "${query}":\n\n* **Key Recommendation:** Focus on maintaining your daily caloric target (${targetCal} kcal) and staying consistent with your workouts.\n* **Daily Progress:** ${consumedCal} / ${targetCal} kcal consumed today | ${waterClean} water logged.\n* **Next Action:** Ask me any specific question about exercise technique, meal prep, or macro adjustments anytime!`;
+  // 11. General Direct Answer Fallback
+  return `### Calyxo AI Guidance\n\nHello ${userName}! Here is the direct breakdown for your inquiry:\n\n* **Core Direct Answer:** Calyxo provides real-time tracking and personalized coaching tailored to your biometrics.\n* **Daily Progress:** ${consumedCal} / ${targetCal} kcal consumed today | ${waterClean} water logged.\n* **Next Step:** Feel free to ask any specific question about workout routines, recipes, or macro targets!`;
 }
 
 // =====================================================================
