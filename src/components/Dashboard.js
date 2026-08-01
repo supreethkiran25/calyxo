@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
@@ -265,12 +265,14 @@ export default function Dashboard({ onNotification }) {
   const profileCompleteness = Math.round((completedCount / setupChecklist.length) * 100);
   const pendingItems = setupChecklist.filter(x => !x.done).map(x => x.label);
 
+  const waterLoggerRef = useRef(null);
+
   const QUICK_ACCESS = [
     { label: 'Workout', icon: <Dumbbell className="w-5 h-5 text-foreground" />, action: () => navigate('/user/workout') },
     { label: 'Nutrition', icon: <BookOpen className="w-5 h-5 text-foreground" />, action: () => navigate('/user/nutrition') },
     { label: 'AI Coach', icon: <Bot className="w-5 h-5 text-[var(--color-acid-green)]" />, action: () => navigate('/user/ai'), isPrimary: true },
     { label: 'Progress', icon: <TrendingUp className="w-5 h-5 text-foreground" />, action: () => navigate('/user/progress') },
-    { label: 'Water', icon: <Droplets className="w-5 h-5 text-blue-400" />, action: () => document.getElementById('water-logger-section')?.scrollIntoView({ behavior: 'smooth' }) },
+    { label: 'Water', icon: <Droplets className="w-5 h-5 text-blue-400" />, action: () => waterLoggerRef.current?.scrollIntoView({ behavior: 'smooth' }) },
     { label: 'Analytics', icon: <PieChart className="w-5 h-5 text-foreground" />, action: () => navigate('/user/progress') }
   ];
 
@@ -539,7 +541,7 @@ export default function Dashboard({ onNotification }) {
         </div>
 
         {/* Daily Hydration Logger */}
-        <div id="water-logger-section" className="glass p-4 sm:p-6 rounded-2xl border border-card-border shadow-md flex flex-col justify-between h-full min-h-[320px]">
+        <div ref={waterLoggerRef} id="water-logger-section" className="glass p-4 sm:p-6 rounded-2xl border border-card-border shadow-md flex flex-col justify-between h-full min-h-[320px]">
           <div>
             <h2 className="text-sm font-extrabold text-foreground uppercase tracking-widest mb-4 flex items-center gap-1.5">
               <Droplets className="w-4 h-4 text-blue-400" />

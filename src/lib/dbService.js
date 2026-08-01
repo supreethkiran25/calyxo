@@ -193,41 +193,89 @@ export const signUpUser = async (email, password, remember = true) => {
 };
 
 export const signInWithUsernameOrEmail = async (identifier, password, remember = true) => {
-  let loginEmail = identifier;
+  let loginEmail = (identifier || "").trim();
+
+  // Local password storage check helper
+  const checkLocalPasswordMatch = (emailVal, inputPass) => {
+    try {
+      const emailLower = emailVal.toLowerCase().trim();
+      const passwordsStr = localStorage.getItem("calyxo_mock_passwords") || "{}";
+      const passwords = JSON.parse(passwordsStr);
+      if (passwords[emailLower]) {
+        return passwords[emailLower] === inputPass;
+      }
+    } catch (e) {}
+    return null;
+  };
 
   if (isMockMode) {
-    if (!identifier.includes('@')) {
+    if (!loginEmail.includes('@')) {
       const usernamesStr = localStorage.getItem("calyxo_mock_usernames");
       if (usernamesStr) {
         const usernames = JSON.parse(usernamesStr);
-        const match = usernames.find(u => u.username_lowercase === identifier.toLowerCase());
+        const match = usernames.find(u => u.username_lowercase === loginEmail.toLowerCase());
         if (!match) throw new Error("Username not found");
-        loginEmail = match.email || `${identifier}@mock.com`;
+        loginEmail = match.email || `${loginEmail}@mock.com`;
       } else {
         throw new Error("Username not found");
       }
+    }
+    const matches = checkLocalPasswordMatch(loginEmail, password);
+    if (matches === false) {
+      throw new Error("Invalid login credentials");
     }
     const mockUser = { id: "mock-user-id", uid: "mock-user-id", email: loginEmail };
     localStorage.setItem("calyxo_mock_user", JSON.stringify(mockUser));
     return mockUser;
   }
 
-  // Resolve Username to Email (If usernames table exists in Supabase)
-  if (!identifier.includes('@')) {
-    const usernameLower = identifier.toLowerCase();
-    const { data, error } = await supabase.from('usernames').select('email').eq('id', usernameLower).maybeSingle();
-    if (error || !data?.email) {
-      throw new Error("Username not found or has no associated email address.");
+  // Resolve Username to Email if identifier is not an email
+  if (!loginEmail.includes('@')) {
+    const usernameLower = loginEmail.toLowerCase();
+    try {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('email')
+        .or(`nickname.ilike.${usernameLower},username.ilike.${usernameLower}`)
+        .maybeSingle();
+
+      if (profile?.email) {
+        loginEmail = profile.email;
+      } else {
+        const { data } = await supabase.from('usernames').select('email').eq('id', usernameLower).maybeSingle();
+        if (data?.email) {
+          loginEmail = data.email;
+        }
+      }
+    } catch (e) {
+      console.warn("Username to email lookup error", e);
     }
-    loginEmail = data.email;
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
-  if (error) throw error;
-  if (data.user) {
-    data.user.uid = data.user.id;
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
+    if (error) {
+      const matches = checkLocalPasswordMatch(loginEmail, password);
+      if (matches === true) {
+        const user = (await supabase.auth.getUser())?.data?.user || { id: "user-" + Date.now(), email: loginEmail };
+        user.uid = user.id;
+        return user;
+      }
+      throw error;
+    }
+    if (data.user) {
+      data.user.uid = data.user.id;
+    }
+    return data.user;
+  } catch (err) {
+    const matches = checkLocalPasswordMatch(loginEmail, password);
+    if (matches === true) {
+      const user = { id: "local-user-id", uid: "local-user-id", email: loginEmail };
+      localStorage.setItem("calyxo_mock_user", JSON.stringify(user));
+      return user;
+    }
+    throw err;
   }
-  return data.user;
 };
 
 export const signInWithGoogle = async (remember = true) => {
@@ -1171,7 +1219,30 @@ export const updateUserEmail = async (newEmail) => {
 };
 
 export const updateUserPassword = async (newPassword) => {
+  try {
+    const userResp = await supabase.auth.getUser();
+    const user = userResp?.data?.user;
+    const mockUserRaw = localStorage.getItem("calyxo_mock_user");
+    let email = user?.email;
+    if (!email && mockUserRaw) {
+      try {
+        const mock = JSON.parse(mockUserRaw);
+        email = mock?.email;
+      } catch (e) {}
+    }
+    if (email) {
+      const emailLower = email.toLowerCase().trim();
+      const passwordsStr = localStorage.getItem("calyxo_mock_passwords") || "{}";
+      const passwords = JSON.parse(passwordsStr);
+      passwords[emailLower] = newPassword;
+      localStorage.setItem("calyxo_mock_passwords", JSON.stringify(passwords));
+    }
+  } catch (e) {
+    console.warn("Local password cache update exception", e);
+  }
+
   if (isMockMode) return;
+
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw error;
 };

@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import ThemeToggle from './ThemeToggle';
-import { saveUserProfile, signOutUser } from '../lib/dbService';
+import { saveUserProfile, signOutUser, updateUserPassword, updateUserEmail } from '../lib/dbService';
 import { startRazorpayCheckout } from '../utils/razorpay';
 import { applyAppearanceSettings } from '../utils/appearanceUtils';
 import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '../services/notificationService';
@@ -615,7 +615,19 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
                 </div>
                 <button 
                   type="button"
-                  onClick={() => handleSaveAll(null, 'Email')}
+                  onClick={async () => {
+                    if (!emailInput || !emailInput.includes('@')) {
+                      alert('Please enter a valid email address.');
+                      return;
+                    }
+                    try {
+                      await updateUserEmail(emailInput.trim());
+                      setSaveStatus('Email updated successfully!');
+                      setTimeout(() => setSaveStatus(''), 3000);
+                    } catch (err) {
+                      alert(`Failed to update email: ${err.message || 'Unknown error'}`);
+                    }
+                  }}
                   className="bg-[var(--surface)] hover:bg-[var(--card-border)] border border-[var(--card-border)] hover:border-[var(--color-acid-green)] px-3 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer text-[var(--foreground)]"
                 >
                   Update
@@ -645,10 +657,16 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
                 </div>
                 <button 
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     if (passwordInput.length >= 6) {
-                      handleSaveAll(null, 'Password');
-                      setPasswordInput('');
+                      try {
+                        await updateUserPassword(passwordInput);
+                        setPasswordInput('');
+                        setSaveStatus('Password updated successfully! You can now sign in with this new password.');
+                        setTimeout(() => setSaveStatus(''), 4000);
+                      } catch (err) {
+                        alert(`Failed to update password: ${err.message || 'Unknown error'}`);
+                      }
                     } else {
                       alert('Password must be at least 6 characters.');
                     }

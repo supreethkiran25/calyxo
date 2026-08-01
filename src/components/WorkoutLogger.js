@@ -17,7 +17,7 @@ import LiveWorkoutSessionModal from './modals/LiveWorkoutSessionModal';
 import { 
   Plus, Dumbbell, Clock, Edit3, X, Check, Search, Trophy, Activity, Move, 
   PersonStanding, Target, User, Crosshair, Heart, Share2, ChevronLeft, ChevronRight, 
-  Calendar, Trash2, Edit2, Play, ChevronUp, ChevronDown, Zap
+  Calendar, Trash2, Edit2, Play, ChevronUp, ChevronDown, Zap, BarChart2, Flame, Award
 } from 'lucide-react';
 
 const globalImageCache = new Map();
@@ -240,6 +240,59 @@ export default function WorkoutLogger({ onNotification }) {
   };
 
   const [activeSubTab, setActiveSubTab] = useState('logger');
+  const [challengeInputs, setChallengeInputs] = useState({});
+
+  const totalVolumeKg = useMemo(() => {
+    return workoutLogs.reduce((acc, log) => {
+      const sets = Number(log.sets) || 1;
+      const reps = Number(log.reps) || 1;
+      const weight = Number(log.weight) || 0;
+      return acc + (sets * reps * weight);
+    }, 0);
+  }, [workoutLogs]);
+
+  const totalSetsLogged = useMemo(() => {
+    return workoutLogs.reduce((acc, log) => acc + (Number(log.sets) || 1), 0);
+  }, [workoutLogs]);
+
+  const totalCaloriesBurned = useMemo(() => {
+    return workoutLogs.reduce((acc, log) => acc + (Number(log.caloriesBurned) || 0), 0);
+  }, [workoutLogs]);
+
+  const personalRecords = useMemo(() => {
+    const prMap = {};
+    workoutLogs.forEach(log => {
+      const name = log.name;
+      const weight = Number(log.weight) || 0;
+      if (weight > 0) {
+        if (!prMap[name] || weight > prMap[name].weight) {
+          prMap[name] = {
+            name,
+            weight,
+            reps: log.reps || 1,
+            sets: log.sets || 1,
+            category: log.category || 'Strength',
+            date: log.timestamp ? new Date(log.timestamp).toLocaleDateString() : 'Recent'
+          };
+        }
+      }
+    });
+    return Object.values(prMap).sort((a, b) => b.weight - a.weight).slice(0, 6);
+  }, [workoutLogs]);
+
+  const categoryBreakdown = useMemo(() => {
+    const counts = { Strength: 0, Hypertrophy: 0, Cardio: 0, Endurance: 0 };
+    workoutLogs.forEach(log => {
+      const cat = log.category || 'Strength';
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    const total = workoutLogs.length || 1;
+    return Object.entries(counts).map(([cat, count]) => ({
+      category: cat,
+      count,
+      pct: Math.round((count / total) * 100)
+    }));
+  }, [workoutLogs]);
 
   const [imageTick, setImageTick] = useState(0);
 
@@ -1661,6 +1714,243 @@ export default function WorkoutLogger({ onNotification }) {
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ANALYTICS TAB VIEW */}
+          {activeSubTab === 'analytics' && (
+            <div className="space-y-6">
+              {/* Analytics Header Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="glass p-4 rounded-2xl border border-card-border shadow-md">
+                  <div className="flex items-center justify-between text-muted mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider">Total Volume</span>
+                    <Dumbbell className="w-4 h-4 text-acid-green" />
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-foreground">{totalVolumeKg.toLocaleString()} <span className="text-xs text-acid-green font-bold">kg</span></div>
+                  <p className="text-[9.5px] text-muted mt-1">Cumulative weight moved</p>
+                </div>
+
+                <div className="glass p-4 rounded-2xl border border-card-border shadow-md">
+                  <div className="flex items-center justify-between text-muted mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider">Total Sets</span>
+                    <Activity className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-foreground">{totalSetsLogged}</div>
+                  <p className="text-[9.5px] text-muted mt-1">Completed exercise sets</p>
+                </div>
+
+                <div className="glass p-4 rounded-2xl border border-card-border shadow-md">
+                  <div className="flex items-center justify-between text-muted mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider">Workouts Logged</span>
+                    <Trophy className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-foreground">{workoutLogs.length}</div>
+                  <p className="text-[9.5px] text-muted mt-1">Recorded training sessions</p>
+                </div>
+
+                <div className="glass p-4 rounded-2xl border border-card-border shadow-md">
+                  <div className="flex items-center justify-between text-muted mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider">Est. Burned</span>
+                    <Flame className="w-4 h-4 text-red-400" />
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-foreground">{totalCaloriesBurned.toLocaleString()} <span className="text-xs text-red-400 font-bold">kcal</span></div>
+                  <p className="text-[9.5px] text-muted mt-1">Active energy expenditure</p>
+                </div>
+              </div>
+
+              {/* Personal Records & Category Distribution */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Personal Records */}
+                <div className="glass p-5 rounded-2xl border border-card-border shadow-md space-y-4">
+                  <div className="flex items-center justify-between border-b border-card-border pb-3">
+                    <div className="flex items-center gap-2">
+                      <Trophy className="w-4 h-4 text-amber-400" />
+                      <h3 className="text-xs font-black uppercase tracking-wider text-foreground">Personal Records (PRs)</h3>
+                    </div>
+                    <span className="text-[10px] font-bold text-acid-green uppercase">{personalRecords.length} Max Records</span>
+                  </div>
+
+                  {personalRecords.length > 0 ? (
+                    <div className="space-y-2.5">
+                      {personalRecords.map((pr, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-surface/50 border border-card-border/60 hover:border-acid-green/40 transition-colors">
+                          <div className="min-w-0">
+                            <span className="text-xs font-bold text-foreground block truncate">{pr.name}</span>
+                            <span className="text-[10px] text-muted font-medium block">{pr.sets} sets × {pr.reps} reps • {pr.date}</span>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="text-sm font-black text-acid-green">{pr.weight} kg</span>
+                            <span className="text-[9px] text-muted block uppercase font-extrabold">{pr.category}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center text-muted text-xs space-y-2">
+                      <Dumbbell className="w-8 h-8 mx-auto text-muted/40" />
+                      <p>No Personal Records recorded yet. Start logging workouts with weights to view your PR highlights!</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Training Discipline Breakdown */}
+                <div className="glass p-5 rounded-2xl border border-card-border shadow-md space-y-4">
+                  <div className="flex items-center justify-between border-b border-card-border pb-3">
+                    <div className="flex items-center gap-2">
+                      <BarChart2 className="w-4 h-4 text-acid-green" />
+                      <h3 className="text-xs font-black uppercase tracking-wider text-foreground">Training Category Breakdown</h3>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pt-2">
+                    {categoryBreakdown.map((item, idx) => (
+                      <div key={idx} className="space-y-1.5">
+                        <div className="flex justify-between items-center text-xs font-bold">
+                          <span className="text-foreground">{item.category}</span>
+                          <span className="text-acid-green">{item.count} logs ({item.pct}%)</span>
+                        </div>
+                        <div className="w-full h-2.5 bg-black/40 border border-card-border rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-acid-green/80 to-acid-green rounded-full transition-all duration-500" 
+                            style={{ width: `${item.pct}%` }} 
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CHALLENGES TAB VIEW */}
+          {activeSubTab === 'challenges' && (
+            <div className="space-y-6">
+              {/* Challenge Level & XP Banner */}
+              <div className="glass p-5 rounded-2xl border border-card-border shadow-md bg-gradient-to-r from-surface via-card-bg to-acid-green/10 flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-acid-green/20 border border-acid-green/40 flex items-center justify-center text-acid-green shadow-inner">
+                    <Award className="w-6 h-6 text-acid-green" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-acid-green block">Community Rank</span>
+                    <h3 className="text-lg font-black text-foreground uppercase tracking-wider leading-tight">Level {ecoStore.level || 1} Calyxo Challenger</h3>
+                    <p className="text-xs text-muted font-medium mt-0.5">{ecoStore.xp || 0} XP Earned • Active Leaderboard Competitor</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1.5 rounded-xl bg-acid-green/15 text-acid-green border border-acid-green/30 text-xs font-black uppercase tracking-wider">
+                    {ecoStore.activeChallenges ? ecoStore.activeChallenges.filter(c => c.completed).length : 0} Challenges Completed
+                  </span>
+                </div>
+              </div>
+
+              {/* Active Challenges List */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black uppercase tracking-wider text-muted px-1">Your Active Challenges</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {ecoStore.activeChallenges && ecoStore.activeChallenges.map((challenge) => {
+                    const pct = Math.min(100, Math.round((challenge.progress / challenge.targetVal) * 100));
+                    const isDone = challenge.completed || pct >= 100;
+
+                    return (
+                      <div key={challenge.id} className="glass p-5 rounded-2xl border border-card-border shadow-md flex flex-col justify-between space-y-4 relative overflow-hidden">
+                        {isDone && (
+                          <div className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
+                            <Check className="w-3 h-3" /> Completed
+                          </div>
+                        )}
+
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between gap-2 pr-16">
+                            <h4 className="text-sm font-black text-foreground uppercase tracking-wider">{challenge.name}</h4>
+                          </div>
+                          <p className="text-xs text-muted leading-snug">{challenge.target}</p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center text-xs font-bold">
+                            <span className="text-muted">Progress</span>
+                            <span className={isDone ? "text-emerald-400 font-black" : "text-acid-green font-black"}>
+                              {challenge.progress.toLocaleString()} / {challenge.targetVal.toLocaleString()} {challenge.unit} ({pct}%)
+                            </span>
+                          </div>
+
+                          <div className="w-full h-3 bg-black/40 border border-card-border rounded-full overflow-hidden p-0.5">
+                            <div 
+                              className={`h-full rounded-full transition-all duration-500 ${isDone ? 'bg-gradient-to-r from-emerald-500 to-green-400' : 'bg-gradient-to-r from-acid-green/80 to-acid-green'}`} 
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Log Challenge Progress */}
+                        {!isDone && (
+                          <div className="pt-2 border-t border-card-border/60 flex items-center gap-2">
+                            <input 
+                              type="number"
+                              placeholder={`Add ${challenge.unit}`}
+                              value={challengeInputs[challenge.id] || ''}
+                              onChange={(e) => setChallengeInputs({ ...challengeInputs, [challenge.id]: e.target.value })}
+                              className="w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-acid-green"
+                            />
+                            <button
+                              onClick={() => {
+                                const val = Number(challengeInputs[challenge.id]);
+                                if (val && val > 0) {
+                                  ecoStore.updateChallengeProgress(challenge.id, val);
+                                  setChallengeInputs({ ...challengeInputs, [challenge.id]: '' });
+                                  if (onNotification) onNotification(`Logged +${val}${challenge.unit} to ${challenge.name}!`);
+                                }
+                              }}
+                              className="px-3.5 py-1.5 rounded-xl bg-acid-green text-accent-foreground font-black text-xs uppercase tracking-wider cursor-pointer border-none shrink-0 hover:brightness-110 active:scale-95 transition-all shadow-sm"
+                            >
+                              Log
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Community Featured Challenges */}
+              <div className="space-y-4 pt-2">
+                <h3 className="text-xs font-black uppercase tracking-wider text-muted px-1">Community Challenges</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { id: 'heavy_lifting_100k', name: '100K KG Heavy Lifters', target: 'Lift 100,000 kg combined volume in 30 days', reward: '+500 XP & Gold Lifter Badge', icon: Dumbbell },
+                    { id: 'consistency_streak_14', name: '14-Day Iron Consistency', target: 'Log at least 1 workout session daily for 14 consecutive days', reward: '+300 XP & Streak Multiplier', icon: Flame },
+                    { id: 'hiit_burn_5000', name: '5,000 Kcal HIIT Burn', target: 'Burn 5,000 kcal via Cardio & HIIT sessions', reward: '+400 XP & Cardio Champ Badge', icon: Zap },
+                    { id: 'squats_mastery_500', name: '500 Reps Squats Mastery', target: 'Complete 500 total squats sets/reps', reward: '+250 XP & Leg Day Hero Badge', icon: Activity }
+                  ].map((comm, idx) => (
+                    <div key={idx} className="glass p-5 rounded-2xl border border-card-border shadow-md flex items-start justify-between gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <comm.icon className="w-4 h-4 text-acid-green" />
+                          <h4 className="text-sm font-black text-foreground uppercase tracking-wider">{comm.name}</h4>
+                        </div>
+                        <p className="text-xs text-muted leading-snug">{comm.target}</p>
+                        <span className="text-[10px] font-bold text-acid-green uppercase block">{comm.reward}</span>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          if (onNotification) onNotification(`Joined ${comm.name}! Keep crushing your fitness goals.`);
+                        }}
+                        className="px-3.5 py-2 rounded-xl bg-surface border border-card-border hover:border-acid-green hover:bg-acid-green/15 text-acid-green text-xs font-black uppercase tracking-wider cursor-pointer border-none shrink-0 transition-all active:scale-95"
+                      >
+                        Join
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 

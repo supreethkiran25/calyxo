@@ -1,4 +1,5 @@
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { Settings } from 'lucide-react';
 import { useStore } from '../store/useStore';
@@ -382,13 +383,22 @@ export const StaggeredMenu = ({
     };
   }, [closeOnClickAway, open, closeMenu]);
 
+  const internalNavigate = useNavigate();
+  const handleNav = (link) => {
+    if (onNavigate) {
+      onNavigate(link);
+    } else if (link) {
+      internalNavigate(link);
+    }
+  };
+
   const handleItemClick = (e, item) => {
     if (item.onClick) {
       e.preventDefault();
       item.onClick();
-    } else if (onNavigate && item.link) {
+    } else if (item.link) {
       e.preventDefault();
-      onNavigate(item.link);
+      handleNav(item.link);
     }
     closeMenu();
   };
@@ -488,7 +498,7 @@ export const StaggeredMenu = ({
                           closeMenu();
                         } else if (s.link && s.link.startsWith('/')) {
                           e.preventDefault();
-                          onNavigate?.(s.link);
+                          handleNav(s.link);
                           closeMenu();
                         }
                       }}

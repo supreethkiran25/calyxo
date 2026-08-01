@@ -292,32 +292,6 @@ export default function UserProfile({ onNotification }) {
         if (onNotification) {
           onNotification(`Update Profile Setup: ${fieldTitle}`);
         }
-
-        let attempts = 0;
-        const scrollToField = () => {
-          attempts++;
-          const targetEl = 
-            document.getElementById(`setup-field-${section}`) ||
-            (section === 'display_name' || section === 'name' ? document.getElementById('setup-field-display_name') : null) ||
-            (section === 'profile_photo' || section === 'photo' ? document.getElementById('setup-field-profile_photo') : null) ||
-            (section === 'height_weight' || section === 'biometrics' ? document.getElementById('setup-field-height_weight') : null) ||
-            (section === 'target_weight' || section === 'targetWeight' ? document.getElementById('setup-field-target_weight') : null) ||
-            (section === 'calorie_target' || section === 'calories' ? document.getElementById('setup-field-calorie_target') : null) ||
-            (section === 'diet_preferences' || section === 'diet' ? document.getElementById('setup-field-diet_preferences') : null);
-
-          if (targetEl) {
-            targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            if (targetEl.tagName === 'INPUT' || targetEl.tagName === 'SELECT' || targetEl.tagName === 'TEXTAREA') {
-              targetEl.focus();
-            }
-            targetEl.classList.add('ring-4', 'ring-acid-green', 'animate-pulse', 'rounded-xl');
-            setTimeout(() => targetEl.classList.remove('ring-4', 'ring-acid-green', 'animate-pulse', 'rounded-xl'), 4000);
-          } else if (attempts < 10) {
-            setTimeout(scrollToField, 150);
-          }
-        };
-
-        setTimeout(scrollToField, 250);
       }
     }
   }, [onNotification]);
