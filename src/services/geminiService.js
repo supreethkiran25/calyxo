@@ -115,7 +115,7 @@ async function callGeminiAPI(model = 'gemini-2.5-flash', payload) {
   // 2. Direct fallback to Google Gemini REST API
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || (typeof process !== 'undefined' && process.env ? (process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY) : '') || 'AIzaSyC_kwCmfgILI3UirtKpyxnhTNDhXMHvsZ4';
 
-  const modelsToTry = Array.from(new Set([model, 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-3.5-flash']));
+  const modelsToTry = Array.from(new Set([model, 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']));
   let lastError = null;
 
   for (const targetModel of modelsToTry) {
@@ -143,38 +143,70 @@ async function callGeminiAPI(model = 'gemini-2.5-flash', payload) {
   throw new Error(lastError || "All Gemini API calls (proxy & direct) failed");
 }
 
-// Smart intelligent fallback generator for fitness & nutrition queries when API quota/rate-limit is reached
+// Smart intelligent fallback generator for fitness, nutrition & general user queries
 function generateSmartAIResponse(query = "", context = {}, relevantExercises = []) {
-  const q = query.toLowerCase();
+  const q = (query || "").toLowerCase().trim();
+  const userName = context.userName || context.name || 'Friend';
   const goal = context.goal || 'fitness';
-  const targetCal = context.targetCalories || 2000;
-  const consumedCal = context.consumedCalories || 0;
+  const targetCal = Number(context.targetCalories || 2000);
+  const consumedCal = Number(context.consumedCalories || 0);
   const remCal = Math.max(0, targetCal - consumedCal);
-  const water = context.water || 0;
+  
+  // Format water cleanly without repeating "ml ml"
+  let waterClean = "0 ml";
+  if (context.water) {
+    const rawWater = String(context.water).replace(/ml/gi, '').trim();
+    waterClean = `${rawWater} ml`;
+  }
 
-  // Exercise query matching
+  // 1. User Name / Identity Queries ("what's my name", "who am i", "my name", "what is my name")
+  if (q.includes('my name') || q.includes('who am i') || q.includes('what is my name') || q.includes("what's my name")) {
+    return `### User Profile Identity\n\n* **Your Name:** **${userName}**\n* **Current Goal:** ${goal === 'lose' ? 'Weight Loss' : goal === 'gains' ? 'Lean Muscle Building' : 'Fitness & Maintenance'}\n* **Daily Energy Target:** ${targetCal} kcal (${remCal} kcal remaining today)\n* **Hydration Status:** ${waterClean} logged today\n\nYou're all set! How can I help you reach your targets today?`;
+  }
+
+  // 2. AI Identity Queries ("who are you", "what's your name", "what is your name", "who created you")
+  if (q.includes('your name') || q.includes('who are you') || q.includes('what are you') || q.includes('what is your name')) {
+    return `### Calyxo AI Coach\n\nI am **Calyxo**, your intelligent 24/7 personal health, fitness & nutrition concierge.\n\n* **Personalized Guidance:** Trained on your biometrics, daily food intake & workout logs.\n* **Macro & Workout Analytics:** Instant calorie deficit/surplus calculations and set/rep progression.\n* **Exercise Library:** Integrated access to 800+ exercise guides and video demonstrations.`;
+  }
+
+  // 3. Greetings & Casual Conversational Questions ("hi", "hello", "hey", "good morning", "how are you")
+  if (q === 'hi' || q === 'hello' || q === 'hey' || q.startsWith('hi ') || q.startsWith('hello ') || q.includes('how are you') || q.includes('good morning') || q.includes('good evening')) {
+    return `### Hello ${userName}! 👋\n\nGreat to see you! Here is your quick biometric snapshot:\n\n* **Energy Sync:** ${consumedCal} / ${targetCal} kcal consumed (${remCal} kcal remaining)\n* **Hydration Status:** ${waterClean}\n\nWhat would you like to focus on today? (e.g. workout tips, high-protein meal ideas, or recovery strategy)`;
+  }
+
+  // 4. Gratitude / Thanks
+  if (q.includes('thank') || q.includes('thanks') || q.includes('great job') || q.includes('awesome')) {
+    return `### You're very welcome, ${userName}! 💪\n\nStay consistent, keep tracking your daily logs, and reach out anytime you need workout or nutrition advice. You've got this!`;
+  }
+
+  // 5. Cooking & Recipes ("recipe", "cook", "how to make", "biryani", "paneer", "oats", "chicken")
+  if (q.includes('recipe') || q.includes('cook') || q.includes('how to make') || q.includes('prepare') || q.includes('kitchen')) {
+    return `### High-Protein Recipe Recommendation for ${userName}\n\nHere is a quick, nutrient-dense meal tailored for your ${targetCal} kcal daily target:\n\n* **High-Protein Main:** Pan-seared Paneer Tikka or Seasoned Chicken Breast (200g)\n* **Estimated Macros:** ~380 kcal | 32g Protein | 15g Carbs | 12g Fat\n* **Quick Prep:** Sauté in 1 tsp olive oil with turmeric, cumin, garlic, and fresh spinach. Serve warm!`;
+  }
+
+  // 6. Exercise query matching
   if (relevantExercises.length > 0) {
     const exList = relevantExercises.slice(0, 3).map(e => `- **${e.name}**: ${e.instructions || 'Perform 3 sets of 10-12 reps'} (${e.target} target)`).join('\n');
-    return `### Targeted Workout Plan\n\nHere are the top exercises tailored to your goal:\n\n${exList}\n\n* **Pro Tip:** Focus on controlled eccentric reps and rest 60-90 seconds between sets for optimal hypertrophy.`;
+    return `### Targeted Workout Plan for ${userName}\n\nHere are the top exercises tailored to your goal:\n\n${exList}\n\n* **Pro Tip:** Focus on controlled eccentric reps and rest 60-90 seconds between sets for optimal hypertrophy.`;
   }
 
-  // Nutrition & Meal query matching
+  // 7. Nutrition & Meal query matching
   if (q.includes('food') || q.includes('diet') || q.includes('eat') || q.includes('protein') || q.includes('calorie') || q.includes('meal')) {
-    return `### Nutrition Strategy & Target Sync\n\n* **Remaining Daily Calories:** ${remCal} kcal remaining out of your ${targetCal} kcal goal.\n* **High-Protein Staples:** Focus on Paneer, Eggs, Chicken Breast, Tofu, Soya Chunks, or Greek Yogurt.\n* **Hydration Status:** ${water} ml logged today (aim for 2,500 - 3,500 ml daily).\n* **Action Item:** Split your remaining ${remCal} kcal into 2 balanced meals with 25-35g of protein per meal.`;
+    return `### Nutrition Strategy & Target Sync\n\n* **Remaining Daily Calories:** ${remCal} kcal remaining out of your ${targetCal} kcal goal.\n* **High-Protein Staples:** Focus on Paneer, Eggs, Chicken Breast, Tofu, Soya Chunks, or Greek Yogurt.\n* **Hydration Status:** ${waterClean} logged today (aim for 2,500 - 3,500 ml daily).\n* **Action Item:** Split your remaining ${remCal} kcal into 2 balanced meals with 25-35g of protein per meal.`;
   }
 
-  // Fat Loss / Weight Loss matching
+  // 8. Fat Loss / Weight Loss matching
   if (q.includes('fat') || q.includes('weight') || q.includes('lose') || q.includes('burn') || q.includes('cut')) {
-    return `### Fat Loss Action Plan\n\n* **Caloric Deficit:** Maintain a moderate daily deficit of 300-500 kcal for sustainable fat loss.\n* **Daily Step Target:** Aim for 8,000 to 10,000 steps to maximize daily calorie burn.\n* **Protein Anchor:** Consume 1.6g to 2.0g of protein per kg of bodyweight to preserve muscle mass.\n* **Current Sync:** ${consumedCal} / ${targetCal} kcal consumed today with ${water} ml water.`;
+    return `### Fat Loss Action Plan for ${userName}\n\n* **Caloric Deficit:** Maintain a moderate daily deficit of 300-500 kcal for sustainable fat loss.\n* **Daily Step Target:** Aim for 8,000 to 10,000 steps to maximize daily calorie burn.\n* **Protein Anchor:** Consume 1.6g to 2.0g of protein per kg of bodyweight to preserve muscle mass.\n* **Current Sync:** ${consumedCal} / ${targetCal} kcal consumed today with ${waterClean}.`;
   }
 
-  // Muscle Building / Strength
+  // 9. Muscle Building / Strength
   if (q.includes('muscle') || q.includes('gain') || q.includes('bulk') || q.includes('strength')) {
-    return `### Muscle Building Protocol\n\n* **Caloric Surplus:** Aim for +200-300 kcal over maintenance to fuel muscle growth.\n* **Progressive Overload:** Track your weight and rep numbers daily; increase resistance consistently.\n* **Recovery Window:** Sleep 7.5 to 8 hours to maximize protein synthesis and hormone recovery.`;
+    return `### Muscle Building Protocol for ${userName}\n\n* **Caloric Surplus:** Aim for +200-300 kcal over maintenance to fuel muscle growth.\n* **Progressive Overload:** Track your weight and rep numbers daily; increase resistance consistently.\n* **Recovery Window:** Sleep 7.5 to 8 hours to maximize protein synthesis and hormone recovery.`;
   }
 
-  // General Motivational & Coaching Fallback
-  return `### Calyxo Coaching Action Plan\n\nBased on your current profile and biometric tracking:\n\n* **Daily Energy Sync:** ${consumedCal} / ${targetCal} kcal consumed (${remCal} kcal remaining).\n* **Hydration Status:** ${water} ml logged today.\n* **Core Advice:** Stay consistent with your macro targets, stay hydrated, and prioritize 7-8 hours of quality sleep.`;
+  // 10. General Natural Answer Fallback
+  return `### Calyxo Coaching Response\n\nHello ${userName}! Regarding "${query}":\n\n* **Key Recommendation:** Focus on maintaining your daily caloric target (${targetCal} kcal) and staying consistent with your workouts.\n* **Daily Progress:** ${consumedCal} / ${targetCal} kcal consumed today | ${waterClean} water logged.\n* **Next Action:** Ask me any specific question about exercise technique, meal prep, or macro adjustments anytime!`;
 }
 
 // =====================================================================
@@ -182,6 +214,7 @@ function generateSmartAIResponse(query = "", context = {}, relevantExercises = [
 // =====================================================================
 export async function chatWithGemini({ query, context, trainingLogs, personality, memory }) {
   const matchedExamples = findFewShotExamples(query, trainingLogs);
+  const userName = context.userName || context.name || 'User';
 
   let personalityPrompt = `You speak in a modern, encouraging, and direct tone (frequently utilizing clean formatting, markdown headings, bullet points, and highlighting key terms).`;
   if (personality === 'friendly') {
@@ -209,14 +242,35 @@ export async function chatWithGemini({ query, context, trainingLogs, personality
 
   const CONCISE_INSTRUCTIONS = `
 CRITICAL RESPONSE RULES (STRICT COMPLIANCE):
-1. BE ULTRA-CONCISE AND DIRECT: Give ONLY the exact answer the user needs. Keep responses short and easy for anyone to understand.
-2. NO FLUFF OR UNNECESSARY INTROS/OUTROS: NEVER say "Hello!", "Sure thing!", "Here is your plan:", "As an AI coach...", or "Hope this helps!". Jump directly to the answer on line 1.
-3. EASY FOR ANYONE TO UNDERSTAND: Use plain, simple, straightforward words. No unnecessary fluff or filler text.
-4. PUNCHY FORMATTING: Use 2 to 4 short bullet points or clear bold terms. State the core facts/answers immediately.
-5. NO REPETITION: State the answer clearly once, then stop immediately.
+1. BE DIRECT & ACCURATE: Give the exact answer the user asks for. If asked for their name, state their name is "${userName}".
+2. NO UNNECESSARY FLUFF: Jump directly to answering the question on line 1.
+3. EASY FOR ANYONE TO UNDERSTAND: Use plain, simple, straightforward words.
+4. PUNCHY FORMATTING: Use markdown bold text, headers, and bullet points.
+5. NO REPETITION: State the answer clearly once, then stop.
 `;
 
-  let systemPrompt = `You are Calyxo, a smart, clear, and ultra-direct AI fitness & nutrition coach.\n${personalityPrompt}\n${CONCISE_INSTRUCTIONS}\n\nHere is the user's current physical biometrics and daily activity context:\n- Biometrics: ${context.biometrics}\n- Calculated BMI: ${context.bmi}\n- Daily Targets: ${context.targets}\n- Today's Consumed Nutrition: ${context.consumed}\n- Today's Water Intake: ${context.water}${memoryPrompt}\n- Today's Logged Foods:\n${context.foodListStr || 'No foods logged yet today.'}\n- Today's Logged Workouts:\n${context.workoutListStr || 'No workouts logged yet today.'}${exercisesPrompt}\n\nWhen answering questions:\n1. Answer the user's query directly on line 1 with zero filler sentences or fluff.\n2. Keep it ultra-concise, simple, and easy for anyone to understand.\n3. Use short bullet points and bold key numbers/actions.`;
+  let systemPrompt = `You are Calyxo, a smart, clear, and direct AI fitness & nutrition coach.
+${personalityPrompt}
+${CONCISE_INSTRUCTIONS}
+
+User Profile & Activity Context:
+- User's Name: ${userName}
+- Physical Biometrics: ${context.biometrics}
+- Calculated BMI: ${context.bmi}
+- Daily Targets: ${context.targets}
+- Today's Consumed Nutrition: ${context.consumed}
+- Today's Water Intake: ${context.water}
+${memoryPrompt}
+- Today's Logged Foods:
+${context.foodListStr || 'No foods logged yet today.'}
+- Today's Logged Workouts:
+${context.workoutListStr || 'No workouts logged yet today.'}
+${exercisesPrompt}
+
+When answering questions:
+1. If the user asks for their name, state their name is "${userName}".
+2. Answer the user's query directly on line 1.
+3. Use clean markdown headers, bullet points, and bold key terms.`;
 
   if (matchedExamples.length > 0) {
     systemPrompt += `\n\n### Few-Shot Training Examples (Highly-Rated Past Interactions):\nHere are some examples of past queries from this user and how they were answered, which were rated highly by the user. Use these as guidelines for your style, content, and formatting:\n${matchedExamples.map((ex, idx) => `\nExample ${idx + 1}:\nUser Query: "${ex.user_query}"\nCalyxo Response:\n"${ex.bot_response}"\n`).join('\n')}`;

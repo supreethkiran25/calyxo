@@ -227,8 +227,12 @@ export default function AICoach({ onNotification, autoFocus = false }) {
       ? workoutLogs.map(w => `- ${w.name} (${w.category}): ${w.category === 'Cardio' ? `${w.duration} mins` : `${w.sets} sets x ${w.reps} reps @ ${w.weight}kg`}`).join('\n')
       : 'No workouts logged yet today.';
 
+    const userName = userProfile?.fullName || userProfile?.name || userProfile?.displayName || user?.displayName || (user?.email ? user.email.split('@')[0] : 'Friend');
+
     return {
-      biometrics: `Gender: ${gender}, Age: ${age}, Weight: ${weightVal} ${isImperial ? 'lbs' : 'kg'}, Height: ${heightVal} ${isImperial ? 'in' : 'cm'}, Goal: ${goal === 'lose' ? 'Weight Loss' : goal === 'gains' ? 'Lean Gains' : 'Maintenance'}`,
+      userName,
+      name: userName,
+      biometrics: `Name: ${userName}, Gender: ${gender}, Age: ${age}, Weight: ${weightVal} ${isImperial ? 'lbs' : 'kg'}, Height: ${heightVal} ${isImperial ? 'in' : 'cm'}, Goal: ${goal === 'lose' ? 'Weight Loss' : goal === 'gains' ? 'Lean Gains' : 'Maintenance'}`,
       bmi,
       targets: `Calories: ${calorieGoal} kcal, Protein: ${proteinTarget}g, Carbs: ${carbsTarget}g, Fat: ${fatTarget}g`,
       consumed: `Calories: ${totalCal} kcal, Protein: ${totalProt.toFixed(1)}g, Carbs: ${totalCarb.toFixed(1)}g, Fat: ${totalFat.toFixed(1)}g`,
