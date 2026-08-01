@@ -91,8 +91,9 @@ function findFewShotExamples(queryText, logs) {
   return sorted.slice(0, 3).map(item => item.log);
 }
 
-// Rate limit cooldown manager (5 minute cooldown after 429)
-// Secure proxy helper function with automatic direct client API fallback
+/**
+ * Secure proxy helper function with automatic direct client API fallback
+ */
 async function callGeminiAPI(model = 'gemini-2.5-flash', payload) {
   // 1. Try serverless backend proxy (/api/gemini)
   try {
@@ -143,7 +144,34 @@ async function callGeminiAPI(model = 'gemini-2.5-flash', payload) {
   throw new Error(lastError || "All Gemini API calls (proxy & direct) failed");
 }
 
-// Smart intelligent fallback generator for fitness, nutrition & general user queries
+/**
+ * Robust retry engine with exponential backoff (up to 2 retries)
+ */
+async function callGeminiAPIWithRetry(model = 'gemini-2.5-flash', payload, retries = 2) {
+  let delay = 800;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const data = await callGeminiAPI(model, payload);
+      if (data && data.candidates && data.candidates.length > 0) {
+        const text = data.candidates[0]?.content?.parts?.[0]?.text;
+        if (text && text.trim().length > 0) {
+          return data;
+        }
+      }
+    } catch (err) {
+      console.warn(`Gemini call attempt ${attempt + 1} failed:`, err.message);
+    }
+    if (attempt < retries) {
+      await new Promise(res => setTimeout(res, delay));
+      delay *= 2;
+    }
+  }
+  throw new Error("All API retries exhausted");
+}
+
+/**
+ * Smart intelligent fallback generator for fitness, nutrition & general user queries
+ */
 function generateSmartAIResponse(query = "", context = {}, relevantExercises = []) {
   const q = (query || "").toLowerCase().trim();
   let userName = context.userName || context.name || 'Friend';
@@ -155,72 +183,76 @@ function generateSmartAIResponse(query = "", context = {}, relevantExercises = [
   const consumedCal = Number(context.consumedCalories || 0);
   const remCal = Math.max(0, targetCal - consumedCal);
   
-  // Format water cleanly without repeating "ml ml"
   let waterClean = "0 ml";
   if (context.water) {
     const rawWater = String(context.water).replace(/ml/gi, '').trim();
     waterClean = `${rawWater} ml`;
   }
 
-  // 1. App Info / Platform Queries ("what's this app", "what is calyxo", "about calyxo", "what does this app do", "how to use", "features")
+  // Injury / Healthcare query handling
+  if (q.includes('hurt') || q.includes('pain') || q.includes('injury') || q.includes('sprain') || q.includes('doctor')) {
+    return `### Injury & Recovery Guidance for ${userName}\n\n* **Safety First:** If you are experiencing sharp pain or injury, discontinue heavy resistance training immediately.\n* **R.I.C.E Protocol:** Prioritize Rest, Ice, Compression, and Elevation for minor joint strain.\n* **Medical Advice Disclaimer:** Please consult a licensed medical professional or physician for persistent pain or diagnosis.`;
+  }
+
+  // App Info / Platform Queries ("what's this app", "what is calyxo")
   if (q.includes('this app') || q.includes('what is calyxo') || q.includes('about calyxo') || q.includes('what does this app') || q.includes('how to use') || q.includes('features')) {
     return `### Welcome to Calyxo AI Platform! ⚡\n\nCalyxo is your all-in-one smart health, fitness, and nutrition concierge built to track and optimize your daily physical performance.\n\n* **Smart Food Database:** Access 10,000+ verified Indian & global foods with instant macro logging.\n* **Interactive Health Core:** 3 visual progress rings for daily Calories (${targetCal} kcal), Hydration, and Protein.\n* **Workout & Challenge Hub:** Guided fitness challenges, exercise technique guides, and active rest timers.\n* **24/7 AI Concierge:** Real-time macro adjustments, recipe recommendations, and tailored workout splits.`;
   }
 
-  // 2. User Name / Identity Queries ("what's my name", "who am i", "my name", "what is my name")
+  // User Name / Identity Queries ("what's my name", "who am i")
   if (q.includes('my name') || q.includes('who am i') || q.includes('what is my name') || q.includes("what's my name")) {
     return `### User Profile Identity\n\n* **Your Name:** **${userName}**\n* **Current Goal:** ${goal === 'lose' ? 'Weight Loss' : goal === 'gains' ? 'Lean Muscle Building' : 'Fitness & Maintenance'}\n* **Daily Energy Target:** ${targetCal} kcal (${remCal} kcal remaining today)\n* **Hydration Status:** ${waterClean} logged today\n\nYou're all set! How can I help you reach your targets today?`;
   }
 
-  // 3. AI Identity Queries ("who are you", "what's your name", "what is your name", "who created you")
+  // AI Identity Queries ("who are you", "what's your name")
   if (q.includes('your name') || q.includes('who are you') || q.includes('what are you') || q.includes('what is your name')) {
     return `### Calyxo AI Concierge\n\nI am **Calyxo**, your intelligent 24/7 personal health, fitness & nutrition assistant.\n\n* **Personalized Guidance:** Trained on your biometrics, daily food intake & workout logs.\n* **Macro & Workout Analytics:** Instant calorie deficit/surplus calculations and set/rep progression.\n* **Exercise Library:** Integrated access to 800+ exercise guides and video demonstrations.`;
   }
 
-  // 4. Greetings & Casual Conversational Questions ("hi", "hello", "hey", "good morning", "how are you")
+  // Greetings & Casual Conversational Questions
   if (q === 'hi' || q === 'hello' || q === 'hey' || q.startsWith('hi ') || q.startsWith('hello ') || q.includes('how are you') || q.includes('good morning') || q.includes('good evening')) {
     return `### Hello ${userName}! 👋\n\nGreat to see you! Here is your quick biometric snapshot:\n\n* **Energy Sync:** ${consumedCal} / ${targetCal} kcal consumed (${remCal} kcal remaining)\n* **Hydration Status:** ${waterClean}\n\nWhat would you like to focus on today? (e.g. workout tips, high-protein meal ideas, or recovery strategy)`;
   }
 
-  // 5. Gratitude / Thanks
+  // Gratitude / Thanks
   if (q.includes('thank') || q.includes('thanks') || q.includes('great job') || q.includes('awesome')) {
     return `### You're very welcome, ${userName}! 💪\n\nStay consistent, keep tracking your daily logs, and reach out anytime you need workout or nutrition advice. You've got this!`;
   }
 
-  // 6. Cooking & Recipes ("recipe", "cook", "how to make", "biryani", "paneer", "oats", "chicken")
+  // Cooking & Recipes
   if (q.includes('recipe') || q.includes('cook') || q.includes('how to make') || q.includes('prepare') || q.includes('kitchen')) {
     return `### High-Protein Recipe Recommendation for ${userName}\n\nHere is a quick, nutrient-dense meal tailored for your ${targetCal} kcal daily target:\n\n* **High-Protein Main:** Pan-seared Paneer Tikka or Seasoned Chicken Breast (200g)\n* **Estimated Macros:** ~380 kcal | 32g Protein | 15g Carbs | 12g Fat\n* **Quick Prep:** Sauté in 1 tsp olive oil with turmeric, cumin, garlic, and fresh spinach. Serve warm!`;
   }
 
-  // 7. Exercise query matching
+  // Exercise query matching
   if (relevantExercises.length > 0) {
     const exList = relevantExercises.slice(0, 3).map(e => `- **${e.name}**: ${e.instructions || 'Perform 3 sets of 10-12 reps'} (${e.target} target)`).join('\n');
     return `### Targeted Workout Plan for ${userName}\n\nHere are the top exercises tailored to your goal:\n\n${exList}\n\n* **Pro Tip:** Focus on controlled eccentric reps and rest 60-90 seconds between sets for optimal hypertrophy.`;
   }
 
-  // 8. Nutrition & Meal query matching
+  // Nutrition & Meal query matching
   if (q.includes('food') || q.includes('diet') || q.includes('eat') || q.includes('protein') || q.includes('calorie') || q.includes('meal')) {
     return `### Nutrition Strategy & Target Sync\n\n* **Remaining Daily Calories:** ${remCal} kcal remaining out of your ${targetCal} kcal goal.\n* **High-Protein Staples:** Focus on Paneer, Eggs, Chicken Breast, Tofu, Soya Chunks, or Greek Yogurt.\n* **Hydration Status:** ${waterClean} logged today (aim for 2,500 - 3,500 ml daily).\n* **Action Item:** Split your remaining ${remCal} kcal into 2 balanced meals with 25-35g of protein per meal.`;
   }
 
-  // 9. Fat Loss / Weight Loss matching
+  // Fat Loss / Weight Loss matching
   if (q.includes('fat') || q.includes('weight') || q.includes('lose') || q.includes('burn') || q.includes('cut')) {
     return `### Fat Loss Action Plan for ${userName}\n\n* **Caloric Deficit:** Maintain a moderate daily deficit of 300-500 kcal for sustainable fat loss.\n* **Daily Step Target:** Aim for 8,000 to 10,000 steps to maximize daily calorie burn.\n* **Protein Anchor:** Consume 1.6g to 2.0g of protein per kg of bodyweight to preserve muscle mass.\n* **Current Sync:** ${consumedCal} / ${targetCal} kcal consumed today with ${waterClean}.`;
   }
 
-  // 10. Muscle Building / Strength
+  // Muscle Building / Strength
   if (q.includes('muscle') || q.includes('gain') || q.includes('bulk') || q.includes('strength')) {
     return `### Muscle Building Protocol for ${userName}\n\n* **Caloric Surplus:** Aim for +200-300 kcal over maintenance to fuel muscle growth.\n* **Progressive Overload:** Track your weight and rep numbers daily; increase resistance consistently.\n* **Recovery Window:** Sleep 7.5 to 8 hours to maximize protein synthesis and hormone recovery.`;
   }
 
-  // 11. General Direct Answer Fallback
-  return `### Calyxo AI Guidance\n\nHello ${userName}! Here is the direct breakdown for your inquiry:\n\n* **Core Direct Answer:** Calyxo provides real-time tracking and personalized coaching tailored to your biometrics.\n* **Daily Progress:** ${consumedCal} / ${targetCal} kcal consumed today | ${waterClean} water logged.\n* **Next Step:** Feel free to ask any specific question about workout routines, recipes, or macro targets!`;
+  // General Direct Answer Fallback
+  return `I'm having trouble generating a response right now. Please try again in a moment.`;
 }
 
 // =====================================================================
-// Main Gemini Chat (replaces /api/gemini)
+// Main Gemini Chat with Multi-Turn Memory & Intent Grounding
 // =====================================================================
-export async function chatWithGemini({ query, context, trainingLogs, personality, memory }) {
+export async function chatWithGemini({ query, context, trainingLogs, personality, memory, conversationHistory = [] }) {
   const matchedExamples = findFewShotExamples(query, trainingLogs);
   const userName = context.userName || context.name || 'User';
 
@@ -248,18 +280,18 @@ export async function chatWithGemini({ query, context, trainingLogs, personality
     exercisesPrompt = `\n\n### Relevant Exercises from Calyxo Library:\nYou have access to the following matching exercises from the user's exercise database. When recommending or detailing exercises, you MUST recommend these exact ones by name:\n${relevantExercises.map(ex => `- **${ex.name}**: Target: ${ex.target}, Body Part: ${ex.body_part}, Equipment: ${ex.equipment}, Difficulty: ${ex.difficulty}, Calories Burned: ~${ex.caloriesEstimate} kcal/min.\n  Instructions: ${ex.instructions}`).join('\n')}`;
   }
 
-  const CONCISE_INSTRUCTIONS = `
-CRITICAL RESPONSE RULES (STRICT COMPLIANCE):
-1. BE DIRECT & ACCURATE: Give the exact answer the user asks for. If asked for their name, state their name is "${userName}".
-2. NO UNNECESSARY FLUFF: Jump directly to answering the question on line 1.
-3. EASY FOR ANYONE TO UNDERSTAND: Use plain, simple, straightforward words.
-4. PUNCHY FORMATTING: Use markdown bold text, headers, and bullet points.
-5. NO REPETITION: State the answer clearly once, then stop.
-`;
+  const SYSTEM_PROMPT = `You are Calyxo AI, a professional fitness, nutrition, and health assistant.
+Your mission is to help users achieve their physical goals through evidence-based, practical guidance.
 
-  let systemPrompt = `You are Calyxo, a smart, clear, and direct AI fitness & nutrition coach.
-${personalityPrompt}
-${CONCISE_INSTRUCTIONS}
+Always:
+- Be friendly, conversational, and encouraging.
+- Give complete, structured, and practical answers.
+- Explain your reasoning clearly.
+- Ask clarifying follow-up questions when information is missing or helpful.
+- Adapt explanations for both beginners and advanced athletes.
+- Structure responses using markdown headers (###), bold key terms (**), bullet points (-), and numbered steps.
+- If asked about injuries, provide general educational recovery guidance and recommend consulting a healthcare professional.
+- Never return an empty response.
 
 User Profile & Activity Context:
 - User's Name: ${userName}
@@ -273,25 +305,35 @@ ${memoryPrompt}
 ${context.foodListStr || 'No foods logged yet today.'}
 - Today's Logged Workouts:
 ${context.workoutListStr || 'No workouts logged yet today.'}
-${exercisesPrompt}
+${exercisesPrompt}`;
 
-When answering questions:
-1. If the user asks for their name, state their name is "${userName}".
-2. Answer the user's query directly on line 1.
-3. Use clean markdown headers, bullet points, and bold key terms.`;
-
-  if (matchedExamples.length > 0) {
-    systemPrompt += `\n\n### Few-Shot Training Examples (Highly-Rated Past Interactions):\nHere are some examples of past queries from this user and how they were answered, which were rated highly by the user. Use these as guidelines for your style, content, and formatting:\n${matchedExamples.map((ex, idx) => `\nExample ${idx + 1}:\nUser Query: "${ex.user_query}"\nCalyxo Response:\n"${ex.bot_response}"\n`).join('\n')}`;
+  // Multi-Turn Conversation History Mapping
+  const formattedHistory = [];
+  if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+    conversationHistory.forEach(msg => {
+      if (msg.role === 'user' && msg.text) {
+        formattedHistory.push({ role: 'user', parts: [{ text: msg.text }] });
+      } else if ((msg.role === 'assistant' || msg.role === 'model') && msg.text) {
+        formattedHistory.push({ role: 'model', parts: [{ text: msg.text }] });
+      }
+    });
   }
 
+  // Append current query
+  const contentsPayload = [
+    ...formattedHistory,
+    { role: 'user', parts: [{ text: query }] }
+  ];
+
   try {
-    const data = await callGeminiAPI("gemini-2.5-flash", {
-      contents: [{ role: 'user', parts: [{ text: query }] }],
-      systemInstruction: { parts: [{ text: systemPrompt }] }
-    });
+    const data = await callGeminiAPIWithRetry("gemini-2.5-flash", {
+      contents: contentsPayload,
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }
+    }, 2);
+
     return data;
   } catch (err) {
-    console.warn("Gemini API call hit quota limit or network issue, using smart coach fallback:", err.message);
+    console.warn("Gemini API call failed after retries, invoking smart coach fallback:", err.message);
     const smartText = generateSmartAIResponse(query, context, relevantExercises);
     return {
       candidates: [{
@@ -304,7 +346,116 @@ When answering questions:
 }
 
 // =====================================================================
-// Briefing (replaces /api/gemini/briefing)
+// Program Generator
+// =====================================================================
+export async function generateProgram({ goal, userProfile }) {
+  const systemPrompt = `You are Calyxo AI, a professional fitness and nutrition program architect.
+Generate a structured initial workout and meal program for a user with goal: "${goal}".
+User Profile: ${JSON.stringify(userProfile || {})}.
+
+Output a JSON response conforming strictly to this format:
+{
+  "workoutPlan": [
+    { "day": "Day 1", "title": "Upper Body Strength", "exercises": ["Bench Press - 3x10", "Incline Row - 3x10"] }
+  ],
+  "mealPlan": [
+    { "meal": "Breakfast", "title": "Oatmeal & Eggs", "calories": 450, "protein": 30 }
+  ]
+}`;
+
+  try {
+    const data = await callGeminiAPIWithRetry("gemini-2.5-flash", {
+      contents: [{ parts: [{ text: systemPrompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
+    }, 2);
+    return extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
+  } catch (err) {
+    console.warn("Program generation failed, returning fallback program:", err.message);
+    return {
+      workoutPlan: [
+        { day: "Day 1", title: "Full Body Strength", exercises: ["Push-ups - 3x12", "Goblet Squats - 3x12", "Plank Hold - 3x45s"] },
+        { day: "Day 2", title: "Active Recovery & Walk", exercises: ["30 min Brisk Walk", "Full Body Mobility Stretch"] }
+      ],
+      mealPlan: [
+        { meal: "Breakfast", title: "High-Protein Oats & Eggs", calories: 480, protein: 32 },
+        { meal: "Lunch", title: "Grilled Chicken/Paneer & Quinoa", calories: 550, protein: 38 },
+        { meal: "Dinner", title: "Dal & Whole Wheat Roti", calories: 500, protein: 25 }
+      ]
+    };
+  }
+}
+
+// =====================================================================
+// Health Twin Engine
+// =====================================================================
+export async function syncHealthTwin(payload) {
+  const systemPrompt = `You are Calyxo AI Health Twin synchronization engine.
+Analyze these user metrics and return a JSON object summarizing recovery and adaptivity index:
+${JSON.stringify(payload || {})}.
+
+Output pure JSON matching this exact schema:
+{
+  "recoveryScore": number (0-100),
+  "fatigueLevel": "LOW" | "MODERATE" | "HIGH",
+  "metabolicAdaptationIndex": number (0-100),
+  "recommendedCalorieAdjustment": number,
+  "dailyCoachingMessage": "string"
+}`;
+
+  try {
+    const data = await callGeminiAPIWithRetry("gemini-2.5-flash", {
+      contents: [{ parts: [{ text: systemPrompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
+    }, 2);
+    return extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
+  } catch (err) {
+    console.warn("syncHealthTwin failed, returning fallback metrics:", err.message);
+    return {
+      recoveryScore: 84,
+      fatigueLevel: "LOW",
+      metabolicAdaptationIndex: 92,
+      recommendedCalorieAdjustment: 0,
+      dailyCoachingMessage: "Recovery is optimal today. You are primed for high physical output."
+    };
+  }
+}
+
+// =====================================================================
+// Body Composition Predictor Engine
+// =====================================================================
+export async function predictBodyComposition({ weightLogs, foodLogs, workoutLogs, userProfile }) {
+  const systemPrompt = `You are Calyxo AI predictive body composition engine.
+Analyze these weight logs and activity trends:
+${JSON.stringify({ weightLogs, userProfile } || {})}.
+
+Output pure JSON matching this exact schema:
+{
+  "predictedWeight30Days": number,
+  "predictedBodyFat30Days": number,
+  "trendAnalysis": "string",
+  "recommendedCalorieAdjustment": number
+}`;
+
+  try {
+    const data = await callGeminiAPIWithRetry("gemini-2.5-flash", {
+      contents: [{ parts: [{ text: systemPrompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
+    }, 2);
+    return extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
+  } catch (err) {
+    console.warn("predictBodyComposition failed, returning fallback prediction:", err.message);
+    const currentWeight = weightLogs?.[weightLogs.length - 1]?.weight || userProfile?.weight || 70;
+    return {
+      predictedWeight30Days: Number((currentWeight - 1.2).toFixed(1)),
+      predictedBodyFat30Days: 15.5,
+      trendAnalysis: "Steady downward weight trend aligned with your current daily caloric deficit.",
+      recommendedCalorieAdjustment: -150
+    };
+  }
+}
+
+// =====================================================================
+// Briefing
 // =====================================================================
 export async function generateBriefing({ briefingType, userProfile, foodLogs, workoutLogs, weightLogs, waterIntake, healthLogs }) {
   const totalCal = foodLogs?.reduce((s, x) => s + x.calories, 0) || 0;
@@ -327,24 +478,24 @@ export async function generateBriefing({ briefingType, userProfile, foodLogs, wo
     instruction = `Generate "Smart Recommendations" tailored to the user's fitness goal. List 2 customized high-protein recipes using typical Indian foods, 1 custom workout optimization tip (based on their logs), and 1 recovery recommendation. Use bullet points and bold headers.`;
   }
 
-  const systemPrompt = `You are Calyxo, a smart, encouraging, and highly knowledgeable AI fitness & nutrition coach.\nHere is the user's current health biometrics and activity context:\n${dynamicContext}\n\nYour Task:\n${instruction}\n\nFormatting Rules:\n1. Use markdown formatting with clear headings (###), bold text (**), and lists (-).\n2. Avoid generic intros or outtros. Start directly with the briefing content.\n3. Reference their actual metrics (e.g. remaining calories, water intake, sleep) in the text to make it extremely personalized.`;
+  const systemPrompt = `You are Calyxo AI, a professional fitness & nutrition assistant.\nHere is the user's current health biometrics and activity context:\n${dynamicContext}\n\nYour Task:\n${instruction}\n\nFormatting Rules:\n1. Use markdown formatting with clear headings (###), bold text (**), and lists (-).\n2. Avoid generic intros or outros. Start directly with the briefing content.\n3. Reference their actual metrics (e.g. remaining calories, water intake, sleep) in the text to make it extremely personalized.`;
 
   try {
-    const data = await callGeminiAPI("gemini-2.5-flash", {
+    const data = await callGeminiAPIWithRetry("gemini-2.5-flash", {
       contents: [{ parts: [{ text: systemPrompt }] }]
-    });
+    }, 2);
     const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "Briefing unavailable. Try again.";
     return { report: textResponse };
   } catch (err) {
     console.warn("Briefing generation failed, using fallback report:", err.message);
     return {
-      report: `### Proactive ${briefingType.replace('_', ' ').toUpperCase()} (Demo Mode)\n\nHere is a personalized analysis based on your recent activity logs:\n\n* **Nutritional Alignment:** You have consumed **${totalCal} kcal** out of your daily target of **${userProfile?.dailyCalories || 2000} kcal**. Protein is currently at **${Math.round(totalProt)}g** (Target: ${userProfile?.proteinTarget || 120}g).\n* **Training & Output:** You have logged **${totalWorkouts}** workout session(s) today.\n* **Recovery Status:** Sleep was logged at **${sleepHours} hours**. To improve recovery, aim to hit at least 8 hours tonight.\n* **Hydration Checklist:** Current water intake is **${water}ml** / ${userProfile?.waterTarget || 2500}ml.\n* **Actionable Recommendation:** Drink another 500ml of water right now and schedule a 20-minute stretching session to relieve muscle tension.`
+      report: `### Proactive ${briefingType.replace('_', ' ').toUpperCase()} Review\n\nHere is a personalized analysis based on your recent activity logs:\n\n* **Nutritional Alignment:** You have consumed **${totalCal} kcal** out of your daily target of **${userProfile?.dailyCalories || 2000} kcal**. Protein is currently at **${Math.round(totalProt)}g** (Target: ${userProfile?.proteinTarget || 120}g).\n* **Training & Output:** You have logged **${totalWorkouts}** workout session(s) today.\n* **Recovery Status:** Sleep was logged at **${sleepHours} hours**. To improve recovery, aim to hit at least 8 hours tonight.\n* **Hydration Checklist:** Current water intake is **${water}ml** / ${userProfile?.waterTarget || 2500}ml.\n* **Actionable Recommendation:** Drink another 500ml of water right now and schedule a 20-minute stretching session to relieve muscle tension.`
     };
   }
 }
 
 // =====================================================================
-// Grocery List (replaces /api/gemini/grocery)
+// Grocery List
 // =====================================================================
 export async function generateGroceryList({ mealPlan, preferences, program }) {
   const actualMealPlan = mealPlan || program?.mealPlan || program;
@@ -353,10 +504,10 @@ export async function generateGroceryList({ mealPlan, preferences, program }) {
   const systemPrompt = `Compile a structured weekly grocery shopping list based on these meal plans: ${JSON.stringify(actualMealPlan)}. \nPreferences: ${JSON.stringify(actualPrefs || {})}.\nCategorize item requirements logically (e.g., Produce, Meats, Grains, Dairy).\nOutput a JSON response conforming strictly to this format:\n{\n  "categories": [\n    { "name": "string", "items": ["string", "string"] }\n  ]\n}\nDo not write markdown quotes or wraps. Return pure JSON.`;
 
   try {
-    const data = await callGeminiAPI("gemini-2.5-flash", {
+    const data = await callGeminiAPIWithRetry("gemini-2.5-flash", {
       contents: [{ parts: [{ text: systemPrompt }] }],
       generationConfig: { responseMimeType: "application/json" }
-    });
+    }, 2);
     const parsed = extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
     
     if (parsed && parsed.categories && !parsed.grocery) {
@@ -380,7 +531,7 @@ export async function generateGroceryList({ mealPlan, preferences, program }) {
 }
 
 // =====================================================================
-// Post Magic (replaces /api/gemini/post-magic)
+// Post Magic
 // =====================================================================
 export async function generatePostMagic({ media = [], intent = 'caption', style = 'casual', context = {}, customText = '' }) {
   const imageParts = media.map(img => {
@@ -399,10 +550,10 @@ export async function generatePostMagic({ media = [], intent = 'caption', style 
   const systemPrompt = `You are a context-aware AI assistant for a health & fitness platform called Calyxo. \nThe user wants you to: ${intent}. \nTheir requested writing style is: ${style}. \nContext: ${JSON.stringify(context)}.\nCustom instructions: ${customText}.\nIf media is provided, analyze ALL images together and base your response heavily on them.\n\nYou MUST output pure JSON matching this exact schema:\n{\n  "text": "The generated caption, story, or analysis formatted with markdown if necessary.",\n  "isMeal": boolean,\n  "isWorkout": boolean,\n  "isProgress": boolean,\n  "suggestedActions": array of strings\n}`;
 
   try {
-    const data = await callGeminiAPI("gemini-2.5-flash", {
+    const data = await callGeminiAPIWithRetry("gemini-2.5-flash", {
       contents: [{ parts: [{ text: systemPrompt }, ...imageParts] }],
       generationConfig: { responseMimeType: "application/json" }
-    });
+    }, 2);
     return extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
   } catch (err) {
     console.warn("Post magic generation failed, using fallback:", err.message);
@@ -411,123 +562,7 @@ export async function generatePostMagic({ media = [], intent = 'caption', style 
       isMeal: intent === 'meal_analysis',
       isWorkout: intent === 'workout_analysis',
       isProgress: intent === 'progress_analysis',
-      suggestedActions: intent === 'meal_analysis' ? ['Log Meal'] : intent === 'workout_analysis' ? ['Save Workout'] : []
+      suggestedActions: ["Share to feed", "Log macros"]
     };
   }
 }
-
-// =====================================================================
-// Predict Body Composition (replaces /api/gemini/predict)
-// =====================================================================
-export async function predictBodyComposition({ userProfile, currentWeight, targetCalories, activeDeficit }) {
-  const systemPrompt = `Analyze the user biometrics and target calorie setup to forecast body composition trends.\nProfile: ${JSON.stringify(userProfile)}, Current Weight: ${currentWeight}, Target Calorie Intake: ${targetCalories}, Expected Deficit: ${activeDeficit || 500} kcal/day.\nCalculate forecast metrics at 30, 60, 90, and 180 days.\nOutput a JSON response conforming strictly to this format:\n{\n  "predictions": [\n    { "day": 30, "weight": number, "fatLoss": number, "muscleGain": number },\n    { "day": 60, "weight": number, "fatLoss": number, "muscleGain": number },\n    { "day": 90, "weight": number, "fatLoss": number, "muscleGain": number },\n    { "day": 180, "weight": number, "fatLoss": number, "muscleGain": number }\n  ],\n  "confidence": number,\n  "reasoning": "string"\n}\nDo not write markdown quotes or wraps. Return pure JSON.`;
-
-  try {
-    const data = await callGeminiAPI("gemini-2.5-flash", {
-      contents: [{ parts: [{ text: systemPrompt }] }],
-      generationConfig: { responseMimeType: "application/json" }
-    });
-    return extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
-  } catch (err) {
-    console.warn("Body composition prediction failed, returning mock:", err.message);
-    const w = Number(currentWeight) || 70;
-    return {
-      predictions: [
-        { day: 30, weight: (w - 1.2).toFixed(1), fatLoss: 0.8, muscleGain: 0.2 },
-        { day: 60, weight: (w - 2.5).toFixed(1), fatLoss: 1.6, muscleGain: 0.3 },
-        { day: 90, weight: (w - 3.8).toFixed(1), fatLoss: 2.5, muscleGain: 0.5 },
-        { day: 180, weight: (w - 7.5).toFixed(1), fatLoss: 5.2, muscleGain: 0.9 }
-      ],
-      confidence: 88,
-      reasoning: "Steady caloric deficit of ~500 kcal daily ensures consistent fat loss while high-protein intake safeguards existing skeletal muscle mass."
-    };
-  }
-}
-
-// =====================================================================
-// Generate Program (replaces /api/gemini/program)
-// =====================================================================
-export async function generateProgram({ goal, userProfile }) {
-  const systemPrompt = `Generate a customized 1-week fitness and diet plan. The user goal is "${goal}". \nUser profile: ${JSON.stringify(userProfile)}.\nReturn a JSON object conforming strictly to this format:\n{\n  "goal": "string",\n  "waterTarget": number,\n  "recoveryTarget": "string",\n  "mealPlan": [\n    {\n      "dayName": "Monday",\n      "meals": [\n        { "category": "Breakfast|Lunch|Dinner|Snacks", "name": "string", "calories": number, "protein": number, "carbs": number, "fat": number }\n      ]\n    }\n  ],\n  "workoutPlan": [\n    {\n      "dayName": "Monday",\n      "workout": {\n        "type": "string",\n        "desc": "string",\n        "exercises": [\n          { "name": "string", "details": "string" }\n        ]\n      }\n    }\n  ]\n}\nDo not write markdown quotes or wraps. Return pure JSON.`;
-
-  try {
-    const data = await callGeminiAPI("gemini-2.5-flash", {
-      contents: [{ parts: [{ text: systemPrompt }] }],
-      generationConfig: { responseMimeType: "application/json" }
-    });
-    return extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
-  } catch (err) {
-    console.warn("Failed to generate program, using default local template:", err.message);
-    return {
-      goal: goal,
-      waterTarget: 3200,
-      recoveryTarget: "8-9 hours sleep. Post-workout foam rolling on quads and shoulders.",
-      mealPlan: [{ dayName: "Monday", meals: [
-        { category: "Breakfast", name: "High-Protein Berry Oatmeal", calories: 380, protein: 32, carbs: 48, fat: 6 },
-        { category: "Lunch", name: "Spiced Tandoori Chicken & Brown Rice", calories: 510, protein: 44, carbs: 52, fat: 10 },
-        { category: "Dinner", name: "Pan-Seared Tofu & Broccoli Bowls", calories: 420, protein: 26, carbs: 40, fat: 12 }
-      ]}],
-      workoutPlan: [{ dayName: "Monday", workout: { type: "Upper Body Strength Push", desc: "Compound lifts focusing on chest and shoulders.", exercises: [
-        { name: "Incline Bench Press", details: "4 sets x 8 reps" },
-        { name: "Overhead Shoulder Press", details: "3 sets x 10 reps" }
-      ]}}]
-    };
-  }
-}
-
-// =====================================================================
-// Trainer Report (replaces /api/gemini/report)
-// =====================================================================
-export async function generateTrainerReport({ reportType, workouts, foods }) {
-  const prompt = `\nYou are a professional fitness coach analyzing client data for a trainer.\nGenerate a ${reportType} for this client based on their data from the last 30 days:\n\nWorkout logs: ${JSON.stringify(workouts.map(w => ({ name: w.name, duration: w.duration, timestamp: w.timestamp })))}\nFood logs: ${JSON.stringify(foods.map(f => ({ name: f.name || f.food_name, calories: f.calories, timestamp: f.timestamp })))}\n\nProvide: executive summary, key insights, areas of improvement, recommendations.\nFormat as structured sections with clear headings in markdown.\nKeep it concise and professional.\n`;
-
-  try {
-    const data = await callGeminiAPI("gemini-2.5-flash", {
-      contents: [{ role: "user", parts: [{ text: prompt }] }]
-    });
-    const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "Trainer report unavailable.";
-    return { report: textResponse };
-  } catch (err) {
-    console.warn("Trainer report generation failed, using mock:", err.message);
-    return {
-      report: `# ${reportType}\n      \n## Executive Summary\nThe client has logged ${workouts.length} workouts and ${foods.length} meals in the past 30 days.\n\n## Key Insights\n- **Consistency**: Client is logging consistently.\n- **Nutrition**: Average calories are tracking to their target.\n\n## Areas of Improvement\n- Consider increasing water intake.\n- Try to add one more resistance session per week.\n\n## Recommendations\n- Continue with current meal plan.\n- Add 15 mins of mobility work on rest days.`
-    };
-  }
-}
-
-// =====================================================================
-// Health Twin (replaces /api/gemini/twin)
-// =====================================================================
-export async function syncHealthTwin({ userProfile, metrics, recentLogs, activeDeficit }) {
-  const getMockTwin = () => {
-    const w = Number(userProfile?.weight) || 70;
-    return {
-      recoveryScore: 82,
-      fitnessAge: userProfile?.age ? userProfile.age - 2 : 25,
-      sleepDebt: 1.5,
-      dailyHealthScore: 88,
-      predictedWeight: (w - 1.2).toFixed(1),
-      predictedMuscleGain: 0.4,
-      predictedFatLoss: 0.8,
-      calorieForecast: 2100,
-      weeklyHealthForecast: "Steady progress. Your hydration and protein intake are optimal for fat loss.",
-      riskDetection: "None. Keep up the good work.",
-      personalizedRecommendations: ["Increase water intake by 500ml", "Ensure 7+ hours of sleep for better recovery"]
-    };
-  };
-
-  const systemPrompt = `You are Calyxo AI, an advanced Health OS digital twin engine.\nAnalyze the following user data to compute a comprehensive daily health snapshot.\nProfile: ${JSON.stringify(userProfile)}\nCurrent Metrics (BMR, TDEE, etc.): ${JSON.stringify(metrics)}\nRecent Logs (Food, Workout, Sleep, Water): ${JSON.stringify(recentLogs)}\nTarget Deficit: ${activeDeficit || 0} kcal/day.\n\nCalculate and return the following metrics in a pure JSON object:\n{\n  "recoveryScore": number (0-100 based on sleep and workout intensity),\n  "fitnessAge": number (estimated biological age based on activity),\n  "sleepDebt": number (hours),\n  "dailyHealthScore": number (0-100 overall score),\n  "predictedWeight": number (estimated weight in 30 days based on current deficit),\n  "predictedMuscleGain": number (estimated lbs/kg gained in 30 days),\n  "predictedFatLoss": number (estimated lbs/kg lost in 30 days),\n  "calorieForecast": number (recommended intake for tomorrow),\n  "weeklyHealthForecast": "string (short paragraph forecasting the week)",\n  "riskDetection": "string (any overtraining, undereating, or dehydration risks)",\n  "personalizedRecommendations": ["string", "string"]\n}\nDo not write markdown quotes or wraps. Return pure JSON.`;
-
-  try {
-    const data = await callGeminiAPI("gemini-1.5-flash", {
-      contents: [{ parts: [{ text: systemPrompt }] }],
-      generationConfig: { responseMimeType: "application/json" }
-    });
-    return extractJSON(data.candidates?.[0]?.content?.parts?.[0]?.text);
-  } catch (err) {
-    console.warn("Gemini Twin error, falling back to mock:", err.message);
-    return getMockTwin();
-  }
-}
-
-

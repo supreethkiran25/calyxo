@@ -285,17 +285,18 @@ export default function AICoach({ onNotification, autoFocus = false }) {
         context,
         trainingLogs: positiveLogs,
         personality: ecoStore.personality,
-        memory: ecoStore.streaks
+        memory: ecoStore.streaks,
+        conversationHistory: updatedMessages.slice(-10)
       });
 
-      textResponse = resData.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I could not generate a response. Please try again.";
+      textResponse = resData.candidates?.[0]?.content?.parts?.[0]?.text || "I'm having trouble generating a response right now. Please try again in a moment.";
       fetchSuccess = true;
     } catch (err) {
       console.error("Failed server route AI call", err);
       const botMsg = {
         id: `bot-${Date.now()}`,
         role: 'assistant',
-        text: `**Calyxo Connection Error:** Could not contact server-side AI. Please check your network or API keys.`,
+        text: `I'm having trouble generating a response right now. Please try again in a moment.`,
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, botMsg]);
