@@ -7,6 +7,7 @@ import {
 import { useStore } from '../../store/useStore';
 import { getExerciseImage, getDistinctFallback } from '../../utils/exerciseSearch';
 import { addWorkoutLog } from '../../lib/dbService';
+import { calculateWorkoutCaloriesBurned } from '../../utils/workoutUtils';
 import { scheduleExactNotification } from '../../services/notificationService';
 
 export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNotification }) {
@@ -199,6 +200,7 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
       duration: 0,
       timestamp: Date.now()
     };
+    logEntry.caloriesBurned = calculateWorkoutCaloriesBurned(logEntry);
 
     setCompletedLogs(prev => [...prev, logEntry]);
     playAlertChime(600);

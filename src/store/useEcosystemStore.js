@@ -32,10 +32,12 @@ const INITIAL_STATE = {
       personalizedRecommendations: ["Stay hydrated", "Increase protein"]
     },
     activeChallenges: [
-      { id: 'fat_loss_30', name: '30 Day Fat Loss Challenge', target: 'Burn 15,000 active calories', progress: 0, targetVal: 15000, completed: false, unit: 'kcal' },
-      { id: 'hydration_30', name: '30 Day Hydration Challenge', target: 'Drink 90L of water', progress: 0, targetVal: 90000, completed: false, unit: 'ml' },
-      { id: 'pushups_1000', name: '1000 Push-ups Challenge', target: 'Complete 1000 push-ups total', progress: 0, targetVal: 1000, completed: false, unit: 'reps' },
-      { id: 'running_50k', name: '50K Running Challenge', target: 'Run 50km total distance', progress: 0, targetVal: 50, completed: false, unit: 'km' }
+      { id: 'easy_surya_namaskar', tier: 'EASY', name: '15-Day Morning Surya Namaskar', target: 'Complete 12 rounds of Surya Namaskar daily', progress: 3, targetVal: 15, completed: false, unit: 'days' },
+      { id: 'easy_shatapavali_walk', tier: 'EASY', name: '5,000 Step Shatapavali Walk', target: 'Walk 5,000 brisk steps every evening after dinner', progress: 4, targetVal: 10, completed: false, unit: 'days' },
+      { id: 'medium_10k_steps', tier: 'MEDIUM', name: '10,000 Daily Step Count Master', target: 'Achieve 10,000 total steps daily', progress: 5, targetVal: 14, completed: false, unit: 'days' },
+      { id: 'medium_desi_gym', tier: 'MEDIUM', name: 'Desi Gym Muscle Builder', target: 'Complete 20 total strength workout sessions', progress: 6, targetVal: 20, completed: false, unit: 'sessions' },
+      { id: 'hard_100k_volume', tier: 'HARD', name: '100,000 KG Heavy Lifters Club', target: 'Lift 100,000 kg total volume across compound lifts', progress: 18500, targetVal: 100000, completed: false, unit: 'kg' },
+      { id: 'hard_1000_pushups', tier: 'HARD', name: '1,000 Push-ups Upper Body Challenge', target: 'Complete 1,000 cumulative push-ups over 30 days', progress: 240, targetVal: 1000, completed: false, unit: 'reps' }
     ],
     personality: 'motivational',
     mealScans: [],
@@ -67,8 +69,50 @@ export const useEcosystemStore = create((set, get) => ({
   },
 
   // Streaks actions
+  checkDailyLoginStreak: () => set((state) => {
+    const todayStr = new Date().toDateString();
+    const lastCheckIn = state.streaks?.lastCheckIn;
+
+    if (!lastCheckIn) {
+      const nextStreaks = { ...(state.streaks || {}), loginStreak: 1, lastCheckIn: todayStr };
+      const nextState = { ...state, streaks: nextStreaks };
+      saveLocalEcosystemState(nextState);
+      return { streaks: nextStreaks };
+    }
+
+    if (lastCheckIn === todayStr) {
+      return state;
+    }
+
+    const lastDate = new Date(lastCheckIn);
+    const todayDate = new Date(todayStr);
+    const diffTime = todayDate.getTime() - lastDate.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
+
+    let loginStreak = state.streaks?.loginStreak || 1;
+    let workoutStreak = state.streaks?.workoutStreak || 0;
+
+    if (diffDays === 1) {
+      loginStreak += 1;
+    } else if (diffDays > 1) {
+      loginStreak = 1;
+      workoutStreak = 0;
+    }
+
+    const nextStreaks = {
+      ...(state.streaks || {}),
+      loginStreak,
+      workoutStreak,
+      lastCheckIn: todayStr
+    };
+
+    const nextState = { ...state, streaks: nextStreaks };
+    saveLocalEcosystemState(nextState);
+    return { streaks: nextStreaks };
+  }),
+
   updateStreaks: (updates) => set((state) => {
-    const next = { ...state.streaks, ...updates };
+    const next = { ...(state.streaks || {}), ...updates };
     const nextState = { ...state, streaks: next };
     saveLocalEcosystemState(nextState);
     return { streaks: next };
@@ -180,6 +224,25 @@ export const useEcosystemStore = create((set, get) => ({
   }),
 
   // Challenge tracking
+  joinChallenge: (challengeObj) => set((state) => {
+    const existing = (state.activeChallenges || []).find(c => c.id === challengeObj.id);
+    if (existing) return state;
+    const newChallenge = {
+      id: challengeObj.id,
+      name: challengeObj.name,
+      target: challengeObj.target,
+      targetVal: challengeObj.targetVal || 30,
+      unit: challengeObj.unit || 'days',
+      progress: 0,
+      completed: false,
+      tier: challengeObj.tier || 'EASY'
+    };
+    const next = [...(state.activeChallenges || []), newChallenge];
+    const nextState = { ...state, activeChallenges: next };
+    saveLocalEcosystemState(nextState);
+    return { activeChallenges: next };
+  }),
+
   updateChallengeProgress: (id, amount) => set((state) => {
     const next = state.activeChallenges.map(c => {
       if (c.id === id) {

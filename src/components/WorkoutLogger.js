@@ -27,6 +27,7 @@ import { scheduleExactNotification } from '../services/notificationService';
 
 import { searchAndRankExercises, loadExercisesData, getCachedExercises, getExerciseImage, getDistinctFallback } from '../utils/exerciseSearch';
 import { getTodayDateString, formatDateToLocalString, getLocalDayOfWeekIndex, isSameLocalDate } from '../utils/dateUtils';
+import { calculateWorkoutCaloriesBurned } from '../utils/workoutUtils';
 
 const ExerciseImage = ({ src, alt, category, muscleGroup, className = "w-full h-full object-cover" }) => {
   const [currentSrc, setCurrentSrc] = useState(() => {
@@ -200,6 +201,7 @@ export default function WorkoutLogger({ onNotification }) {
   const ecoStore = useEcosystemStore();
 
   const [exercisesData, setExercisesData] = useState(() => getCachedExercises());
+  const [challengeFilter, setChallengeFilter] = useState('ALL');
 
   useEffect(() => {
     loadExercisesData().then(data => {
@@ -731,6 +733,7 @@ export default function WorkoutLogger({ onNotification }) {
       duration: exCategory === 'Cardio' ? duration : 0,
       timestamp: logTimestamp
     };
+    workoutItem.caloriesBurned = calculateWorkoutCaloriesBurned(workoutItem);
 
     try {
       const saved = await addWorkoutLog(userId, workoutItem);
@@ -836,6 +839,7 @@ export default function WorkoutLogger({ onNotification }) {
       duration: parsed.duration,
       timestamp: logTimestamp
     };
+    workoutItem.caloriesBurned = calculateWorkoutCaloriesBurned(workoutItem);
 
     try {
       const saved = await addWorkoutLog(userId, workoutItem);
@@ -872,6 +876,7 @@ export default function WorkoutLogger({ onNotification }) {
           duration: parsed.duration,
           timestamp: logTimestamp
         };
+        workoutItem.caloriesBurned = calculateWorkoutCaloriesBurned(workoutItem);
         return addWorkoutLog(userId, workoutItem);
       });
 
@@ -1834,106 +1839,142 @@ export default function WorkoutLogger({ onNotification }) {
                     <Award className="w-6 h-6 text-acid-green" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-acid-green block">Community Rank</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-acid-green block">Desi Fitness Rank</span>
                     <h3 className="text-lg font-black text-foreground uppercase tracking-wider leading-tight">Level {ecoStore.level || 1} Calyxo Challenger</h3>
                     <p className="text-xs text-muted font-medium mt-0.5">{ecoStore.xp || 0} XP Earned • Active Leaderboard Competitor</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1.5 rounded-xl bg-acid-green/15 text-acid-green border border-acid-green/30 text-xs font-black uppercase tracking-wider">
-                    {ecoStore.activeChallenges ? ecoStore.activeChallenges.filter(c => c.completed).length : 0} Challenges Completed
-                  </span>
+                {/* Difficulty Tier Filters */}
+                <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-2xl border border-card-border">
+                  {['ALL', 'EASY', 'MEDIUM', 'HARD'].map((tier) => (
+                    <button
+                      key={tier}
+                      onClick={() => setChallengeFilter(tier)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer border-none transition-all ${
+                        challengeFilter === tier 
+                          ? 'bg-acid-green text-black shadow-md' 
+                          : 'text-muted hover:text-foreground hover:bg-white/5'
+                      }`}
+                    >
+                      {tier}
+                    </button>
+                  ))}
                 </div>
               </div>
 
               {/* Active Challenges List */}
               <div className="space-y-4">
-                <h3 className="text-xs font-black uppercase tracking-wider text-muted px-1">Your Active Challenges</h3>
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-muted">Your Active Challenges</h3>
+                  <span className="text-[10px] font-bold text-acid-green uppercase">Showing {challengeFilter} Targets</span>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {ecoStore.activeChallenges && ecoStore.activeChallenges.map((challenge) => {
-                    const pct = Math.min(100, Math.round((challenge.progress / challenge.targetVal) * 100));
-                    const isDone = challenge.completed || pct >= 100;
+                  {ecoStore.activeChallenges && ecoStore.activeChallenges
+                    .filter(c => challengeFilter === 'ALL' || (c.tier || 'EASY') === challengeFilter)
+                    .map((challenge) => {
+                      const pct = Math.min(100, Math.round((challenge.progress / challenge.targetVal) * 100));
+                      const isDone = challenge.completed || pct >= 100;
+                      const tier = challenge.tier || 'EASY';
 
-                    return (
-                      <div key={challenge.id} className="glass p-5 rounded-2xl border border-card-border shadow-md flex flex-col justify-between space-y-4 relative overflow-hidden">
-                        {isDone && (
-                          <div className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
-                            <Check className="w-3 h-3" /> Completed
-                          </div>
-                        )}
+                      const tierBadgeStyle = 
+                        tier === 'EASY' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                        tier === 'MEDIUM' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' :
+                        'bg-amber-500/20 text-amber-400 border-amber-500/30';
 
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between gap-2 pr-16">
-                            <h4 className="text-sm font-black text-foreground uppercase tracking-wider">{challenge.name}</h4>
-                          </div>
-                          <p className="text-xs text-muted leading-snug">{challenge.target}</p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center text-xs font-bold">
-                            <span className="text-muted">Progress</span>
-                            <span className={isDone ? "text-emerald-400 font-black" : "text-acid-green font-black"}>
-                              {challenge.progress.toLocaleString()} / {challenge.targetVal.toLocaleString()} {challenge.unit} ({pct}%)
+                      return (
+                        <div key={challenge.id} className="glass p-5 rounded-2xl border border-card-border shadow-md flex flex-col justify-between space-y-4 relative overflow-hidden">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider ${tierBadgeStyle}`}>
+                              {tier} LEVEL
                             </span>
+                            {isDone && (
+                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
+                                <Check className="w-3 h-3" /> Completed
+                              </span>
+                            )}
                           </div>
 
-                          <div className="w-full h-3 bg-black/40 border border-card-border rounded-full overflow-hidden p-0.5">
-                            <div 
-                              className={`h-full rounded-full transition-all duration-500 ${isDone ? 'bg-gradient-to-r from-emerald-500 to-green-400' : 'bg-gradient-to-r from-acid-green/80 to-acid-green'}`} 
-                              style={{ width: `${pct}%` }}
-                            />
+                          <div className="space-y-1.5">
+                            <h4 className="text-sm font-black text-foreground uppercase tracking-wider">{challenge.name}</h4>
+                            <p className="text-xs text-muted leading-snug">{challenge.target}</p>
                           </div>
+
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center text-xs font-bold">
+                              <span className="text-muted">Progress</span>
+                              <span className={isDone ? "text-emerald-400 font-black" : "text-acid-green font-black"}>
+                                {challenge.progress.toLocaleString()} / {challenge.targetVal.toLocaleString()} {challenge.unit} ({pct}%)
+                              </span>
+                            </div>
+
+                            <div className="w-full h-3 bg-black/40 border border-card-border rounded-full overflow-hidden p-0.5">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-500 ${isDone ? 'bg-gradient-to-r from-emerald-500 to-green-400' : 'bg-gradient-to-r from-acid-green/80 to-acid-green'}`} 
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Log Challenge Progress */}
+                          {!isDone && (
+                            <div className="pt-2 border-t border-card-border/60 flex items-center gap-2">
+                              <input 
+                                type="number"
+                                placeholder={`Add ${challenge.unit}`}
+                                value={challengeInputs[challenge.id] || ''}
+                                onChange={(e) => setChallengeInputs({ ...challengeInputs, [challenge.id]: e.target.value })}
+                                className="w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-acid-green"
+                              />
+                              <button
+                                onClick={() => {
+                                  const val = Number(challengeInputs[challenge.id]);
+                                  if (val && val > 0) {
+                                    ecoStore.updateChallengeProgress(challenge.id, val);
+                                    setChallengeInputs({ ...challengeInputs, [challenge.id]: '' });
+                                    if (onNotification) onNotification(`Logged +${val}${challenge.unit} to ${challenge.name}!`);
+                                  }
+                                }}
+                                className="px-3.5 py-1.5 rounded-xl bg-acid-green text-accent-foreground font-black text-xs uppercase tracking-wider cursor-pointer border-none shrink-0 hover:brightness-110 active:scale-95 transition-all shadow-sm"
+                              >
+                                Log
+                              </button>
+                            </div>
+                          )}
                         </div>
-
-                        {/* Log Challenge Progress */}
-                        {!isDone && (
-                          <div className="pt-2 border-t border-card-border/60 flex items-center gap-2">
-                            <input 
-                              type="number"
-                              placeholder={`Add ${challenge.unit}`}
-                              value={challengeInputs[challenge.id] || ''}
-                              onChange={(e) => setChallengeInputs({ ...challengeInputs, [challenge.id]: e.target.value })}
-                              className="w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-acid-green"
-                            />
-                            <button
-                              onClick={() => {
-                                const val = Number(challengeInputs[challenge.id]);
-                                if (val && val > 0) {
-                                  ecoStore.updateChallengeProgress(challenge.id, val);
-                                  setChallengeInputs({ ...challengeInputs, [challenge.id]: '' });
-                                  if (onNotification) onNotification(`Logged +${val}${challenge.unit} to ${challenge.name}!`);
-                                }
-                              }}
-                              className="px-3.5 py-1.5 rounded-xl bg-acid-green text-accent-foreground font-black text-xs uppercase tracking-wider cursor-pointer border-none shrink-0 hover:brightness-110 active:scale-95 transition-all shadow-sm"
-                            >
-                              Log
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
               </div>
 
-              {/* Community Featured Challenges */}
+              {/* Community Desi Fitness Challenges */}
               <div className="space-y-4 pt-2">
-                <h3 className="text-xs font-black uppercase tracking-wider text-muted px-1">Community Challenges</h3>
+                <h3 className="text-xs font-black uppercase tracking-wider text-muted px-1">Featured Indian Fitness Challenges</h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
-                    { id: 'heavy_lifting_100k', name: '100K KG Heavy Lifters', target: 'Lift 100,000 kg combined volume in 30 days', reward: '+500 XP & Gold Lifter Badge', icon: Dumbbell },
-                    { id: 'consistency_streak_14', name: '14-Day Iron Consistency', target: 'Log at least 1 workout session daily for 14 consecutive days', reward: '+300 XP & Streak Multiplier', icon: Flame },
-                    { id: 'hiit_burn_5000', name: '5,000 Kcal HIIT Burn', target: 'Burn 5,000 kcal via Cardio & HIIT sessions', reward: '+400 XP & Cardio Champ Badge', icon: Zap },
-                    { id: 'squats_mastery_500', name: '500 Reps Squats Mastery', target: 'Complete 500 total squats sets/reps', reward: '+250 XP & Leg Day Hero Badge', icon: Activity }
-                  ].map((comm, idx) => (
-                    <div key={idx} className="glass p-5 rounded-2xl border border-card-border shadow-md flex items-start justify-between gap-4">
+                    { id: 'easy_surya_namaskar', tier: 'EASY', name: '15-Day Morning Surya Namaskar', target: 'Complete 12 rounds of Surya Namaskar daily', targetVal: 15, unit: 'days', reward: '+200 XP', icon: Flame },
+                    { id: 'easy_shatapavali_walk', tier: 'EASY', name: '5,000 Step Shatapavali Walk', target: 'Walk 5,000 brisk steps every evening after dinner', targetVal: 10, unit: 'days', reward: '+150 XP', icon: Zap },
+                    { id: 'medium_10k_steps', tier: 'MEDIUM', name: '10,000 Daily Step Count Master', target: 'Achieve 10,000 total steps daily for 14 days', targetVal: 14, unit: 'days', reward: '+350 XP', icon: Activity },
+                    { id: 'medium_desi_gym', tier: 'MEDIUM', name: 'Desi Gym Muscle Builder', target: 'Complete 20 total strength workout sessions', targetVal: 20, unit: 'sessions', reward: '+400 XP', icon: Award },
+                    { id: 'hard_100k_volume', tier: 'HARD', name: '100,000 KG Heavy Lifters Club', target: 'Lift 100,000 kg total volume across compound lifts', targetVal: 100000, unit: 'kg', reward: '+600 XP & Gold Lifter Badge', icon: Dumbbell },
+                    { id: 'hard_1000_pushups', tier: 'HARD', name: '1,000 Push-ups Upper Body Challenge', target: 'Complete 1,000 cumulative push-ups over 30 days', targetVal: 1000, unit: 'reps', reward: '+500 XP', icon: Award }
+                  ]
+                  .filter(c => challengeFilter === 'ALL' || c.tier === challengeFilter)
+                  .map((comm) => (
+                    <div key={comm.id} className="glass p-5 rounded-2xl border border-card-border shadow-md flex items-start justify-between gap-4">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <comm.icon className="w-4 h-4 text-acid-green" />
                           <h4 className="text-sm font-black text-foreground uppercase tracking-wider">{comm.name}</h4>
+                          <span className={`px-2 py-0.5 rounded border text-[8px] font-black uppercase ${
+                            comm.tier === 'EASY' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                            comm.tier === 'MEDIUM' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' :
+                            'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                          }`}>
+                            {comm.tier}
+                          </span>
                         </div>
                         <p className="text-xs text-muted leading-snug">{comm.target}</p>
                         <span className="text-[10px] font-bold text-acid-green uppercase block">{comm.reward}</span>
@@ -1941,6 +1982,7 @@ export default function WorkoutLogger({ onNotification }) {
 
                       <button
                         onClick={() => {
+                          ecoStore.joinChallenge(comm);
                           if (onNotification) onNotification(`Joined ${comm.name}! Keep crushing your fitness goals.`);
                         }}
                         className="px-3.5 py-2 rounded-xl bg-surface border border-card-border hover:border-acid-green hover:bg-acid-green/15 text-acid-green text-xs font-black uppercase tracking-wider cursor-pointer border-none shrink-0 transition-all active:scale-95"

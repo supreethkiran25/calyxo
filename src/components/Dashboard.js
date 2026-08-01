@@ -9,6 +9,7 @@ import { useEcosystemStore } from '../store/useEcosystemStore';
 import { syncAIHealthTwin } from '../lib/aiEcosystemService';
 import { calculateMacroTargets } from '../utils/macroCalculator';
 import { isToday } from '../utils/dateUtils';
+import { calculateWorkoutCaloriesBurned } from '../utils/workoutUtils';
 import { Flame, Droplets, Activity, Dumbbell, Utensils, Star, Sparkles, ChevronRight, Award, Zap, Brain, Moon, BookOpen, Bot, TrendingUp, PieChart } from 'lucide-react';
 
 const ThreeHealthCore = lazy(() => import('./ThreeHealthCore'));
@@ -237,7 +238,7 @@ export default function Dashboard({ onNotification }) {
   const totalFat = useMemo(() => todaysFoodLogs.reduce((s, x) => s + (x.fat || 0), 0), [todaysFoodLogs]);
 
   // Estimated burned from workouts
-  const totalBurned = useMemo(() => todaysWorkoutLogs.reduce((s, x) => s + (x.caloriesBurned || 0), 0), [todaysWorkoutLogs]);
+  const totalBurned = useMemo(() => todaysWorkoutLogs.reduce((s, x) => s + (Number(x.caloriesBurned) || calculateWorkoutCaloriesBurned(x)), 0), [todaysWorkoutLogs]);
 
   // Recent meals (last 4 today)
   const recentMeals = useMemo(() => [...todaysFoodLogs].reverse().slice(0, 4), [todaysFoodLogs]);

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Home as HomeIcon, BookOpen, BarChart2, User, Users, LogOut, Sparkles, X, TrendingUp, Heart, Search, Menu, Plus, Crown, Lock } from 'lucide-react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useStore } from '../store/useStore';
+import { useEcosystemStore } from '../store/useEcosystemStore';
 import useQuickActionsStore from '../store/useQuickActionsStore';
 import { signOutUser, subscribeToAuth, loadUserData } from '../lib/dbService';
 
@@ -103,6 +104,7 @@ export default function UserLayout() {
 
   useEffect(() => {
     useStore.getState().checkDailyReset();
+    useEcosystemStore.getState().checkDailyLoginStreak();
     const setUser = useStore.getState().setUser;
     const setUserProfile = useStore.getState().setUserProfile;
     const setFoodLogs = useStore.getState().setFoodLogs;

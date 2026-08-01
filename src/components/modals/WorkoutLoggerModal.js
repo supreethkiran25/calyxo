@@ -6,6 +6,7 @@ import { useEcosystemStore } from '../../store/useEcosystemStore';
 import { useStore } from '../../store/useStore';
 import { searchAndRankExercises, isFuzzyMatch, loadExercisesData, getCachedExercises, getExerciseImage, getDistinctFallback } from '../../utils/exerciseSearch';
 import { addWorkoutLog, getCurrentUserId } from '../../lib/dbService';
+import { calculateWorkoutCaloriesBurned } from '../../utils/workoutUtils';
 
 
 const ModalExerciseImage = ({ item, className = "w-11 h-11 rounded-lg object-cover border border-card-border shrink-0 bg-black/30" }) => {
@@ -262,6 +263,7 @@ export default function WorkoutLoggerModal() {
           equipment: ex.equipment || null,
           timestamp: Date.now()
         };
+        workoutData.caloriesBurned = calculateWorkoutCaloriesBurned(workoutData);
         return addWorkoutLog(uid, workoutData);
       });
 
