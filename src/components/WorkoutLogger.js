@@ -690,10 +690,10 @@ export default function WorkoutLogger({ onNotification }) {
     const sets = exSets && Number(exSets) > 0 ? Number(exSets) : 3;
     const reps = exReps && Number(exReps) > 0 ? Number(exReps) : 10;
     const weight = exWeight ? Number(exWeight) : 0;
-    const duration = exDuration ? Number(exDuration) : 0;
+    const duration = exCategory === 'Cardio' ? (exDuration && Number(exDuration) > 0 ? Number(exDuration) : 20) : 0;
 
     if (exCategory === 'Cardio') {
-      if (isNaN(duration) || duration < 0 || duration > 480) {
+      if (isNaN(duration) || duration < 1 || duration > 480) {
         if (onNotification) onNotification("Cardio duration must be between 1 and 480 minutes.");
         setLoading(false);
         return;
@@ -724,6 +724,7 @@ export default function WorkoutLogger({ onNotification }) {
     }
 
     const workoutItem = {
+      id: 'w_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       name: exName.trim(),
       category: exCategory,
       image: exImage,
@@ -737,8 +738,11 @@ export default function WorkoutLogger({ onNotification }) {
 
     try {
       const saved = await addWorkoutLog(userId, workoutItem);
-      addWorkoutLogStore(saved);
-
+      addWorkoutLogStore(saved || workoutItem);
+    } catch (err) {
+      console.warn("Failed to log workout to database, applying local store update", err);
+      addWorkoutLogStore(workoutItem);
+    } finally {
       setExName('');
       setExImage(null);
       setExSets('');
@@ -747,10 +751,6 @@ export default function WorkoutLogger({ onNotification }) {
       setExDuration('');
       if (onNotification) onNotification(`Logged exercise: ${workoutItem.name}`);
       handleStartRestTimer();
-    } catch (err) {
-      console.error("Failed to log workout to database", err);
-      if (onNotification) onNotification("Failed to log workout. Please try again.");
-    } finally {
       setLoading(false);
     }
   };
@@ -758,21 +758,26 @@ export default function WorkoutLogger({ onNotification }) {
   // Edit Workout History Log
   const handleSaveEditedWorkoutLog = async () => {
     if (!editingLog) return;
+    const updatedData = {
+      ...editingLog,
+      name: editingLog.name,
+      category: editingLog.category,
+      sets: Number(editingLog.sets) || 0,
+      reps: Number(editingLog.reps) || 0,
+      weight: Number(editingLog.weight) || 0,
+      duration: Number(editingLog.duration) || 0
+    };
+    updatedData.caloriesBurned = calculateWorkoutCaloriesBurned(updatedData);
+
     try {
-      const updated = await updateWorkoutLog(userId, editingLog.id, {
-        name: editingLog.name,
-        category: editingLog.category,
-        sets: Number(editingLog.sets) || 0,
-        reps: Number(editingLog.reps) || 0,
-        weight: Number(editingLog.weight) || 0,
-        duration: Number(editingLog.duration) || 0
-      });
-      updateWorkoutLogStore(updated);
+      const updated = await updateWorkoutLog(userId, editingLog.id, updatedData);
+      updateWorkoutLogStore(updated || updatedData);
+    } catch (err) {
+      console.warn("Failed to edit workout log in DB, updating local store", err);
+      updateWorkoutLogStore(updatedData);
+    } finally {
       setEditingLog(null);
       if (onNotification) onNotification("Workout entry updated!");
-    } catch (err) {
-      console.error("Failed to edit workout log", err);
-      if (onNotification) onNotification("Failed to edit workout log.");
     }
   };
 
@@ -781,10 +786,11 @@ export default function WorkoutLogger({ onNotification }) {
     try {
       await deleteWorkoutLog(userId, logId);
       deleteWorkoutLogStore(logId);
-      if (onNotification) onNotification("Workout log deleted.");
     } catch (err) {
-      console.error("Failed to delete workout log", err);
-      if (onNotification) onNotification("Failed to delete workout log.");
+      console.warn("Failed to delete workout log in DB, removing locally", err);
+      deleteWorkoutLogStore(logId);
+    } finally {
+      if (onNotification) onNotification("Workout log deleted.");
     }
   };
 
@@ -830,6 +836,7 @@ export default function WorkoutLogger({ onNotification }) {
     }
 
     const workoutItem = {
+      id: 'w_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       name: ex.name.trim(),
       category: parsed.category,
       image: ex.image || globalImageCache.get(ex.name) || null,
@@ -843,12 +850,13 @@ export default function WorkoutLogger({ onNotification }) {
 
     try {
       const saved = await addWorkoutLog(userId, workoutItem);
-      addWorkoutLogStore(saved);
+      addWorkoutLogStore(saved || workoutItem);
+    } catch (err) {
+      console.warn("Error logging split exercise to DB, adding to local store", err);
+      addWorkoutLogStore(workoutItem);
+    } finally {
       if (onNotification) onNotification(`Logged ${ex.name} to ${formatDisplayDate(selectedDate)}!`);
       handleStartRestTimer();
-    } catch (err) {
-      console.error("Error logging split exercise", err);
-      if (onNotification) onNotification("Failed to log exercise.");
     }
   };
 
@@ -863,34 +871,35 @@ export default function WorkoutLogger({ onNotification }) {
       logTimestamp = new Date(selectedDate + "T12:00:00").getTime();
     }
 
+    const itemsToLog = currentSplit.exercises.map(ex => {
+      const parsed = parseDetailsToStats(ex.details);
+      const workoutItem = {
+        id: 'w_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        name: ex.name.trim(),
+        category: parsed.category,
+        image: ex.image || globalImageCache.get(ex.name) || null,
+        sets: parsed.category === 'Cardio' ? 0 : parsed.sets,
+        reps: parsed.category === 'Cardio' ? 0 : parsed.reps,
+        weight: 0,
+        duration: parsed.duration,
+        timestamp: logTimestamp
+      };
+      workoutItem.caloriesBurned = calculateWorkoutCaloriesBurned(workoutItem);
+      return workoutItem;
+    });
+
     try {
-      const promises = currentSplit.exercises.map(ex => {
-        const parsed = parseDetailsToStats(ex.details);
-        const workoutItem = {
-          name: ex.name.trim(),
-          category: parsed.category,
-          image: ex.image || globalImageCache.get(ex.name) || null,
-          sets: parsed.category === 'Cardio' ? 0 : parsed.sets,
-          reps: parsed.category === 'Cardio' ? 0 : parsed.reps,
-          weight: 0,
-          duration: parsed.duration,
-          timestamp: logTimestamp
-        };
-        workoutItem.caloriesBurned = calculateWorkoutCaloriesBurned(workoutItem);
-        return addWorkoutLog(userId, workoutItem);
-      });
-
+      const promises = itemsToLog.map(item => addWorkoutLog(userId, item));
       const savedLogs = await Promise.all(promises);
-      savedLogs.forEach(saved => {
-        if (saved) addWorkoutLogStore(saved);
+      savedLogs.forEach((saved, idx) => {
+        addWorkoutLogStore(saved || itemsToLog[idx]);
       });
-
+    } catch (err) {
+      console.warn("Error logging full day split to DB, syncing local store", err);
+      itemsToLog.forEach(item => addWorkoutLogStore(item));
+    } finally {
       if (onNotification) onNotification(`Logged ${splits[activeDay].dayName}'s ${currentSplit.type} session!`);
       handleStartRestTimer();
-    } catch (err) {
-      console.error("Error logging full day split", err);
-      if (onNotification) onNotification("Failed to log workout session.");
-    } finally {
       setLoading(false);
     }
   };
@@ -915,7 +924,6 @@ export default function WorkoutLogger({ onNotification }) {
       estBurned = 350;
     }
 
-    // Mark challenge in ecosystem store
     if (challenge.id) {
       ecoStore.updateChallengeProgress(challenge.id, challenge.targetVal || 1);
       ecoStore.joinChallenge(challenge);
@@ -928,6 +936,7 @@ export default function WorkoutLogger({ onNotification }) {
     }
 
     const workoutItem = {
+      id: 'w_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       name: challenge.name.trim(),
       category: nameLower.includes('steps') || nameLower.includes('walk') || nameLower.includes('surya') ? 'Cardio' : 'Strength',
       sets: 1,
@@ -941,14 +950,15 @@ export default function WorkoutLogger({ onNotification }) {
     try {
       const saved = await addWorkoutLog(userId, workoutItem);
       addWorkoutLogStore(saved || workoutItem);
+    } catch (err) {
+      console.warn("Error logging completed challenge to DB, updating local store", err);
+      addWorkoutLogStore(workoutItem);
+    } finally {
       ecoStore.addXP(200);
       ecoStore.updateStreaks({ workoutStreak: (ecoStore.streaks?.workoutStreak || 0) + 1 });
       if (onNotification) {
         onNotification(`🎉 Marked "${challenge.name}" as DONE! Logged +${estBurned} kcal burned (-${estBurned} net calories today). +200 XP earned!`);
       }
-    } catch (err) {
-      console.error("Error auto-logging completed target", err);
-      if (onNotification) onNotification("Logged target to workout logs!");
     }
   };
 
@@ -1091,10 +1101,34 @@ export default function WorkoutLogger({ onNotification }) {
 
       {/* Sub tabs nav */}
       <div className="flex flex-col gap-3 border-b border-card-border pb-3">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-base sm:text-xl font-black text-foreground uppercase tracking-wider leading-tight">Workouts Log</h1>
             <p className="text-[10px] sm:text-xs text-muted font-medium mt-0.5 hidden sm:block">Register weight sets, reps, and track active fitness targets</p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setLiveSessionRoutine(splits[activeDay]);
+                setShowLiveSessionModal(true);
+              }}
+              className="px-3.5 py-2 rounded-xl bg-acid-green text-black font-black text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-acid-green/20"
+              title="Start interactive guided live workout session"
+            >
+              <Zap className="w-3.5 h-3.5 fill-current" />
+              <span>Live Session</span>
+            </button>
+
+            <button
+              onClick={handleLogFullDaySplit}
+              disabled={loading || !splits[activeDay]?.workout?.exercises?.length}
+              className="px-3.5 py-2 rounded-xl bg-surface border border-card-border text-foreground hover:border-acid-green text-xs font-black uppercase tracking-wider active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              title="Quick Log all exercises for today's routine split"
+            >
+              <Play className="w-3.5 h-3.5 text-acid-green fill-current" />
+              <span>Quick Log Today</span>
+            </button>
           </div>
         </div>
 
