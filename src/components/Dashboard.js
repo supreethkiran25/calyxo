@@ -389,7 +389,12 @@ export default function Dashboard({ onNotification }) {
         ))}
       </div>
 
-      {/* ── Quick Access Cards Grid (Mobile Priority) ── */}
+      {/* Immersive Health Core Rings */}
+      <Suspense fallback={<div className="h-44 rounded-2xl bg-[var(--surface)] border border-[var(--card-border)] animate-pulse" />}>
+        <ThreeHealthCore />
+      </Suspense>
+
+      {/* ── Quick Access Cards Grid (Positioned below the rings) ── */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 w-full">
         {QUICK_ACCESS.map((item, idx) => (
           <button
@@ -409,11 +414,6 @@ export default function Dashboard({ onNotification }) {
           </button>
         ))}
       </div>
-      
-      {/* Immersive Health Core Ring */}
-      <Suspense fallback={<div className="h-44 rounded-2xl bg-[var(--surface)] border border-[var(--card-border)] animate-pulse" />}>
-        <ThreeHealthCore />
-      </Suspense>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start w-full">
         
