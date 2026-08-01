@@ -972,7 +972,7 @@ export default function UserProfile({ onNotification }) {
   };
 
   const renderCoachingForm = () => (
-    <CoachingManager userId={user?.uid} />
+    renderAIForm()
   );
 
   const renderAppearanceForm = () => (
