@@ -4,7 +4,8 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play, CheckCircle2, Flame, Clock, Dumbbell, Trophy, ArrowLeft,
-  ChevronDown, ChevronUp, Sparkles, Check, HeartPulse, ShieldCheck
+  ChevronDown, ChevronUp, Sparkles, Check, HeartPulse, ShieldCheck,
+  CheckSquare, Square, Info
 } from 'lucide-react';
 import { useEcosystemStore } from '../../store/useEcosystemStore';
 import { useStore } from '../../store/useStore';
@@ -26,8 +27,8 @@ const CURATED_CHALLENGES = [
     benefits: ['Accelerates daily calorie deficit', 'Improves digestion after heavy meals', 'Regulates blood sugar spikes'],
     tips: ['Walk briskly for 15-20 minutes right after dinner.', 'Maintain a steady, relaxed rhythm.'],
     dailyPlan: [
-      { title: 'Post-Meal Shatapavali Walk', reps: '5,000 steps', durationMin: 15 },
-      { title: 'Cool-down Ankle & Calf Stretch', reps: '2 sets x 45 sec', durationMin: 5 }
+      { id: 'ex_1', title: 'Post-Meal Shatapavali Walk', reps: '5,000 steps', durationMin: 15 },
+      { id: 'ex_2', title: 'Cool-down Ankle & Calf Stretch', reps: '2 sets x 45 sec', durationMin: 5 }
     ]
   },
   {
@@ -44,8 +45,8 @@ const CURATED_CHALLENGES = [
     benefits: ['Increases full-body flexibility', 'Boosts metabolic rate early in the morning', 'Relieves spinal stiffness'],
     tips: ['Sync movement with deep nasal breathing.', 'Perform smoothly without rushing reps.'],
     dailyPlan: [
-      { title: 'Surya Namaskar (Sun Salutations)', reps: '12 complete rounds', durationMin: 10 },
-      { title: 'Pranayama Deep Breathing', reps: '3 mins hold & flow', durationMin: 5 }
+      { id: 'ex_1', title: 'Surya Namaskar (Sun Salutations)', reps: '12 complete rounds', durationMin: 10 },
+      { id: 'ex_2', title: 'Pranayama Deep Breathing', reps: '3 mins hold & flow', durationMin: 5 }
     ]
   },
   {
@@ -62,9 +63,9 @@ const CURATED_CHALLENGES = [
     benefits: ['Builds lean upper and lower body muscle mass', 'Enhances compound lifting power', 'Increases basal metabolic rate'],
     tips: ['Focus on strict form before adding heavier weight.', 'Rest 60-90 seconds between sets.'],
     dailyPlan: [
-      { title: 'Dumbbell Incline Bench Press', reps: '4 sets x 10 reps', durationMin: 12 },
-      { title: 'Barbell Row / Lat Pulldown', reps: '4 sets x 10 reps', durationMin: 12 },
-      { title: 'Lateral Raises & Core Plank', reps: '3 sets x 15 reps', durationMin: 11 }
+      { id: 'ex_1', title: 'Dumbbell Incline Bench Press', reps: '4 sets x 10 reps', durationMin: 12 },
+      { id: 'ex_2', title: 'Barbell Row / Lat Pulldown', reps: '4 sets x 10 reps', durationMin: 12 },
+      { id: 'ex_3', title: 'Lateral Raises & Core Plank', reps: '3 sets x 15 reps', durationMin: 11 }
     ]
   },
   {
@@ -81,8 +82,8 @@ const CURATED_CHALLENGES = [
     benefits: ['Maximizes daily fat loss', 'Improves cardiovascular endurance', 'Keeps resting heart rate healthy'],
     tips: ['Break steps into morning, afternoon, and post-dinner walks.', 'Stay hydrated throughout the day.'],
     dailyPlan: [
-      { title: 'Active Brisk Walking', reps: '10,000 steps', durationMin: 40 },
-      { title: 'Lower Body Stretch & Cool-down', reps: '2 sets x 60 sec', durationMin: 5 }
+      { id: 'ex_1', title: 'Active Brisk Walking', reps: '10,000 steps', durationMin: 40 },
+      { id: 'ex_2', title: 'Lower Body Stretch & Cool-down', reps: '2 sets x 60 sec', durationMin: 5 }
     ]
   }
 ];
@@ -112,21 +113,24 @@ export default function ChallengeModule({ onNotification }) {
     };
   }, [activeChallengeItem]);
 
-  // Views: 'HOME' | 'DETAILS' | 'COMPLETION'
+  // Views: 'HOME' | 'DETAILS' | 'WORKOUT' | 'COMPLETION'
   const [currentView, setCurrentView] = useState('HOME');
   const [selectedChallenge, setSelectedChallenge] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [completedWorkoutStats, setCompletedWorkoutStats] = useState(null);
+  const [checkedExercises, setCheckedExercises] = useState({});
 
   // Accordion Toggles for Challenge Details (Progressive Disclosure)
-  const [openAccordion, setOpenAccordion] = useState({ plan: true, exercises: false, benefits: false, tips: false });
+  const [openAccordion, setOpenAccordion] = useState({ plan: true, benefits: false, tips: false });
 
-  // Filtered Challenges
+  // Category Chip Filter matching category, difficulty, or equipment
   const filteredChallenges = useMemo(() => {
     if (selectedCategory === 'All') return CURATED_CHALLENGES;
+    const cat = selectedCategory.toLowerCase();
     return CURATED_CHALLENGES.filter(c =>
-      c.category.toLowerCase() === selectedCategory.toLowerCase() ||
-      c.difficulty.toLowerCase() === selectedCategory.toLowerCase()
+      c.category.toLowerCase().includes(cat) ||
+      c.difficulty.toLowerCase().includes(cat) ||
+      c.equipment.toLowerCase().includes(cat)
     );
   }, [selectedCategory]);
 
@@ -143,7 +147,27 @@ export default function ChallengeModule({ onNotification }) {
       unit: 'days'
     });
     if (onNotification) onNotification(`Started "${ch.title}"! Today's workout is ready.`);
+    setSelectedChallenge(ch);
     setCurrentView('HOME');
+  };
+
+  // Open Today's Active Session
+  const handleOpenTodayWorkout = () => {
+    const targetProgram = currentChallenge || CURATED_CHALLENGES[0];
+    const initialChecks = {};
+    (targetProgram.dailyPlan || []).forEach(ex => {
+      initialChecks[ex.id] = false;
+    });
+    setCheckedExercises(initialChecks);
+    setCurrentView('WORKOUT');
+  };
+
+  // Toggle Exercise Checklist item
+  const toggleExerciseCheck = (exId) => {
+    setCheckedExercises(prev => ({
+      ...prev,
+      [exId]: !prev[exId]
+    }));
   };
 
   // Complete Today's Workout Session
@@ -243,7 +267,7 @@ export default function ChallengeModule({ onNotification }) {
 
                 {/* One Dominant CTA Button */}
                 <button
-                  onClick={handleFinishTodaySession}
+                  onClick={handleOpenTodayWorkout}
                   className="w-full py-4 rounded-2xl bg-emerald-500 text-black font-black text-sm uppercase tracking-wider cursor-pointer border-none shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
                   <Play className="w-4 h-4 fill-current" />
@@ -344,16 +368,27 @@ export default function ChallengeModule({ onNotification }) {
 
                       <div className="flex items-center justify-between pt-2 border-t border-card-border/60">
                         <span className="text-xs font-bold text-emerald-400">~{ch.estBurnPerSession} kcal</span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedChallenge(ch);
-                            setCurrentView('DETAILS');
-                          }}
-                          className="px-4 py-2 rounded-xl bg-emerald-500 text-black font-black text-xs uppercase tracking-wider cursor-pointer border-none shadow-sm hover:brightness-110"
-                        >
-                          Start
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedChallenge(ch);
+                              setCurrentView('DETAILS');
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-surface border border-card-border text-foreground hover:border-emerald-400 text-xs font-bold uppercase tracking-wider cursor-pointer"
+                          >
+                            Details
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartChallenge(ch);
+                            }}
+                            className="px-4 py-1.5 rounded-xl bg-emerald-500 text-black font-black text-xs uppercase tracking-wider cursor-pointer border-none shadow-sm hover:brightness-110"
+                          >
+                            Start
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -511,7 +546,86 @@ export default function ChallengeModule({ onNotification }) {
           </motion.div>
         )}
 
-        {/* ── VIEW 3: CLEAN SUCCESS & COMPLETION SCREEN ─────────────────────── */}
+        {/* ── VIEW 3: TODAY'S ACTIVE WORKOUT SESSION ────────────────────────── */}
+        {currentView === 'WORKOUT' && (
+          <motion.div
+            key="workout"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-6"
+          >
+            <button
+              onClick={() => setCurrentView('HOME')}
+              className="flex items-center gap-1.5 text-xs font-bold text-muted hover:text-foreground cursor-pointer bg-none border-none"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back to Home
+            </button>
+
+            <div className="bg-surface border border-card-border rounded-3xl p-6 space-y-4 shadow-xl">
+              <div className="flex justify-between items-center">
+                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-wider">
+                  Day {(currentChallenge?.progressDays || 0) + 1} Session
+                </span>
+                <span className="text-xs font-bold text-emerald-400">
+                  ~{currentChallenge?.estBurnPerSession || 220} kcal
+                </span>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-black uppercase text-foreground">
+                  {currentChallenge?.title || 'Today Workout'}
+                </h2>
+                <p className="text-xs text-muted mt-0.5">Check off exercises as you complete them.</p>
+              </div>
+
+              {/* Exercises Checklist */}
+              <div className="space-y-2.5 pt-2">
+                {(currentChallenge?.dailyPlan || CURATED_CHALLENGES[0].dailyPlan).map((ex) => {
+                  const isChecked = !!checkedExercises[ex.id];
+                  return (
+                    <div
+                      key={ex.id}
+                      onClick={() => toggleExerciseCheck(ex.id)}
+                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                        isChecked
+                          ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
+                          : 'bg-card-bg border-card-border text-foreground hover:border-emerald-500/30'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {isChecked ? (
+                          <CheckSquare className="w-5 h-5 text-emerald-400 shrink-0" />
+                        ) : (
+                          <Square className="w-5 h-5 text-muted shrink-0" />
+                        )}
+                        <div>
+                          <span className={`text-xs font-bold block ${isChecked ? 'line-through opacity-70' : ''}`}>
+                            {ex.title}
+                          </span>
+                          <span className="text-[10px] text-muted font-bold uppercase">{ex.reps}</span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold text-muted">{ex.durationMin}m</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Complete CTA Button */}
+              <button
+                onClick={handleFinishTodaySession}
+                className="w-full py-4 rounded-2xl bg-emerald-500 text-black font-black text-sm uppercase tracking-wider cursor-pointer border-none shadow-xl shadow-emerald-500/20 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Complete Workout & Log Burned</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── VIEW 4: CLEAN SUCCESS & COMPLETION SCREEN ─────────────────────── */}
         {currentView === 'COMPLETION' && completedWorkoutStats && (
           <motion.div
             key="completion"
