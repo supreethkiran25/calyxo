@@ -11,7 +11,10 @@ import { startRazorpayCheckout } from '../utils/razorpay';
 import { applyAppearanceSettings } from '../utils/appearanceUtils';
 import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '../services/notificationService';
 
+import PermissionsConnectionsSection from './PermissionsConnectionsSection';
+
 const SETTINGS_CATEGORIES = [
+  { id: 'permissions', label: 'Permissions & Connections', icon: Shield, desc: 'PWA, notifications & health integrations' },
   { id: 'appearance', label: 'Appearance & Themes', icon: Eye, desc: 'Themes, dark mode, background effects' },
   { id: 'aicoach', label: 'AI Coach Settings', icon: Sparkles, desc: 'Personality, response style & tone' },
   { id: 'notifications', label: 'Notification Settings', icon: Bell, desc: 'Rest timer, sound alerts & reminders' },
@@ -202,6 +205,8 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
 
   const renderActiveCategoryForm = () => {
     switch (activeCategory) {
+      case 'permissions':
+        return <PermissionsConnectionsSection onNotification={(msg) => { setSaveStatus(msg); setTimeout(() => setSaveStatus(''), 4000); }} />;
       case 'appearance':
         return (
           <form onSubmit={(e) => handleSaveAll(e, 'Appearance Options')} className="space-y-4 text-xs">

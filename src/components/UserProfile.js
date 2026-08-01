@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import PermissionsConnectionsSection from './PermissionsConnectionsSection';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
@@ -1878,6 +1879,7 @@ export default function UserProfile({ onNotification }) {
         {/* Navigation Sidebar (Desktop Only) */}
         <div className="hidden md:flex flex-col gap-1 glass rounded-xl border border-card-border p-2">
           {[
+            { id: 'permissions', label: 'Permissions & Connections', icon: ShieldCheck },
             { id: 'coaching', label: 'My Coaching', icon: Users },
             { id: 'appearance', label: 'Appearance & Themes', icon: Eye },
             { id: 'ai', label: 'AI Coach Settings', icon: Sparkles },
@@ -2308,6 +2310,7 @@ export default function UserProfile({ onNotification }) {
           <div className="space-y-2 border border-card-border/60 p-2.5 rounded-xl bg-surface/20">
             {/* On desktop, show the active panel without accordion wrapper if possible, but keeping accordion is safer to avoid breaking state */}
             {[
+              { id: 'permissions', label: 'Permissions & Connections', icon: ShieldCheck },
               { id: 'coaching', label: 'My Coaching', icon: Users },
               { id: 'appearance', label: 'Appearance & Themes', icon: Eye },
               { id: 'ai', label: 'AI Coach Settings', icon: Sparkles },
@@ -2318,7 +2321,7 @@ export default function UserProfile({ onNotification }) {
               { id: 'data', label: 'Data & Storage', icon: Database },
               { id: 'about', label: 'About & Legal Policies', icon: Info },
             ].map(acc => {
-              const isOpen = openAccordion === acc.id || (!openAccordion && acc.id === 'appearance'); // default open first on desktop if nothing selected
+              const isOpen = openAccordion === acc.id || (!openAccordion && acc.id === 'permissions'); // default open permissions on desktop
               
               // Only render if it's the open one on desktop, or render all as accordion on mobile
               return (
@@ -2342,6 +2345,7 @@ export default function UserProfile({ onNotification }) {
 
                   {isOpen && (
                     <div className="p-4 bg-[var(--card-bg)] space-y-4">
+                      {acc.id === 'permissions' && <PermissionsConnectionsSection onNotification={onNotification} />}
                       {acc.id === 'coaching' && renderCoachingForm()}
                       {acc.id === 'appearance' && renderAppearanceForm()}
                       {acc.id === 'ai' && renderAIForm()}
