@@ -1,17 +1,17 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play, CheckCircle2, Flame, Clock, Dumbbell, Trophy, ArrowLeft,
   ChevronDown, ChevronUp, Sparkles, Check, HeartPulse, ShieldCheck,
-  CheckSquare, Square, Info
+  CheckSquare, Square, Info, Download, Award, RotateCcw, Pause
 } from 'lucide-react';
 import { useEcosystemStore } from '../../store/useEcosystemStore';
 import { useStore } from '../../store/useStore';
 import { addWorkoutLog } from '../../lib/dbService';
 
-// ── CURATED CHALLENGES DATA (3-5 items for maximum clarity) ──────────────────
+// ── CURATED CHALLENGES CATALOG ──────────────────────────────────────────────
 const CURATED_CHALLENGES = [
   {
     id: 'ch_shatapavali_5k',
@@ -85,6 +85,25 @@ const CURATED_CHALLENGES = [
       { id: 'ex_1', title: 'Active Brisk Walking', reps: '10,000 steps', durationMin: 40 },
       { id: 'ex_2', title: 'Lower Body Stretch & Cool-down', reps: '2 sets x 60 sec', durationMin: 5 }
     ]
+  },
+  {
+    id: 'ch_desi_calisthenics',
+    title: '14-Day Desi Calisthenics Core Shred',
+    shortDesc: 'Pure bodyweight push-up and core conditioning program for functional athleticism.',
+    category: 'Home',
+    difficulty: 'Intermediate',
+    durationDays: 14,
+    estimatedDailyMin: 20,
+    estBurnPerSession: 250,
+    equipment: 'Bodyweight Only',
+    heroImage: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1000&q=80',
+    benefits: ['Strengthens core and chest stability', 'Zero equipment bodyweight agility', 'Increases muscular endurance'],
+    tips: ['Keep core braced throughout pushups.', 'Take full 45 sec rest between sets.'],
+    dailyPlan: [
+      { id: 'ex_1', title: 'Standard Push-ups', reps: '4 sets x 15 reps', durationMin: 10 },
+      { id: 'ex_2', title: 'Elbow Plank Hold', reps: '3 sets x 60 sec', durationMin: 5 },
+      { id: 'ex_3', title: 'Mountain Climbers', reps: '3 sets x 30 sec', durationMin: 5 }
+    ]
   }
 ];
 
@@ -119,6 +138,24 @@ export default function ChallengeModule({ onNotification }) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [completedWorkoutStats, setCompletedWorkoutStats] = useState(null);
   const [checkedExercises, setCheckedExercises] = useState({});
+
+  // Rest Timer State (for WORKOUT view)
+  const [restTimerSec, setRestTimerSec] = useState(45);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+
+  // Rest Timer Countdown logic
+  useEffect(() => {
+    let interval = null;
+    if (isTimerRunning && restTimerSec > 0) {
+      interval = setInterval(() => {
+        setRestTimerSec(prev => prev - 1);
+      }, 1000);
+    } else if (restTimerSec === 0) {
+      setIsTimerRunning(false);
+      if (onNotification) onNotification("🔔 Rest Timer Complete! Start your next set.");
+    }
+    return () => clearInterval(interval);
+  }, [isTimerRunning, restTimerSec, onNotification]);
 
   // Accordion Toggles for Challenge Details (Progressive Disclosure)
   const [openAccordion, setOpenAccordion] = useState({ plan: true, benefits: false, tips: false });
@@ -159,6 +196,8 @@ export default function ChallengeModule({ onNotification }) {
       initialChecks[ex.id] = false;
     });
     setCheckedExercises(initialChecks);
+    setRestTimerSec(45);
+    setIsTimerRunning(false);
     setCurrentView('WORKOUT');
   };
 
@@ -218,6 +257,53 @@ export default function ChallengeModule({ onNotification }) {
     }
   };
 
+  // Certificate Download Handler
+  const handleDownloadCertificate = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1000;
+    canvas.height = 700;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#0a0a0f';
+    ctx.fillRect(0, 0, 1000, 700);
+
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 8;
+    ctx.strokeRect(25, 25, 950, 650);
+
+    ctx.fillStyle = '#10b981';
+    ctx.font = 'bold 32px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('CALYXO AI FITNESS CERTIFICATE', 500, 120);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px sans-serif';
+    ctx.fillText('THIS CERTIFICATE IS PROUDLY PRESENTED TO', 500, 220);
+
+    ctx.fillStyle = '#34d399';
+    ctx.font = 'bold 40px sans-serif';
+    ctx.fillText((storeUser?.email || 'Calyxo Challenger').toUpperCase(), 500, 300);
+
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '18px sans-serif';
+    ctx.fillText(`For completing session of AI Guided Program:`, 500, 390);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 28px sans-serif';
+    ctx.fillText(completedWorkoutStats?.programTitle || 'Calyxo Fitness Challenge', 500, 450);
+
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '16px sans-serif';
+    ctx.fillText(`Issued on ${new Date().toLocaleDateString()} | Calyxo Adaptive Coach`, 500, 560);
+
+    const link = document.createElement('a');
+    link.download = `Calyxo_Fitness_Certificate.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+
+    if (onNotification) onNotification("📜 Certificate Downloaded!");
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-24 text-foreground">
 
@@ -265,6 +351,30 @@ export default function ChallengeModule({ onNotification }) {
                   </div>
                 </div>
 
+                {/* Day-by-Day Progress Dots Grid */}
+                <div className="flex items-center justify-between gap-1 pt-1 overflow-x-auto scrollbar-none">
+                  {Array.from({ length: currentChallenge.targetDays }, (_, i) => {
+                    const dayNum = i + 1;
+                    const isDone = dayNum <= (currentChallenge.progressDays || 0);
+                    const isCurrent = dayNum === (currentChallenge.progressDays || 0) + 1;
+                    return (
+                      <div
+                        key={dayNum}
+                        title={`Day ${dayNum}`}
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 transition-all ${
+                          isDone
+                            ? 'bg-emerald-500 text-black'
+                            : isCurrent
+                            ? 'border-2 border-emerald-400 text-emerald-400 bg-emerald-500/20 animate-pulse'
+                            : 'bg-card-bg text-muted border border-card-border/60'
+                        }`}
+                      >
+                        {isDone ? '✓' : dayNum}
+                      </div>
+                    );
+                  })}
+                </div>
+
                 {/* One Dominant CTA Button */}
                 <button
                   onClick={handleOpenTodayWorkout}
@@ -292,6 +402,15 @@ export default function ChallengeModule({ onNotification }) {
                 </button>
               </section>
             )}
+
+            {/* AI COACH INSIGHT BANNER */}
+            <section className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-4 flex items-center gap-3">
+              <Sparkles className="w-5 h-5 text-emerald-400 shrink-0 animate-pulse" />
+              <div className="text-xs">
+                <span className="font-black text-emerald-400 uppercase tracking-wider block">AI Bio-Metric Insight</span>
+                <span className="text-muted font-medium">Your recovery score is {ecoStore.healthTwin?.recoveryScore || 85}%. Optimal condition to conquer today's session!</span>
+              </div>
+            </section>
 
             {/* 2. TODAY'S TASK CARD (IF CHALLENGE ACTIVE) */}
             {currentChallenge && (
@@ -334,12 +453,12 @@ export default function ChallengeModule({ onNotification }) {
               </div>
             </section>
 
-            {/* 4. RECOMMENDED CHALLENGES (ONLY 3-5 CARDS) */}
+            {/* 4. RECOMMENDED CHALLENGES (CURATED CARDS) */}
             <section id="recommended-challenges" className="space-y-4">
               <h3 className="text-sm font-black uppercase tracking-wider text-foreground px-1">Recommended Challenges</h3>
 
               <div className="space-y-4">
-                {filteredChallenges.slice(0, 4).map(ch => (
+                {filteredChallenges.map(ch => (
                   <div
                     key={ch.id}
                     onClick={() => {
@@ -546,7 +665,7 @@ export default function ChallengeModule({ onNotification }) {
           </motion.div>
         )}
 
-        {/* ── VIEW 3: TODAY'S ACTIVE WORKOUT SESSION ────────────────────────── */}
+        {/* ── VIEW 3: TODAY'S ACTIVE WORKOUT SESSION + REST TIMER ────────────── */}
         {currentView === 'WORKOUT' && (
           <motion.div
             key="workout"
@@ -578,6 +697,32 @@ export default function ChallengeModule({ onNotification }) {
                   {currentChallenge?.title || 'Today Workout'}
                 </h2>
                 <p className="text-xs text-muted mt-0.5">Check off exercises as you complete them.</p>
+              </div>
+
+              {/* Interactive Rest Timer */}
+              <div className="p-4 rounded-2xl bg-card-bg border border-card-border flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-muted uppercase block">Rest Interval Timer</span>
+                  <span className="text-xl font-black text-emerald-400 font-mono">{restTimerSec}s</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsTimerRunning(!isTimerRunning)}
+                    className="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-black uppercase tracking-wider cursor-pointer flex items-center gap-1"
+                  >
+                    {isTimerRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                    <span>{isTimerRunning ? 'Pause' : 'Start Timer'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => { setRestTimerSec(45); setIsTimerRunning(false); }}
+                    className="p-1.5 rounded-xl bg-surface border border-card-border text-muted hover:text-foreground cursor-pointer"
+                    title="Reset to 45s"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
 
               {/* Exercises Checklist */}
@@ -625,7 +770,7 @@ export default function ChallengeModule({ onNotification }) {
           </motion.div>
         )}
 
-        {/* ── VIEW 4: CLEAN SUCCESS & COMPLETION SCREEN ─────────────────────── */}
+        {/* ── VIEW 4: CLEAN SUCCESS & CERTIFICATE DOWNLOAD SCREEN ───────────── */}
         {currentView === 'COMPLETION' && completedWorkoutStats && (
           <motion.div
             key="completion"
@@ -636,7 +781,7 @@ export default function ChallengeModule({ onNotification }) {
             className="bg-surface border border-emerald-500/40 rounded-3xl p-8 text-center space-y-6 shadow-2xl my-4"
           >
             <div className="w-20 h-20 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto text-4xl shadow-inner">
-              ✅
+              🏆
             </div>
 
             <div className="space-y-1">
@@ -669,13 +814,23 @@ export default function ChallengeModule({ onNotification }) {
               🤖 "Fantastic effort! Your body is adapting nicely. Rest up and hydrate—tomorrow's session is locked and loaded."
             </div>
 
-            {/* One Dominant CTA Button */}
-            <button
-              onClick={() => setCurrentView('HOME')}
-              className="w-full py-4 rounded-2xl bg-emerald-500 text-black font-black text-sm uppercase tracking-wider cursor-pointer border-none shadow-xl shadow-emerald-500/20 hover:brightness-110 active:scale-[0.98] transition-all"
-            >
-              Continue Tomorrow
-            </button>
+            <div className="space-y-2">
+              {/* Download Certificate Action */}
+              <button
+                onClick={handleDownloadCertificate}
+                className="w-full py-3.5 rounded-2xl bg-surface border border-emerald-500/40 text-emerald-400 font-black text-xs uppercase tracking-wider cursor-pointer hover:bg-emerald-500/10 transition-all flex items-center justify-center gap-2"
+              >
+                <Download className="w-4 h-4" /> Download Official Certificate
+              </button>
+
+              {/* Continue Tomorrow Action */}
+              <button
+                onClick={() => setCurrentView('HOME')}
+                className="w-full py-4 rounded-2xl bg-emerald-500 text-black font-black text-sm uppercase tracking-wider cursor-pointer border-none shadow-xl shadow-emerald-500/20 hover:brightness-110 active:scale-[0.98] transition-all"
+              >
+                Continue Tomorrow
+              </button>
+            </div>
           </motion.div>
         )}
 
