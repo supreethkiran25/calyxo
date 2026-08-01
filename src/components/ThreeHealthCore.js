@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
-import { motion } from 'framer-motion';
 import { Flame, Droplets, Dumbbell } from 'lucide-react';
 import { isToday } from '../utils/dateUtils';
 
@@ -34,7 +33,7 @@ export default function ThreeHealthCore() {
   const waterPct = Math.min(100, Math.round((waterIntake / waterTarget) * 100));
   const protPct = Math.min(100, Math.round((totalProt / protTarget) * 100));
 
-  // 3 distinct side-by-side rings matching user's image specification
+  // 3 distinct side-by-side rings with 3 unique vibrant colors
   const rings = [
     {
       id: 'calories',
@@ -44,9 +43,9 @@ export default function ThreeHealthCore() {
       unit: 'kcal',
       percentage: calPct,
       displayCenter: `${calPct}%`,
-      color: '#93c5fd', // Slate light blue (matching Ring 1 in screenshot)
-      trackColor: '#1e293b',
-      icon: <Flame className="w-3.5 h-3.5 text-[#93c5fd]" />
+      color: '#f59e0b', // Vibrant Flame Amber / Orange
+      trackColor: 'rgba(245, 158, 11, 0.15)',
+      icon: <Flame className="w-3.5 h-3.5 text-[#f59e0b]" />
     },
     {
       id: 'hydration',
@@ -56,9 +55,9 @@ export default function ThreeHealthCore() {
       unit: 'ml',
       percentage: waterPct,
       displayCenter: `${waterPct}%`,
-      color: '#22c55e', // Vibrant neon green (matching Ring 2 in screenshot)
-      trackColor: '#1e293b',
-      icon: <Droplets className="w-3.5 h-3.5 text-[#22c55e]" />
+      color: '#00f2fe', // Electric Cyan Blue
+      trackColor: 'rgba(0, 242, 254, 0.15)',
+      icon: <Droplets className="w-3.5 h-3.5 text-[#00f2fe]" />
     },
     {
       id: 'protein',
@@ -68,9 +67,9 @@ export default function ThreeHealthCore() {
       unit: 'g',
       percentage: protPct,
       displayCenter: `${protPct}%`,
-      color: '#0284c7', // Electric bright blue (matching Ring 3 in screenshot)
-      trackColor: '#1e293b',
-      icon: <Dumbbell className="w-3.5 h-3.5 text-[#0284c7]" />
+      color: '#ff4e50', // Vibrant Coral Red
+      trackColor: 'rgba(255, 78, 80, 0.15)',
+      icon: <Dumbbell className="w-3.5 h-3.5 text-[#ff4e50]" />
     }
   ];
 
@@ -85,14 +84,13 @@ export default function ThreeHealthCore() {
   return (
     <div className="w-full bg-surface/30 border border-card-border rounded-3xl p-5 shadow-xl space-y-4">
       
-      {/* 3 Distinct Side-by-Side Circular Progress Rings */}
+      {/* 3 Distinct Side-by-Side Circular Progress Rings with Unique Colors */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4 items-center justify-items-center">
         {rings.map((ring, idx) => {
           const radius = 42;
           const strokeWidth = 8;
           const circumference = 2 * Math.PI * radius;
           const strokeDashoffset = circumference - (ring.percentage / 100) * circumference;
-          const isHovered = hoveredIdx === idx;
 
           return (
             <div
@@ -112,7 +110,6 @@ export default function ThreeHealthCore() {
                     fill="none"
                     stroke={ring.trackColor}
                     strokeWidth={strokeWidth}
-                    className="opacity-60"
                   />
                   {/* Progress Arc */}
                   <circle
@@ -126,6 +123,9 @@ export default function ThreeHealthCore() {
                     strokeDasharray={circumference}
                     strokeDashoffset={strokeDashoffset}
                     className="transition-all duration-1000 ease-out"
+                    style={{
+                      filter: `drop-shadow(0 0 4px ${ring.color})`
+                    }}
                   />
                 </svg>
 
@@ -137,7 +137,7 @@ export default function ThreeHealthCore() {
                 </div>
               </div>
 
-              {/* Label & Raw Stat */}
+              {/* Label & Raw Stat in Unique Accent Color */}
               <div className="text-center space-y-0.5">
                 <span className="text-[10px] font-black tracking-wider block uppercase" style={{ color: ring.color }}>
                   {ring.label}
