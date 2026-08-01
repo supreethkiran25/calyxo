@@ -1178,58 +1178,7 @@ export default function WorkoutLogger({ onNotification }) {
                 </div>
               </div>
 
-              {/* DESI DAILY TARGETS (TICK & AUTO-BURN LOG) WIDGET */}
-              <div className="glass border border-card-border rounded-2xl p-5 space-y-3 shadow-md bg-gradient-to-r from-surface via-card-bg to-acid-green/5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-acid-green" />
-                    <h3 className="text-xs font-black uppercase tracking-wider text-foreground">Desi Daily Targets (Tick to Auto-Log Burned Calories)</h3>
-                  </div>
-                  <span className="text-[10px] font-bold text-muted uppercase">Tick to Auto-Subtract Calories Today</span>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {[
-                    { id: 'target_10k_steps', name: '10,000 Step Count Master', estKcal: 420, tier: 'MEDIUM' },
-                    { id: 'target_5k_walk', name: '5,000 Step Shatapavali Walk', estKcal: 220, tier: 'EASY' },
-                    { id: 'target_surya', name: '15-Min Surya Namaskar Flow', estKcal: 140, tier: 'EASY' },
-                    { id: 'target_bodyweight', name: '10-Min Home Bodyweight Circuit', estKcal: 120, tier: 'EASY' },
-                    { id: 'target_desi_gym', name: 'Desi Gym Full Body Workout', estKcal: 350, tier: 'MEDIUM' },
-                    { id: 'target_heavy_lifting', name: '100,000 KG Heavy Lifting Session', estKcal: 600, tier: 'HARD' }
-                  ].map((target) => {
-                    const isAlreadyLogged = selectedDateWorkoutLogs.some(log => log.name.toLowerCase().includes(target.name.toLowerCase().substring(0, 8)));
-
-                    return (
-                      <div key={target.id} className="p-3 bg-surface/90 border border-card-border rounded-xl flex items-center justify-between gap-2 hover:border-acid-green/40 transition-all">
-                        <div className="space-y-0.5 min-w-0">
-                          <span className="text-xs font-black text-foreground truncate block">{target.name}</span>
-                          <span className="text-[10px] font-bold text-acid-green block">-{target.estKcal} kcal from net today</span>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => handleMarkChallengeCompleted(target)}
-                          className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer border-none shrink-0 transition-all active:scale-95 flex items-center gap-1 ${
-                            isAlreadyLogged
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                              : 'bg-acid-green text-black hover:brightness-110 shadow-sm'
-                          }`}
-                        >
-                          {isAlreadyLogged ? (
-                            <>
-                              <Check className="w-3 h-3" /> Done
-                            </>
-                          ) : (
-                            <>
-                              ✓ Tick
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
 
 
 
@@ -2065,59 +2014,6 @@ export default function WorkoutLogger({ onNotification }) {
                 </div>
               </div>
 
-              {/* Community Desi Fitness Challenges */}
-              <div className="space-y-4 pt-2">
-                <h3 className="text-xs font-black uppercase tracking-wider text-muted px-1">Featured Indian Fitness Challenges</h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { id: 'easy_surya_namaskar', tier: 'EASY', name: '15-Day Morning Surya Namaskar', target: 'Complete 12 rounds of Surya Namaskar daily', targetVal: 15, unit: 'days', reward: '+200 XP', icon: Flame },
-                    { id: 'easy_shatapavali_walk', tier: 'EASY', name: '5,000 Step Shatapavali Walk', target: 'Walk 5,000 brisk steps every evening after dinner', targetVal: 10, unit: 'days', reward: '+150 XP', icon: Zap },
-                    { id: 'medium_10k_steps', tier: 'MEDIUM', name: '10,000 Daily Step Count Master', target: 'Achieve 10,000 total steps daily for 14 days', targetVal: 14, unit: 'days', reward: '+350 XP', icon: Activity },
-                    { id: 'medium_desi_gym', tier: 'MEDIUM', name: 'Desi Gym Muscle Builder', target: 'Complete 20 total strength workout sessions', targetVal: 20, unit: 'sessions', reward: '+400 XP', icon: Award },
-                    { id: 'hard_100k_volume', tier: 'HARD', name: '100,000 KG Heavy Lifters Club', target: 'Lift 100,000 kg total volume across compound lifts', targetVal: 100000, unit: 'kg', reward: '+600 XP & Gold Lifter Badge', icon: Dumbbell },
-                    { id: 'hard_1000_pushups', tier: 'HARD', name: '1,000 Push-ups Upper Body Challenge', target: 'Complete 1,000 cumulative push-ups over 30 days', targetVal: 1000, unit: 'reps', reward: '+500 XP', icon: Award }
-                  ]
-                  .filter(c => challengeFilter === 'ALL' || c.tier === challengeFilter)
-                  .map((comm) => (
-                    <div key={comm.id} className="glass p-5 rounded-2xl border border-card-border shadow-md flex items-start justify-between gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <comm.icon className="w-4 h-4 text-acid-green" />
-                          <h4 className="text-sm font-black text-foreground uppercase tracking-wider">{comm.name}</h4>
-                          <span className={`px-2 py-0.5 rounded border text-[8px] font-black uppercase ${
-                            comm.tier === 'EASY' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
-                            comm.tier === 'MEDIUM' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' :
-                            'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                          }`}>
-                            {comm.tier}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted leading-snug">{comm.target}</p>
-                        <span className="text-[10px] font-bold text-acid-green uppercase block">{comm.reward}</span>
-                      </div>
-
-                      <div className="flex flex-col gap-1.5 shrink-0">
-                        <button
-                          onClick={() => handleMarkChallengeCompleted(comm)}
-                          className="px-3 py-1.5 rounded-xl bg-acid-green text-black text-xs font-black uppercase tracking-wider cursor-pointer border-none shadow-sm hover:brightness-110 active:scale-95 transition-all flex items-center gap-1"
-                        >
-                          <Check className="w-3.5 h-3.5" /> Tick Done
-                        </button>
-                        <button
-                          onClick={() => {
-                            ecoStore.joinChallenge(comm);
-                            if (onNotification) onNotification(`Joined ${comm.name}! Keep crushing your fitness goals.`);
-                          }}
-                          className="px-3 py-1 rounded-xl bg-surface border border-card-border hover:border-acid-green hover:bg-acid-green/15 text-muted hover:text-acid-green text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all text-center"
-                        >
-                          + Track
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           )}
 
