@@ -9,6 +9,7 @@ export default function MobileDrawerMenu({ isOpen, onClose }) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const menuItems = [
+    { label: 'Health Hub', ariaLabel: 'View Universal Health Data', link: '/user/health' },
     { label: 'Progress', ariaLabel: 'View Analytics & Progress', link: '/user/progress' },
     { label: 'AI Coach', ariaLabel: 'Open AI Assistant', link: '/user/ai' },
     { label: 'Profile', ariaLabel: 'User Profile', link: '/user/profile' },
