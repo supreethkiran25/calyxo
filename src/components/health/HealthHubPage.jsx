@@ -12,7 +12,7 @@ import { HealthDataService } from '../../services/health/HealthDataService';
 import { HealthSyncEngine } from '../../services/health/HealthSyncEngine';
 import { AIHealthInsightService } from '../../services/health/AIHealthInsightService';
 import { HealthGoalManager } from '../../services/health/HealthGoalManager';
-import HealthSettingsModal from './HealthSettingsModal';
+import HealthConnectionsModal from './HealthConnectionsModal';
 
 import { PWAPedometerService } from '../../services/health/PWAPedometerService';
 
@@ -502,8 +502,8 @@ export default function HealthHubPage({ onNotification }) {
         )}
       </section>
 
-      {/* Settings Modal */}
-      <HealthSettingsModal
+      {/* Health Connections Modal */}
+      <HealthConnectionsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         onNotification={onNotification}
