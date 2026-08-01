@@ -14,6 +14,7 @@ import {
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import useQuickActionsStore from '../store/useQuickActionsStore';
 import LiveWorkoutSessionModal from './modals/LiveWorkoutSessionModal';
+import ChallengeModule from './workout/ChallengeModule';
 import {
   Plus, Dumbbell, Clock, Edit3, X, Check, Search, Trophy, Activity, Move,
   PersonStanding, Target, User, Crosshair, Heart, Share2, ChevronLeft, ChevronRight,
@@ -1920,130 +1921,7 @@ export default function WorkoutLogger({ onNotification }) {
 
           {/* CHALLENGES TAB VIEW */}
           {activeSubTab === 'challenges' && (
-            <div className="space-y-6">
-              {/* Challenge Level & XP Banner */}
-              <div className="glass p-5 rounded-2xl border border-card-border shadow-md bg-gradient-to-r from-surface via-card-bg to-acid-green/10 flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-acid-green/20 border border-acid-green/40 flex items-center justify-center text-acid-green shadow-inner">
-                    <Award className="w-6 h-6 text-acid-green" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-acid-green block">Desi Fitness Rank</span>
-                    <h3 className="text-lg font-black text-foreground uppercase tracking-wider leading-tight">Level {ecoStore.level || 1} Calyxo Challenger</h3>
-                    <p className="text-xs text-muted font-medium mt-0.5">{ecoStore.xp || 0} XP Earned • Active Leaderboard Competitor</p>
-                  </div>
-                </div>
-
-                {/* Difficulty Tier Filters */}
-                <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-2xl border border-card-border">
-                  {['ALL', 'EASY', 'MEDIUM', 'HARD'].map((tier) => (
-                    <button
-                      key={tier}
-                      onClick={() => setChallengeFilter(tier)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer border-none transition-all ${challengeFilter === tier
-                          ? 'bg-acid-green text-black shadow-md'
-                          : 'text-muted hover:text-foreground hover:bg-white/5'
-                        }`}
-                    >
-                      {tier}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Active Challenges List */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-1">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-muted">Your Active Challenges</h3>
-                  <span className="text-[10px] font-bold text-acid-green uppercase">Showing {challengeFilter} Targets</span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {ecoStore.activeChallenges && ecoStore.activeChallenges
-                    .filter(c => challengeFilter === 'ALL' || (c.tier || 'EASY') === challengeFilter)
-                    .map((challenge) => {
-                      const pct = Math.min(100, Math.round((challenge.progress / challenge.targetVal) * 100));
-                      const isDone = challenge.completed || pct >= 100;
-                      const tier = challenge.tier || 'EASY';
-
-                      const tierBadgeStyle =
-                        tier === 'EASY' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
-                          tier === 'MEDIUM' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' :
-                            'bg-amber-500/20 text-amber-400 border-amber-500/30';
-
-                      return (
-                        <div key={challenge.id} className="glass p-5 rounded-2xl border border-card-border shadow-md flex flex-col justify-between space-y-4 relative overflow-hidden">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className={`px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider ${tierBadgeStyle}`}>
-                              {tier} LEVEL
-                            </span>
-                            {isDone && (
-                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
-                                <Check className="w-3 h-3" /> Completed
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <h4 className="text-sm font-black text-foreground uppercase tracking-wider">{challenge.name}</h4>
-                            <p className="text-xs text-muted leading-snug">{challenge.target}</p>
-                          </div>
-
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-center text-xs font-bold">
-                              <span className="text-muted">Progress</span>
-                              <span className={isDone ? "text-emerald-400 font-black" : "text-acid-green font-black"}>
-                                {challenge.progress.toLocaleString()} / {challenge.targetVal.toLocaleString()} {challenge.unit} ({pct}%)
-                              </span>
-                            </div>
-
-                            <div className="w-full h-3 bg-black/40 border border-card-border rounded-full overflow-hidden p-0.5">
-                              <div
-                                className={`h-full rounded-full transition-all duration-500 ${isDone ? 'bg-gradient-to-r from-emerald-500 to-green-400' : 'bg-gradient-to-r from-acid-green/80 to-acid-green'}`}
-                                style={{ width: `${pct}%` }}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Log Challenge Progress */}
-                          {!isDone && (
-                            <div className="pt-2 border-t border-card-border/60 flex items-center gap-2">
-                              <input
-                                type="number"
-                                placeholder={`Add ${challenge.unit}`}
-                                value={challengeInputs[challenge.id] || ''}
-                                onChange={(e) => setChallengeInputs({ ...challengeInputs, [challenge.id]: e.target.value })}
-                                className="w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-acid-green"
-                              />
-                              <button
-                                onClick={() => {
-                                  const val = Number(challengeInputs[challenge.id]);
-                                  if (val && val > 0) {
-                                    ecoStore.updateChallengeProgress(challenge.id, val);
-                                    setChallengeInputs({ ...challengeInputs, [challenge.id]: '' });
-                                    if (onNotification) onNotification(`Logged +${val}${challenge.unit} to ${challenge.name}!`);
-                                  }
-                                }}
-                                className="px-3.5 py-1.5 rounded-xl bg-surface border border-card-border hover:border-acid-green text-foreground font-black text-xs uppercase tracking-wider cursor-pointer shrink-0 transition-all shadow-sm"
-                              >
-                                Log
-                              </button>
-
-                              <button
-                                onClick={() => handleMarkChallengeCompleted(challenge)}
-                                className="px-3.5 py-1.5 rounded-xl bg-acid-green text-black font-black text-xs uppercase tracking-wider cursor-pointer border-none shrink-0 hover:brightness-110 active:scale-95 transition-all shadow-sm flex items-center gap-1"
-                              >
-                                <Check className="w-3.5 h-3.5" /> Tick Done
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-
-            </div>
+            <ChallengeModule onNotification={onNotification} />
           )}
 
         </motion.div>
