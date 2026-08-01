@@ -91,7 +91,7 @@ export class HealthDataService {
         avgHeartRate: 104,
         startTime: '07:30 AM',
         endTime: '07:52 AM',
-        source: 'Apple Health'
+        source: "Supreeth's Apple Watch via Apple Health"
       },
       {
         id: 'w_hk_102',
@@ -102,7 +102,7 @@ export class HealthDataService {
         avgHeartRate: 138,
         startTime: '05:15 PM',
         endTime: '06:00 PM',
-        source: 'Android Health Connect'
+        source: "supreeth's iPhone via Apple Health"
       }
     ];
 
