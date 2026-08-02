@@ -21,7 +21,7 @@ import {
   saveEcosystemState
 } from '../lib/dbService';
 import { 
-  User, Users, Mail, Lock, ShieldAlert, Award, RefreshCw, LogOut, CheckCircle, 
+  User, Users, Mail, Lock, ShieldAlert, ShieldCheck, Award, RefreshCw, LogOut, CheckCircle, 
   Settings, Heart, Sparkles, Bell, Database, Trash2, Download, Eye, EyeOff,
   Shield, FileText, Info, HelpCircle, Key, Cpu, Activity, CreditCard,
   MoreVertical, X, Target, Zap, ChevronRight, TrendingUp, Star
