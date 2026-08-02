@@ -46,23 +46,13 @@ const GrantPremiumModal = ({ isOpen, onClose, user, onSuccess }) => {
 
         {/* Plan Select */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-neutral-300 uppercase tracking-wider">Select Tier Plan (INR ₹)</label>
-          <div className="grid grid-cols-3 gap-2">
-            {['PRO', 'HIGH', 'ULTIMATE'].map(p => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPlan(p)}
-                className={`py-2 rounded-xl text-xs font-bold transition-all border flex flex-col items-center cursor-pointer ${
-                  plan === p 
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-md shadow-amber-500/10'
-                    : 'bg-neutral-950 text-neutral-400 border-neutral-800 hover:border-neutral-700'
-                }`}
-              >
-                <span>{p}</span>
-                <span className="text-[10px] opacity-75 font-mono">{planPricing[p]}</span>
-              </button>
-            ))}
+          <label className="text-xs font-bold text-neutral-300 uppercase tracking-wider">Subscription Tier Plan</label>
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs">
+            <div>
+              <span className="font-bold text-amber-300 block">High Plan</span>
+              <span className="text-[11px] text-neutral-400 font-mono">Full Access • AI Coach • Analytics</span>
+            </div>
+            <span className="font-bold text-amber-400 font-mono text-sm">₹999/mo</span>
           </div>
         </div>
 

@@ -126,9 +126,7 @@ const AdminUsersView = () => {
           >
             <option value="">All Subscription Tiers</option>
             <option value="FREE">Free Tier</option>
-            <option value="PRO">Pro Tier</option>
             <option value="HIGH">High Tier</option>
-            <option value="ULTIMATE">Ultimate Tier</option>
           </select>
 
           {/* Status Filter */}

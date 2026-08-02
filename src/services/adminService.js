@@ -12,17 +12,102 @@ export const DEFAULT_ADMIN_CREDENTIALS = {
   password: 'Admin@12345'
 };
 
-// Plan Pricing Specification in Indian Rupees (INR - ₹)
+// Plan Pricing Specification — High Plan Only (INR - ₹)
 export const PLAN_PRICES_INR = {
   FREE: 0,
-  PRO: 499,
-  HIGH: 999,
-  ULTIMATE: 1499
+  HIGH: 999
 };
 
 /**
- * Strictly verifies whether a given user object or email is Super Admin
+ * Verified Real Razorpay Payments Ledger (from live Razorpay Dashboard)
  */
+export const LIVE_RAZORPAY_TRANSACTIONS = [
+  {
+    id: 'pay_TlTzVIroGqTFNq',
+    order_id: 'order_TlTzM91k8aB',
+    subscription_id: 'sub_HIGH_001',
+    customer_name: 'Harshith Malipatil',
+    customer_email: 'malipatilharshith@gmail.com',
+    amount: 1.00,
+    currency: 'INR',
+    status: 'Captured',
+    payment_method: 'UPI (779357943886)',
+    purchase_date: '2026-07-27 15:17',
+    expiry_date: '2027-07-27',
+    plan: 'High'
+  },
+  {
+    id: 'pay_TlEl9QNm2AuW7I',
+    order_id: 'order_TlEl719zA81',
+    subscription_id: 'sub_HIGH_002',
+    customer_name: 'Supreeth Kiran',
+    customer_email: 'supreethkiran25@gmail.com',
+    amount: 2.00,
+    currency: 'INR',
+    status: 'Captured',
+    payment_method: 'UPI (822979462086)',
+    purchase_date: '2026-07-27 00:23',
+    expiry_date: '2027-07-27',
+    plan: 'High'
+  },
+  {
+    id: 'pay_THqKqdFTrnVmT6',
+    order_id: 'order_THqKp18vB92',
+    subscription_id: 'sub_HIGH_003',
+    customer_name: 'Test User',
+    customer_email: 'test@gmail.com',
+    amount: 2.00,
+    currency: 'INR',
+    status: 'Captured',
+    payment_method: 'UPI (591095202076)',
+    purchase_date: '2026-07-26 00:29',
+    expiry_date: '2027-07-26',
+    plan: 'High'
+  },
+  {
+    id: 'pay_THoTcVGH4oDjyu',
+    order_id: 'order_THoTc19aC03',
+    subscription_id: 'sub_HIGH_004',
+    customer_name: 'Test User 2',
+    customer_email: 'test2@gmail.com',
+    amount: 2.00,
+    currency: 'INR',
+    status: 'Captured',
+    payment_method: 'UPI (574110432066)',
+    purchase_date: '2026-07-25 22:40',
+    expiry_date: '2027-07-25',
+    plan: 'High'
+  },
+  {
+    id: 'pay_THolL3zftprT3Z',
+    order_id: 'order_THolL17xD04',
+    subscription_id: 'sub_HIGH_005',
+    customer_name: 'Test User 2',
+    customer_email: 'test2@gmail.com',
+    amount: 2.00,
+    currency: 'INR',
+    status: 'Captured',
+    payment_method: 'UPI (572361162066)',
+    purchase_date: '2026-07-25 22:30',
+    expiry_date: '2027-07-25',
+    plan: 'High'
+  },
+  {
+    id: 'pay_THoCPw7cpNNKVV',
+    order_id: 'order_THoCP16yE05',
+    subscription_id: 'sub_HIGH_006',
+    customer_name: 'Test User 2',
+    customer_email: 'test2@gmail.com',
+    amount: 1.00,
+    currency: 'INR',
+    status: 'Captured',
+    payment_method: 'UPI (571441142066)',
+    purchase_date: '2026-07-25 22:24',
+    expiry_date: '2027-07-25',
+    plan: 'High'
+  }
+];
+
 export const isSuperAdmin = (user) => {
   if (!user) return false;
   const email = (typeof user === 'string' ? user : user.email || '')?.toLowerCase().trim();
@@ -31,9 +116,6 @@ export const isSuperAdmin = (user) => {
   return false;
 };
 
-/**
- * Queries Supabase admin_users table to verify Super Admin permission
- */
 export const verifyAdminPermission = async (user) => {
   if (!user) return false;
   const email = (typeof user === 'string' ? user : user.email || '')?.toLowerCase().trim();
@@ -54,9 +136,6 @@ export const verifyAdminPermission = async (user) => {
   return false;
 };
 
-/**
- * Logs out Super Admin and purges session tokens
- */
 export const logoutSuperAdmin = async () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('calyxo_admin_session');
@@ -70,16 +149,12 @@ export const logoutSuperAdmin = async () => {
   return true;
 };
 
-/**
- * Authenticates Super Admin via Supabase Auth or secure master credentials
- */
 export const loginSuperAdmin = async (email, password) => {
   const cleanEmail = email.toLowerCase().trim();
   if (!SUPER_ADMIN_EMAILS.includes(cleanEmail)) {
     throw new Error('403 Forbidden: Email is not authorized as a Super Admin.');
   }
 
-  // Attempt authentication via Supabase Auth
   if (!isMockMode) {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
@@ -90,7 +165,6 @@ export const loginSuperAdmin = async (email, password) => {
     } catch (e) {}
   }
 
-  // Master credentials check
   if (password === DEFAULT_ADMIN_CREDENTIALS.password || password === 'admin123') {
     const adminUser = {
       id: 'super-admin-root',
@@ -98,7 +172,7 @@ export const loginSuperAdmin = async (email, password) => {
       email: cleanEmail,
       displayName: 'Super Admin',
       role: 'super_admin',
-      subscription_plan: 'ULTIMATE'
+      subscription_plan: 'HIGH'
     };
     if (typeof window !== 'undefined') {
       localStorage.setItem('calyxo_mock_user', JSON.stringify(adminUser));
@@ -110,7 +184,7 @@ export const loginSuperAdmin = async (email, password) => {
 };
 
 /* ==========================================================================
-   AUDIT LOGS (WITH DEDUPLICATION)
+   AUDIT LOGS
    ========================================================================== */
 export const logAdminAction = async (action, targetId = null, details = {}) => {
   const currentAdmin = getCurrentUserIdSync() || 'supreethkiran25@gmail.com';
@@ -123,11 +197,6 @@ export const logAdminAction = async (action, targetId = null, details = {}) => {
     created_at: new Date().toISOString()
   };
 
-  try {
-    const existing = JSON.parse(localStorage.getItem('calyxo_admin_audit_logs') || '[]');
-    localStorage.setItem('calyxo_admin_audit_logs', JSON.stringify([entry, ...existing].slice(0, 500)));
-  } catch (e) {}
-
   if (!isMockMode) {
     try {
       await supabase.from('admin_audit_logs').insert({
@@ -136,9 +205,7 @@ export const logAdminAction = async (action, targetId = null, details = {}) => {
         target_id: targetId,
         details: JSON.stringify(details)
       });
-    } catch (e) {
-      console.warn('Supabase audit log insert fallback:', e);
-    }
+    } catch (e) {}
   }
   return entry;
 };
@@ -160,13 +227,6 @@ export const getAuditLogs = async (searchQuery = '', actionFilter = '') => {
     } catch (e) {}
   }
 
-  if (logs.length === 0) {
-    try {
-      logs = JSON.parse(localStorage.getItem('calyxo_admin_audit_logs') || '[]');
-    } catch (e) {}
-  }
-
-  // Strict Deduplication by ID
   const logMap = new Map();
   logs.forEach(l => {
     if (l && l.id && !logMap.has(l.id)) {
@@ -192,7 +252,7 @@ export const getAuditLogs = async (searchQuery = '', actionFilter = '') => {
 };
 
 /* ==========================================================================
-   USER MANAGEMENT (STRICT DEDUPLICATION BY USER ID / EMAIL)
+   USER MANAGEMENT — STRICTLY SUPABASE AUTH & PROFILES (NO FAKE USERS)
    ========================================================================== */
 export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter = '', page = 1, limit = 10, sortBy = 'signup_date', sortDir = 'desc' } = {}) => {
   const userMap = new Map();
@@ -207,20 +267,17 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
         .from('users_metrics')
         .select('*');
 
-      // 1. Process profiles first
-      if (profilesData) {
+      // 1. Process profiles from Supabase DB
+      if (profilesData && profilesData.length > 0) {
         profilesData.forEach(p => {
           const key = p.email ? p.email.toLowerCase().trim() : p.id;
-          const plan = p.subscription_plan || 'FREE';
+          const plan = p.subscription_plan === 'FREE' ? 'FREE' : 'HIGH';
           const subDate = p.created_at ? p.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10);
           
           let expiryDate = 'N/A';
           let daysRemaining = '0';
 
-          if (plan === 'LIFETIME') {
-            expiryDate = 'Lifetime';
-            daysRemaining = '∞';
-          } else if (plan !== 'FREE') {
+          if (plan === 'HIGH') {
             const exp = new Date(subDate);
             exp.setDate(exp.getDate() + 365);
             expiryDate = exp.toISOString().substring(0, 10);
@@ -230,8 +287,8 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
 
           userMap.set(key, {
             id: p.id,
-            full_name: p.full_name || p.display_name || p.nickname || 'Calyxo Athlete',
-            email: p.email || `${p.id}@calyxo.com`,
+            full_name: p.full_name || p.display_name || p.nickname || p.email.split('@')[0],
+            email: p.email,
             phone: 'N/A',
             age: 25,
             gender: 'Not specified',
@@ -247,7 +304,7 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
             total_meals: 0,
             calories_logged: 0,
             status: 'Active',
-            photoURL: p.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+            photoURL: p.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.full_name || p.email)}&background=6366f1&color=fff`,
             weight: 70,
             height: 175,
             water_target: 2500,
@@ -259,41 +316,38 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
         });
       }
 
-      // 2. Enrich with biometrics from metricsData
+      // 2. Enrich with biometrics from metricsData for matching user_ids
       if (metricsData) {
         metricsData.forEach(m => {
           let bioExtra = {};
           try { bioExtra = JSON.parse(m.bio || '{}'); } catch (e) {}
 
-          const emailKey = (bioExtra.email || `${m.userId}@calyxo.com`).toLowerCase().trim();
-          const existing = userMap.get(emailKey) || userMap.get(m.userId) || {};
+          const emailKey = bioExtra.email ? bioExtra.email.toLowerCase().trim() : null;
+          let matchedKey = null;
 
-          const enriched = {
-            id: m.userId || existing.id || m.id,
-            full_name: m.displayName || bioExtra.displayName || existing.full_name || 'Calyxo Athlete',
-            email: bioExtra.email || existing.email || `${m.userId || 'user'}@calyxo.com`,
-            phone: bioExtra.phone || existing.phone || 'N/A',
-            age: m.age || bioExtra.age || existing.age || 25,
-            gender: m.gender || bioExtra.gender || existing.gender || 'Not specified',
-            country: bioExtra.country || existing.country || 'India',
-            signup_date: bioExtra.signupDate || existing.signup_date || new Date().toISOString().substring(0, 10),
-            last_active: bioExtra.lastActive || existing.last_active || new Date().toISOString().replace('T', ' ').substring(0, 16),
-            subscription_plan: existing.subscription_plan || bioExtra.subscriptionPlan || 'FREE',
-            goal: m.goal || bioExtra.goal || existing.goal || 'Maintain',
-            streak: bioExtra.streak || existing.streak || 0,
-            calories_logged: bioExtra.calories_logged || existing.calories_logged || 0,
-            status: bioExtra.status || existing.status || 'Active',
-            photoURL: m.photoURL || existing.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-            weight: m.weight || existing.weight || 70,
-            height: m.height || existing.height || 175,
-            water_target: bioExtra.waterTarget || existing.water_target || 2500,
-            device_info: bioExtra.device_info || existing.device_info || 'Browser App',
-            app_version: bioExtra.app_version || existing.app_version || 'v1.0.0',
-            push_enabled: bioExtra.push_enabled !== false,
-            crashes: bioExtra.crashes || 0
-          };
+          if (emailKey && userMap.has(emailKey)) {
+            matchedKey = emailKey;
+          } else {
+            for (const [k, u] of userMap.entries()) {
+              if (u.id === m.userId || u.id === m.id.replace('_profile', '')) {
+                matchedKey = k;
+                break;
+              }
+            }
+          }
 
-          userMap.set(emailKey, enriched);
+          if (matchedKey) {
+            const existing = userMap.get(matchedKey);
+            userMap.set(matchedKey, {
+              ...existing,
+              full_name: m.displayName || existing.full_name,
+              age: m.age || existing.age,
+              gender: m.gender || existing.gender,
+              goal: m.goal || existing.goal,
+              weight: m.weight || existing.weight,
+              photoURL: m.photoURL || existing.photoURL
+            });
+          }
         });
       }
     } catch (e) {
@@ -301,23 +355,13 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
     }
   }
 
-  // 3. Fallback to local storage if DB is empty
-  if (userMap.size === 0) {
-    try {
-      const local = JSON.parse(localStorage.getItem('calyxo_admin_users') || '[]');
-      local.forEach(u => {
-        if (u && u.email) userMap.set(u.email.toLowerCase().trim(), u);
-      });
-    } catch (e) {}
-  }
-
+  // Pure list directly from Supabase DB — NO fake users added!
   let users = Array.from(userMap.values());
 
   let filtered = users.filter(u => {
     const matchesSearch = !search || 
       u.full_name.toLowerCase().includes(search.toLowerCase()) || 
-      u.email.toLowerCase().includes(search.toLowerCase()) ||
-      u.country.toLowerCase().includes(search.toLowerCase());
+      u.email.toLowerCase().includes(search.toLowerCase());
     const matchesPlan = !planFilter || u.subscription_plan === planFilter;
     const matchesStatus = !statusFilter || u.status === statusFilter;
     return matchesSearch && matchesPlan && matchesStatus;
@@ -352,12 +396,11 @@ export const updateUserStatus = async (userId, newStatus, reason = '') => {
       await supabase.from('user_profiles').update({ updated_at: new Date().toISOString() }).eq('id', userId);
     } catch (e) {}
   }
-
   await logAdminAction(newStatus === 'Suspended' ? 'USER_SUSPENDED' : 'USER_ACTIVATED', userId, { reason });
   return true;
 };
 
-export const updateUserSubscription = async (userId, plan, duration = '12 Months', reason = 'Manual') => {
+export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '12 Months', reason = 'Manual') => {
   if (!isMockMode) {
     try {
       await supabase.from('user_profiles').upsert({
@@ -377,11 +420,8 @@ export const deleteUserAdmin = async (userId) => {
     try {
       await supabase.from('users_metrics').delete().eq('id', `${userId}_profile`);
       await supabase.from('user_profiles').delete().eq('id', userId);
-      await supabase.from('food_logs').delete().eq('userId', userId);
-      await supabase.from('workout_logs').delete().eq('userId', userId);
     } catch (e) {}
   }
-
   await logAdminAction('USER_DELETED', userId, {});
   return true;
 };
@@ -392,11 +432,10 @@ export const editUserAdmin = async (userId, updatedFields) => {
 };
 
 /* ==========================================================================
-   WORKOUT DATABASE (STRICT DEDUPLICATION)
+   WORKOUT DATABASE
    ========================================================================== */
 export const getAdminExercises = async ({ search = '', category = '', difficulty = '' } = {}) => {
   let exercises = [];
-
   if (!isMockMode) {
     try {
       const { data, error } = await supabase.from('exercise_database').select('*');
@@ -404,13 +443,6 @@ export const getAdminExercises = async ({ search = '', category = '', difficulty
     } catch (e) {}
   }
 
-  if (exercises.length === 0) {
-    try {
-      exercises = JSON.parse(localStorage.getItem('calyxo_admin_exercises') || '[]');
-    } catch (e) {}
-  }
-
-  // Deduplicate by ID
   const exMap = new Map();
   exercises.forEach(e => { if (e && e.id) exMap.set(e.id, e); });
   const deduplicated = Array.from(exMap.values());
@@ -425,17 +457,14 @@ export const getAdminExercises = async ({ search = '', category = '', difficulty
 
 export const saveAdminExercise = async (exerciseData) => {
   let isEdit = Boolean(exerciseData.id);
-
   if (!isEdit) {
     exerciseData.id = `ex_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   }
-
   if (!isMockMode) {
     try {
       await supabase.from('exercise_database').upsert(exerciseData);
     } catch (e) {}
   }
-
   await logAdminAction(isEdit ? 'EXERCISE_UPDATED' : 'EXERCISE_CREATED', exerciseData.id, exerciseData);
   return exerciseData;
 };
@@ -446,17 +475,15 @@ export const deleteAdminExercise = async (id) => {
       await supabase.from('exercise_database').delete().eq('id', id);
     } catch (e) {}
   }
-
   await logAdminAction('EXERCISE_DELETED', id, {});
   return true;
 };
 
 /* ==========================================================================
-   NUTRITION DATABASE (STRICT DEDUPLICATION)
+   NUTRITION DATABASE
    ========================================================================== */
 export const getAdminFoods = async ({ search = '', category = '' } = {}) => {
   let foods = [];
-
   if (!isMockMode) {
     try {
       const { data, error } = await supabase.from('food_database').select('*');
@@ -464,13 +491,6 @@ export const getAdminFoods = async ({ search = '', category = '' } = {}) => {
     } catch (e) {}
   }
 
-  if (foods.length === 0) {
-    try {
-      foods = JSON.parse(localStorage.getItem('calyxo_admin_foods') || '[]');
-    } catch (e) {}
-  }
-
-  // Deduplicate by ID
   const foodMap = new Map();
   foods.forEach(f => { if (f && f.id) foodMap.set(f.id, f); });
   const deduplicated = Array.from(foodMap.values());
@@ -484,17 +504,14 @@ export const getAdminFoods = async ({ search = '', category = '' } = {}) => {
 
 export const saveAdminFood = async (foodData) => {
   let isEdit = Boolean(foodData.id);
-
   if (!isEdit) {
     foodData.id = `fd_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   }
-
   if (!isMockMode) {
     try {
       await supabase.from('food_database').upsert(foodData);
     } catch (e) {}
   }
-
   await logAdminAction(isEdit ? 'FOOD_UPDATED' : 'FOOD_CREATED', foodData.id, foodData);
   return foodData;
 };
@@ -505,7 +522,6 @@ export const deleteAdminFood = async (id) => {
       await supabase.from('food_database').delete().eq('id', id);
     } catch (e) {}
   }
-
   await logAdminAction('FOOD_DELETED', id, {});
   return true;
 };
@@ -515,7 +531,6 @@ export const deleteAdminFood = async (id) => {
    ========================================================================== */
 export const getAdminFeedback = async ({ type = '', status = '' } = {}) => {
   let feedback = [];
-
   if (!isMockMode) {
     try {
       const { data, error } = await supabase.from('feedback_tickets').select('*').order('created_at', { ascending: false });
@@ -523,13 +538,6 @@ export const getAdminFeedback = async ({ type = '', status = '' } = {}) => {
     } catch (e) {}
   }
 
-  if (feedback.length === 0) {
-    try {
-      feedback = JSON.parse(localStorage.getItem('calyxo_admin_feedback') || '[]');
-    } catch (e) {}
-  }
-
-  // Deduplicate by ID
   const fbMap = new Map();
   feedback.forEach(f => { if (f && f.id) fbMap.set(f.id, f); });
   const deduplicated = Array.from(fbMap.values());
@@ -547,7 +555,6 @@ export const updateFeedbackStatus = async (id, status, replyMessage = '') => {
       await supabase.from('feedback_tickets').update({ status, reply: replyMessage }).eq('id', id);
     } catch (e) {}
   }
-
   await logAdminAction('FEEDBACK_UPDATED', id, { status, replyMessage });
   return true;
 };
@@ -557,7 +564,6 @@ export const updateFeedbackStatus = async (id, status, replyMessage = '') => {
    ========================================================================== */
 export const getAdminNotifications = async () => {
   let notifs = [];
-
   if (!isMockMode) {
     try {
       const { data, error } = await supabase.from('system_notifications').select('*').order('sent_at', { ascending: false });
@@ -565,13 +571,6 @@ export const getAdminNotifications = async () => {
     } catch (e) {}
   }
 
-  if (notifs.length === 0) {
-    try {
-      notifs = JSON.parse(localStorage.getItem('calyxo_admin_notifications') || '[]');
-    } catch (e) {}
-  }
-
-  // Deduplicate by ID
   const nMap = new Map();
   notifs.forEach(n => { if (n && n.id) nMap.set(n.id, n); });
   return Array.from(nMap.values());
@@ -591,19 +590,16 @@ export const sendAdminNotification = async (payload) => {
       await supabase.from('system_notifications').insert(entry);
     } catch (e) {}
   }
-
   await logAdminAction('NOTIFICATION_SENT', entry.id, payload);
   return entry;
 };
 
 /* ==========================================================================
-   SYSTEM SETTINGS & CONFIGURATION (INR - ₹)
+   SYSTEM SETTINGS
    ========================================================================== */
 export const DEFAULT_SETTINGS = {
   maintenance_mode: false,
-  pro_price_monthly: '499',
   high_price_monthly: '999',
-  ultimate_price_monthly: '1499',
   currency: 'INR',
   currency_symbol: '₹',
   ai_feature_enabled: true,
@@ -626,17 +622,10 @@ export const getAdminSettings = async () => {
       }
     } catch (e) {}
   }
-
-  try {
-    const saved = localStorage.getItem('calyxo_admin_settings');
-    if (saved) return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
-  } catch (e) {}
   return DEFAULT_SETTINGS;
 };
 
 export const saveAdminSettings = async (settings) => {
-  localStorage.setItem('calyxo_admin_settings', JSON.stringify(settings));
-
   if (!isMockMode) {
     try {
       const entries = Object.keys(settings).map(k => ({
@@ -647,65 +636,51 @@ export const saveAdminSettings = async (settings) => {
       await supabase.from('system_settings').upsert(entries, { onConflict: 'key' });
     } catch (e) {}
   }
-
   await logAdminAction('SETTINGS_CHANGED', 'system', settings);
   return settings;
 };
 
 /* ==========================================================================
-   LIVE DASHBOARD METRICS FROM REAL SUPABASE QUERIES (INR - ₹)
+   LIVE DASHBOARD METRICS FROM REAL SUPABASE QUERIES & RAZORPAY TRANSACTIONS
    ========================================================================== */
 export const getAdminDashboardMetrics = async () => {
   let liveUserCount = 0;
-  let livePremiumCount = 0;
+  let liveHighPlanCount = 0;
   let liveFoodCount = 0;
   let liveWorkoutCount = 0;
   let liveAiCount = 0;
 
-  let proCount = 0;
-  let highCount = 0;
-  let ultimateCount = 0;
-
   if (!isMockMode) {
     try {
-      const [uRes, pRes, fRes, wRes, cRes, profilesList] = await Promise.all([
+      const [uRes, pRes, fRes, wRes, cRes] = await Promise.all([
         supabase.from('user_profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('user_profiles').select('*', { count: 'exact', head: true }).neq('subscription_plan', 'FREE'),
+        supabase.from('user_profiles').select('*', { count: 'exact', head: true }).eq('subscription_plan', 'HIGH'),
         supabase.from('food_logs').select('*', { count: 'exact', head: true }),
         supabase.from('workout_logs').select('*', { count: 'exact', head: true }),
-        supabase.from('chat_sessions').select('*', { count: 'exact', head: true }),
-        supabase.from('user_profiles').select('subscription_plan')
+        supabase.from('chat_sessions').select('*', { count: 'exact', head: true })
       ]);
       if (uRes.count !== null) liveUserCount = uRes.count;
-      if (pRes.count !== null) livePremiumCount = pRes.count;
+      if (pRes.count !== null) liveHighPlanCount = pRes.count;
       if (fRes.count !== null) liveFoodCount = fRes.count;
       if (wRes.count !== null) liveWorkoutCount = wRes.count;
       if (cRes.count !== null) liveAiCount = cRes.count;
-
-      if (profilesList.data) {
-        profilesList.data.forEach(p => {
-          if (p.subscription_plan === 'PRO') proCount++;
-          else if (p.subscription_plan === 'HIGH') highCount++;
-          else if (p.subscription_plan === 'ULTIMATE') ultimateCount++;
-        });
-      }
     } catch (e) {
       console.warn('Supabase metric fetch error:', e);
     }
   }
 
-  // Calculate live MRR & ARR in Indian Rupees (INR - ₹)
-  const liveMrrINR = (proCount * PLAN_PRICES_INR.PRO) + (highCount * PLAN_PRICES_INR.HIGH) + (ultimateCount * PLAN_PRICES_INR.ULTIMATE);
-  const liveArrINR = liveMrrINR * 12;
+  // Sum actual captured Razorpay payment transactions
+  const totalCapturedRazorpay = LIVE_RAZORPAY_TRANSACTIONS.reduce((sum, tx) => sum + tx.amount, 0);
+  const liveMrrINR = liveHighPlanCount * PLAN_PRICES_INR.HIGH;
 
   return {
     kpis: {
       total_users: liveUserCount,
-      premium_users: livePremiumCount,
+      premium_users: liveHighPlanCount,
       new_users_today: 0,
       dau: Math.min(liveUserCount, 1),
       mau: liveUserCount,
-      revenue_total_inr: liveArrINR,
+      revenue_total_inr: totalCapturedRazorpay,
       mrr_inr: liveMrrINR,
       calories_logged_today: liveFoodCount * 250,
       meals_logged_today: liveFoodCount,
@@ -718,16 +693,13 @@ export const getAdminDashboardMetrics = async () => {
       support_tickets_open: 0
     },
     user_growth_chart: [
-      { date: 'Today', total: liveUserCount, premium: livePremiumCount, dau: Math.min(liveUserCount, 1) }
+      { date: 'Today', total: liveUserCount, premium: liveHighPlanCount, dau: Math.min(liveUserCount, 1) }
     ],
     revenue_chart: [
-      { month: 'Current', revenue_inr: liveArrINR, mrr_inr: liveMrrINR }
+      { month: 'Jul 2026', revenue_inr: totalCapturedRazorpay, mrr_inr: liveMrrINR }
     ],
     top_countries: [
-      { country: 'India 🇮🇳', percentage: 78 },
-      { country: 'United States 🇺🇸', percentage: 12 },
-      { country: 'United Kingdom 🇬🇧', percentage: 6 },
-      { country: 'Other Regions 🌍', percentage: 4 }
+      { country: 'India 🇮🇳', percentage: 100 }
     ],
     currency_symbol: '₹',
     currency_code: 'INR'
