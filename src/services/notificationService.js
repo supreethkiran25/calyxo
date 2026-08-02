@@ -7,6 +7,18 @@ let swRegistration = null;
 export async function registerServiceWorker() {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return null;
 
+  // On localhost / development, unregister any stale service workers that interfere with normal Ctrl+R reload
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const reg of registrations) {
+        await reg.unregister();
+        console.log('[NotificationService] Unregistered development service worker for instant Ctrl+R reload:', reg.scope);
+      }
+      return null;
+    } catch (e) {}
+  }
+
   try {
     const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     swRegistration = reg;
