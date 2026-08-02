@@ -271,7 +271,14 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
       if (profilesData && profilesData.length > 0) {
         profilesData.forEach(p => {
           const key = p.email ? p.email.toLowerCase().trim() : p.id;
-          const plan = p.subscription_plan === 'FREE' ? 'FREE' : 'HIGH';
+          
+          // Check if user is known premium (supreethkiran25@gmail.com, malipatilharshith@gmail.com or in Razorpay transactions)
+          const isPaidUser = key === 'supreethkiran25@gmail.com' || 
+                             key === 'malipatilharshith@gmail.com' || 
+                             LIVE_RAZORPAY_TRANSACTIONS.some(tx => tx.customer_email.toLowerCase() === key) ||
+                             (p.subscription_plan && p.subscription_plan !== 'FREE');
+          
+          const plan = isPaidUser ? 'HIGH' : 'FREE';
           const subDate = p.created_at ? p.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10);
           
           let expiryDate = 'N/A';
