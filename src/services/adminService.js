@@ -274,7 +274,7 @@ const resolveInAppName = (email, profileName, metricsName, bioExtra = {}) => {
     if (clean === 'supreethkiran25@gmail.com') return 'Supreeth Kiran';
     if (clean === 'malipatilharshith@gmail.com') return 'Harshith Malipatil';
     if (clean === 'bhyravgowda@gmail.com') return 'Bhyrav Gowda';
-    if (clean === 'kirankpmys@gmail.com') return 'Kiran KP';
+    if (clean === 'kirankpmys@gmail.com') return 'Kiran Kumar';
     if (clean === 'sampreeth3456@gmail.com') return 'Sampreeth';
     if (clean === 'tejasvijois@gmail.com') return 'Tejasvi Jois';
     if (clean === 'tejasvijois057@gmail.com') return 'Tejasvi Jois (057)';
@@ -357,7 +357,7 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
         });
       });
 
-      // 2. Process users_metrics to enrich and insert any missing accounts
+      // 2. Enrich with biometrics from metricsData for matching real accounts
       metricsData.forEach(m => {
         let bioExtra = {};
         try { bioExtra = JSON.parse(m.bio || '{}'); } catch (e) {}
@@ -396,42 +396,6 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
             weight: m.weight || bioExtra.weight || existing.weight,
             height: m.height || bioExtra.height || existing.height,
             photoURL: m.photoURL || bioExtra.photoURL || existing.photoURL
-          });
-        } else {
-          // Add brand new account from users_metrics that wasn't in user_profiles
-          const userId = m.userId || m.id.replace('_profile', '');
-          const email = bioExtra.email || `${userId}@calyxo.com`;
-          const key = email.toLowerCase().trim();
-          const customName = resolveInAppName(email, null, m.displayName, bioExtra);
-          const isPaid = key === 'supreethkiran25@gmail.com' || key === 'malipatilharshith@gmail.com' || bioExtra.subscriptionPlan === 'HIGH';
-
-          userMap.set(key, {
-            id: userId,
-            full_name: customName,
-            email: email,
-            phone: bioExtra.phone || 'N/A',
-            age: m.age || bioExtra.age || 25,
-            gender: m.gender || bioExtra.gender || 'Not specified',
-            country: bioExtra.country || 'India',
-            signup_date: bioExtra.signupDate || new Date().toISOString().substring(0, 10),
-            last_active: new Date().toISOString().replace('T', ' ').substring(0, 16),
-            subscription_plan: isPaid ? 'HIGH' : 'FREE',
-            subscription_expiry: isPaid ? '2027-07-27' : 'N/A',
-            days_remaining: isPaid ? '358' : '0',
-            goal: m.goal || bioExtra.goal || 'Maintain',
-            streak: 0,
-            total_workouts: 0,
-            total_meals: 0,
-            calories_logged: 0,
-            status: 'Active',
-            photoURL: m.photoURL || bioExtra.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(customName)}&background=6366f1&color=fff`,
-            weight: m.weight || bioExtra.weight || 70,
-            height: m.height || bioExtra.height || 175,
-            water_target: 2500,
-            device_info: 'Mobile App',
-            app_version: 'v1.0.0',
-            push_enabled: true,
-            crashes: 0
           });
         }
       });
