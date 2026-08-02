@@ -136,20 +136,34 @@ const AdminHeader = ({ setMobileOpen, onOpenSearch, onQuickAction }) => {
         </div>
 
         {/* Super Admin Badge & Profile */}
-        <div className="flex items-center gap-2 pl-2 border-l border-neutral-800">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 p-0.5 shadow-md shadow-indigo-500/20">
-            <img
-              src={user?.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-              alt="Admin Avatar"
-              className="w-full h-full object-cover rounded-[10px]"
-            />
+        <div className="flex items-center gap-3 pl-2 border-l border-neutral-800">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 p-0.5 shadow-md shadow-indigo-500/20">
+              <img
+                src={user?.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                alt="Admin Avatar"
+                className="w-full h-full object-cover rounded-[10px]"
+              />
+            </div>
+            <div className="hidden xl:flex flex-col text-left">
+              <span className={`text-xs font-bold leading-none ${isLight ? 'text-slate-900' : 'text-white'}`}>Supreeth Kiran</span>
+              <span className="text-[10px] text-emerald-500 font-mono flex items-center gap-1">
+                <CheckCircle2 className="w-2.5 h-2.5 inline" /> Super Admin
+              </span>
+            </div>
           </div>
-          <div className="hidden xl:flex flex-col text-left">
-            <span className={`text-xs font-bold leading-none ${isLight ? 'text-slate-900' : 'text-white'}`}>Supreeth Kiran</span>
-            <span className="text-[10px] text-emerald-500 font-mono flex items-center gap-1">
-              <CheckCircle2 className="w-2.5 h-2.5 inline" /> Super Admin
-            </span>
-          </div>
+
+          <button
+            onClick={async () => {
+              const { logoutSuperAdmin } = await import('../../services/adminService');
+              await logoutSuperAdmin();
+              window.location.href = '/admin/login';
+            }}
+            className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-mono font-bold transition-all cursor-pointer"
+            title="Sign out of Admin Session"
+          >
+            Logout
+          </button>
         </div>
       </div>
     </header>

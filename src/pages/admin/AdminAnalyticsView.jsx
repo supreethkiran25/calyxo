@@ -50,7 +50,7 @@ const AdminAnalyticsView = () => {
             <Globe className="w-4 h-4 text-emerald-400" /> Top Geographic Regions
           </h3>
           <div className="space-y-3 pt-2">
-            {data.top_countries.map((c, i) => (
+            {(data?.top_countries || []).map((c, i) => (
               <div key={i} className="space-y-1">
                 <div className="flex justify-between text-xs font-semibold text-neutral-300">
                   <span>{c.country}</span>

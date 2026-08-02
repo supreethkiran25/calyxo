@@ -24,7 +24,7 @@ const AdminPremiumView = () => {
   const loadData = async () => {
     setLoading(true);
     const res = await getAdminUsers({ limit: 100 });
-    setUsers(res.users);
+    setUsers(res?.users || []);
     setLoading(false);
   };
 
@@ -32,8 +32,8 @@ const AdminPremiumView = () => {
     loadData();
   }, []);
 
-  const premiumUsers = users.filter(u => u.subscription_plan !== 'FREE');
-  const freeUsers = users.filter(u => u.subscription_plan === 'FREE');
+  const premiumUsers = (users || []).filter(u => u && u.subscription_plan !== 'FREE');
+  const freeUsers = (users || []).filter(u => u && u.subscription_plan === 'FREE');
 
   return (
     <div className="space-y-6">

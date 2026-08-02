@@ -124,15 +124,28 @@ const AdminSidebar = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) =>
         </nav>
 
         {/* Bottom Footer Actions */}
-        <div className="p-3 border-t border-neutral-800/80">
+        <div className="p-3 border-t border-neutral-800/80 space-y-1">
           <NavLink
             to="/user/dashboard"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-neutral-400 hover:text-white hover:bg-neutral-900/80 transition-colors border border-neutral-800/50"
+            className="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-neutral-400 hover:text-white hover:bg-neutral-900/80 transition-colors border border-neutral-800/50"
             title="Return to Main Calyxo Web App"
           >
             <ExternalLink className="w-4 h-4 text-neutral-400 shrink-0" />
             {!collapsed && <span>Return to Main App</span>}
           </NavLink>
+
+          <button
+            onClick={async () => {
+              const { logoutSuperAdmin } = await import('../../services/adminService');
+              await logoutSuperAdmin();
+              window.location.href = '/admin/login';
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors border border-rose-500/20 cursor-pointer"
+            title="Sign Out of Super Admin Session"
+          >
+            <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
+            {!collapsed && <span>Logout Super Admin</span>}
+          </button>
         </div>
       </aside>
     </>

@@ -30,6 +30,7 @@ const PrivacyPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(
 const TermsPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(m => ({ default: m.TermsPage })));
 
 // Admin Pages — lazy loaded for code splitting
+const AdminLoginPage = lazyWithRetry(() => import('./pages/admin/AdminLoginPage'));
 const AdminLayout = lazyWithRetry(() => import('./pages/admin/AdminLayout'));
 const AdminHomeView = lazyWithRetry(() => import('./pages/admin/AdminHomeView'));
 const AdminUsersView = lazyWithRetry(() => import('./pages/admin/AdminUsersView'));
@@ -64,6 +65,9 @@ function App() {
             <Routes>
               {/* Root */}
               <Route path="/" element={<HomePage />} />
+
+              {/* Admin Login Route */}
+              <Route path="/admin/login" element={<AdminLoginPage />} />
 
               {/* User Routes */}
               <Route path="/user" element={<UserLayout />}>

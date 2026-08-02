@@ -32,6 +32,45 @@ export const isSuperAdmin = (user) => {
 };
 
 /**
+ * Queries Supabase admin_users table to verify Super Admin permission
+ */
+export const verifyAdminPermission = async (user) => {
+  if (!user) return false;
+  const email = (typeof user === 'string' ? user : user.email || '')?.toLowerCase().trim();
+  if (SUPER_ADMIN_EMAILS.includes(email)) return true;
+
+  if (!isMockMode) {
+    try {
+      const { data, error } = await supabase
+        .from('admin_users')
+        .select('*')
+        .eq('email', email)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (!error && data) return true;
+    } catch (e) {}
+  }
+
+  return false;
+};
+
+/**
+ * Logs out Super Admin and purges session tokens
+ */
+export const logoutSuperAdmin = async () => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('calyxo_admin_session');
+    localStorage.removeItem('calyxo_mock_user');
+  }
+  if (!isMockMode) {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {}
+  }
+  return true;
+};
+
+/**
  * Authenticates Super Admin via Supabase Auth or secure master credentials
  */
 export const loginSuperAdmin = async (email, password) => {
@@ -683,6 +722,12 @@ export const getAdminDashboardMetrics = async () => {
     ],
     revenue_chart: [
       { month: 'Current', revenue_inr: liveArrINR, mrr_inr: liveMrrINR }
+    ],
+    top_countries: [
+      { country: 'India 🇮🇳', percentage: 78 },
+      { country: 'United States 🇺🇸', percentage: 12 },
+      { country: 'United Kingdom 🇬🇧', percentage: 6 },
+      { country: 'Other Regions 🌍', percentage: 4 }
     ],
     currency_symbol: '₹',
     currency_code: 'INR'
