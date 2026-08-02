@@ -21,14 +21,14 @@ import {
 
 const MENU_ITEMS = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-  { path: '/admin/users', label: 'Users', icon: Users, badge: '14.2k' },
-  { path: '/admin/premium', label: 'Premium', icon: Crown, badge: 'PRO' },
+  { path: '/admin/users', label: 'Users', icon: Users },
+  { path: '/admin/premium', label: 'Premium', icon: Crown, badge: 'HIGH' },
   { path: '/admin/analytics', label: 'Analytics', icon: TrendingUp },
   { path: '/admin/workout-db', label: 'Workout DB', icon: Dumbbell },
   { path: '/admin/nutrition-db', label: 'Nutrition DB', icon: Utensils },
   { path: '/admin/ai', label: 'AI Management', icon: Bot },
   { path: '/admin/notifications', label: 'Notifications', icon: Bell },
-  { path: '/admin/feedback', label: 'Feedback', icon: MessageSquare, badge: '8' },
+  { path: '/admin/feedback', label: 'Feedback', icon: MessageSquare },
   { path: '/admin/revenue', label: 'Revenue', icon: DollarSign },
   { path: '/admin/logs', label: 'System Logs', icon: FileText },
   { path: '/admin/settings', label: 'Settings', icon: Settings },

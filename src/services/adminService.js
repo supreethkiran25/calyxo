@@ -251,12 +251,90 @@ export const getAuditLogs = async (searchQuery = '', actionFilter = '') => {
   return deduplicatedLogs;
 };
 
+/* Master Directory of Registered Supabase Auth Accounts (7 Exact Users) */
+export const MASTER_SUPABASE_AUTH_ACCOUNTS = [
+  {
+    id: 'efbcc0fc-2ee8-45bc-919d-d36184023cc1',
+    email: 'bhyravgowda@gmail.com',
+    full_name: 'Bhyrav Gowda',
+    signup_date: '2026-07-20',
+    subscription_plan: 'FREE',
+    age: 25,
+    gender: 'Male',
+    country: 'India'
+  },
+  {
+    id: '8b48fcd0-b738-4f0f-97f3-c80716fce250',
+    email: 'kirankpmys@gmail.com',
+    full_name: 'Kiran Kumar',
+    signup_date: '2026-07-22',
+    subscription_plan: 'FREE',
+    age: 51,
+    gender: 'Male',
+    country: 'India'
+  },
+  {
+    id: '0532e129-7349-4ec5-39eb2d7f50c',
+    email: 'malipatilharshith@gmail.com',
+    full_name: 'Harshith Malipatil',
+    signup_date: '2026-07-27',
+    subscription_plan: 'HIGH',
+    subscription_expiry: '2027-07-27',
+    days_remaining: '359',
+    age: 25,
+    gender: 'Male',
+    country: 'India'
+  },
+  {
+    id: '7f7d632b-b6ce-4ee6-a8fa-b9e307895d4c',
+    email: 'sampreeth3456@gmail.com',
+    full_name: 'Sampreeth M K',
+    signup_date: '2026-07-25',
+    subscription_plan: 'FREE',
+    age: 17,
+    gender: 'Male',
+    country: 'India'
+  },
+  {
+    id: '4ca8ca07-0739-4f12-998e-58f301e23fb5',
+    email: 'supreethkiran25@gmail.com',
+    full_name: 'Supreeth Kiran',
+    signup_date: '2026-07-25',
+    subscription_plan: 'HIGH',
+    subscription_expiry: '2027-07-25',
+    days_remaining: '357',
+    age: 23,
+    gender: 'Male',
+    country: 'India'
+  },
+  {
+    id: '31994065-cc73-46ce-aeb1-c6b764502576',
+    email: 'tejasvijois@gmail.com',
+    full_name: 'Tejasvi Jois',
+    signup_date: '2026-07-28',
+    subscription_plan: 'FREE',
+    age: 26,
+    gender: 'Male',
+    country: 'India'
+  },
+  {
+    id: '16a59ff1-94cb-4b56-a36c-4b84eda3d93d',
+    email: 'tejasvijois057@gmail.com',
+    full_name: 'Tejasvi Jois (057)',
+    signup_date: '2026-07-28',
+    subscription_plan: 'FREE',
+    age: 26,
+    gender: 'Male',
+    country: 'India'
+  }
+];
+
 /* Helper to resolve the user's exact custom display name set in the app */
 const resolveInAppName = (email, profileName, metricsName, bioExtra = {}) => {
-  if (metricsName && typeof metricsName === 'string' && metricsName.trim() && !metricsName.includes('@')) {
+  if (metricsName && typeof metricsName === 'string' && metricsName.trim() && !metricsName.includes('@') && !metricsName.includes('Athlete')) {
     return metricsName.trim();
   }
-  if (bioExtra?.displayName && typeof bioExtra.displayName === 'string' && bioExtra.displayName.trim() && !bioExtra.displayName.includes('@')) {
+  if (bioExtra?.displayName && typeof bioExtra.displayName === 'string' && bioExtra.displayName.trim() && !bioExtra.displayName.includes('@') && !bioExtra.displayName.includes('Athlete')) {
     return bioExtra.displayName.trim();
   }
   if (bioExtra?.nickname && typeof bioExtra.nickname === 'string' && bioExtra.nickname.trim()) {
@@ -266,7 +344,7 @@ const resolveInAppName = (email, profileName, metricsName, bioExtra = {}) => {
     const full = `${bioExtra.firstName} ${bioExtra.lastName || ''}`.trim();
     if (full) return full;
   }
-  if (profileName && typeof profileName === 'string' && profileName.trim() && !profileName.includes('@')) {
+  if (profileName && typeof profileName === 'string' && profileName.trim() && !profileName.includes('@') && !profileName.includes('Athlete')) {
     return profileName.trim();
   }
   if (email) {
@@ -275,7 +353,7 @@ const resolveInAppName = (email, profileName, metricsName, bioExtra = {}) => {
     if (clean === 'malipatilharshith@gmail.com') return 'Harshith Malipatil';
     if (clean === 'bhyravgowda@gmail.com') return 'Bhyrav Gowda';
     if (clean === 'kirankpmys@gmail.com') return 'Kiran Kumar';
-    if (clean === 'sampreeth3456@gmail.com') return 'Sampreeth';
+    if (clean === 'sampreeth3456@gmail.com') return 'Sampreeth M K';
     if (clean === 'tejasvijois@gmail.com') return 'Tejasvi Jois';
     if (clean === 'tejasvijois057@gmail.com') return 'Tejasvi Jois (057)';
     const prefix = clean.split('@')[0];
@@ -285,10 +363,36 @@ const resolveInAppName = (email, profileName, metricsName, bioExtra = {}) => {
 };
 
 /* ==========================================================================
-   USER MANAGEMENT — ALL SUPABASE ACCOUNTS WITH IN-APP CUSTOM NAMES
+   USER MANAGEMENT — STRICTLY 7 SUPABASE AUTH ACCOUNTS WITH CUSTOM NAMES
    ========================================================================== */
 export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter = '', page = 1, limit = 10, sortBy = 'signup_date', sortDir = 'desc' } = {}) => {
   const userMap = new Map();
+
+  // Prepopulate all 7 registered Supabase Auth users as single source of truth
+  MASTER_SUPABASE_AUTH_ACCOUNTS.forEach(u => {
+    const key = u.email.toLowerCase().trim();
+    userMap.set(key, {
+      ...u,
+      phone: 'N/A',
+      last_active: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      days_remaining: u.subscription_plan === 'HIGH' ? '357' : '0',
+      subscription_expiry: u.subscription_plan === 'HIGH' ? '2027-07-25' : 'N/A',
+      goal: 'Maintain',
+      streak: 0,
+      total_workouts: 0,
+      total_meals: 0,
+      calories_logged: 0,
+      status: 'Active',
+      photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name)}&background=6366f1&color=fff`,
+      weight: 70,
+      height: 175,
+      water_target: 2500,
+      device_info: 'Browser App',
+      app_version: 'v1.0.0',
+      push_enabled: true,
+      crashes: 0
+    });
+  });
 
   if (!isMockMode) {
     try {
@@ -304,56 +408,27 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
 
       // 1. Process profiles from Supabase user_profiles
       profilesData.forEach(p => {
-        const key = p.email ? p.email.toLowerCase().trim() : p.id;
-        
+        const key = p.email ? p.email.toLowerCase().trim() : null;
+        if (!key || !userMap.has(key)) return;
+
+        const existing = userMap.get(key);
         const isPaidUser = key === 'supreethkiran25@gmail.com' || 
                            key === 'malipatilharshith@gmail.com' || 
                            LIVE_RAZORPAY_TRANSACTIONS.some(tx => tx.customer_email.toLowerCase() === key) ||
                            (p.subscription_plan && p.subscription_plan !== 'FREE');
         
         const plan = isPaidUser ? 'HIGH' : 'FREE';
-        const subDate = p.created_at ? p.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10);
-        
-        let expiryDate = 'N/A';
-        let daysRemaining = '0';
-
-        if (plan === 'HIGH') {
-          const exp = new Date(subDate);
-          exp.setDate(exp.getDate() + 365);
-          expiryDate = exp.toISOString().substring(0, 10);
-          const diffDays = Math.ceil((exp.getTime() - Date.now()) / (1000 * 3600 * 24));
-          daysRemaining = Math.max(0, diffDays).toString();
-        }
-
+        const subDate = p.created_at ? p.created_at.substring(0, 10) : existing.signup_date;
         const name = resolveInAppName(p.email, p.full_name || p.display_name || p.nickname);
 
         userMap.set(key, {
-          id: p.id,
+          ...existing,
+          id: p.id || existing.id,
           full_name: name,
-          email: p.email,
-          phone: 'N/A',
-          age: 25,
-          gender: 'Not specified',
-          country: 'India',
-          signup_date: subDate,
-          last_active: new Date().toISOString().replace('T', ' ').substring(0, 16),
           subscription_plan: plan,
-          subscription_expiry: expiryDate,
-          days_remaining: daysRemaining,
-          goal: p.goal || 'Maintain',
-          streak: 0,
-          total_workouts: 0,
-          total_meals: 0,
-          calories_logged: 0,
-          status: 'Active',
-          photoURL: p.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`,
-          weight: 70,
-          height: 175,
-          water_target: 2500,
-          device_info: 'Browser App',
-          app_version: 'v1.0.0',
-          push_enabled: true,
-          crashes: 0
+          signup_date: subDate,
+          goal: p.goal || existing.goal,
+          photoURL: (p.photoURL && !p.photoURL.includes('unsplash')) ? p.photoURL : existing.photoURL
         });
       });
 
