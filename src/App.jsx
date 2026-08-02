@@ -5,6 +5,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import LaunchScreen from './components/LaunchScreen';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 import { useStore } from './store/useStore';
+import AdminGuard from './components/admin/AdminGuard';
 
 // Layout — lazy loaded with chunk retry protection
 const UserLayout = lazyWithRetry(() => import('./layouts/UserLayout'));
@@ -27,6 +28,21 @@ const AboutPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(m 
 const SupportPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(m => ({ default: m.SupportPage })));
 const PrivacyPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(m => ({ default: m.PrivacyPage })));
 const TermsPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(m => ({ default: m.TermsPage })));
+
+// Admin Pages — lazy loaded for code splitting
+const AdminLayout = lazyWithRetry(() => import('./pages/admin/AdminLayout'));
+const AdminHomeView = lazyWithRetry(() => import('./pages/admin/AdminHomeView'));
+const AdminUsersView = lazyWithRetry(() => import('./pages/admin/AdminUsersView'));
+const AdminPremiumView = lazyWithRetry(() => import('./pages/admin/AdminPremiumView'));
+const AdminAnalyticsView = lazyWithRetry(() => import('./pages/admin/AdminAnalyticsView'));
+const AdminWorkoutDbView = lazyWithRetry(() => import('./pages/admin/AdminWorkoutDbView'));
+const AdminNutritionDbView = lazyWithRetry(() => import('./pages/admin/AdminNutritionDbView'));
+const AdminAIView = lazyWithRetry(() => import('./pages/admin/AdminAIView'));
+const AdminNotificationsView = lazyWithRetry(() => import('./pages/admin/AdminNotificationsView'));
+const AdminFeedbackView = lazyWithRetry(() => import('./pages/admin/AdminFeedbackView'));
+const AdminRevenueView = lazyWithRetry(() => import('./pages/admin/AdminRevenueView'));
+const AdminLogsView = lazyWithRetry(() => import('./pages/admin/AdminLogsView'));
+const AdminSettingsView = lazyWithRetry(() => import('./pages/admin/AdminSettingsView'));
 
 import { registerServiceWorker, scheduleDailyReminders } from './services/notificationService';
 
@@ -62,6 +78,39 @@ function App() {
                 <Route path="support" element={<SupportPage />} />
                 <Route path="privacy" element={<PrivacyPage />} />
                 <Route path="terms" element={<TermsPage />} />
+              </Route>
+
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
+                <Route index element={<AdminHomeView />} />
+                <Route path="dashboard" element={<AdminHomeView />} />
+                <Route path="users" element={<AdminUsersView />} />
+                <Route path="premium" element={<AdminPremiumView />} />
+                <Route path="analytics" element={<AdminAnalyticsView />} />
+                <Route path="workout-db" element={<AdminWorkoutDbView />} />
+                <Route path="nutrition-db" element={<AdminNutritionDbView />} />
+                <Route path="ai" element={<AdminAIView />} />
+                <Route path="notifications" element={<AdminNotificationsView />} />
+                <Route path="feedback" element={<AdminFeedbackView />} />
+                <Route path="revenue" element={<AdminRevenueView />} />
+                <Route path="logs" element={<AdminLogsView />} />
+                <Route path="settings" element={<AdminSettingsView />} />
+              </Route>
+
+              <Route path="/app/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
+                <Route index element={<AdminHomeView />} />
+                <Route path="dashboard" element={<AdminHomeView />} />
+                <Route path="users" element={<AdminUsersView />} />
+                <Route path="premium" element={<AdminPremiumView />} />
+                <Route path="analytics" element={<AdminAnalyticsView />} />
+                <Route path="workout-db" element={<AdminWorkoutDbView />} />
+                <Route path="nutrition-db" element={<AdminNutritionDbView />} />
+                <Route path="ai" element={<AdminAIView />} />
+                <Route path="notifications" element={<AdminNotificationsView />} />
+                <Route path="feedback" element={<AdminFeedbackView />} />
+                <Route path="revenue" element={<AdminRevenueView />} />
+                <Route path="logs" element={<AdminLogsView />} />
+                <Route path="settings" element={<AdminSettingsView />} />
               </Route>
 
               {/* 404 */}

@@ -45,3 +45,7 @@ next-env.d.ts
 # production build
 /dist
 
+# nested projects
+calyxo-mobile/node_modules
+calyxo-mobile/.expo
+
