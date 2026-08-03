@@ -81,7 +81,7 @@ self.addEventListener('fetch', (event) => {
 // Handle W3C Remote Web Push Event
 self.addEventListener('push', (event) => {
   let data = { 
-    title: 'Calyxo Health & Fitness 🚀', 
+    title: 'Calyxo', 
     body: 'Time for your daily workout and nutrition check-in!',
     url: '/user/dashboard',
     tag: 'calyxo-push-event'
@@ -95,19 +95,22 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  // Brand the title — always show "Calyxo" as the notification source
+  const brandedTitle = data.title || 'Calyxo';
+
   const options = {
     body: data.body,
     icon: '/icon-192x192.png',
     badge: '/icon-192x192.png',
     tag: data.tag || 'calyxo-push',
-    vibrate: [300, 100, 300, 100, 300],
-    renotify: true,
-    requireInteraction: true,
+    vibrate: [300, 100, 300],
+    renotify: false,
+    requireInteraction: false,
     silent: false,
     data: { url: data.url || '/user/dashboard' }
   };
 
-  event.waitUntil(self.registration.showNotification(data.title, options));
+  event.waitUntil(self.registration.showNotification(brandedTitle, options));
 });
 
 // Handle Notification Click
@@ -164,13 +167,4 @@ self.addEventListener('message', (event) => {
     }, Math.max(100, data.delayMs || 0));
   }
 
-  if (data.type === 'SHOW_IMMEDIATE_NOTIFICATION') {
-    self.registration.showNotification(data.title || 'Calyxo Alert', {
-      body: data.body || 'Notification active.',
-      icon: '/icon-192x192.png',
-      badge: '/icon-192x192.png',
-      vibrate: [200, 100, 200],
-      data: { url: '/user/dashboard' }
-    });
-  }
 });

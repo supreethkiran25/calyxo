@@ -868,6 +868,7 @@ export const sendAdminNotification = async (payload) => {
     } catch (e) {}
 
     // 2. Fetch target user profiles to populate in-app user_notifications table
+    let targetUsers = [];
     try {
       let query = supabase.from('user_profiles').select('id, subscription_plan');
       if (payload.audience === 'Premium Users') {
@@ -878,9 +879,10 @@ export const sendAdminNotification = async (payload) => {
         query = query.eq('id', payload.userId);
       }
 
-      const { data: targetUsers, error: fetchErr } = await query;
+      const { data: fetchedUsers, error: fetchErr } = await query;
 
-      if (!fetchErr && targetUsers && targetUsers.length > 0) {
+      if (!fetchErr && fetchedUsers && fetchedUsers.length > 0) {
+        targetUsers = fetchedUsers;
         recipientCount = targetUsers.length;
         const userNotifEntries = targetUsers.map(u => ({
           user_id: u.id,
@@ -902,26 +904,33 @@ export const sendAdminNotification = async (payload) => {
       console.warn('[adminService] Exception preparing in-app notifications:', inAppEx);
     }
 
-    // 3. Trigger Web Push notifications to active subscriptions
+    // 3. Trigger Web Push notifications ONLY to targeted users (not all subscriptions)
     try {
-      const { data: pushTokens } = await supabase.from('push_subscriptions').select('user_id');
-      if (pushTokens && pushTokens.length > 0) {
-        const uniqueUserIds = [...new Set(pushTokens.map(pt => pt.user_id))];
-        await Promise.allSettled(
-          uniqueUserIds.map(uid => 
-            fetch('/api/push/send', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                userId: uid,
-                title: entry.title,
-                body: entry.body,
-                url: entry.cta_link,
-                tag: notifId
+      const targetUserIds = targetUsers ? targetUsers.map(u => u.id) : [];
+      if (targetUserIds.length > 0) {
+        const { data: pushTokens } = await supabase
+          .from('push_subscriptions')
+          .select('user_id')
+          .in('user_id', targetUserIds);
+
+        if (pushTokens && pushTokens.length > 0) {
+          const uniqueUserIds = [...new Set(pushTokens.map(pt => pt.user_id))];
+          await Promise.allSettled(
+            uniqueUserIds.map(uid => 
+              fetch('/api/push/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: uid,
+                  title: entry.title,
+                  body: entry.body,
+                  url: entry.cta_link,
+                  tag: notifId
+                })
               })
-            })
-          )
-        );
+            )
+          );
+        }
       }
     } catch (pushEx) {
       console.warn('[adminService] Web push broadcast warning:', pushEx);

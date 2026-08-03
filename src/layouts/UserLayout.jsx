@@ -6,7 +6,7 @@ import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import useQuickActionsStore from '../store/useQuickActionsStore';
 import { signOutUser, subscribeToAuth, loadUserData, invalidateUserDataCache } from '../lib/dbService';
-import { subscribeToInAppNotifications, markNotificationAsRead, deleteNotification, registerServiceWorker, subscribeToPushNotifications, triggerOSNotification } from '../services/notificationService';
+import { subscribeToInAppNotifications, markNotificationAsRead, deleteNotification, registerServiceWorker, subscribeToPushNotifications } from '../services/notificationService';
 import { supabase } from '../lib/supabaseClient';
 
 import Logo from '../components/Logo';
@@ -145,8 +145,6 @@ export default function UserLayout() {
   }, []);
 
   // Realtime in-app notifications, Web Push engine, and subscription plan sync
-  const shownNotifIdsRef = useRef(new Set());
-
   useEffect(() => {
     const uid = user?.uid || user?.id;
     if (!uid) return;
@@ -156,23 +154,9 @@ export default function UserLayout() {
       subscribeToPushNotifications(uid);
     });
 
-    // 1. In-app notifications realtime subscription + OS notification trigger with ID deduplication
+    // 1. In-app notifications realtime subscription (OS notifications handled by SW push only)
     const unsubNotifs = subscribeToInAppNotifications(uid, (notifsList) => {
-      const list = notifsList || [];
-      if (list.length > 0) {
-        const newest = list[0];
-        const notifKey = newest.id || newest.notification_id || `${newest.created_at}_${newest.title}`;
-        if (newest && !newest.read && !shownNotifIdsRef.current.has(notifKey)) {
-          shownNotifIdsRef.current.add(notifKey);
-          triggerOSNotification(
-            newest.title || 'Calyxo Notification', 
-            newest.body || '', 
-            newest.cta_link,
-            notifKey
-          );
-        }
-      }
-      setNotifications(list);
+      setNotifications(notifsList || []);
     });
 
     // 2. User profile realtime subscription (Instant Premium status sync)
