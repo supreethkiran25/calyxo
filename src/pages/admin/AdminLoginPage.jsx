@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Lock, Mail, ArrowRight, AlertCircle, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { Shield, Lock, Mail, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useStore } from '../../store/useStore';
-import { loginSuperAdmin, DEFAULT_ADMIN_CREDENTIALS, isSuperAdmin } from '../../services/adminService';
+import { loginSuperAdmin, isSuperAdmin } from '../../services/adminService';
 
 const AdminLoginPage = () => {
   const navigate = useNavigate();
   const user = useStore(state => state.user);
   const setUser = useStore(state => state.setUser);
 
-  const [emailInput, setEmailInput] = useState(DEFAULT_ADMIN_CREDENTIALS.email);
-  const [passwordInput, setPasswordInput] = useState(DEFAULT_ADMIN_CREDENTIALS.password);
+  const [emailInput, setEmailInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
@@ -43,23 +43,6 @@ const AdminLoginPage = () => {
     }
   };
 
-  const handleQuickLogin = async () => {
-    setErrorMsg('');
-    setLoggingIn(true);
-    try {
-      const adminUser = await loginSuperAdmin(DEFAULT_ADMIN_CREDENTIALS.email, DEFAULT_ADMIN_CREDENTIALS.password);
-      setUser(adminUser);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('calyxo_admin_session', JSON.stringify(adminUser));
-      }
-      navigate('/admin', { replace: true });
-    } catch (err) {
-      setErrorMsg(err.message || 'Authentication error');
-    } finally {
-      setLoggingIn(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center p-4 selection:bg-indigo-500/30 selection:text-indigo-200">
       <div className="w-full max-w-md rounded-3xl bg-neutral-900/90 border border-neutral-800 shadow-2xl p-8 space-y-6 relative overflow-hidden backdrop-blur-xl">
@@ -78,10 +61,6 @@ const AdminLoginPage = () => {
           <p className="text-xs text-neutral-400">
             Super Admin Operational Command Portal
           </p>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-400 font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Presaved credentials loaded for instant access
-          </div>
         </div>
 
         {errorMsg && (
@@ -102,7 +81,7 @@ const AdminLoginPage = () => {
                 required
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
-                placeholder="supreethkiran25@gmail.com"
+                placeholder="admin@calyxo.com"
                 className="w-full bg-neutral-950 border border-neutral-800 rounded-xl pl-9 pr-3 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
               />
             </div>
@@ -138,14 +117,6 @@ const AdminLoginPage = () => {
             className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold shadow-lg shadow-indigo-600/25 transition-all flex items-center justify-center gap-2 text-xs cursor-pointer"
           >
             {loggingIn ? 'Authenticating...' : 'Sign In to Command Center'} <ArrowRight className="w-4 h-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={handleQuickLogin}
-            className="w-full py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-amber-300 font-bold text-xs border border-neutral-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer mt-2"
-          >
-            <Sparkles className="w-3.5 h-3.5" /> Direct Super Admin Access
           </button>
         </form>
       </div>
