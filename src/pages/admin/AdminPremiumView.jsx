@@ -9,7 +9,7 @@ import {
   UserCheck,
   CreditCard
 } from 'lucide-react';
-import { getAdminUsers, updateUserSubscription, LIVE_RAZORPAY_TRANSACTIONS } from '../../services/adminService';
+import { getAdminUsers, updateUserSubscription, LIVE_RAZORPAY_TRANSACTIONS, CALYXO_PRIMARY_PLAN } from '../../services/adminService';
 import { supabase } from '../../lib/supabaseClient';
 import GrantPremiumModal from '../../components/admin/GrantPremiumModal';
 
@@ -137,8 +137,8 @@ const AdminPremiumView = () => {
                     </div>
                   </td>
                   <td className="p-4">
-                    <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                      HIGH PLAN (₹999)
+                    <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase">
+                      {CALYXO_PRIMARY_PLAN.name} ({CALYXO_PRIMARY_PLAN.symbol}{CALYXO_PRIMARY_PLAN.price.toLocaleString()})
                     </span>
                   </td>
                   <td className="p-4 text-neutral-300">

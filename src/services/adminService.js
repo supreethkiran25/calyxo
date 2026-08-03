@@ -12,7 +12,15 @@ export const DEFAULT_ADMIN_CREDENTIALS = {
   password: 'Admin@12345'
 };
 
-// Plan Pricing Specification — High Plan Only (INR - ₹)
+// Plan Pricing Specification — Single High Plan (INR - ₹)
+export const CALYXO_PRIMARY_PLAN = {
+  name: 'High Plan',
+  code: 'HIGH',
+  price: 999,
+  currency: 'INR',
+  symbol: '₹'
+};
+
 export const PLAN_PRICES_INR = {
   FREE: 0,
   HIGH: 999
@@ -587,20 +595,26 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
   const statusStr = isRevoke ? 'Revoked' : 'Active';
 
   if (!isMockMode && userId) {
-    // 1. Update user_profiles table in Supabase
-    const { error: profileErr } = await supabase.from('user_profiles').upsert({
-      id: userId,
-      subscription_plan: plan
-    }, { onConflict: 'id' });
+    // 1. Partial UPDATE on user_profiles table (preserves email and all existing fields)
+    const { error: profileErr } = await supabase
+      .from('user_profiles')
+      .update({ subscription_plan: plan })
+      .eq('id', userId);
 
     if (profileErr) {
       console.error('[adminService] Error updating user_profiles subscription:', profileErr);
       throw new Error(`Database error updating user profile: ${profileErr.message}`);
     }
 
-    // 2. Upsert subscriptions table in Supabase
+    // 2. Update or Insert subscriptions table in Supabase
     try {
-      const { error: subErr } = await supabase.from('subscriptions').upsert({
+      const { data: existingSub } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      const subPayload = {
         user_id: userId,
         plan: plan,
         status: statusStr,
@@ -612,10 +626,12 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
         amount: plan === 'HIGH' ? 999 : 0,
         currency: 'INR',
         updated_at: now.toISOString()
-      }, { onConflict: 'user_id' });
+      };
 
-      if (subErr) {
-        console.warn('[adminService] Subscriptions table upsert warning:', subErr.message);
+      if (existingSub) {
+        await supabase.from('subscriptions').update(subPayload).eq('user_id', userId);
+      } else {
+        await supabase.from('subscriptions').insert(subPayload);
       }
     } catch (subEx) {
       console.warn('[adminService] Exception updating subscriptions table:', subEx);
@@ -664,11 +680,20 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
 };
 
 export const deleteUserAdmin = async (userId) => {
-  if (!isMockMode) {
+  if (!isMockMode && userId) {
     try {
+      await supabase.from('subscriptions').delete().eq('user_id', userId);
+      await supabase.from('user_notifications').delete().eq('user_id', userId);
       await supabase.from('users_metrics').delete().eq('id', `${userId}_profile`);
-      await supabase.from('user_profiles').delete().eq('id', userId);
-    } catch (e) {}
+      const { error } = await supabase.from('user_profiles').delete().eq('id', userId);
+      if (error) {
+        console.error('[adminService] Error deleting user profile:', error);
+        throw new Error(`Database error deleting user: ${error.message}`);
+      }
+    } catch (e) {
+      console.error('[adminService] Exception deleting user profile:', e);
+      throw e;
+    }
   }
   await logAdminAction('USER_DELETED', userId, {});
   return true;

@@ -242,17 +242,53 @@ const AdminUsersView = () => {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => setGrantModalUser(u)}
-                          className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors"
+                          className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors cursor-pointer"
                           title="Grant Premium"
                         >
                           <Crown className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={async () => {
+                            try {
+                              const newStatus = u.status === 'Active' ? 'Suspended' : 'Active';
+                              await updateUserStatus(u.id, newStatus, 'Super Admin toggle');
+                              await fetchUsers();
+                            } catch (err) {
+                              alert(`Failed to update user status: ${err.message}`);
+                            }
+                          }}
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                            u.status === 'Active'
+                              ? 'bg-neutral-800 text-neutral-400 hover:text-red-400'
+                              : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                          }`}
+                          title={u.status === 'Active' ? 'Suspend User' : 'Activate User'}
+                        >
+                          <Ban className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => onSelectUser && onSelectUser(u)}
-                          className="p-1.5 rounded-lg bg-neutral-800 text-neutral-300 hover:bg-neutral-700 transition-colors"
+                          className="p-1.5 rounded-lg bg-neutral-800 text-neutral-300 hover:bg-neutral-700 transition-colors cursor-pointer"
                           title="Inspect Detailed Profile"
                         >
                           <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (window.confirm(`Are you sure you want to permanently delete user ${u.full_name} (${u.email})?`)) {
+                              try {
+                                const { deleteUserAdmin } = await import('../../services/adminService');
+                                await deleteUserAdmin(u.id);
+                                await fetchUsers();
+                              } catch (err) {
+                                alert(`Failed to delete user: ${err.message}`);
+                              }
+                            }
+                          }}
+                          className="p-1.5 rounded-lg bg-red-950/40 text-red-400 hover:bg-red-900/60 transition-colors cursor-pointer"
+                          title="Delete User Account"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>

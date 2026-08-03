@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { X, Crown } from 'lucide-react';
-import { updateUserSubscription } from '../../services/adminService';
+import { updateUserSubscription, CALYXO_PRIMARY_PLAN } from '../../services/adminService';
 
 const GrantPremiumModal = ({ isOpen, onClose, user, onSuccess }) => {
-  const [plan] = useState('HIGH');
+  const [plan] = useState(CALYXO_PRIMARY_PLAN.code);
   const [duration, setDuration] = useState('12 Months');
   const [reason, setReason] = useState('Beta Tester');
   const [customDays, setCustomDays] = useState('30');
@@ -57,10 +57,10 @@ const GrantPremiumModal = ({ isOpen, onClose, user, onSuccess }) => {
           <label className="text-xs font-bold text-neutral-300 uppercase tracking-wider">Subscription Tier Plan</label>
           <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs">
             <div>
-              <span className="font-bold text-amber-300 block">High Plan</span>
+              <span className="font-bold text-amber-300 block">{CALYXO_PRIMARY_PLAN.name}</span>
               <span className="text-[11px] text-neutral-400 font-mono">Full Access • AI Coach • Analytics</span>
             </div>
-            <span className="font-bold text-amber-400 font-mono text-sm">₹999</span>
+            <span className="font-bold text-amber-400 font-mono text-sm">{CALYXO_PRIMARY_PLAN.symbol}{CALYXO_PRIMARY_PLAN.price.toLocaleString()}</span>
           </div>
         </div>
 

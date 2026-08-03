@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, CreditCard, CheckCircle2 } from 'lucide-react';
-import { getAdminDashboardMetrics, LIVE_RAZORPAY_TRANSACTIONS } from '../../services/adminService';
+import { getAdminDashboardMetrics, LIVE_RAZORPAY_TRANSACTIONS, CALYXO_PRIMARY_PLAN } from '../../services/adminService';
 import { supabase } from '../../lib/supabaseClient';
 
 const AdminRevenueView = () => {
@@ -92,8 +92,8 @@ const AdminRevenueView = () => {
         </div>
         <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800">
           <span className="text-xs text-neutral-400 font-medium block">Active Subscription Tier</span>
-          <span className="text-2xl font-bold text-amber-400 block mt-1">High Plan</span>
-          <span className="text-[10px] text-neutral-500 font-mono mt-1 block">₹999</span>
+          <span className="text-2xl font-bold text-amber-400 block mt-1">{CALYXO_PRIMARY_PLAN.name}</span>
+          <span className="text-[10px] text-neutral-500 font-mono mt-1 block">{CALYXO_PRIMARY_PLAN.symbol}{CALYXO_PRIMARY_PLAN.price.toLocaleString()}</span>
         </div>
         <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800">
           <span className="text-xs text-neutral-400 font-medium block">Failed / Refunded</span>
