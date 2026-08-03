@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Lock, Mail, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
+import { Shield, Lock, Mail, ArrowRight, AlertCircle, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { loginSuperAdmin, DEFAULT_ADMIN_CREDENTIALS, isSuperAdmin } from '../../services/adminService';
 
@@ -11,6 +11,7 @@ const AdminLoginPage = () => {
 
   const [emailInput, setEmailInput] = useState(DEFAULT_ADMIN_CREDENTIALS.email);
   const [passwordInput, setPasswordInput] = useState(DEFAULT_ADMIN_CREDENTIALS.password);
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
 
@@ -77,6 +78,10 @@ const AdminLoginPage = () => {
           <p className="text-xs text-neutral-400">
             Super Admin Operational Command Portal
           </p>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-400 font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Presaved credentials loaded for instant access
+          </div>
         </div>
 
         {errorMsg && (
@@ -108,13 +113,22 @@ const AdminLoginPage = () => {
             <div className="relative">
               <Lock className="w-4 h-4 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl pl-9 pr-3 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl pl-9 pr-10 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 focus:outline-none bg-transparent border-none cursor-pointer p-1 flex items-center justify-center"
+                title={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
