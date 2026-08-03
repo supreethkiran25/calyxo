@@ -145,7 +145,7 @@ export default function UserLayout() {
   }, []);
 
   // Realtime in-app notifications, Web Push engine, and subscription plan sync
-  const prevNotifCountRef = useRef(0);
+  const shownNotifIdsRef = useRef(new Set());
 
   useEffect(() => {
     const uid = user?.uid || user?.id;
@@ -156,16 +156,22 @@ export default function UserLayout() {
       subscribeToPushNotifications(uid);
     });
 
-    // 1. In-app notifications realtime subscription + OS notification trigger
+    // 1. In-app notifications realtime subscription + OS notification trigger with ID deduplication
     const unsubNotifs = subscribeToInAppNotifications(uid, (notifsList) => {
       const list = notifsList || [];
-      if (list.length > prevNotifCountRef.current && prevNotifCountRef.current > 0) {
+      if (list.length > 0) {
         const newest = list[0];
-        if (newest && !newest.read) {
-          triggerOSNotification(newest.title || 'Calyxo Notification', newest.body || '', newest.cta_link);
+        const notifKey = newest.id || newest.notification_id || `${newest.created_at}_${newest.title}`;
+        if (newest && !newest.read && !shownNotifIdsRef.current.has(notifKey)) {
+          shownNotifIdsRef.current.add(notifKey);
+          triggerOSNotification(
+            newest.title || 'Calyxo Notification', 
+            newest.body || '', 
+            newest.cta_link,
+            notifKey
+          );
         }
       }
-      prevNotifCountRef.current = list.length;
       setNotifications(list);
     });
 

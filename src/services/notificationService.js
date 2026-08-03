@@ -19,11 +19,12 @@ export async function registerServiceWorker() {
   }
 }
 
-export async function triggerOSNotification(title, body, url = '/user/dashboard') {
+export async function triggerOSNotification(title, body, url = '/user/dashboard', tag = null) {
   if (typeof window === 'undefined' || !('Notification' in window)) return;
 
   if (Notification.permission === 'granted') {
     try {
+      const notifTag = tag || `calyxo-${title.replace(/\s+/g, '-').toLowerCase()}`;
       if ('serviceWorker' in navigator) {
         const reg = swRegistration || await navigator.serviceWorker.ready;
         if (reg && reg.showNotification) {
@@ -32,7 +33,8 @@ export async function triggerOSNotification(title, body, url = '/user/dashboard'
             icon: '/icon-192x192.png',
             badge: '/icon-192x192.png',
             vibrate: [300, 100, 300],
-            tag: `calyxo-os-${Date.now()}`,
+            tag: notifTag,
+            renotify: true,
             data: { url: url || '/user/dashboard' }
           });
           return;
@@ -40,7 +42,8 @@ export async function triggerOSNotification(title, body, url = '/user/dashboard'
       }
       new Notification(title, {
         body: body,
-        icon: '/icon-192x192.png'
+        icon: '/icon-192x192.png',
+        tag: notifTag
       });
     } catch (e) {
       console.warn('[NotificationService] OS notification trigger exception:', e);
@@ -122,12 +125,6 @@ export async function subscribeToPushNotifications(userId) {
         });
       } catch (apiErr) {}
     }
-
-    // Send instant welcome test push
-    sendImmediateNotification(
-      'Calyxo Notifications Active 🚀',
-      'Push notifications enabled! Reminders will now reach your device even when the app is closed.'
-    );
 
     scheduleDailyReminders();
 
