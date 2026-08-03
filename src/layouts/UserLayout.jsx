@@ -5,7 +5,7 @@ import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import useQuickActionsStore from '../store/useQuickActionsStore';
-import { signOutUser, subscribeToAuth, loadUserData } from '../lib/dbService';
+import { signOutUser, subscribeToAuth, loadUserData, invalidateUserDataCache } from '../lib/dbService';
 import { subscribeToInAppNotifications, markNotificationAsRead, deleteNotification, registerServiceWorker, subscribeToPushNotifications, triggerOSNotification } from '../services/notificationService';
 import { supabase } from '../lib/supabaseClient';
 
@@ -182,6 +182,7 @@ export default function UserLayout() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'user_profiles', filter: `id=eq.${uid}` },
         async () => {
+          invalidateUserDataCache(uid);
           const { profile } = await loadUserData(uid);
           if (profile) {
             useStore.getState().setUserProfile(profile);

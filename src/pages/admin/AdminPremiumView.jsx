@@ -65,7 +65,7 @@ const AdminPremiumView = () => {
             <Crown className="w-6 h-6 text-amber-400" /> Premium & Subscriptions Hub
           </h1>
           <p className="text-xs text-neutral-400 font-mono mt-0.5">
-            Single Plan: High Plan (₹999/mo) • Live Supabase & Razorpay Subscriber Telemetry
+            Single Plan: {CALYXO_PRIMARY_PLAN.name} ({CALYXO_PRIMARY_PLAN.symbol}{CALYXO_PRIMARY_PLAN.price.toLocaleString()}) • Live Supabase & Razorpay Subscriber Telemetry
           </p>
         </div>
 
@@ -108,7 +108,7 @@ const AdminPremiumView = () => {
             <Zap className="w-4 h-4 text-amber-400" /> Active High Plan Accounts ({premiumUsers.length})
           </h3>
           <span className="text-xs text-amber-400 font-mono bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-            High Plan (₹999/mo)
+            {CALYXO_PRIMARY_PLAN.name} ({CALYXO_PRIMARY_PLAN.symbol}{CALYXO_PRIMARY_PLAN.price.toLocaleString()})
           </span>
         </div>
 

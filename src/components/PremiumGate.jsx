@@ -3,6 +3,7 @@ import { Lock, Zap, ArrowRight, CreditCard, Loader2 } from 'lucide-react';
 import Logo from './Logo';
 import { useStore } from '../store/useStore';
 import { startRazorpayCheckout } from '../utils/razorpay';
+import { CALYXO_PRIMARY_PLAN } from '../services/adminService';
 
 export default function PremiumGate({ 
   title = "Premium Feature Locked", 
@@ -17,9 +18,9 @@ export default function PremiumGate({
 
   const handleSubscribe = () => {
     const plan = {
-      id: 'MEDIUM',
-      name: 'PREMIUM AI ACCESS',
-      amountPaise: 100
+      id: CALYXO_PRIMARY_PLAN.code,
+      name: CALYXO_PRIMARY_PLAN.name,
+      amountPaise: CALYXO_PRIMARY_PLAN.price * 100
     };
     startRazorpayCheckout({
       plan,
@@ -61,7 +62,7 @@ export default function PremiumGate({
           <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Subscription Tier:</span>
           <span className="px-2.5 py-0.5 rounded-full bg-acid-green/20 text-acid-green border border-acid-green/30 font-black text-[10px] uppercase tracking-wider flex items-center gap-1">
             <Zap className="w-3 h-3" />
-            AI PREMIUM (₹1/mo)
+            {CALYXO_PRIMARY_PLAN.name.toUpperCase()} ({CALYXO_PRIMARY_PLAN.symbol}{CALYXO_PRIMARY_PLAN.price.toLocaleString()})
           </span>
         </div>
 

@@ -592,52 +592,46 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
   const statusStr = isRevoke ? 'Revoked' : 'Active';
 
   if (!isMockMode && userId) {
-    // 1. Update or Insert subscriptions table in Supabase
-    try {
-      const { data: existingSub } = await supabase
-        .from('subscriptions')
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle();
+    // 1. Upsert subscriptions table — this is the source of truth
+    const subFields = {
+      plan: plan,
+      status: statusStr,
+      purchase_date: now.toISOString(),
+      expiry_date: expiryDate.toISOString(),
+      granted_by: adminId,
+      payment_source: 'Admin Manual',
+      payment_id: `admin_grant_${Date.now()}`,
+      amount: plan === 'HIGH' ? CALYXO_PRIMARY_PLAN.price : 0,
+      currency: CALYXO_PRIMARY_PLAN.currency,
+      updated_at: now.toISOString()
+    };
 
-      const subPayload = {
-        user_id: userId,
-        plan: plan,
-        status: statusStr,
-        purchase_date: now.toISOString(),
-        expiry_date: expiryDate.toISOString(),
-        granted_by: adminId,
-        payment_source: 'Admin Manual',
-        payment_id: `admin_grant_${Date.now()}`,
-        amount: plan === 'HIGH' ? 999 : 0,
-        currency: 'INR',
-        updated_at: now.toISOString()
-      };
+    const { data: existingSub } = await supabase
+      .from('subscriptions')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
 
-      if (existingSub) {
-        await supabase.from('subscriptions').update(subPayload).eq('user_id', userId);
-      } else {
-        await supabase.from('subscriptions').insert(subPayload);
-      }
-    } catch (subEx) {
-      console.warn('[adminService] Exception updating subscriptions table:', subEx);
+    if (existingSub) {
+      const { error: subErr } = await supabase.from('subscriptions').update(subFields).eq('user_id', userId);
+      if (subErr) throw new Error(`Subscriptions update failed: ${subErr.message}`);
+    } else {
+      const { error: subErr } = await supabase.from('subscriptions').insert({ user_id: userId, ...subFields });
+      if (subErr) throw new Error(`Subscriptions insert failed: ${subErr.message}`);
     }
 
-    // 2. Partial UPDATE on user_profiles table (preserves email and all existing fields)
-    try {
-      const { error: profileErr } = await supabase
-        .from('user_profiles')
-        .update({ subscription_plan: plan })
-        .eq('id', userId);
+    // 2. Partial UPDATE on user_profiles (preserves email and all existing fields)
+    const { error: profileErr } = await supabase
+      .from('user_profiles')
+      .update({ subscription_plan: plan })
+      .eq('id', userId);
 
-      if (profileErr) {
-        console.warn('[adminService] Warning updating user_profiles subscription_plan:', profileErr.message);
-      }
-    } catch (profEx) {
-      console.warn('[adminService] Exception updating user_profiles table:', profEx);
+    if (profileErr) {
+      console.warn('[adminService] user_profiles subscription_plan update warning:', profileErr.message);
+      // Non-fatal: subscriptions table is the source of truth
     }
 
-    // 3. Update users_metrics bio payload if present
+    // 3. Best-effort sync users_metrics bio payload
     try {
       const { data: metrics } = await supabase.from('users_metrics').select('bio').eq('id', `${userId}_profile`).maybeSingle();
       let bioObj = {};
@@ -658,7 +652,7 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
         updatedAt: now.toISOString()
       });
     } catch (mErr) {
-      console.warn('[adminService] Metrics bio update error:', mErr);
+      console.warn('[adminService] Metrics bio sync (non-fatal):', mErr);
     }
   }
 
