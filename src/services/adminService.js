@@ -495,10 +495,7 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
         if (matchedKey) {
           const existing = userMap.get(matchedKey);
           const customName = resolveInAppName(existing.email, existing.full_name, m.displayName, bioExtra);
-          const isPaid = existing.subscription_plan === 'HIGH' || 
-                         bioExtra.subscriptionPlan === 'HIGH' || 
-                         existing.email === 'supreethkiran25@gmail.com' || 
-                         existing.email === 'malipatilharshith@gmail.com';
+          const isPaid = existing.subscription_plan === 'HIGH';
 
           userMap.set(matchedKey, {
             ...existing,

@@ -22,7 +22,7 @@ const NotificationComposerModal = ({ isOpen, onClose, onSuccess }) => {
     setLoading(true);
     try {
       await sendAdminNotification(formData);
-      onSuccess();
+      if (typeof onSuccess === 'function') onSuccess();
       onClose();
     } catch (err) {
       console.error('[NotificationComposerModal] Error broadcasting notification:', err);

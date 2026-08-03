@@ -18,7 +18,7 @@ const GrantPremiumModal = ({ isOpen, onClose, user, onSuccess }) => {
     try {
       const finalDuration = duration === 'Custom' ? `${customDays} Days` : duration;
       await updateUserSubscription(user.id, plan, finalDuration, reason, 'supreethkiran25@gmail.com');
-      onSuccess();
+      if (typeof onSuccess === 'function') onSuccess();
       onClose();
     } catch (err) {
       console.error('[GrantPremiumModal] Error granting premium:', err);
