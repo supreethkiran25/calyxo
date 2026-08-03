@@ -766,13 +766,25 @@ export const getUserProfile = async (userId) => {
         .eq("id", userId)
         .maybeSingle();
 
-      if (upData?.subscription_plan && upData.subscription_plan !== 'FREE') {
+      if (upData?.subscription_plan) {
         userProfileSubPlan = upData.subscription_plan;
       }
       if (upData?.email) {
         userEmail = userEmail || upData.email;
       }
     } catch (upErr) { /* ignore fallback query error */ }
+
+    try {
+      const { data: subData } = await supabase
+        .from("subscriptions")
+        .select("plan, status")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (subData?.status === 'Active' && subData?.plan === 'HIGH') {
+        userProfileSubPlan = 'HIGH';
+      }
+    } catch (subErr) { /* ignore subscription table error */ }
 
     const cleanEmail = (userEmail || "").toLowerCase().trim();
     if (cleanEmail === 'supreethkiran25@gmail.com') {
@@ -790,10 +802,8 @@ export const getUserProfile = async (userId) => {
       }
       const localState = getLocalState(userId);
       const isKnownPremiumEmail = cleanEmail === 'supreethkiran25@gmail.com';
-      const subPlan = isKnownPremiumEmail ? 'HIGH' : (extra.subscriptionPlan || userProfileSubPlan || localState.userProfile?.subscriptionPlan || 'FREE');
-      const isSub = isKnownPremiumEmail ? true : (extra.isSubscribed !== undefined
-        ? extra.isSubscribed
-        : (subPlan !== 'FREE' && subPlan !== 'DEFAULT'));
+      const subPlan = isKnownPremiumEmail ? 'HIGH' : (userProfileSubPlan || extra.subscriptionPlan || localState.userProfile?.subscriptionPlan || 'FREE');
+      const isSub = isKnownPremiumEmail ? true : (subPlan !== 'FREE' && subPlan !== 'DEFAULT');
 
       const combinedProfile = {
         ...localState.userProfile,
