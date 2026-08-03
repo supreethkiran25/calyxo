@@ -23,7 +23,7 @@ import {
   Clock,
   Sparkles
 } from 'lucide-react';
-import { updateUserStatus, updateUserSubscription, deleteUserAdmin, editUserAdmin, logAdminAction } from '../../services/adminService';
+import { updateUserStatus, updateUserSubscription, deleteUserAdmin, editUserAdmin, logAdminAction, sendAdminNotification } from '../../services/adminService';
 
 const UserProfileDetailModal = ({ user, onClose, onRefresh }) => {
   const [activeTab, setActiveTab] = useState('overview');
