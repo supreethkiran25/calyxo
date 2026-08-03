@@ -7,18 +7,6 @@ let swRegistration = null;
 export async function registerServiceWorker() {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return null;
 
-  // On localhost / development, unregister any stale service workers that interfere with normal Ctrl+R reload
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    try {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (const reg of registrations) {
-        await reg.unregister();
-        console.log('[NotificationService] Unregistered development service worker for instant Ctrl+R reload:', reg.scope);
-      }
-      return null;
-    } catch (e) {}
-  }
-
   try {
     const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     swRegistration = reg;
@@ -28,6 +16,35 @@ export async function registerServiceWorker() {
   } catch (error) {
     console.warn('[NotificationService] Service Worker registration failed:', error);
     return null;
+  }
+}
+
+export async function triggerOSNotification(title, body, url = '/user/dashboard') {
+  if (typeof window === 'undefined' || !('Notification' in window)) return;
+
+  if (Notification.permission === 'granted') {
+    try {
+      if ('serviceWorker' in navigator) {
+        const reg = swRegistration || await navigator.serviceWorker.ready;
+        if (reg && reg.showNotification) {
+          await reg.showNotification(title, {
+            body: body,
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+            vibrate: [300, 100, 300],
+            tag: `calyxo-os-${Date.now()}`,
+            data: { url: url || '/user/dashboard' }
+          });
+          return;
+        }
+      }
+      new Notification(title, {
+        body: body,
+        icon: '/icon-192x192.png'
+      });
+    } catch (e) {
+      console.warn('[NotificationService] OS notification trigger exception:', e);
+    }
   }
 }
 

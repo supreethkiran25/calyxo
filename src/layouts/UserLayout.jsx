@@ -6,7 +6,7 @@ import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import useQuickActionsStore from '../store/useQuickActionsStore';
 import { signOutUser, subscribeToAuth, loadUserData } from '../lib/dbService';
-import { subscribeToInAppNotifications, markNotificationAsRead, deleteNotification } from '../services/notificationService';
+import { subscribeToInAppNotifications, markNotificationAsRead, deleteNotification, registerServiceWorker, subscribeToPushNotifications, triggerOSNotification } from '../services/notificationService';
 import { supabase } from '../lib/supabaseClient';
 
 import Logo from '../components/Logo';
@@ -144,14 +144,29 @@ export default function UserLayout() {
     return () => unsubscribeAuth();
   }, []);
 
-  // Realtime in-app notifications and subscription plan sync
+  // Realtime in-app notifications, Web Push engine, and subscription plan sync
+  const prevNotifCountRef = useRef(0);
+
   useEffect(() => {
     const uid = user?.uid || user?.id;
     if (!uid) return;
 
-    // 1. In-app notifications realtime subscription
+    // Register service worker and subscribe to W3C Web Push
+    registerServiceWorker().then(() => {
+      subscribeToPushNotifications(uid);
+    });
+
+    // 1. In-app notifications realtime subscription + OS notification trigger
     const unsubNotifs = subscribeToInAppNotifications(uid, (notifsList) => {
-      setNotifications(notifsList || []);
+      const list = notifsList || [];
+      if (list.length > prevNotifCountRef.current && prevNotifCountRef.current > 0) {
+        const newest = list[0];
+        if (newest && !newest.read) {
+          triggerOSNotification(newest.title || 'Calyxo Notification', newest.body || '', newest.cta_link);
+        }
+      }
+      prevNotifCountRef.current = list.length;
+      setNotifications(list);
     });
 
     // 2. User profile realtime subscription (Instant Premium status sync)
