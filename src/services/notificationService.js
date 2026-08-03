@@ -237,3 +237,88 @@ export function scheduleDailyReminders() {
     tag: 'nutrition-reminder'
   });
 }
+
+/* ==========================================================================
+   IN-APP USER NOTIFICATIONS API (SUPABASE PERSISTENT & REALTIME)
+   ========================================================================== */
+
+export async function getUserNotifications(userId) {
+  if (!userId) return [];
+  try {
+    const { data, error } = await supabase
+      .from('user_notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('[NotificationService] getUserNotifications DB error:', error.message);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.warn('[NotificationService] getUserNotifications exception:', err);
+    return [];
+  }
+}
+
+export async function markNotificationAsRead(notifId) {
+  if (!notifId) return false;
+  try {
+    const { error } = await supabase
+      .from('user_notifications')
+      .update({ read: true })
+      .eq('id', notifId);
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.warn('[NotificationService] markNotificationAsRead error:', err);
+    return false;
+  }
+}
+
+export async function deleteNotification(notifId) {
+  if (!notifId) return false;
+  try {
+    const { error } = await supabase
+      .from('user_notifications')
+      .delete()
+      .eq('id', notifId);
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.warn('[NotificationService] deleteNotification error:', err);
+    return false;
+  }
+}
+
+export function subscribeToInAppNotifications(userId, callback) {
+  if (!userId || typeof window === 'undefined') return () => {};
+
+  // Fetch initial notifications
+  getUserNotifications(userId).then(n => callback(n));
+
+  // Subscribe to Supabase Realtime channel for user_notifications
+  const channel = supabase
+    .channel(`user_notifications_${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'user_notifications',
+        filter: `user_id=eq.${userId}`
+      },
+      () => {
+        getUserNotifications(userId).then(n => callback(n));
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+

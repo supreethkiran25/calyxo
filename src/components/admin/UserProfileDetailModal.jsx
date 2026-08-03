@@ -61,11 +61,23 @@ const UserProfileDetailModal = ({ user, onClose, onRefresh }) => {
   const handleSendDirectNotif = async () => {
     if (!notificationMsg) return;
     setLoading(true);
-    await logAdminAction('DIRECT_NOTIFICATION_SENT', user.id, { message: notificationMsg });
-    alert(`Push notification sent directly to ${user.full_name}!`);
-    setNotificationMsg('');
-    setShowNotifInput(false);
-    setLoading(false);
+    try {
+      await sendAdminNotification({
+        userId: user.id,
+        title: 'Message from Calyxo Admin',
+        body: notificationMsg,
+        audience: 'Specific User',
+        cta_label: 'Open App',
+        cta_link: '/user/dashboard'
+      });
+      alert(`Notification sent directly to ${user.full_name}!`);
+      setNotificationMsg('');
+      setShowNotifInput(false);
+    } catch (err) {
+      alert(`Failed to send notification: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleExportJSON = () => {

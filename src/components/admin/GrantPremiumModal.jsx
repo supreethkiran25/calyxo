@@ -3,21 +3,29 @@ import { X, Crown } from 'lucide-react';
 import { updateUserSubscription } from '../../services/adminService';
 
 const GrantPremiumModal = ({ isOpen, onClose, user, onSuccess }) => {
-  const [plan, setPlan] = useState('HIGH');
+  const [plan] = useState('HIGH');
   const [duration, setDuration] = useState('12 Months');
   const [reason, setReason] = useState('Beta Tester');
   const [customDays, setCustomDays] = useState('30');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   if (!isOpen || !user) return null;
 
   const handleGrant = async () => {
+    setError('');
     setLoading(true);
-    const finalDuration = duration === 'Custom' ? `${customDays} Days` : duration;
-    await updateUserSubscription(user.id, plan, finalDuration, reason);
-    setLoading(false);
-    onSuccess();
-    onClose();
+    try {
+      const finalDuration = duration === 'Custom' ? `${customDays} Days` : duration;
+      await updateUserSubscription(user.id, plan, finalDuration, reason, 'supreethkiran25@gmail.com');
+      onSuccess();
+      onClose();
+    } catch (err) {
+      console.error('[GrantPremiumModal] Error granting premium:', err);
+      setError(err.message || 'Failed to grant premium pass. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const planPricing = {
@@ -43,6 +51,12 @@ const GrantPremiumModal = ({ isOpen, onClose, user, onSuccess }) => {
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {error && (
+          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+            {error}
+          </div>
+        )}
 
         {/* Plan Select */}
         <div className="space-y-2">

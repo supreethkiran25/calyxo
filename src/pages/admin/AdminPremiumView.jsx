@@ -10,12 +10,14 @@ import {
   CreditCard
 } from 'lucide-react';
 import { getAdminUsers, updateUserSubscription, LIVE_RAZORPAY_TRANSACTIONS } from '../../services/adminService';
+import { supabase } from '../../lib/supabaseClient';
 import GrantPremiumModal from '../../components/admin/GrantPremiumModal';
 
 const AdminPremiumView = () => {
   const [users, setUsers] = useState([]);
   const [grantModalUser, setGrantModalUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [revokingId, setRevokingId] = useState(null);
   const outletCtx = useOutletContext();
 
   const loadData = async () => {
@@ -27,6 +29,17 @@ const AdminPremiumView = () => {
 
   useEffect(() => {
     loadData();
+
+    // Subscribe to Supabase Realtime for instant subscription & user profile updates
+    const channel = supabase
+      .channel('admin_premium_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_profiles' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'subscriptions' }, () => loadData())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   if (loading) {
@@ -105,6 +118,7 @@ const AdminPremiumView = () => {
               <tr>
                 <th className="p-4 font-bold">User</th>
                 <th className="p-4 font-bold">Tier Plan</th>
+                <th className="p-4 font-bold">Source & Granted By</th>
                 <th className="p-4 font-bold">Subscription Expiry</th>
                 <th className="p-4 font-bold">Renewal Status</th>
                 <th className="p-4 font-bold text-right">Actions</th>
@@ -128,6 +142,10 @@ const AdminPremiumView = () => {
                     </span>
                   </td>
                   <td className="p-4 text-neutral-300">
+                    <span className="block font-bold text-neutral-200">{u.payment_source || 'Razorpay'}</span>
+                    <span className="text-[10px] text-neutral-400 block font-mono">By: {u.granted_by || 'Razorpay'}</span>
+                  </td>
+                  <td className="p-4 text-neutral-300">
                     <span className="block font-bold text-amber-300">{u.subscription_expiry}</span>
                     <span className="text-[10px] text-neutral-400">{u.days_remaining} days remaining</span>
                   </td>
@@ -145,13 +163,21 @@ const AdminPremiumView = () => {
                         Modify Pass
                       </button>
                       <button
+                        disabled={revokingId === u.id}
                         onClick={async () => {
-                          await updateUserSubscription(u.id, 'FREE', '0', 'Admin revoked');
-                          loadData();
+                          try {
+                            setRevokingId(u.id);
+                            await updateUserSubscription(u.id, 'FREE', '0', 'Admin revoked', 'supreethkiran25@gmail.com');
+                            await loadData();
+                          } catch (err) {
+                            alert(err.message || 'Failed to revoke subscription');
+                          } finally {
+                            setRevokingId(null);
+                          }
                         }}
-                        className="px-2.5 py-1 rounded-lg bg-red-950/40 text-red-400 hover:bg-red-900/60 text-xs font-semibold cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-red-950/40 text-red-400 hover:bg-red-900/60 text-xs font-semibold cursor-pointer disabled:opacity-50"
                       >
-                        Revoke Pass
+                        {revokingId === u.id ? 'Revoking...' : 'Revoke Pass'}
                       </button>
                     </div>
                   </td>

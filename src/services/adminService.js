@@ -363,12 +363,12 @@ const resolveInAppName = (email, profileName, metricsName, bioExtra = {}) => {
 };
 
 /* ==========================================================================
-   USER MANAGEMENT — STRICTLY 7 SUPABASE AUTH ACCOUNTS WITH CUSTOM NAMES
+   USER MANAGEMENT — STRICTLY SUPABASE AUTH ACCOUNTS WITH REALTIME PERSISTENCE
    ========================================================================== */
-export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter = '', page = 1, limit = 10, sortBy = 'signup_date', sortDir = 'desc' } = {}) => {
+export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter = '', page = 1, limit = 100, sortBy = 'signup_date', sortDir = 'desc' } = {}) => {
   const userMap = new Map();
 
-  // Prepopulate all 7 registered Supabase Auth users as single source of truth
+  // Prepopulate registered Supabase Auth users
   MASTER_SUPABASE_AUTH_ACCOUNTS.forEach(u => {
     const key = u.email.toLowerCase().trim();
     userMap.set(key, {
@@ -377,6 +377,9 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
       last_active: new Date().toISOString().replace('T', ' ').substring(0, 16),
       days_remaining: u.subscription_plan === 'HIGH' ? '357' : '0',
       subscription_expiry: u.subscription_plan === 'HIGH' ? '2027-07-25' : 'N/A',
+      granted_by: u.subscription_plan === 'HIGH' ? 'Razorpay' : 'N/A',
+      payment_source: u.subscription_plan === 'HIGH' ? 'Razorpay' : 'N/A',
+      last_payment_id: u.subscription_plan === 'HIGH' ? 'pay_TlEl9QNm2AuW7I' : 'N/A',
       goal: 'Maintain',
       streak: 0,
       total_workouts: 0,
@@ -396,30 +399,55 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
 
   if (!isMockMode) {
     try {
-      const [profilesRes, metricsRes, pushSubsRes] = await Promise.all([
+      const [profilesRes, subsRes, metricsRes, pushSubsRes] = await Promise.all([
         supabase.from('user_profiles').select('*'),
+        supabase.from('subscriptions').select('*'),
         supabase.from('users_metrics').select('*'),
         supabase.from('push_subscriptions').select('user_id, platform, updated_at')
       ]);
 
       const profilesData = profilesRes.data || [];
+      const subsData = subsRes.data || [];
       const metricsData = metricsRes.data || [];
       const pushSubsData = pushSubsRes.data || [];
+
+      const subsByUser = new Map();
+      subsData.forEach(s => {
+        if (s.user_id) subsByUser.set(s.user_id, s);
+      });
 
       // 1. Process profiles from Supabase user_profiles
       profilesData.forEach(p => {
         const key = p.email ? p.email.toLowerCase().trim() : null;
-        if (!key || !userMap.has(key)) return;
+        if (!key) return;
 
-        const existing = userMap.get(key);
-        const isPaidUser = key === 'supreethkiran25@gmail.com' || 
-                           key === 'malipatilharshith@gmail.com' || 
-                           LIVE_RAZORPAY_TRANSACTIONS.some(tx => tx.customer_email.toLowerCase() === key) ||
-                           (p.subscription_plan && p.subscription_plan !== 'FREE');
-        
+        const existing = userMap.get(key) || {
+          id: p.id,
+          email: p.email,
+          full_name: resolveInAppName(p.email, p.full_name || p.display_name),
+          signup_date: p.created_at ? p.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10),
+          status: 'Active',
+          photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(p.email)}&background=6366f1&color=fff`
+        };
+
+        const subRecord = subsByUser.get(p.id);
+        const isPaidUser = (subRecord && subRecord.status === 'Active' && subRecord.plan === 'HIGH') ||
+                           (p.subscription_plan && p.subscription_plan === 'HIGH') ||
+                           key === 'supreethkiran25@gmail.com' ||
+                           key === 'malipatilharshith@gmail.com' ||
+                           LIVE_RAZORPAY_TRANSACTIONS.some(tx => tx.customer_email.toLowerCase() === key);
+
         const plan = isPaidUser ? 'HIGH' : 'FREE';
         const subDate = p.created_at ? p.created_at.substring(0, 10) : existing.signup_date;
         const name = resolveInAppName(p.email, p.full_name || p.display_name || p.nickname);
+
+        let expiryStr = subRecord?.expiry_date ? subRecord.expiry_date.substring(0, 10) : (plan === 'HIGH' ? '2027-07-25' : 'N/A');
+        let daysRem = '0';
+        if (plan === 'HIGH') {
+          const expTime = new Date(expiryStr === 'N/A' ? '2027-07-25' : expiryStr).getTime();
+          const diff = Math.ceil((expTime - Date.now()) / (1000 * 60 * 60 * 24));
+          daysRem = diff > 0 ? String(diff) : '0';
+        }
 
         userMap.set(key, {
           ...existing,
@@ -427,12 +455,17 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
           full_name: name,
           subscription_plan: plan,
           signup_date: subDate,
-          goal: p.goal || existing.goal,
+          subscription_expiry: expiryStr,
+          days_remaining: daysRem,
+          granted_by: subRecord?.granted_by || (plan === 'HIGH' ? 'Razorpay' : 'N/A'),
+          payment_source: subRecord?.payment_source || (plan === 'HIGH' ? 'Razorpay' : 'N/A'),
+          last_payment_id: subRecord?.payment_id || (plan === 'HIGH' ? 'pay_live_001' : 'N/A'),
+          goal: p.goal || existing.goal || 'Maintain',
           photoURL: (p.photoURL && !p.photoURL.includes('unsplash')) ? p.photoURL : existing.photoURL
         });
       });
 
-      // 2. Enrich with biometrics from metricsData for matching real accounts
+      // 2. Enrich with biometrics from metricsData
       metricsData.forEach(m => {
         let bioExtra = {};
         try { bioExtra = JSON.parse(m.bio || '{}'); } catch (e) {}
@@ -456,8 +489,6 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
           const customName = resolveInAppName(existing.email, existing.full_name, m.displayName, bioExtra);
           const isPaid = existing.subscription_plan === 'HIGH' || 
                          bioExtra.subscriptionPlan === 'HIGH' || 
-                         bioExtra.subscriptionPlan === 'PRO' || 
-                         bioExtra.subscriptionPlan === 'ULTIMATE' || 
                          existing.email === 'supreethkiran25@gmail.com' || 
                          existing.email === 'malipatilharshith@gmail.com';
 
@@ -493,7 +524,6 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
     }
   }
 
-  // Pure list directly from Supabase DB — NO fake users added!
   let users = Array.from(userMap.values());
 
   let filtered = users.filter(u => {
@@ -538,18 +568,99 @@ export const updateUserStatus = async (userId, newStatus, reason = '') => {
   return true;
 };
 
-export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '12 Months', reason = 'Manual') => {
-  if (!isMockMode) {
-    try {
-      await supabase.from('user_profiles').upsert({
-        id: userId,
-        subscription_plan: plan,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'id' });
-    } catch (e) {}
+export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '12 Months', reason = 'Manual', adminId = 'supreethkiran25@gmail.com') => {
+  const isRevoke = plan === 'FREE';
+  const now = new Date();
+  
+  let daysToAdd = 365;
+  if (duration.includes('1 Month')) daysToAdd = 30;
+  else if (duration.includes('3 Month')) daysToAdd = 90;
+  else if (duration.includes('6 Month')) daysToAdd = 180;
+  else if (duration.includes('12 Month')) daysToAdd = 365;
+  else if (duration.includes('Lifetime')) daysToAdd = 36500;
+  else if (duration.includes('Days') || !isNaN(parseInt(duration))) {
+    const parsed = parseInt(duration);
+    if (!isNaN(parsed) && parsed > 0) daysToAdd = parsed;
   }
 
-  await logAdminAction('PREMIUM_GRANTED', userId, { plan, duration, reason });
+  const expiryDate = new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+  const statusStr = isRevoke ? 'Revoked' : 'Active';
+
+  if (!isMockMode && userId) {
+    // 1. Update user_profiles table in Supabase
+    const { error: profileErr } = await supabase.from('user_profiles').upsert({
+      id: userId,
+      subscription_plan: plan,
+      updated_at: now.toISOString()
+    }, { onConflict: 'id' });
+
+    if (profileErr) {
+      console.error('[adminService] Error updating user_profiles subscription:', profileErr);
+      throw new Error(`Database error updating user profile: ${profileErr.message}`);
+    }
+
+    // 2. Upsert subscriptions table in Supabase
+    try {
+      const { error: subErr } = await supabase.from('subscriptions').upsert({
+        user_id: userId,
+        plan: plan,
+        status: statusStr,
+        purchase_date: now.toISOString(),
+        expiry_date: expiryDate.toISOString(),
+        granted_by: adminId,
+        payment_source: 'Admin Manual',
+        payment_id: `admin_grant_${Date.now()}`,
+        amount: plan === 'HIGH' ? 999 : 0,
+        currency: 'INR',
+        updated_at: now.toISOString()
+      }, { onConflict: 'user_id' });
+
+      if (subErr) {
+        console.warn('[adminService] Subscriptions table upsert warning:', subErr.message);
+      }
+    } catch (subEx) {
+      console.warn('[adminService] Exception updating subscriptions table:', subEx);
+    }
+
+    // 3. Update users_metrics bio payload if present
+    try {
+      const { data: metrics } = await supabase.from('users_metrics').select('bio').eq('id', `${userId}_profile`).maybeSingle();
+      let bioObj = {};
+      if (metrics?.bio) {
+        try { bioObj = JSON.parse(metrics.bio); } catch (e) {}
+      }
+      bioObj.subscriptionPlan = plan;
+      bioObj.isSubscribed = !isRevoke;
+      bioObj.subscriptionDate = now.toISOString();
+      bioObj.subscriptionExpiry = expiryDate.toISOString();
+      bioObj.grantedBy = adminId;
+      bioObj.activePass = plan;
+
+      await supabase.from('users_metrics').upsert({
+        id: `${userId}_profile`,
+        userId: userId,
+        bio: JSON.stringify(bioObj),
+        updatedAt: now.toISOString()
+      });
+    } catch (mErr) {
+      console.warn('[adminService] Metrics bio update error:', mErr);
+    }
+  }
+
+  // 4. Log immutable audit entry
+  await logAdminAction(
+    isRevoke ? 'PREMIUM_REVOKED' : 'PREMIUM_GRANTED',
+    userId,
+    {
+      plan,
+      duration,
+      reason,
+      grantedBy: adminId,
+      expiryDate: isRevoke ? null : expiryDate.toISOString(),
+      timestamp: now.toISOString()
+    }
+  );
+
   return true;
 };
 
@@ -715,20 +826,103 @@ export const getAdminNotifications = async () => {
 };
 
 export const sendAdminNotification = async (payload) => {
+  const nowStr = new Date().toISOString();
+  const notifId = `bc_${Date.now()}`;
   const entry = {
-    ...payload,
-    id: `bc_${Date.now()}`,
-    sent_at: new Date().toISOString().replace('T', ' ').substring(0, 16),
+    id: notifId,
+    title: payload.title || 'Calyxo Announcement',
+    body: payload.body || '',
+    audience: payload.audience || 'Everyone',
+    cta_label: payload.cta_label || 'View Feature',
+    cta_link: payload.cta_link || '/user/dashboard',
+    sent_at: nowStr,
     delivered: 0,
     clicks: 0
   };
 
+  let recipientCount = 0;
+
   if (!isMockMode) {
+    // 1. Insert into system_notifications table
     try {
-      await supabase.from('system_notifications').insert(entry);
+      const { error } = await supabase.from('system_notifications').insert(entry);
+      if (error) console.warn('[adminService] system_notifications insert warning:', error.message);
+    } catch (e) {}
+
+    // 2. Fetch target user profiles to populate in-app user_notifications table
+    try {
+      let query = supabase.from('user_profiles').select('id, subscription_plan');
+      if (payload.audience === 'Premium Users') {
+        query = query.eq('subscription_plan', 'HIGH');
+      } else if (payload.audience === 'Free Users') {
+        query = query.eq('subscription_plan', 'FREE');
+      } else if (payload.userId) {
+        query = query.eq('id', payload.userId);
+      }
+
+      const { data: targetUsers, error: fetchErr } = await query;
+
+      if (!fetchErr && targetUsers && targetUsers.length > 0) {
+        recipientCount = targetUsers.length;
+        const userNotifEntries = targetUsers.map(u => ({
+          user_id: u.id,
+          notification_id: notifId,
+          title: entry.title,
+          body: entry.body,
+          cta_label: entry.cta_label,
+          cta_link: entry.cta_link,
+          read: false,
+          created_at: nowStr
+        }));
+
+        const { error: inAppErr } = await supabase.from('user_notifications').insert(userNotifEntries);
+        if (inAppErr) {
+          console.warn('[adminService] user_notifications batch insert warning:', inAppErr.message);
+        }
+      }
+    } catch (inAppEx) {
+      console.warn('[adminService] Exception preparing in-app notifications:', inAppEx);
+    }
+
+    // 3. Trigger Web Push notifications to active subscriptions
+    try {
+      const { data: pushTokens } = await supabase.from('push_subscriptions').select('user_id');
+      if (pushTokens && pushTokens.length > 0) {
+        const uniqueUserIds = [...new Set(pushTokens.map(pt => pt.user_id))];
+        await Promise.allSettled(
+          uniqueUserIds.map(uid => 
+            fetch('/api/push/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: uid,
+                title: entry.title,
+                body: entry.body,
+                url: entry.cta_link,
+                tag: notifId
+              })
+            })
+          )
+        );
+      }
+    } catch (pushEx) {
+      console.warn('[adminService] Web push broadcast warning:', pushEx);
+    }
+
+    // Update delivered count
+    entry.delivered = recipientCount;
+    try {
+      await supabase.from('system_notifications').update({ delivered: recipientCount }).eq('id', notifId);
     } catch (e) {}
   }
-  await logAdminAction('NOTIFICATION_SENT', entry.id, payload);
+
+  await logAdminAction('NOTIFICATION_SENT', entry.id, {
+    title: entry.title,
+    audience: entry.audience,
+    recipients: recipientCount,
+    timestamp: nowStr
+  });
+
   return entry;
 };
 

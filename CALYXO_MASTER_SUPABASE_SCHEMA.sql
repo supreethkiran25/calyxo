@@ -361,6 +361,49 @@ CREATE POLICY "Users manage own workout logs" ON public.workout_logs FOR ALL USI
 DROP POLICY IF EXISTS "Users manage own push subscriptions" ON public.push_subscriptions;
 CREATE POLICY "Users manage own push subscriptions" ON public.push_subscriptions FOR ALL USING (true);
 
+-- 21. Subscriptions Table (Super Admin & SaaS Subscription Engine)
+CREATE TABLE IF NOT EXISTS public.subscriptions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES public.user_profiles(id) ON DELETE CASCADE NOT NULL UNIQUE,
+  plan text DEFAULT 'HIGH' NOT NULL,
+  status text DEFAULT 'Active' NOT NULL,
+  purchase_date timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  expiry_date timestamp with time zone NOT NULL,
+  granted_by text,
+  payment_source text DEFAULT 'Razorpay',
+  payment_id text,
+  amount numeric DEFAULT 999,
+  currency text DEFAULT 'INR',
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admin & User Access Subscriptions" ON public.subscriptions;
+CREATE POLICY "Admin & User Access Subscriptions" ON public.subscriptions FOR ALL USING (true);
+
+-- 22. In-App User Notifications Table
+CREATE TABLE IF NOT EXISTS public.user_notifications (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES public.user_profiles(id) ON DELETE CASCADE NOT NULL,
+  notification_id text,
+  title text NOT NULL,
+  body text NOT NULL,
+  cta_label text,
+  cta_link text,
+  read boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.user_notifications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admin & User Access Notifications" ON public.user_notifications;
+CREATE POLICY "Admin & User Access Notifications" ON public.user_notifications FOR ALL USING (true);
+
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON public.subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON public.user_notifications(user_id);
+
 -- Enable Supabase Realtime Channels
 DO $$
 BEGIN
@@ -371,6 +414,24 @@ BEGIN
       AND tablename = 'user_profiles'
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.user_profiles;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+      AND schemaname = 'public' 
+      AND tablename = 'subscriptions'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.subscriptions;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+      AND schemaname = 'public' 
+      AND tablename = 'user_notifications'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.user_notifications;
   END IF;
 END;
 $$;

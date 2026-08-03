@@ -12,16 +12,24 @@ const NotificationComposerModal = ({ isOpen, onClose, onSuccess }) => {
     image_url: ''
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
-    await sendAdminNotification(formData);
-    setLoading(false);
-    onSuccess();
-    onClose();
+    try {
+      await sendAdminNotification(formData);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      console.error('[NotificationComposerModal] Error broadcasting notification:', err);
+      setError(err.message || 'Failed to broadcast notification. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -38,6 +46,12 @@ const NotificationComposerModal = ({ isOpen, onClose, onSuccess }) => {
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {error && (
+          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3 text-xs">
           <div>

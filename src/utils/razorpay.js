@@ -77,7 +77,8 @@ export const startRazorpayCheckout = async ({
               body: JSON.stringify({
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature
+                razorpay_signature: response.razorpay_signature,
+                userId: user?.uid || user?.id
               })
             });
             const verifyData = await verifyRes.json();

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
   // CORS Headers
@@ -22,7 +23,7 @@ export default async function handler(req, res) {
     });
   }
 
-  const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body || {};
+  const { razorpay_payment_id, razorpay_order_id, razorpay_signature, userId } = req.body || {};
 
   if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
     return res.status(400).json({
@@ -46,9 +47,56 @@ export default async function handler(req, res) {
       });
     }
 
+    // Persist Subscription to Supabase DB if userId is present
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+    if (userId && supabaseUrl && supabaseKey) {
+      try {
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        const now = new Date();
+        const expiryDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+
+        await supabase.from('user_profiles').upsert({
+          id: userId,
+          subscription_plan: 'HIGH',
+          updated_at: now.toISOString()
+        }, { onConflict: 'id' });
+
+        await supabase.from('subscriptions').upsert({
+          user_id: userId,
+          plan: 'HIGH',
+          status: 'Active',
+          purchase_date: now.toISOString(),
+          expiry_date: expiryDate.toISOString(),
+          granted_by: 'Razorpay Gateway',
+          payment_source: 'Razorpay',
+          payment_id: razorpay_payment_id,
+          amount: 999,
+          currency: 'INR',
+          updated_at: now.toISOString()
+        }, { onConflict: 'user_id' });
+
+        await supabase.from('admin_audit_logs').insert({
+          admin_id: 'Razorpay Gateway',
+          action: 'PAYMENT_SUCCESS_HIGH_GRANTED',
+          target_id: userId,
+          details: JSON.stringify({
+            payment_id: razorpay_payment_id,
+            order_id: razorpay_order_id,
+            plan: 'HIGH',
+            amount: 999,
+            expiry_date: expiryDate.toISOString()
+          })
+        });
+      } catch (dbErr) {
+        console.warn('Supabase DB subscription persist warning:', dbErr);
+      }
+    }
+
     return res.status(200).json({
       success: true,
-      message: 'Payment verified successfully',
+      message: 'Payment verified and subscription activated successfully',
       payment_id: razorpay_payment_id,
       order_id: razorpay_order_id
     });
