@@ -352,8 +352,6 @@ export default function WorkoutLogger({ onNotification }) {
   useEffect(() => {
     const updateTimeState = () => {
       const currentToday = getTodayDateString();
-      const currentDayIdx = getLocalDayOfWeekIndex();
-      setActiveDay(currentDayIdx);
       setSelectedDate(prev => {
         // If prev date was yesterday, auto-advance to today's date
         const yesterday = getTodayDateString(new Date(Date.now() - 86400000));
@@ -375,6 +373,7 @@ export default function WorkoutLogger({ onNotification }) {
     }
   });
   const [editingSplit, setEditingSplit] = useState(false);
+  const [editingSplitDayIdx, setEditingSplitDayIdx] = useState(null);
   const [editRoutineFields, setEditRoutineFields] = useState({ type: '', desc: '', exercises: [] });
   const [activeSplitEditIdx, setActiveSplitEditIdx] = useState(null);
   const [splitEditSuggestions, setSplitEditSuggestions] = useState([]);
@@ -963,12 +962,16 @@ export default function WorkoutLogger({ onNotification }) {
     }
   };
 
-  const handleStartEditSplit = () => {
-    const activeSplit = splits[activeDay].workout;
+  const handleStartEditSplit = (dayIdxToEdit = activeDay) => {
+    const targetIdx = typeof dayIdxToEdit === 'number' ? dayIdxToEdit : activeDay;
+    const activeSplit = splits[targetIdx]?.workout;
+    if (!activeSplit) return;
+
+    setEditingSplitDayIdx(targetIdx);
     setEditRoutineFields({
-      type: activeSplit.type,
-      desc: activeSplit.desc,
-      exercises: activeSplit.exercises.map(x => ({ ...x }))
+      type: activeSplit.type || '',
+      desc: activeSplit.desc || '',
+      exercises: activeSplit.exercises ? activeSplit.exercises.map(x => ({ ...x })) : []
     });
     setEditingSplit(true);
     setActiveSplitEditIdx(null);
@@ -1049,22 +1052,29 @@ export default function WorkoutLogger({ onNotification }) {
   };
 
   const handleSaveSplitEdit = () => {
+    const targetIdx = editingSplitDayIdx !== null ? editingSplitDayIdx : activeDay;
     const updatedSplits = [...splits];
-    updatedSplits[activeDay].workout = {
-      type: editRoutineFields.type,
-      desc: editRoutineFields.desc,
-      exercises: editRoutineFields.exercises.map(x => ({ ...x }))
-    };
-    setSplits(updatedSplits);
-    try {
-      localStorage.setItem('calyxo_user_workout_splits', JSON.stringify(updatedSplits));
-    } catch (e) {
-      console.error("Failed to save splits to localStorage", e);
+    if (updatedSplits[targetIdx]) {
+      updatedSplits[targetIdx] = {
+        ...updatedSplits[targetIdx],
+        workout: {
+          type: editRoutineFields.type,
+          desc: editRoutineFields.desc,
+          exercises: editRoutineFields.exercises.map(x => ({ ...x }))
+        }
+      };
+      setSplits(updatedSplits);
+      try {
+        localStorage.setItem('calyxo_user_workout_splits', JSON.stringify(updatedSplits));
+      } catch (e) {
+        console.error("Failed to save splits to localStorage", e);
+      }
     }
     setEditingSplit(false);
+    setEditingSplitDayIdx(null);
     setActiveSplitEditIdx(null);
     setSplitEditSuggestions([]);
-    if (onNotification) onNotification("Suggested workout split updated & saved!");
+    if (onNotification) onNotification(`Saved ${splits[targetIdx]?.dayName || ''}'s workout split!`);
   };
 
   const favoriteExercises = useStore(state => state.favoriteExercises || []);
@@ -1438,13 +1448,13 @@ export default function WorkoutLogger({ onNotification }) {
 
                     <div className="flex gap-1.5 overflow-x-auto pb-3 border-b border-card-border mb-4 scrollbar-none">
                       {splits.map((day, idx) => {
-                        const isToday = activeDay === idx && idx === getLocalDayOfWeekIndex();
                         return (
                           <button
                             key={idx}
                             onClick={() => {
                               setActiveDay(idx);
                               setEditingSplit(false);
+                              setEditingSplitDayIdx(null);
                             }}
                             className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase cursor-pointer border transition-colors flex items-center gap-1 ${activeDay === idx
                                 ? 'bg-acid-green text-accent-foreground border-acid-green'
@@ -1548,15 +1558,10 @@ export default function WorkoutLogger({ onNotification }) {
                                               />
                                             </div>
                                             <div className="flex flex-col min-w-0 text-left">
-                                              <span className="font-bold text-xs truncate group-hover/item:text-black text-foreground capitalize">{item.name}</span>
-                                              <span className="text-[9.5px] opacity-80 truncate font-medium">
-                                                {item.target ? `Target: ${item.target}` : item.body_part ? `Body Part: ${item.body_part}` : item.category || 'Strength'}
-                                              </span>
+                                              <span className="text-xs font-bold truncate group-hover/item:text-black">{item.name}</span>
+                                              <span className="text-[9px] text-muted group-hover/item:text-black/80 font-medium truncate">{item.target || item.body_part || item.category}</span>
                                             </div>
                                           </div>
-                                          <span className="text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-md bg-acid-green/20 text-acid-green group-hover/item:bg-black group-hover/item:text-acid-green shrink-0">
-                                            Select
-                                          </span>
                                         </div>
                                       ))}
                                     </motion.div>
@@ -1573,12 +1578,17 @@ export default function WorkoutLogger({ onNotification }) {
                                     nextEx[i].details = e.target.value;
                                     setEditRoutineFields({ ...editRoutineFields, exercises: nextEx });
                                   }}
-                                  placeholder="4 sets × 10 reps"
-                                  className="bg-[var(--input)] border border-card-border rounded-xl px-2.5 py-1.5 text-xs text-foreground w-full sm:w-36 focus:outline-none focus:border-acid-green"
+                                  placeholder="e.g. 4 sets × 10 reps"
+                                  className={`${inputStyle} w-full sm:w-40`}
                                 />
 
-                                <button onClick={() => handleRemoveExerciseFromSplit(i)} className="text-destructive p-1.5 rounded-lg hover:bg-destructive/10 cursor-pointer bg-none border-none shrink-0" title="Delete Exercise">
-                                  <X className="w-4 h-4" />
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveExerciseFromSplit(i)}
+                                  className="p-1.5 text-muted hover:text-destructive transition-colors cursor-pointer shrink-0 border-none bg-none"
+                                  title="Remove Exercise"
+                                >
+                                  <Trash2 className="w-4 h-4" />
                                 </button>
                               </div>
                             </div>
@@ -1595,7 +1605,7 @@ export default function WorkoutLogger({ onNotification }) {
                         </button>
 
                         <div className="flex justify-end gap-2 pt-3 border-t border-card-border">
-                          <button onClick={() => setEditingSplit(false)} className="text-[10px] text-muted py-2 px-3 bg-surface border border-card-border rounded-xl flex items-center gap-1 cursor-pointer hover:text-foreground"><X className="w-3.5 h-3.5" /> Cancel</button>
+                          <button onClick={() => { setEditingSplit(false); setEditingSplitDayIdx(null); }} className="text-[10px] text-muted py-2 px-3 bg-surface border border-card-border rounded-xl flex items-center gap-1 cursor-pointer hover:text-foreground"><X className="w-3.5 h-3.5" /> Cancel</button>
                           <button onClick={handleSaveSplitEdit} className="text-[10px] text-accent-foreground bg-acid-green py-2 px-4 rounded-xl font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer border-none shadow-md shadow-acid-green/20 hover:brightness-110"><Check className="w-3.5 h-3.5" /> Save Split</button>
                         </div>
                       </div>
@@ -1631,7 +1641,7 @@ export default function WorkoutLogger({ onNotification }) {
                               Quick Log
                             </button>
                             <button
-                              onClick={handleStartEditSplit}
+                              onClick={() => handleStartEditSplit(activeDay)}
                               className="text-[9px] text-muted hover:text-foreground cursor-pointer flex items-center gap-1 font-bold uppercase tracking-wider bg-transparent border-none py-1.5 px-2 rounded-xl hover:bg-surface"
                             >
                               <Edit3 className="w-3 h-3" />
