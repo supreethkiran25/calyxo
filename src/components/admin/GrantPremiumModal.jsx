@@ -28,12 +28,6 @@ const GrantPremiumModal = ({ isOpen, onClose, user, onSuccess }) => {
     }
   };
 
-  const planPricing = {
-    PRO: '₹499/mo',
-    HIGH: '₹999/mo',
-    ULTIMATE: '₹1,499/mo'
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-lg rounded-2xl bg-neutral-900 border border-neutral-800 shadow-2xl overflow-hidden p-6 space-y-5">
@@ -66,7 +60,7 @@ const GrantPremiumModal = ({ isOpen, onClose, user, onSuccess }) => {
               <span className="font-bold text-amber-300 block">High Plan</span>
               <span className="text-[11px] text-neutral-400 font-mono">Full Access • AI Coach • Analytics</span>
             </div>
-            <span className="font-bold text-amber-400 font-mono text-sm">₹999/mo</span>
+            <span className="font-bold text-amber-400 font-mono text-sm">₹999</span>
           </div>
         </div>
 

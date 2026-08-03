@@ -93,7 +93,7 @@ const AdminRevenueView = () => {
         <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800">
           <span className="text-xs text-neutral-400 font-medium block">Active Subscription Tier</span>
           <span className="text-2xl font-bold text-amber-400 block mt-1">High Plan</span>
-          <span className="text-[10px] text-neutral-500 font-mono mt-1 block">₹999 / month</span>
+          <span className="text-[10px] text-neutral-500 font-mono mt-1 block">₹999</span>
         </div>
         <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800">
           <span className="text-xs text-neutral-400 font-medium block">Failed / Refunded</span>

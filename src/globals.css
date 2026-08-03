@@ -65,46 +65,44 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 :root {
-  /* Semantic WCAG variables (Light Mode) */
-  --background: #f9fafb;
-  --foreground: #111827;
+  /* Semantic WCAG High-Contrast Variables (Light Mode) */
+  --background: #f8fafc;
+  --foreground: #0f172a;
   --card: #ffffff;
-  --card-foreground: #111827;
-  --primary: #b5f23d;
-  --primary-foreground: #000000;
-  --secondary: #f3f4f6;
-  --secondary-foreground: #111827;
-  --muted: #f3f4f6;
-  --muted-foreground: #374151;
-  /* Accessible high-contrast gray text */
-  --accent: #4c7a00;
-  /* High contrast dark green text/buttons */
-  --accent-dim: #3d6600;
+  --card-foreground: #0f172a;
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #334155;
+  --accent: #4f46e5;
+  --accent-dim: #4338ca;
   --accent-foreground: #ffffff;
-  --border: #e5e7eb;
+  --border: #cbd5e1;
   --input: #ffffff;
-  --input-foreground: #111827;
+  --input-foreground: #0f172a;
   --success: #059669;
   --warning: #d97706;
   --destructive: #dc2626;
 
   /* Brand overrides for Light Mode */
-  --orange-theme: #d05c1d;
-  --blue-theme: #0277bd;
-  --primary-bg: #4c7a00;
+  --orange-theme: #d97706;
+  --blue-theme: #0284c7;
+  --primary-bg: #4f46e5;
   --primary-fg: #ffffff;
   --glow-shadow: none;
-  --accent-glow: rgba(76, 122, 0, 0.15);
+  --accent-glow: rgba(79, 70, 229, 0.15);
 
   /* Backward compatibility links */
   --card-bg: var(--card);
   --card-border: var(--border);
   --text-muted: var(--muted-foreground);
-  --nav-bg: rgba(255, 255, 255, 0.85);
+  --nav-bg: rgba(255, 255, 255, 0.95);
   --nav-border: var(--border);
   --surface: var(--secondary);
   --input-bg: var(--input);
-  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
 }
 
 :root.dark,
