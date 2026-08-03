@@ -123,25 +123,12 @@ export const useStore = create((set, get) => ({
         }
       }
     }));
-
-    try {
-      const user = get().user;
-      const uid = user?.uid || user?.id;
-      if (uid) {
-        saveUserProfile(uid, { theme, appearance: { ...currentApp, themeMode: theme } }).catch(() => {});
-      }
-    } catch (e) {}
   },
 
   toggleTheme: () => {
     const current = get().theme;
-    if (current === 'glass') {
-      get().setTheme('dark');
-    } else if (current === 'dark' || current === 'obsidian') {
-      get().setTheme('light');
-    } else {
-      get().setTheme('glass');
-    }
+    const nextTheme = (current === 'dark' || current === 'obsidian') ? 'light' : 'obsidian';
+    get().setTheme(nextTheme);
   },
 
   initializeTheme: () => {

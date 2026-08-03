@@ -35,7 +35,6 @@ export function applyAppearanceSettings({
 
   // 2. Apply Theme
   root.classList.remove('dark');
-  root.classList.remove('glass');
   root.removeAttribute('data-theme');
 
   let resolvedTheme = theme;
@@ -43,11 +42,7 @@ export function applyAppearanceSettings({
     resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
 
-  if (resolvedTheme === 'glass') {
-    root.classList.add('dark');
-    root.classList.add('glass');
-    root.setAttribute('data-theme', 'glass');
-  } else if (resolvedTheme === 'dark' || resolvedTheme === 'obsidian') {
+  if (resolvedTheme === 'dark' || resolvedTheme === 'obsidian') {
     root.classList.add('dark');
     root.setAttribute('data-theme', 'obsidian');
   } else if (resolvedTheme === 'solarized') {

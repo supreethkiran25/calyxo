@@ -34,12 +34,8 @@ const MENU_ITEMS = [
   { path: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
-import { useStore } from '../../store/useStore';
-
 const AdminSidebar = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) => {
   const location = useLocation();
-  const theme = useStore(state => state.theme);
-  const isGlass = theme === 'glass';
 
   const isLinkActive = (item) => {
     if (item.exact) {
@@ -59,11 +55,7 @@ const AdminSidebar = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) =>
       )}
 
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-50 flex flex-col backdrop-blur-2xl border-r transition-all duration-300 ${
-          isGlass 
-            ? 'bg-[#0a0a14]/60 border-white/10 shadow-2xl shadow-purple-950/20' 
-            : 'bg-neutral-950/90 border-neutral-800/80'
-        } ${
+        className={`fixed top-0 left-0 bottom-0 z-50 flex flex-col bg-neutral-950/90 backdrop-blur-xl border-r border-neutral-800/80 transition-all duration-300 ${
           collapsed ? 'w-20' : 'w-64'
         } ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'

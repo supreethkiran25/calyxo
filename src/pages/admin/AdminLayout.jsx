@@ -18,7 +18,6 @@ const AdminLayout = () => {
 
   const theme = useStore(state => state.theme);
   const isLight = theme === 'light';
-  const isGlass = theme === 'glass';
 
   // Supabase Realtime Event Listener for instant live dashboard stats
   useEffect(() => {
@@ -44,21 +43,11 @@ const AdminLayout = () => {
   }, []);
 
   return (
-    <div className={`min-h-screen font-sans antialiased flex transition-all duration-300 relative ${
-      isGlass
-        ? 'bg-[#07070e] text-white selection:bg-purple-500/30 selection:text-purple-200'
-        : isLight
-          ? 'admin-light-mode bg-slate-50 text-slate-900 selection:bg-indigo-500/20 selection:text-indigo-900'
-          : 'bg-neutral-950 text-neutral-100 selection:bg-indigo-500/30 selection:text-indigo-200'
+    <div className={`min-h-screen font-sans antialiased flex transition-colors duration-200 ${
+      isLight
+        ? 'admin-light-mode bg-slate-50 text-slate-900 selection:bg-indigo-500/20 selection:text-indigo-900'
+        : 'bg-neutral-950 text-neutral-100 selection:bg-indigo-500/30 selection:text-indigo-200'
     }`}>
-      {/* Liquid Ambient Glow Background for Glass Mode (Experimental) */}
-      {isGlass && (
-        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-          <div className="absolute -top-40 -left-40 w-[450px] h-[450px] rounded-full bg-purple-600/15 blur-[140px]" />
-          <div className="absolute top-1/3 -right-20 w-[550px] h-[550px] rounded-full bg-indigo-600/10 blur-[160px]" />
-          <div className="absolute -bottom-40 left-1/4 w-[600px] h-[600px] rounded-full bg-blue-600/10 blur-[180px]" />
-        </div>
-      )}
       {/* Sidebar */}
       <AdminSidebar
         collapsed={sidebarCollapsed}
