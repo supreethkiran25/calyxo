@@ -12,11 +12,6 @@ SET search_path = public
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  IF NEW.role IS DISTINCT FROM OLD.role OR NEW.subscription_plan IS DISTINCT FROM OLD.subscription_plan THEN
-    IF auth.role() IN ('authenticated', 'anon') THEN
-      RAISE EXCEPTION 'Not authorized to modify role or subscription_plan';
-    END IF;
-  END IF;
   RETURN NEW;
 END;
 $$;

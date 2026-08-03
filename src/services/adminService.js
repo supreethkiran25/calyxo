@@ -592,18 +592,7 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
   const statusStr = isRevoke ? 'Revoked' : 'Active';
 
   if (!isMockMode && userId) {
-    // 1. Partial UPDATE on user_profiles table (preserves email and all existing fields)
-    const { error: profileErr } = await supabase
-      .from('user_profiles')
-      .update({ subscription_plan: plan })
-      .eq('id', userId);
-
-    if (profileErr) {
-      console.error('[adminService] Error updating user_profiles subscription:', profileErr);
-      throw new Error(`Database error updating user profile: ${profileErr.message}`);
-    }
-
-    // 2. Update or Insert subscriptions table in Supabase
+    // 1. Update or Insert subscriptions table in Supabase
     try {
       const { data: existingSub } = await supabase
         .from('subscriptions')
@@ -632,6 +621,20 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
       }
     } catch (subEx) {
       console.warn('[adminService] Exception updating subscriptions table:', subEx);
+    }
+
+    // 2. Partial UPDATE on user_profiles table (preserves email and all existing fields)
+    try {
+      const { error: profileErr } = await supabase
+        .from('user_profiles')
+        .update({ subscription_plan: plan })
+        .eq('id', userId);
+
+      if (profileErr) {
+        console.warn('[adminService] Warning updating user_profiles subscription_plan:', profileErr.message);
+      }
+    } catch (profEx) {
+      console.warn('[adminService] Exception updating user_profiles table:', profEx);
     }
 
     // 3. Update users_metrics bio payload if present
