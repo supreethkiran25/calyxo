@@ -590,8 +590,7 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
     // 1. Update user_profiles table in Supabase
     const { error: profileErr } = await supabase.from('user_profiles').upsert({
       id: userId,
-      subscription_plan: plan,
-      updated_at: now.toISOString()
+      subscription_plan: plan
     }, { onConflict: 'id' });
 
     if (profileErr) {

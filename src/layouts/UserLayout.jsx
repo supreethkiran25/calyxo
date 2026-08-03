@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home as HomeIcon, BookOpen, BarChart2, User, Users, LogOut, Sparkles, X, TrendingUp, Heart, Search, Menu, Plus, Crown, Lock } from 'lucide-react';
+import { Home as HomeIcon, BookOpen, BarChart2, User, Users, LogOut, Sparkles, X, TrendingUp, Heart, Search, Menu, Plus, Crown, Lock, Bell, CheckCheck, Trash } from 'lucide-react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import useQuickActionsStore from '../store/useQuickActionsStore';
 import { signOutUser, subscribeToAuth, loadUserData } from '../lib/dbService';
+import { subscribeToInAppNotifications, markNotificationAsRead, deleteNotification } from '../services/notificationService';
+import { supabase } from '../lib/supabaseClient';
 
 import Logo from '../components/Logo';
 import ThemeToggle from '../components/ThemeToggle';
@@ -60,6 +62,8 @@ export default function UserLayout() {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
+  const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
 
   const navigate = useNavigate();
   const mainRef = useRef(null);
@@ -113,7 +117,7 @@ export default function UserLayout() {
     const setWorkoutLogs = useStore.getState().setWorkoutLogs;
     const setWeightLogs = useStore.getState().setWeightLogs;
     const setWaterIntake = useStore.getState().setWaterIntake;
-    const unsubscribe = subscribeToAuth(async (authUser) => {
+    const unsubscribeAuth = subscribeToAuth(async (authUser) => {
       if (authUser) {
         setUser(authUser);
         const uid = authUser.uid || authUser.id;
@@ -130,15 +134,46 @@ export default function UserLayout() {
         if (weights) setWeightLogs(weights);
         if (water !== undefined && water !== null) setWaterIntake(water);
       } else {
-        // Only redirect to landing page if user is explicitly signed out / missing
         const storeUser = useStore.getState().user;
         if (!storeUser) {
           window.location.href = '/';
         }
       }
     });
-    return () => unsubscribe();
+
+    return () => unsubscribeAuth();
   }, []);
+
+  // Realtime in-app notifications and subscription plan sync
+  useEffect(() => {
+    const uid = user?.uid || user?.id;
+    if (!uid) return;
+
+    // 1. In-app notifications realtime subscription
+    const unsubNotifs = subscribeToInAppNotifications(uid, (notifsList) => {
+      setNotifications(notifsList || []);
+    });
+
+    // 2. User profile realtime subscription (Instant Premium status sync)
+    const profileChannel = supabase
+      .channel(`realtime_profile_${uid}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'user_profiles', filter: `id=eq.${uid}` },
+        async () => {
+          const { profile } = await loadUserData(uid);
+          if (profile) {
+            useStore.getState().setUserProfile(profile);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (unsubNotifs) unsubNotifs();
+      supabase.removeChannel(profileChannel);
+    };
+  }, [user]);
 
   // If user is authenticated but has not completed onboarding, trigger OnboardingFlow
   if (user && (!userProfile || userProfile.onboarded !== true)) {
@@ -226,7 +261,21 @@ export default function UserLayout() {
         </div>
 
         <div className="p-6 border-t border-card-border flex items-center justify-between">
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <button 
+              onClick={() => setIsNotifDrawerOpen(true)} 
+              aria-label="Notifications" 
+              className="p-2 text-muted hover:text-foreground transition-colors bg-transparent border-none cursor-pointer rounded-full hover:bg-surface relative"
+            >
+              <Bell className="w-5 h-5" />
+              {notifications.filter(n => !n.read).length > 0 && (
+                <span className="absolute top-0 right-0 w-4 h-4 rounded-full bg-acid-green text-black text-[9px] font-black flex items-center justify-center">
+                  {notifications.filter(n => !n.read).length}
+                </span>
+              )}
+            </button>
+          </div>
           <button onClick={handleLogout} aria-label="Sign Out" className="p-2 text-muted hover:text-destructive transition-colors bg-transparent border-none cursor-pointer rounded-full hover:bg-surface">
             <LogOut className="w-5 h-5" />
           </button>
@@ -257,6 +306,18 @@ export default function UserLayout() {
             </Link>
           </div>
           <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setIsNotifDrawerOpen(true)} 
+              aria-label="Open Notifications" 
+              className="p-2 text-foreground bg-transparent border-none cursor-pointer relative"
+            >
+              <Bell className="w-5 h-5 text-muted hover:text-foreground transition-colors" />
+              {notifications.filter(n => !n.read).length > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-acid-green text-black text-[9px] font-black flex items-center justify-center animate-bounce">
+                  {notifications.filter(n => !n.read).length}
+                </span>
+              )}
+            </button>
             <button onClick={() => setIsSearchOpen(true)} aria-label="Open Search" className="p-2 text-foreground bg-transparent border-none cursor-pointer">
               <Search className="w-5 h-5" />
             </button>
@@ -346,6 +407,105 @@ export default function UserLayout() {
           navItems={DESKTOP_NAV.flatMap(g => g.items)}
         />
       </Suspense>
+
+      {/* In-App Notification Drawer Slide-over */}
+      <AnimatePresence>
+        {isNotifDrawerOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-end bg-black/80 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="w-full max-w-md h-full bg-neutral-900 border border-neutral-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden p-6 space-y-4"
+            >
+              <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-acid-green/10 text-acid-green border border-acid-green/20">
+                    <Bell className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Notifications</h3>
+                    <p className="text-xs text-neutral-400 font-mono">
+                      {notifications.filter(n => !n.read).length} Unread Messages
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsNotifDrawerOpen(false)} 
+                  className="p-1.5 rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar">
+                {notifications.length === 0 ? (
+                  <div className="text-center py-12 space-y-2 text-neutral-500 text-xs">
+                    <Bell className="w-8 h-8 mx-auto opacity-40" />
+                    <p>No notifications yet.</p>
+                  </div>
+                ) : (
+                  notifications.map(n => (
+                    <div 
+                      key={n.id} 
+                      className={`p-4 rounded-2xl border transition-all space-y-2 ${
+                        n.read ? 'bg-neutral-950/40 border-neutral-800/60 opacity-80' : 'bg-neutral-900 border-indigo-500/40 shadow-lg shadow-indigo-500/5'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="text-xs font-bold text-white leading-tight">{n.title}</h4>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {!n.read && (
+                            <button
+                              onClick={async () => {
+                                await markNotificationAsRead(n.id);
+                                setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x));
+                              }}
+                              className="p-1 text-emerald-400 hover:text-emerald-300 cursor-pointer"
+                              title="Mark as read"
+                            >
+                              <CheckCheck className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={async () => {
+                              await deleteNotification(n.id);
+                              setNotifications(prev => prev.filter(x => x.id !== n.id));
+                            }}
+                            className="p-1 text-neutral-500 hover:text-red-400 cursor-pointer"
+                            title="Delete"
+                          >
+                            <Trash className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-xs text-neutral-300 leading-relaxed">{n.body}</p>
+                      <div className="flex items-center justify-between text-[10px] text-neutral-500 font-mono pt-1">
+                        <span>{n.created_at ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}</span>
+                        {n.cta_link && (
+                          <Link 
+                            to={n.cta_link} 
+                            onClick={() => setIsNotifDrawerOpen(false)}
+                            className="text-acid-green hover:underline font-bold"
+                          >
+                            {n.cta_label || 'View'} &rarr;
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <OfflineSyncIndicator />
       <PWAInstallBanner />

@@ -59,8 +59,7 @@ export default async function handler(req, res) {
 
         await supabase.from('user_profiles').upsert({
           id: userId,
-          subscription_plan: 'HIGH',
-          updated_at: now.toISOString()
+          subscription_plan: 'HIGH'
         }, { onConflict: 'id' });
 
         await supabase.from('subscriptions').upsert({

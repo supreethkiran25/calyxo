@@ -1,18 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, CreditCard, CheckCircle2 } from 'lucide-react';
 import { getAdminDashboardMetrics, LIVE_RAZORPAY_TRANSACTIONS } from '../../services/adminService';
+import { supabase } from '../../lib/supabaseClient';
 
 const AdminRevenueView = () => {
   const [metrics, setMetrics] = useState(null);
+  const [dbSubscriptions, setDbSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const loadData = async () => {
+    setLoading(true);
+    const m = await getAdminDashboardMetrics();
+    setMetrics(m);
+
+    try {
+      const { data: subsData } = await supabase
+        .from('subscriptions')
+        .select('*, user_profiles(email, full_name)')
+        .order('purchase_date', { ascending: false });
+
+      setDbSubscriptions(subsData || []);
+    } catch (e) {}
+
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const load = async () => {
-      const m = await getAdminDashboardMetrics();
-      setMetrics(m);
-      setLoading(false);
+    loadData();
+
+    // Subscribe to Supabase Realtime channel on subscriptions table
+    const channel = supabase
+      .channel('admin_revenue_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'subscriptions' }, () => loadData())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
     };
-    load();
   }, []);
 
   if (loading || !metrics) {
@@ -23,8 +47,25 @@ const AdminRevenueView = () => {
     );
   }
 
-  const transactions = LIVE_RAZORPAY_TRANSACTIONS;
-  const totalCaptured = transactions.reduce((acc, tx) => acc + tx.amount, 0);
+  const formattedDbSubs = (dbSubscriptions || []).map(s => ({
+    id: s.payment_id || `sub_${s.id.substring(0, 8)}`,
+    customer_name: s.user_profiles?.full_name || 'Calyxo User',
+    customer_email: s.user_profiles?.email || 'N/A',
+    amount: Number(s.amount || 999),
+    currency: s.currency || 'INR',
+    status: s.status === 'Active' ? 'Captured' : s.status,
+    payment_method: s.payment_source || 'Razorpay Gateway',
+    purchase_date: s.purchase_date ? s.purchase_date.substring(0, 16).replace('T', ' ') : 'N/A',
+    plan: s.plan || 'HIGH'
+  }));
+
+  const allTransactions = [...formattedDbSubs, ...LIVE_RAZORPAY_TRANSACTIONS];
+  const txMap = new Map();
+  allTransactions.forEach(tx => {
+    if (tx.id && !txMap.has(tx.id)) txMap.set(tx.id, tx);
+  });
+  const transactions = Array.from(txMap.values());
+  const totalCaptured = transactions.reduce((acc, tx) => acc + (tx.status === 'Captured' || tx.status === 'Active' ? tx.amount : 0), 0);
 
   return (
     <div className="space-y-6">
@@ -33,7 +74,7 @@ const AdminRevenueView = () => {
           <DollarSign className="w-6 h-6 text-emerald-400" /> Razorpay Financial Command (INR ₹)
         </h1>
         <p className="text-xs text-neutral-400 font-mono mt-0.5">
-          Real captured payments from Razorpay Account • Single Plan: High (₹999/mo)
+          Real captured payments from Razorpay Account & Supabase Subscriptions • Single Plan: High (₹999/mo)
         </p>
       </div>
 
@@ -42,7 +83,7 @@ const AdminRevenueView = () => {
         <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800">
           <span className="text-xs text-neutral-400 font-medium block">Total Captured Revenue</span>
           <span className="text-2xl font-bold text-emerald-400 block mt-1">₹{totalCaptured.toFixed(2)}</span>
-          <span className="text-[10px] text-emerald-500/80 font-mono mt-1 block">Live Razorpay Gateway</span>
+          <span className="text-[10px] text-emerald-500/80 font-mono mt-1 block">Live Razorpay & Supabase</span>
         </div>
         <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800">
           <span className="text-xs text-neutral-400 font-medium block">Successful Captured Payments</span>
