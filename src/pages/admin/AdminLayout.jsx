@@ -45,7 +45,7 @@ const AdminLayout = () => {
   return (
     <div className={`min-h-screen font-sans antialiased flex transition-colors duration-200 ${
       isLight
-        ? 'bg-slate-100 text-slate-900 selection:bg-indigo-500/20 selection:text-indigo-900'
+        ? 'admin-light-mode bg-slate-50 text-slate-900 selection:bg-indigo-500/20 selection:text-indigo-900'
         : 'bg-neutral-950 text-neutral-100 selection:bg-indigo-500/30 selection:text-indigo-200'
     }`}>
       {/* Sidebar */}

@@ -912,3 +912,202 @@ textarea:focus {
 .animate-bubble-3 {
   animation: waterBubbleFloat 2.5s ease-in-out 0.5s infinite;
 }
+
+/* ==========================================================================
+   ENTERPRISE SAAS LIGHT MODE REDESIGN (.admin-light-mode)
+   Stripe / Vercel / Linear / Clerk Aesthetic (No Inverted Dark Mode)
+   ========================================================================== */
+.admin-light-mode {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
+/* Page Headers & Headings */
+.admin-light-mode h1,
+.admin-light-mode h2,
+.admin-light-mode h3,
+.admin-light-mode h4,
+.admin-light-mode .text-white {
+  color: #0F172A !important;
+}
+
+.admin-light-mode .text-neutral-100,
+.admin-light-mode .text-neutral-200,
+.admin-light-mode .text-neutral-300 {
+  color: #1E293B !important;
+}
+
+.admin-light-mode .text-neutral-400,
+.admin-light-mode .text-neutral-500 {
+  color: #64748B !important;
+}
+
+.admin-light-mode .text-neutral-600 {
+  color: #475569 !important;
+}
+
+/* Sidebar */
+.admin-light-mode aside {
+  background-color: #FFFFFF !important;
+  border-right-color: #E2E8F0 !important;
+  box-shadow: 1px 0 3px 0 rgba(0, 0, 0, 0.03) !important;
+}
+
+.admin-light-mode aside div,
+.admin-light-mode aside nav {
+  border-color: #E2E8F0 !important;
+}
+
+.admin-light-mode aside span.text-white,
+.admin-light-mode aside div.text-white {
+  color: #0F172A !important;
+}
+
+.admin-light-mode aside a {
+  color: #475569 !important;
+}
+
+.admin-light-mode aside a:hover {
+  background-color: #F1F5F9 !important;
+  color: #0F172A !important;
+}
+
+.admin-light-mode aside a.bg-indigo-600\/20,
+.admin-light-mode aside a.bg-indigo-600 {
+  background-color: #EEF2FF !important;
+  color: #4F46E5 !important;
+  border-color: #C7D2FE !important;
+}
+
+/* Header Navbar */
+.admin-light-mode header {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-bottom-color: #E2E8F0 !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* Cards & Container Containers */
+.admin-light-mode .bg-neutral-900,
+.admin-light-mode .bg-neutral-900\/60,
+.admin-light-mode .bg-neutral-900\/80,
+.admin-light-mode .bg-neutral-900\/90,
+.admin-light-mode .bg-neutral-950,
+.admin-light-mode .bg-neutral-950\/40,
+.admin-light-mode .bg-neutral-950\/80,
+.admin-light-mode .bg-neutral-950\/90 {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* Borders */
+.admin-light-mode .border-neutral-800,
+.admin-light-mode .border-neutral-800\/80,
+.admin-light-mode .border-neutral-800\/60,
+.admin-light-mode .border-neutral-800\/50,
+.admin-light-mode .border-neutral-700 {
+  border-color: #E2E8F0 !important;
+}
+
+/* Tables (Pure White Container, Light Slate Header & Row Hover) */
+.admin-light-mode table {
+  background-color: #FFFFFF !important;
+}
+
+.admin-light-mode table thead,
+.admin-light-mode table thead tr,
+.admin-light-mode table thead th {
+  background-color: #F8FAFC !important;
+  border-bottom-color: #E2E8F0 !important;
+  color: #475569 !important;
+  font-weight: 700 !important;
+}
+
+.admin-light-mode table tbody tr {
+  border-bottom-color: #F1F5F9 !important;
+  background-color: #FFFFFF !important;
+}
+
+.admin-light-mode table tbody tr:hover {
+  background-color: #F8FAFC !important;
+}
+
+.admin-light-mode table td {
+  color: #1E293B !important;
+}
+
+/* Form Inputs, Search, Dropdowns, Textareas */
+.admin-light-mode input,
+.admin-light-mode select,
+.admin-light-mode textarea {
+  background-color: #FFFFFF !important;
+  border-color: #CBD5E1 !important;
+  color: #0F172A !important;
+}
+
+.admin-light-mode input::placeholder,
+.admin-light-mode textarea::placeholder {
+  color: #94A3B8 !important;
+}
+
+.admin-light-mode input:focus,
+.admin-light-mode select:focus,
+.admin-light-mode textarea:focus {
+  border-color: #6366F1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Modals & Dialog Backdrops */
+.admin-light-mode .bg-black\/80,
+.admin-light-mode .bg-black\/75,
+.admin-light-mode .bg-black\/70 {
+  background-color: rgba(15, 23, 42, 0.5) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Status Badges in Light Mode */
+.admin-light-mode .bg-amber-500\/20 {
+  background-color: #FEF3C7 !important;
+  color: #B45309 !important;
+  border-color: #FDE68A !important;
+}
+
+.admin-light-mode .bg-emerald-500\/20 {
+  background-color: #D1FAE5 !important;
+  color: #047857 !important;
+  border-color: #A7F3D0 !important;
+}
+
+.admin-light-mode .bg-neutral-800 {
+  background-color: #F1F5F9 !important;
+  color: #475569 !important;
+  border-color: #E2E8F0 !important;
+}
+
+.admin-light-mode .bg-red-950\/40,
+.admin-light-mode .bg-red-500\/20 {
+  background-color: #FEE2E2 !important;
+  color: #B91C1C !important;
+  border-color: #FCA5A5 !important;
+}
+
+.admin-light-mode .bg-indigo-500\/20,
+.admin-light-mode .bg-indigo-500\/10 {
+  background-color: #EEF2FF !important;
+  color: #4338CA !important;
+  border-color: #C7D2FE !important;
+}
+
+/* Secondary Action Buttons */
+.admin-light-mode button.bg-neutral-800,
+.admin-light-mode button.bg-neutral-900 {
+  background-color: #F1F5F9 !important;
+  color: #334155 !important;
+  border-color: #CBD5E1 !important;
+}
+
+.admin-light-mode button.bg-neutral-800:hover,
+.admin-light-mode button.bg-neutral-900:hover {
+  background-color: #E2E8F0 !important;
+  color: #0F172A !important;
+}
