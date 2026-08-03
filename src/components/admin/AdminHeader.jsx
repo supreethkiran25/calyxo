@@ -86,15 +86,28 @@ const AdminHeader = ({ setMobileOpen, onOpenSearch, onQuickAction }) => {
           <span className="hidden md:inline">Quick Action</span>
         </button>
 
-        {/* Theme Toggle */}
+        {/* Theme Toggle (Dark / Light / Glass Mode) */}
         <button
           onClick={toggleTheme}
-          className={`p-2 rounded-xl transition-colors cursor-pointer ${
-            isLight ? 'text-amber-600 hover:bg-slate-100' : 'text-indigo-400 hover:text-white hover:bg-neutral-800/60'
+          className={`p-2 rounded-xl transition-all cursor-pointer border flex items-center gap-1.5 ${
+            theme === 'glass'
+              ? 'bg-purple-950/40 border-purple-500/50 text-purple-300 shadow-md shadow-purple-500/20'
+              : isLight
+                ? 'bg-slate-100 border-slate-200 text-amber-600 hover:bg-slate-200'
+                : 'bg-neutral-900 border-neutral-800 text-indigo-400 hover:text-white hover:bg-neutral-800/60'
           }`}
-          title="Toggle Dark/Light Mode"
+          title={`Active Theme: ${theme === 'glass' ? 'Glass Mode (Experimental)' : isLight ? 'Light' : 'Dark'} (Click to cycle)`}
         >
-          {isLight ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+          {theme === 'glass' ? (
+            <Sparkles className="w-4 h-4 text-purple-400" />
+          ) : isLight ? (
+            <Sun className="w-4 h-4 text-amber-500" />
+          ) : (
+            <Moon className="w-4 h-4 text-indigo-400" />
+          )}
+          <span className="hidden xl:inline text-[10px] font-mono uppercase font-bold">
+            {theme === 'glass' ? 'Glass' : isLight ? 'Light' : 'Dark'}
+          </span>
         </button>
 
         {/* Notifications Bell */}
