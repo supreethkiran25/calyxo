@@ -8,8 +8,11 @@ import {
   updateWorkoutLog,
   deleteWorkoutLog,
   saveEcosystemState,
-  getUserAssignments
+  getUserAssignments,
+  getUserWorkoutSplits,
+  saveUserWorkoutSplits
 } from '../lib/dbService';
+import { supabase } from '../lib/supabaseClient';
 
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import useQuickActionsStore from '../store/useQuickActionsStore';
@@ -377,6 +380,40 @@ export default function WorkoutLogger({ onNotification }) {
   const [editRoutineFields, setEditRoutineFields] = useState({ type: '', desc: '', exercises: [] });
   const [activeSplitEditIdx, setActiveSplitEditIdx] = useState(null);
   const [splitEditSuggestions, setSplitEditSuggestions] = useState([]);
+
+  // Load Cloud Workout Splits from Supabase & Subscribe to Realtime Cross-Device Sync
+  useEffect(() => {
+    let isMounted = true;
+    const uid = user?.uid || user?.id;
+
+    const loadCloudSplits = async () => {
+      if (!uid) return;
+      const cloudSplits = await getUserWorkoutSplits(uid);
+      if (isMounted && Array.isArray(cloudSplits) && cloudSplits.length === 7) {
+        setSplits(cloudSplits);
+      }
+    };
+
+    loadCloudSplits();
+
+    if (uid) {
+      const channel = supabase
+        .channel(`workout_splits_realtime_${uid}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'users_metrics', filter: `id=eq.${uid}_profile` },
+          () => {
+            loadCloudSplits();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        isMounted = false;
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user]);
 
   // Live Guided Workout Session Modal State
   const activeWorkflow = useQuickActionsStore(state => state.activeWorkflow);
@@ -962,8 +999,11 @@ export default function WorkoutLogger({ onNotification }) {
     }
   };
 
-  const handleStartEditSplit = (dayIdxToEdit = activeDay) => {
-    const targetIdx = typeof dayIdxToEdit === 'number' ? dayIdxToEdit : activeDay;
+  const handleStartEditSplit = (dayIdxToEdit) => {
+    let targetIdx = activeDay;
+    if (typeof dayIdxToEdit === 'number' && Number.isInteger(dayIdxToEdit) && dayIdxToEdit >= 0 && dayIdxToEdit <= 6) {
+      targetIdx = dayIdxToEdit;
+    }
     const activeSplit = splits[targetIdx]?.workout;
     if (!activeSplit) return;
 
@@ -1051,8 +1091,11 @@ export default function WorkoutLogger({ onNotification }) {
     setSplitEditSuggestions([]);
   };
 
-  const handleSaveSplitEdit = () => {
-    const targetIdx = editingSplitDayIdx !== null ? editingSplitDayIdx : activeDay;
+  const handleSaveSplitEdit = async () => {
+    const targetIdx = (editingSplitDayIdx !== null && typeof editingSplitDayIdx === 'number' && editingSplitDayIdx >= 0 && editingSplitDayIdx <= 6)
+      ? editingSplitDayIdx
+      : activeDay;
+
     const updatedSplits = [...splits];
     if (updatedSplits[targetIdx]) {
       updatedSplits[targetIdx] = {
@@ -1064,17 +1107,14 @@ export default function WorkoutLogger({ onNotification }) {
         }
       };
       setSplits(updatedSplits);
-      try {
-        localStorage.setItem('calyxo_user_workout_splits', JSON.stringify(updatedSplits));
-      } catch (e) {
-        console.error("Failed to save splits to localStorage", e);
-      }
+      const uid = user?.uid || user?.id;
+      await saveUserWorkoutSplits(uid, updatedSplits);
     }
     setEditingSplit(false);
     setEditingSplitDayIdx(null);
     setActiveSplitEditIdx(null);
     setSplitEditSuggestions([]);
-    if (onNotification) onNotification(`Saved ${splits[targetIdx]?.dayName || ''}'s workout split!`);
+    if (onNotification) onNotification(`Saved ${splits[targetIdx]?.dayName || ''}'s workout split to cloud!`);
   };
 
   const favoriteExercises = useStore(state => state.favoriteExercises || []);
@@ -1472,6 +1512,14 @@ export default function WorkoutLogger({ onNotification }) {
 
                     {editingSplit ? (
                       <div className="space-y-3 p-4 bg-surface border border-card-border rounded-xl">
+                        <div className="flex items-center justify-between pb-2 border-b border-card-border/60">
+                          <span className="text-xs font-black text-acid-green uppercase tracking-wider">
+                            Editing {splits[editingSplitDayIdx !== null ? editingSplitDayIdx : activeDay]?.dayName}'s Split
+                          </span>
+                          <span className="text-[9px] text-muted font-bold uppercase tracking-wider bg-acid-green/10 px-2 py-0.5 rounded border border-acid-green/20">
+                            Cloud Synced
+                          </span>
+                        </div>
                         <div className="flex flex-col space-y-1">
                           <label className="text-[9px] text-muted font-bold uppercase tracking-wider">Routine Split Name</label>
                           <input type="text" value={editRoutineFields.type} onChange={(e) => setEditRoutineFields({ ...editRoutineFields, type: e.target.value })} className={inputStyle} placeholder="e.g. Push Day (Chest, Shoulders & Triceps)" />

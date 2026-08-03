@@ -971,6 +971,82 @@ export const saveUserProfile = async (userId, profile) => {
   }
 };
 
+/* ==========================================================================
+   WORKOUT SPLITS CLOUD PERSISTENCE & CROSS-DEVICE SYNC
+   ========================================================================== */
+
+export const getUserWorkoutSplits = async (userId) => {
+  if (!userId || isMockMode) {
+    try {
+      const saved = localStorage.getItem('calyxo_user_workout_splits');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  try {
+    const { data: metrics } = await supabase
+      .from('users_metrics')
+      .select('bio')
+      .eq('id', `${userId}_profile`)
+      .maybeSingle();
+
+    if (metrics?.bio) {
+      try {
+        const bioObj = JSON.parse(metrics.bio);
+        if (Array.isArray(bioObj.workoutSplits) && bioObj.workoutSplits.length === 7) {
+          return bioObj.workoutSplits;
+        }
+      } catch (e) {}
+    }
+  } catch (e) {
+    console.warn('[dbService] Exception loading workoutSplits from Supabase:', e);
+  }
+
+  try {
+    const saved = localStorage.getItem(`calyxo_user_workout_splits_${userId}`) || localStorage.getItem('calyxo_user_workout_splits');
+    return saved ? JSON.parse(saved) : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+export const saveUserWorkoutSplits = async (userId, splits) => {
+  if (!splits) return;
+  try {
+    localStorage.setItem('calyxo_user_workout_splits', JSON.stringify(splits));
+    if (userId) {
+      localStorage.setItem(`calyxo_user_workout_splits_${userId}`, JSON.stringify(splits));
+    }
+  } catch (e) {}
+
+  if (isMockMode || !userId) return;
+
+  try {
+    const { data: metrics } = await supabase
+      .from('users_metrics')
+      .select('bio')
+      .eq('id', `${userId}_profile`)
+      .maybeSingle();
+
+    let bioObj = {};
+    if (metrics?.bio) {
+      try { bioObj = JSON.parse(metrics.bio); } catch (e) {}
+    }
+    bioObj.workoutSplits = splits;
+
+    await supabase.from('users_metrics').upsert({
+      id: `${userId}_profile`,
+      userId: userId,
+      bio: JSON.stringify(bioObj),
+      updatedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.warn('[dbService] Exception saving workoutSplits to Supabase:', err);
+  }
+};
+
 /* Helper to load all user data in parallel with 15-second in-memory cache */
 let userDataCacheMap = {};
 const USER_DATA_CACHE_TTL_MS = 15000; // 15s session cache
