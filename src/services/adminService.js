@@ -746,24 +746,59 @@ export const deleteAdminExercise = async (id) => {
   return true;
 };
 
+import { ALL_CALYXO_FOODS } from '../lib/calyxoFoodDatabase';
+
 /* ==========================================================================
    NUTRITION DATABASE
    ========================================================================== */
 export const getAdminFoods = async ({ search = '', category = '' } = {}) => {
-  let foods = [];
+  let dbFoods = [];
   if (!isMockMode) {
     try {
-      const { data, error } = await supabase.from('food_database').select('*');
-      if (!error && data) foods = data;
+      const { data, error } = await supabase.from('food_database').select('*').order('name');
+      if (!error && data) dbFoods = data;
     } catch (e) {}
   }
 
   const foodMap = new Map();
-  foods.forEach(f => { if (f && f.id) foodMap.set(f.id, f); });
-  const deduplicated = Array.from(foodMap.values());
+  if (Array.isArray(ALL_CALYXO_FOODS)) {
+    ALL_CALYXO_FOODS.forEach(f => {
+      if (f && (f.id || f.name)) {
+        const id = f.id || `static_${f.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+        foodMap.set(id, {
+          id,
+          name: f.name,
+          category: f.category || 'General',
+          serving_size: f.serving_size || '100g',
+          calories: Number(f.calories) || 0,
+          protein: Number(f.protein) || 0,
+          carbs: Number(f.carbs) || 0,
+          fat: Number(f.fat) || 0,
+          fiber: Number(f.fiber) || 0,
+          source: 'Catalog'
+        });
+      }
+    });
+  }
 
-  return deduplicated.filter(fd => {
-    const matchesSearch = !search || fd.name.toLowerCase().includes(search.toLowerCase());
+  dbFoods.forEach(f => {
+    if (f && f.id) {
+      foodMap.set(f.id, {
+        ...f,
+        calories: Number(f.calories) || 0,
+        protein: Number(f.protein) || 0,
+        carbs: Number(f.carbs) || 0,
+        fat: Number(f.fat) || 0,
+        fiber: Number(f.fiber) || 0,
+        source: 'Supabase DB'
+      });
+    }
+  });
+
+  const combined = Array.from(foodMap.values());
+
+  return combined.filter(fd => {
+    const matchesSearch = !search || (fd.name && fd.name.toLowerCase().includes(search.toLowerCase()));
     const matchesCategory = !category || fd.category === category;
     return matchesSearch && matchesCategory;
   });
@@ -951,6 +986,31 @@ export const sendAdminNotification = async (payload) => {
   });
 
   return entry;
+};
+
+export const deleteAdminNotification = async (id) => {
+  if (!isMockMode && id) {
+    try {
+      await supabase.from('system_notifications').delete().eq('id', id);
+    } catch (e) {}
+  }
+  await logAdminAction('NOTIFICATION_DELETED', id, {});
+  return true;
+};
+
+export const getAdminTrainingLogs = async () => {
+  let logs = [];
+  if (!isMockMode) {
+    try {
+      const { data, error } = await supabase
+        .from('TrainingLogs')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(100);
+      if (!error && data) logs = data;
+    } catch (e) {}
+  }
+  return logs;
 };
 
 /* ==========================================================================
