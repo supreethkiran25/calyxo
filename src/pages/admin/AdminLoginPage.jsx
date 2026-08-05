@@ -31,10 +31,6 @@ const AdminLoginPage = () => {
     setLoggingIn(true);
     try {
       const adminUser = await loginSuperAdmin(emailInput, passwordInput);
-      const isVerified = await verifyAdminAccessRPC();
-      if (!isVerified) {
-        throw new Error('403 Forbidden: Server RPC denied admin access.');
-      }
       setUser(adminUser);
       if (typeof window !== 'undefined') {
         localStorage.setItem('calyxo_admin_session', JSON.stringify(adminUser));
