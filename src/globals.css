@@ -185,6 +185,70 @@ h1, h2, h3, h4, h5, h6 {
   --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
 }
 
+/* Light Theme Global Utility Class Overrides for User & Admin Apps */
+[data-theme='light'] body,
+[data-theme='light'] #root {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .bg-neutral-950,
+[data-theme='light'] .bg-neutral-900,
+[data-theme='light'] .bg-neutral-900\/90,
+[data-theme='light'] .bg-neutral-900\/80,
+[data-theme='light'] .bg-neutral-900\/60,
+[data-theme='light'] .bg-neutral-900\/50,
+[data-theme='light'] .bg-neutral-900\/40,
+[data-theme='light'] .bg-neutral-900\/30,
+[data-theme='light'] .bg-neutral-900\/20,
+[data-theme='light'] .bg-neutral-900\/10 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .bg-neutral-800,
+[data-theme='light'] .bg-neutral-800\/80,
+[data-theme='light'] .bg-neutral-800\/60,
+[data-theme='light'] .bg-neutral-800\/50 {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .text-white,
+[data-theme='light'] .text-neutral-100,
+[data-theme='light'] .text-neutral-200,
+[data-theme='light'] .text-neutral-300 {
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .text-neutral-400,
+[data-theme='light'] .text-neutral-500 {
+  color: #64748b !important;
+}
+
+[data-theme='light'] .border-neutral-800,
+[data-theme='light'] .border-neutral-800\/80,
+[data-theme='light'] .border-neutral-800\/60,
+[data-theme='light'] .border-neutral-800\/50,
+[data-theme='light'] .border-neutral-700 {
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme='light'] aside {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme='light'] input,
+[data-theme='light'] select,
+[data-theme='light'] textarea {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
 [data-theme='solarized'] {
   /* Solarized Retro Cream/Teal */
   --background: #fdf6e3;
