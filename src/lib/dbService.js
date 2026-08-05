@@ -1061,7 +1061,7 @@ export const invalidateUserDataCache = (userId) => {
 
 export const loadUserData = async (userId) => {
   if (!userId) {
-    return { profile: null, foods: [], workouts: [], weights: [], water: 0 };
+    return { profile: null, foods: [], workouts: [], weights: [], water: 0, ecosystem: null };
   }
 
   const now = Date.now();
@@ -1070,14 +1070,15 @@ export const loadUserData = async (userId) => {
     return cachedEntry.data;
   }
 
-  const [profile, foods, workouts, weights, water] = await Promise.all([
+  const [profile, foods, workouts, weights, water, ecosystem] = await Promise.all([
     getUserProfile(userId),
     getFoodLogs(userId),
     getWorkoutLogs(userId),
     getWeightLogs(userId),
-    getWaterIntake(userId)
+    getWaterIntake(userId),
+    getEcosystemState(userId)
   ]);
-  const result = { profile, foods, workouts, weights, water };
+  const result = { profile, foods, workouts, weights, water, ecosystem };
   userDataCacheMap[userId] = { data: result, timestamp: now };
   return result;
 };

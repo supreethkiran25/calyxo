@@ -190,7 +190,7 @@ export default function UserLayout() {
         setUser(authUser);
         const uid = authUser.uid || authUser.id;
 
-        const { profile, foods, workouts, weights, water } = await loadUserData(uid);
+        const { profile, foods, workouts, weights, water, ecosystem } = await loadUserData(uid);
 
         if (profile) {
           setUserProfile(profile);
@@ -201,6 +201,8 @@ export default function UserLayout() {
         if (workouts) setWorkoutLogs(workouts);
         if (weights) setWeightLogs(weights);
         if (water !== undefined && water !== null) setWaterIntake(water);
+        if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
+        useEcosystemStore.getState().checkDailyLoginStreak();
       } else {
         const storeUser = useStore.getState().user;
         if (!storeUser) {
@@ -227,26 +229,28 @@ export default function UserLayout() {
       setNotifications(notifsList || []);
     });
 
-    // 2. Full cross-device realtime subscription (Food, Workout, Weight, Profile, Metrics)
+    // 2. Full cross-device realtime subscription (Food, Workout, Weight, Profile, Ecosystem/Streak)
     const unsubCrossDevice = subscribeToUserDataChanges(uid, async () => {
       invalidateUserDataCache(uid);
-      const { profile, foods, workouts, weights, water } = await loadUserData(uid);
+      const { profile, foods, workouts, weights, water, ecosystem } = await loadUserData(uid);
       if (profile) useStore.getState().setUserProfile(profile);
       if (foods) useStore.getState().setFoodLogs(foods);
       if (workouts) useStore.getState().setWorkoutLogs(workouts);
       if (weights) useStore.getState().setWeightLogs(weights);
       if (water !== undefined && water !== null) useStore.getState().setWaterIntake(water);
+      if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
     });
 
     // 3. Tab visibility / window focus listener to refresh data if changed on another device while backgrounded
     const handleFocusSync = async () => {
       invalidateUserDataCache(uid);
-      const { profile, foods, workouts, weights, water } = await loadUserData(uid);
+      const { profile, foods, workouts, weights, water, ecosystem } = await loadUserData(uid);
       if (profile) useStore.getState().setUserProfile(profile);
       if (foods) useStore.getState().setFoodLogs(foods);
       if (workouts) useStore.getState().setWorkoutLogs(workouts);
       if (weights) useStore.getState().setWeightLogs(weights);
       if (water !== undefined && water !== null) useStore.getState().setWaterIntake(water);
+      if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
     };
 
     window.addEventListener('focus', handleFocusSync);

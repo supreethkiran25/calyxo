@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getSecureItem, setSecureItem, getCurrentUserIdSync } from '../lib/dbService';
+import { getSecureItem, setSecureItem, getCurrentUserIdSync, saveEcosystemState } from '../lib/dbService';
 
 const LOCAL_ECOSYSTEM_KEY = "calyxo_ecosystem_state";
 
@@ -63,13 +63,30 @@ export const useEcosystemStore = create((set, get) => ({
   // Generic Sync from DB
   syncEcosystemState: (data) => {
     if (data) {
-      set({ ...data });
-      saveLocalEcosystemState(get());
+      const currentState = get();
+      const currentStreak = currentState.streaks?.loginStreak || 1;
+      const remoteStreak = data.streaks?.loginStreak || 1;
+
+      const mergedStreaks = {
+        ...(data.streaks || {}),
+        loginStreak: Math.max(currentStreak, remoteStreak),
+        lastCheckIn: data.streaks?.lastCheckIn || currentState.streaks?.lastCheckIn
+      };
+
+      const mergedState = {
+        ...currentState,
+        ...data,
+        streaks: mergedStreaks
+      };
+
+      set(mergedState);
+      saveLocalEcosystemState(mergedState);
     }
   },
 
   // Streaks actions
   checkDailyLoginStreak: () => set((state) => {
+    const uid = getCurrentUserIdSync();
     const todayStr = new Date().toDateString();
     const lastCheckIn = state.streaks?.lastCheckIn;
 
@@ -77,6 +94,7 @@ export const useEcosystemStore = create((set, get) => ({
       const nextStreaks = { ...(state.streaks || {}), loginStreak: 1, lastCheckIn: todayStr };
       const nextState = { ...state, streaks: nextStreaks };
       saveLocalEcosystemState(nextState);
+      if (uid) saveEcosystemState(uid, nextState).catch(() => {});
       return { streaks: nextStreaks };
     }
 
@@ -108,13 +126,16 @@ export const useEcosystemStore = create((set, get) => ({
 
     const nextState = { ...state, streaks: nextStreaks };
     saveLocalEcosystemState(nextState);
+    if (uid) saveEcosystemState(uid, nextState).catch(() => {});
     return { streaks: nextStreaks };
   }),
 
   updateStreaks: (updates) => set((state) => {
+    const uid = getCurrentUserIdSync();
     const next = { ...(state.streaks || {}), ...updates };
     const nextState = { ...state, streaks: next };
     saveLocalEcosystemState(nextState);
+    if (uid) saveEcosystemState(uid, nextState).catch(() => {});
     return { streaks: next };
   }),
 
