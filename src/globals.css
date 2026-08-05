@@ -147,20 +147,20 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 [data-theme='light'] {
-  /* Light Theme (Calyxo Emerald Brand Light) */
+  /* Light Theme (Calyxo Signature Neon Acid Green) */
   --background: #f8fafc;
   --foreground: #0f172a;
   --card: #ffffff;
   --card-foreground: #0f172a;
-  --primary: #10b981;
-  --primary-foreground: #ffffff;
+  --primary: #ccff00;
+  --primary-foreground: #000000;
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
   --muted: #f1f5f9;
   --muted-foreground: #475569;
-  --accent: #10b981;
-  --accent-dim: #059669;
-  --accent-foreground: #ffffff;
+  --accent: #ccff00;
+  --accent-dim: #a6d900;
+  --accent-foreground: #000000;
   --border: #e2e8f0;
   --input: #ffffff;
   --input-foreground: #0f172a;
@@ -170,10 +170,10 @@ h1, h2, h3, h4, h5, h6 {
 
   --orange-theme: #d97706;
   --blue-theme: #0284c7;
-  --primary-bg: #10b981;
-  --primary-fg: #ffffff;
-  --glow-shadow: none;
-  --accent-glow: rgba(16, 185, 129, 0.15);
+  --primary-bg: #ccff00;
+  --primary-fg: #000000;
+  --glow-shadow: 0 0 20px rgba(204, 255, 0, 0.4);
+  --accent-glow: rgba(204, 255, 0, 0.25);
 
   --card-bg: var(--card);
   --card-border: var(--border);
@@ -247,6 +247,28 @@ h1, h2, h3, h4, h5, h6 {
   background-color: #ffffff !important;
   border-color: #cbd5e1 !important;
   color: #0f172a !important;
+}
+
+/* Light Theme Acid Green Brand Overrides */
+[data-theme='light'] .bg-acid-green {
+  background-color: #ccff00 !important;
+  color: #000000 !important;
+}
+
+[data-theme='light'] .bg-acid-green\/10,
+[data-theme='light'] .bg-acid-green\/15,
+[data-theme='light'] .bg-acid-green\/20 {
+  background-color: rgba(204, 255, 0, 0.35) !important;
+}
+
+[data-theme='light'] .text-acid-green {
+  color: #3b5c00 !important;
+}
+
+[data-theme='light'] .border-acid-green\/30,
+[data-theme='light'] .border-acid-green\/20,
+[data-theme='light'] .border-acid-green\/40 {
+  border-color: rgba(204, 255, 0, 0.6) !important;
 }
 
 [data-theme='solarized'] {
