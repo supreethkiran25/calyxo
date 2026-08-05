@@ -5,7 +5,7 @@ import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import useQuickActionsStore from '../store/useQuickActionsStore';
-import { signOutUser, subscribeToAuth, loadUserData, invalidateUserDataCache } from '../lib/dbService';
+import { signOutUser, subscribeToAuth, loadUserData, invalidateUserDataCache, subscribeToUserDataChanges } from '../lib/dbService';
 import { subscribeToInAppNotifications, markNotificationAsRead, deleteNotification, registerServiceWorker, subscribeToPushNotifications } from '../services/notificationService';
 import { supabase } from '../lib/supabaseClient';
 
@@ -212,7 +212,7 @@ export default function UserLayout() {
     return () => unsubscribeAuth();
   }, []);
 
-  // Realtime in-app notifications, Web Push engine, and subscription plan sync
+  // Realtime cross-device data sync, Web Push engine, and tab focus re-sync
   useEffect(() => {
     const uid = user?.uid || user?.id;
     if (!uid) return;
@@ -222,30 +222,42 @@ export default function UserLayout() {
       subscribeToPushNotifications(uid);
     });
 
-    // 1. In-app notifications realtime subscription (OS notifications handled by SW push only)
+    // 1. In-app notifications realtime subscription
     const unsubNotifs = subscribeToInAppNotifications(uid, (notifsList) => {
       setNotifications(notifsList || []);
     });
 
-    // 2. User profile realtime subscription (Instant Premium status sync)
-    const profileChannel = supabase
-      .channel(`realtime_profile_${uid}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'user_profiles', filter: `id=eq.${uid}` },
-        async () => {
-          invalidateUserDataCache(uid);
-          const { profile } = await loadUserData(uid);
-          if (profile) {
-            useStore.getState().setUserProfile(profile);
-          }
-        }
-      )
-      .subscribe();
+    // 2. Full cross-device realtime subscription (Food, Workout, Weight, Profile, Metrics)
+    const unsubCrossDevice = subscribeToUserDataChanges(uid, async () => {
+      invalidateUserDataCache(uid);
+      const { profile, foods, workouts, weights, water } = await loadUserData(uid);
+      if (profile) useStore.getState().setUserProfile(profile);
+      if (foods) useStore.getState().setFoodLogs(foods);
+      if (workouts) useStore.getState().setWorkoutLogs(workouts);
+      if (weights) useStore.getState().setWeightLogs(weights);
+      if (water !== undefined && water !== null) useStore.getState().setWaterIntake(water);
+    });
+
+    // 3. Tab visibility / window focus listener to refresh data if changed on another device while backgrounded
+    const handleFocusSync = async () => {
+      invalidateUserDataCache(uid);
+      const { profile, foods, workouts, weights, water } = await loadUserData(uid);
+      if (profile) useStore.getState().setUserProfile(profile);
+      if (foods) useStore.getState().setFoodLogs(foods);
+      if (workouts) useStore.getState().setWorkoutLogs(workouts);
+      if (weights) useStore.getState().setWeightLogs(weights);
+      if (water !== undefined && water !== null) useStore.getState().setWaterIntake(water);
+    };
+
+    window.addEventListener('focus', handleFocusSync);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') handleFocusSync();
+    });
 
     return () => {
       if (unsubNotifs) unsubNotifs();
-      supabase.removeChannel(profileChannel);
+      if (unsubCrossDevice) unsubCrossDevice();
+      window.removeEventListener('focus', handleFocusSync);
     };
   }, [user]);
 

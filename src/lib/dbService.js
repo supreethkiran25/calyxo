@@ -1082,6 +1082,58 @@ export const loadUserData = async (userId) => {
   return result;
 };
 
+export const subscribeToUserDataChanges = (userId, onDataChange) => {
+  if (isMockMode || !userId) return () => {};
+
+  const channel = supabase
+    .channel(`realtime_user_sync_${userId}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'food_logs', filter: `userId=eq.${userId}` },
+      () => {
+        invalidateUserDataCache(userId);
+        if (onDataChange) onDataChange('food_logs');
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'workout_logs', filter: `userId=eq.${userId}` },
+      () => {
+        invalidateUserDataCache(userId);
+        if (onDataChange) onDataChange('workout_logs');
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'weight_logs', filter: `userId=eq.${userId}` },
+      () => {
+        invalidateUserDataCache(userId);
+        if (onDataChange) onDataChange('weight_logs');
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'users_metrics', filter: `userId=eq.${userId}` },
+      () => {
+        invalidateUserDataCache(userId);
+        if (onDataChange) onDataChange('users_metrics');
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'user_profiles', filter: `id=eq.${userId}` },
+      () => {
+        invalidateUserDataCache(userId);
+        if (onDataChange) onDataChange('user_profiles');
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+};
+
 /* ==========================================================================
    TRAINING LOGS API FOR AI SELF-TRAINING
    ========================================================================== */
