@@ -65,62 +65,20 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 :root {
-  /* Semantic WCAG High-Contrast Variables (Light Mode) */
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --primary: #4f46e5;
-  --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #334155;
-  --accent: #4f46e5;
-  --accent-dim: #4338ca;
-  --accent-foreground: #ffffff;
-  --border: #cbd5e1;
-  --input: #ffffff;
-  --input-foreground: #0f172a;
-  --success: #059669;
-  --warning: #d97706;
-  --destructive: #dc2626;
-
-  /* Brand overrides for Light Mode */
-  --orange-theme: #d97706;
-  --blue-theme: #0284c7;
-  --primary-bg: #4f46e5;
-  --primary-fg: #ffffff;
-  --glow-shadow: none;
-  --accent-glow: rgba(79, 70, 229, 0.15);
-
-  /* Backward compatibility links */
-  --card-bg: var(--card);
-  --card-border: var(--border);
-  --text-muted: var(--muted-foreground);
-  --nav-bg: rgba(255, 255, 255, 0.95);
-  --nav-border: var(--border);
-  --surface: var(--secondary);
-  --input-bg: var(--input);
-  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-}
-
-:root.dark,
-[data-theme='dark'] {
-  /* Semantic WCAG variables (Dark Mode) */
+  /* Calyxo Signature Brand Variables (Default Obsidian Theme) */
   --background: #0A0A0F;
   --foreground: #f3f4f6;
   --card: rgba(255, 255, 255, 0.05);
   --card-foreground: #f3f4f6;
-  --primary: #097d32;
-  --primary-foreground: #ffffff;
+  --primary: #ccff00;
+  --primary-foreground: #000000;
   --secondary: #12121A;
   --secondary-foreground: #f3f4f6;
   --muted: #1A1A24;
   --muted-foreground: #B9B9C7;
-  --accent: #097d32;
-  --accent-dim: #097d32;
-  --accent-foreground: #ffffff;
+  --accent: #ccff00;
+  --accent-dim: #a6d900;
+  --accent-foreground: #000000;
   --border: rgba(255, 255, 255, 0.1);
   --input: #12121A;
   --input-foreground: #f3f4f6;
@@ -128,40 +86,42 @@ h1, h2, h3, h4, h5, h6 {
   --warning: #F59E0B;
   --destructive: #ef5350;
 
-  /* Brand overrides for Dark Mode */
+  /* Brand overrides */
   --orange-theme: #F59E0B;
   --blue-theme: #3B82F6;
-  --primary-bg: #097d32;
-  --primary-fg: #ffffff;
-  --glow-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
-  --accent-glow: rgba(168, 85, 247, 0.2);
+  --primary-bg: #ccff00;
+  --primary-fg: #000000;
+  --glow-shadow: 0 0 20px rgba(204, 255, 0, 0.4);
+  --accent-glow: rgba(204, 255, 0, 0.2);
 
   /* Backward compatibility links */
   --card-bg: var(--card);
   --card-border: var(--border);
   --text-muted: var(--muted-foreground);
-  --nav-bg: rgba(10, 10, 15, 0.75);
+  --nav-bg: rgba(10, 10, 15, 0.85);
   --nav-border: var(--border);
   --surface: var(--secondary);
   --input-bg: var(--input);
   --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8);
 }
 
+:root.dark,
+[data-theme='dark'],
 [data-theme='obsidian'] {
-  /* Obsidian Dark (Dark Mode default) */
+  /* Obsidian Dark (Calyxo Signature Theme) */
   --background: #0A0A0F;
   --foreground: #f3f4f6;
   --card: rgba(255, 255, 255, 0.05);
   --card-foreground: #f3f4f6;
-  --primary: #097d32;
-  --primary-foreground: #ffffff;
+  --primary: #ccff00;
+  --primary-foreground: #000000;
   --secondary: #12121A;
   --secondary-foreground: #f3f4f6;
   --muted: #1A1A24;
   --muted-foreground: #B9B9C7;
-  --accent: #097d32;
-  --accent-dim: #097d32;
-  --accent-foreground: #ffffff;
+  --accent: #ccff00;
+  --accent-dim: #a6d900;
+  --accent-foreground: #000000;
   --border: rgba(255, 255, 255, 0.1);
   --input: #12121A;
   --input-foreground: #f3f4f6;
@@ -171,15 +131,15 @@ h1, h2, h3, h4, h5, h6 {
 
   --orange-theme: #f57c38;
   --blue-theme: #4fc3f7;
-  --primary-bg: #10B981;
-  --primary-fg: #ffffff;
-  --glow-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
-  --accent-glow: rgba(16, 185, 129, 0.2);
+  --primary-bg: #ccff00;
+  --primary-fg: #000000;
+  --glow-shadow: 0 0 20px rgba(204, 255, 0, 0.4);
+  --accent-glow: rgba(204, 255, 0, 0.2);
 
   --card-bg: var(--card);
   --card-border: var(--border);
   --text-muted: var(--muted-foreground);
-  --nav-bg: rgba(3, 3, 3, 0.75);
+  --nav-bg: rgba(10, 10, 15, 0.85);
   --nav-border: var(--border);
   --surface: var(--secondary);
   --input-bg: var(--input);
