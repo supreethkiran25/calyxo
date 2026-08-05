@@ -1456,6 +1456,9 @@ export default function UserProfile({ onNotification }) {
 
   const renderSubscriptionForm = () => {
     const currentPlan = userProfile?.subscriptionPlan || 'FREE';
+    const sysSettings = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('calyxo_system_settings') || '{}') : {};
+    const monthlyPriceINR = sysSettings.high_price_monthly_inr || sysSettings.high_price_monthly || '999';
+    const annualPriceINR = sysSettings.high_price_annual_inr || sysSettings.high_price_annual || '7999';
 
     const plans = [
       {
@@ -1474,20 +1477,36 @@ export default function UserProfile({ onNotification }) {
         ]
       },
       {
-        id: 'MEDIUM',
-        name: 'PREMIUM AI ACCESS',
-        price: '₹1',
+        id: 'HIGH',
+        name: 'HIGH PLAN (MONTHLY)',
+        price: `₹${monthlyPriceINR}`,
         period: 'per month',
-        badge: 'AI PREMIUM ACCESS',
+        badge: 'HIGH PLAN',
         accentColor: 'border-acid-green',
         bgGradient: 'bg-acid-green/10',
-        amountPaise: 100,
+        amountPaise: Number(monthlyPriceINR) * 100,
         features: [
           'Everything in Free Athlete',
           'Unlimited Calyxo AI Coach Concierge',
-          'Long-Term AI Fitness & Diet Memory',
-          'Custom Macro & Micro Target Engine',
+          'AI Vision Food & Meal Scanner',
+          'Personal Trainer (PT) Connections',
           'Priority Ultra-Fast AI Processing'
+        ]
+      },
+      {
+        id: 'HIGH_ANNUAL',
+        name: 'HIGH PLAN (ANNUAL)',
+        price: `₹${annualPriceINR}`,
+        period: 'per year',
+        badge: 'BEST VALUE',
+        accentColor: 'border-indigo-500',
+        bgGradient: 'bg-indigo-500/10',
+        amountPaise: Number(annualPriceINR) * 100,
+        features: [
+          'Everything in High Plan Monthly',
+          'Full 12 Months Access',
+          'Exclusive Member Perks',
+          'Priority Support Channel'
         ]
       }
     ];

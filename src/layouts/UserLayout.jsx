@@ -64,6 +64,14 @@ export default function UserLayout() {
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [systemSettings, setSystemSettings] = useState(() => {
+    try {
+      const local = localStorage.getItem('calyxo_system_settings');
+      return local ? JSON.parse(local) : { maintenance_mode: false };
+    } catch (e) {
+      return { maintenance_mode: false };
+    }
+  });
 
   const navigate = useNavigate();
   const mainRef = useRef(null);
@@ -76,11 +84,31 @@ export default function UserLayout() {
 
   const subscriptionPlan = userProfile?.subscriptionPlan;
   const currentUserEmail = (user?.email || userProfile?.email || "").toLowerCase().trim();
-  const isSubscribed = Boolean(
-    userProfile?.isSubscribed || 
-    (subscriptionPlan && subscriptionPlan !== 'FREE' && subscriptionPlan !== 'DEFAULT') ||
-    currentUserEmail === 'supreethkiran25@gmail.com'
-  );
+  const isSuperAdmin = currentUserEmail === 'supreethkiran25@gmail.com' || currentUserEmail === 'admin@calyxo.com';
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const { getAdminSettings } = await import('../services/adminService');
+        const res = await getAdminSettings();
+        if (res) {
+          setSystemSettings(res);
+          localStorage.setItem('calyxo_system_settings', JSON.stringify(res));
+        }
+      } catch (e) {}
+    };
+    loadSettings();
+
+    const handleSettingsUpdate = (evt) => {
+      if (evt.detail) {
+        setSystemSettings(evt.detail);
+      }
+    };
+    window.addEventListener('calyxo_settings_updated', handleSettingsUpdate);
+    return () => {
+      window.removeEventListener('calyxo_settings_updated', handleSettingsUpdate);
+    };
+  }, []);
 
   const activeWorkflow = useQuickActionsStore(state => state.activeWorkflow);
 
@@ -107,6 +135,41 @@ export default function UserLayout() {
       window.location.href = '/';
     }
   };
+
+  // Lock out non-admin users if System Maintenance Mode is enabled
+  if (systemSettings?.maintenance_mode && !isSuperAdmin) {
+    return (
+      <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center p-6 text-center font-sans relative overflow-hidden selection:bg-red-500/30 selection:text-red-200">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-md w-full p-8 rounded-3xl bg-neutral-900/90 border border-neutral-800 shadow-2xl space-y-6 relative z-10 backdrop-blur-xl">
+          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto text-red-400 shadow-lg">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-2">
+            <span className="text-[10px] font-mono font-bold text-red-400 bg-red-500/10 px-3 py-1 rounded-full border border-red-500/20">
+              SYSTEM MAINTENANCE IN PROGRESS
+            </span>
+            <h2 className="text-2xl font-extrabold text-white tracking-tight">Calyxo Under Maintenance</h2>
+            <p className="text-xs text-neutral-400 leading-relaxed font-mono mt-2">
+              {systemSettings?.maintenance_message || 'Calyxo is currently undergoing scheduled platform upgrades and maintenance. Access is temporarily restricted.'}
+            </p>
+          </div>
+
+          <div className="pt-4 border-t border-neutral-800 flex flex-col gap-2 font-mono text-xs">
+            <span className="text-neutral-500">Expected Uptime: Operational Shortly</span>
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-bold transition-all cursor-pointer"
+            >
+              Check Maintenance Status
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     useStore.getState().checkDailyReset();

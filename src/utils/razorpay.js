@@ -36,7 +36,21 @@ export const startRazorpayCheckout = async ({
       return;
     }
 
-    const amountPaise = plan.id === 'MEDIUM' ? 100 : plan.id === 'HIGH' ? 200 : (plan.amountPaise || 100);
+    // Read dynamic admin system settings
+    const sysSettings = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('calyxo_system_settings') || '{}') : {};
+    const monthlyPriceINR = Number(sysSettings.high_price_monthly_inr || sysSettings.high_price_monthly || 999);
+    const annualPriceINR = Number(sysSettings.high_price_annual_inr || sysSettings.high_price_annual || 7999);
+
+    let priceInINR = monthlyPriceINR;
+    if (plan.id === 'HIGH_ANNUAL' || plan.isAnnual || plan.duration === 'Annual') {
+      priceInINR = annualPriceINR;
+    } else if (plan.amountPaise) {
+      priceInINR = plan.amountPaise / 100;
+    } else if (plan.price && typeof plan.price === 'number') {
+      priceInINR = plan.price;
+    }
+
+    const amountPaise = Math.round(priceInINR * 100);
     let orderData = null;
 
     try {
@@ -57,7 +71,7 @@ export const startRazorpayCheckout = async ({
       console.warn("Backend create-order endpoint unavailable, proceeding with standard client checkout:", apiErr);
     }
 
-    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_THntfStnhzEiO8';
+    const razorpayKey = sysSettings.razorpay_key_id || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_THntfStnhzEiO8';
 
     const options = {
       key: razorpayKey,
