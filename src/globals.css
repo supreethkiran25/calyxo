@@ -146,6 +146,45 @@ h1, h2, h3, h4, h5, h6 {
   --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8);
 }
 
+[data-theme='light'] {
+  /* Light Theme (Calyxo Emerald Brand Light) */
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --primary: #10b981;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569;
+  --accent: #10b981;
+  --accent-dim: #059669;
+  --accent-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #ffffff;
+  --input-foreground: #0f172a;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --destructive: #dc2626;
+
+  --orange-theme: #d97706;
+  --blue-theme: #0284c7;
+  --primary-bg: #10b981;
+  --primary-fg: #ffffff;
+  --glow-shadow: none;
+  --accent-glow: rgba(16, 185, 129, 0.15);
+
+  --card-bg: var(--card);
+  --card-border: var(--border);
+  --text-muted: var(--muted-foreground);
+  --nav-bg: rgba(255, 255, 255, 0.95);
+  --nav-border: var(--border);
+  --surface: var(--secondary);
+  --input-bg: var(--input);
+  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+}
+
 [data-theme='solarized'] {
   /* Solarized Retro Cream/Teal */
   --background: #fdf6e3;
@@ -934,9 +973,9 @@ textarea:focus {
 
 .admin-light-mode aside a.bg-indigo-600\/20,
 .admin-light-mode aside a.bg-indigo-600 {
-  background-color: #EEF2FF !important;
-  color: #4F46E5 !important;
-  border-color: #C7D2FE !important;
+  background-color: #D1FAE5 !important;
+  color: #047857 !important;
+  border-color: #A7F3D0 !important;
 }
 
 /* Header Navbar */
@@ -1013,8 +1052,8 @@ textarea:focus {
 .admin-light-mode input:focus,
 .admin-light-mode select:focus,
 .admin-light-mode textarea:focus {
-  border-color: #6366F1 !important;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+  border-color: #10B981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
 }
 
 /* Modals & Dialog Backdrops */
@@ -1052,10 +1091,11 @@ textarea:focus {
 }
 
 .admin-light-mode .bg-indigo-500\/20,
-.admin-light-mode .bg-indigo-500\/10 {
-  background-color: #EEF2FF !important;
-  color: #4338CA !important;
-  border-color: #C7D2FE !important;
+.admin-light-mode .bg-indigo-500\/10,
+.admin-light-mode .bg-indigo-600 {
+  background-color: #D1FAE5 !important;
+  color: #047857 !important;
+  border-color: #A7F3D0 !important;
 }
 
 /* Secondary Action Buttons */
