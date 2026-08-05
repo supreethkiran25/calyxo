@@ -738,21 +738,228 @@ export const editUserAdmin = async (userId, updatedFields) => {
 /* ==========================================================================
    WORKOUT DATABASE
    ========================================================================== */
+export const DEFAULT_CALYXO_EXERCISES = [
+  {
+    id: 'ex_bench_press',
+    title: 'Barbell Flat Bench Press',
+    category: 'Chest',
+    muscle: 'Chest (Pectoralis Major), Triceps, Front Deltoids',
+    equipment: 'Barbell & Flat Bench',
+    difficulty: 'Intermediate',
+    image_url: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80',
+    instructions: 'Lie flat on bench, grip bar slightly wider than shoulder width. Lower bar smoothly to mid-chest, drive feet into floor, and press back up to lockout.',
+    default_sets: 4,
+    default_reps: '8-10',
+    calories_burned_per_min: 8.5
+  },
+  {
+    id: 'ex_incline_dumbbell_press',
+    title: 'Incline Dumbbell Chest Press',
+    category: 'Chest',
+    muscle: 'Upper Chest (Clavicular Head), Front Deltoids',
+    equipment: 'Incline Bench & Dumbbells',
+    difficulty: 'Intermediate',
+    image_url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&auto=format&fit=crop&q=80',
+    instructions: 'Set bench to 30-45 degrees. Press dumbbells overhead with palms facing forward. Lower until elbows reach 90 degrees and explode up.',
+    default_sets: 4,
+    default_reps: '10-12',
+    calories_burned_per_min: 7.8
+  },
+  {
+    id: 'ex_cable_flyes',
+    title: 'Cable Chest Flyes',
+    category: 'Chest',
+    muscle: 'Inner Chest, Pectoralis Major',
+    equipment: 'Dual Cable Station',
+    difficulty: 'Beginner',
+    image_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80',
+    instructions: 'Set pulleys at chest height. Step forward with slight elbow bend. Hug arms together in front of sternum, squeezing chest at peak contraction.',
+    default_sets: 3,
+    default_reps: '12-15',
+    calories_burned_per_min: 6.5
+  },
+  {
+    id: 'ex_pull_ups',
+    title: 'Overhand Wide Grip Pull-Ups',
+    category: 'Back',
+    muscle: 'Latissimus Dorsi, Rhomboids, Biceps',
+    equipment: 'Pull-Up Bar',
+    difficulty: 'Intermediate',
+    image_url: 'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=600&auto=format&fit=crop&q=80',
+    instructions: 'Grip bar overhand wide. Depress shoulder blades and pull chest up to the bar until chin clears. Lower under control without swinging.',
+    default_sets: 4,
+    default_reps: '8-12',
+    calories_burned_per_min: 9.0
+  },
+  {
+    id: 'ex_barbell_bent_row',
+    title: 'Barbell Bent-Over Row',
+    category: 'Back',
+    muscle: 'Mid-Back, Latissimus Dorsi, Erector Spinae',
+    equipment: 'Barbell',
+    difficulty: 'Advanced',
+    image_url: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=600&auto=format&fit=crop&q=80',
+    instructions: 'Hinge at hips to 45 degrees keeping spine neutral. Pull barbell toward lower ribcage, driving elbows back. Lower slowly.',
+    default_sets: 4,
+    default_reps: '8-10',
+    calories_burned_per_min: 8.8
+  },
+  {
+    id: 'ex_lat_pulldown',
+    title: 'Wide Grip Lat Pulldown',
+    category: 'Back',
+    muscle: 'Latissimus Dorsi, Teres Major',
+    equipment: 'Lat Pulldown Machine',
+    difficulty: 'Beginner',
+    image_url: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=600&auto=format&fit=crop&q=80',
+    instructions: 'Sit securely under thigh pads. Pull bar down toward upper chest while leaning slightly back. Squeeze lats at the bottom.',
+    default_sets: 3,
+    default_reps: '10-12',
+    calories_burned_per_min: 7.2
+  },
+  {
+    id: 'ex_barbell_squat',
+    title: 'Barbell High Bar Back Squat',
+    category: 'Legs',
+    muscle: 'Quadriceps, Glutes, Hamstrings, Core',
+    equipment: 'Barbell & Squat Rack',
+    difficulty: 'Advanced',
+    image_url: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=600&auto=format&fit=crop&q=80',
+    instructions: 'Rest bar across upper traps. Stand shoulder-width, lower hips below parallel keeping chest high and knees tracking over toes.',
+    default_sets: 4,
+    default_reps: '6-8',
+    calories_burned_per_min: 10.5
+  },
+  {
+    id: 'ex_romanian_deadlift',
+    title: 'Barbell Romanian Deadlift (RDL)',
+    category: 'Legs',
+    muscle: 'Hamstrings, Gluteus Maximus, Lower Back',
+    equipment: 'Barbell',
+    difficulty: 'Intermediate',
+    image_url: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80',
+    instructions: 'Hold bar at thighs. Push hips backward with soft knee bend until deep hamstring stretch is felt. Drive hips forward to stand.',
+    default_sets: 4,
+    default_reps: '8-10',
+    calories_burned_per_min: 9.2
+  },
+  {
+    id: 'ex_leg_press',
+    title: '45-Degree Leg Press',
+    category: 'Legs',
+    muscle: 'Quadriceps, Glutes',
+    equipment: 'Sled Leg Press Machine',
+    difficulty: 'Beginner',
+    image_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80',
+    instructions: 'Place feet hip-width on sled. Lower weight until knees bend 90 degrees. Press through mid-foot without locking out knees.',
+    default_sets: 3,
+    default_reps: '12-15',
+    calories_burned_per_min: 8.0
+  },
+  {
+    id: 'ex_overhead_press',
+    title: 'Standing Barbell Overhead Press (OHP)',
+    category: 'Shoulders',
+    muscle: 'Anterior & Lateral Deltoids, Triceps',
+    equipment: 'Barbell',
+    difficulty: 'Intermediate',
+    image_url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&auto=format&fit=crop&q=80',
+    instructions: 'Rack bar at collarbones. Tighten glutes and core, press bar straight up past face to full overhead extension.',
+    default_sets: 4,
+    default_reps: '6-8',
+    calories_burned_per_min: 8.2
+  },
+  {
+    id: 'ex_lateral_raise',
+    title: 'Dumbbell Lateral Shoulder Raise',
+    category: 'Shoulders',
+    muscle: 'Lateral Deltoids (Side Shoulders)',
+    equipment: 'Dumbbells',
+    difficulty: 'Beginner',
+    image_url: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=600&auto=format&fit=crop&q=80',
+    instructions: 'Stand upright with dumbbells at sides. Raise arms outward to shoulder level leading with elbows. Control the descent.',
+    default_sets: 4,
+    default_reps: '12-15',
+    calories_burned_per_min: 6.0
+  },
+  {
+    id: 'ex_bicep_curls',
+    title: 'Standing Barbell Bicep Curl',
+    category: 'Arms',
+    muscle: 'Biceps Brachii, Brachialis',
+    equipment: 'EZ Bar or Straight Barbell',
+    difficulty: 'Beginner',
+    image_url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&auto=format&fit=crop&q=80',
+    instructions: 'Underhand grip. Keep elbows pinned to torso, curl weight toward shoulders, squeeze biceps at top, and lower slowly.',
+    default_sets: 3,
+    default_reps: '10-12',
+    calories_burned_per_min: 6.2
+  },
+  {
+    id: 'ex_tricep_pushdown',
+    title: 'Cable Tricep Rope Pushdown',
+    category: 'Arms',
+    muscle: 'Triceps Brachii (Lateral & Medial Head)',
+    equipment: 'Cable Station & Rope Attachment',
+    difficulty: 'Beginner',
+    image_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80',
+    instructions: 'Grip rope attachment overhead pulley. Extend elbows downward spreading rope ends apart at full lockout.',
+    default_sets: 4,
+    default_reps: '12-15',
+    calories_burned_per_min: 6.5
+  },
+  {
+    id: 'ex_hanging_leg_raise',
+    title: 'Hanging Straight Leg Raise',
+    category: 'Core',
+    muscle: 'Lower Rectus Abdominis, Hip Flexors',
+    equipment: 'Pull-Up Bar',
+    difficulty: 'Intermediate',
+    image_url: 'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=600&auto=format&fit=crop&q=80',
+    instructions: 'Hang from bar with deadhang grip. Raise legs straight up until feet touch bar height without momentum. Lower under control.',
+    default_sets: 3,
+    default_reps: '10-15',
+    calories_burned_per_min: 7.5
+  },
+  {
+    id: 'ex_treadmill_sprint',
+    title: 'Treadmill Incline HIIT Sprints',
+    category: 'Cardio',
+    muscle: 'Cardiovascular System, Legs, Core',
+    equipment: 'Commercial Treadmill',
+    difficulty: 'Intermediate',
+    image_url: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80',
+    instructions: 'Perform 30-second max effort sprints at 12 mph / 5% incline followed by 30-second rest intervals for 15 minutes.',
+    default_sets: 10,
+    default_reps: '30s Work / 30s Rest',
+    calories_burned_per_min: 14.0
+  }
+];
+
 export const getAdminExercises = async ({ search = '', category = '', difficulty = '' } = {}) => {
-  let exercises = [];
+  let dbExercises = [];
   if (!isMockMode) {
     try {
       const { data, error } = await supabase.from('exercise_database').select('*');
-      if (!error && data) exercises = data;
+      if (!error && data) dbExercises = data;
     } catch (e) {}
   }
 
   const exMap = new Map();
-  exercises.forEach(e => { if (e && e.id) exMap.set(e.id, e); });
+  // 1. Populate default exercises baseline
+  DEFAULT_CALYXO_EXERCISES.forEach(e => {
+    if (e && e.id) exMap.set(e.id, e);
+  });
+
+  // 2. Override / append from Supabase database
+  dbExercises.forEach(e => {
+    if (e && e.id) exMap.set(e.id, e);
+  });
+
   const deduplicated = Array.from(exMap.values());
 
   return deduplicated.filter(ex => {
-    const matchesSearch = !search || ex.title.toLowerCase().includes(search.toLowerCase()) || ex.muscle.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = !search || ex.title?.toLowerCase().includes(search.toLowerCase()) || ex.muscle?.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = !category || ex.category === category;
     const matchesDifficulty = !difficulty || ex.difficulty === difficulty;
     return matchesSearch && matchesCategory && matchesDifficulty;
