@@ -1357,32 +1357,64 @@ export const DEFAULT_SETTINGS = {
 };
 
 export const getAdminSettings = async () => {
+  let settings = { ...DEFAULT_SETTINGS };
+
+  if (typeof window !== 'undefined') {
+    try {
+      const local = localStorage.getItem('calyxo_system_settings');
+      if (local) {
+        const parsed = JSON.parse(local);
+        settings = { ...settings, ...parsed };
+      }
+    } catch (e) {}
+  }
+
   if (!isMockMode) {
     try {
       const { data, error } = await supabase.from('system_settings').select('*');
       if (!error && data && data.length > 0) {
         const obj = {};
-        data.forEach(item => { obj[item.key] = item.value; });
-        return { ...DEFAULT_SETTINGS, ...obj };
+        data.forEach(item => {
+          let val = item.value;
+          if (val === 'true') val = true;
+          if (val === 'false') val = false;
+          obj[item.key] = val;
+        });
+        settings = { ...DEFAULT_SETTINGS, ...obj };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('calyxo_system_settings', JSON.stringify(settings));
+        }
       }
     } catch (e) {}
   }
-  return DEFAULT_SETTINGS;
+
+  settings.maintenance_mode = Boolean(settings.maintenance_mode === true || settings.maintenance_mode === 'true');
+  return settings;
 };
 
 export const saveAdminSettings = async (settings) => {
+  const sanitized = {
+    ...settings,
+    maintenance_mode: Boolean(settings.maintenance_mode === true || settings.maintenance_mode === 'true')
+  };
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('calyxo_system_settings', JSON.stringify(sanitized));
+    window.dispatchEvent(new CustomEvent('calyxo_settings_updated', { detail: sanitized }));
+  }
+
   if (!isMockMode) {
     try {
-      const entries = Object.keys(settings).map(k => ({
+      const entries = Object.keys(sanitized).map(k => ({
         key: k,
-        value: typeof settings[k] === 'object' ? JSON.stringify(settings[k]) : String(settings[k]),
+        value: typeof sanitized[k] === 'object' ? JSON.stringify(sanitized[k]) : String(sanitized[k]),
         updated_at: new Date().toISOString()
       }));
       await supabase.from('system_settings').upsert(entries, { onConflict: 'key' });
     } catch (e) {}
   }
-  await logAdminAction('SETTINGS_CHANGED', 'system', settings);
-  return settings;
+  await logAdminAction('SETTINGS_CHANGED', 'system', sanitized);
+  return sanitized;
 };
 
 /* ==========================================================================

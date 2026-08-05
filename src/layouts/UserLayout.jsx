@@ -84,7 +84,8 @@ export default function UserLayout() {
 
   const subscriptionPlan = userProfile?.subscriptionPlan;
   const currentUserEmail = (user?.email || userProfile?.email || "").toLowerCase().trim();
-  const isSuperAdmin = currentUserEmail === 'supreethkiran25@gmail.com' || currentUserEmail === 'admin@calyxo.com';
+  const hasAdminSession = typeof window !== 'undefined' && Boolean(localStorage.getItem('calyxo_admin_session'));
+  const isSuperAdmin = currentUserEmail === 'supreethkiran25@gmail.com' || currentUserEmail === 'admin@calyxo.com' || hasAdminSession;
   const isSubscribed = Boolean(
     userProfile?.isSubscribed || 
     (subscriptionPlan && subscriptionPlan !== 'FREE' && subscriptionPlan !== 'DEFAULT') ||
@@ -141,8 +142,10 @@ export default function UserLayout() {
     }
   };
 
-  // Lock out non-admin users if System Maintenance Mode is enabled
-  if (systemSettings?.maintenance_mode && !isSuperAdmin) {
+  const isMaintenanceActive = Boolean(systemSettings?.maintenance_mode === true || systemSettings?.maintenance_mode === 'true');
+
+  // Lock out non-admin users ONLY if System Maintenance Mode is explicitly enabled by Admin in backend
+  if (isMaintenanceActive && !isSuperAdmin) {
     return (
       <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center p-6 text-center font-sans relative overflow-hidden selection:bg-red-500/30 selection:text-red-200">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
