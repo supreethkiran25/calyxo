@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import { isMockMode, getCurrentUserIdSync } from '../lib/dbService';
+import { loadExercisesData, getCachedExercises } from '../utils/exerciseSearch';
 
 // Super Admin Emails Specification
 export const SUPER_ADMIN_EMAILS = [
@@ -936,7 +937,14 @@ export const DEFAULT_CALYXO_EXERCISES = [
   }
 ];
 
-export const getAdminExercises = async ({ search = '', category = '', difficulty = '' } = {}) => {
+export const getAdminExercises = async ({ search = '', bodyPart = '', category = '', targetMuscle = '', equipment = '', difficulty = '' } = {}) => {
+  let cached = getCachedExercises();
+  if (!cached || cached.length === 0) {
+    try {
+      cached = await loadExercisesData();
+    } catch (e) {}
+  }
+
   let dbExercises = [];
   if (!isMockMode) {
     try {
@@ -946,23 +954,97 @@ export const getAdminExercises = async ({ search = '', category = '', difficulty
   }
 
   const exMap = new Map();
-  // 1. Populate default exercises baseline
-  DEFAULT_CALYXO_EXERCISES.forEach(e => {
-    if (e && e.id) exMap.set(e.id, e);
-  });
+
+  // 1. Populate from master exercises JSON dataset
+  if (Array.isArray(cached) && cached.length > 0) {
+    cached.forEach(ex => {
+      if (ex && (ex.id || ex.name)) {
+        const id = String(ex.id || ex.name);
+        const nameStr = ex.name || 'Exercise';
+        const bpStr = (ex.body_part || ex.category || 'waist').toLowerCase();
+        const targetStr = (ex.target || ex.muscle_group || 'abs').toLowerCase();
+        const eqStr = (ex.equipment || 'body weight').toLowerCase();
+
+        exMap.set(id, {
+          id,
+          name: nameStr,
+          title: nameStr,
+          body_part: bpStr,
+          category: bpStr,
+          target: targetStr,
+          muscle: targetStr,
+          equipment: eqStr,
+          difficulty: ex.difficulty || 'beginner',
+          gif_url: ex.gif_url || ex.image || ex.image_url,
+          image_url: ex.gif_url || ex.image || ex.image_url,
+          instructions: typeof ex.instructions === 'string' ? ex.instructions : (Array.isArray(ex.instructions) ? ex.instructions.join(' ') : ''),
+          instruction_steps: ex.instruction_steps || [],
+          secondary_muscles: ex.secondary_muscles || []
+        });
+      }
+    });
+  } else {
+    // Baseline fallback
+    DEFAULT_CALYXO_EXERCISES.forEach(e => {
+      if (e && e.id) {
+        exMap.set(e.id, {
+          ...e,
+          name: e.title,
+          body_part: e.category.toLowerCase(),
+          target: e.muscle.toLowerCase()
+        });
+      }
+    });
+  }
 
   // 2. Override / append from Supabase database
   dbExercises.forEach(e => {
-    if (e && e.id) exMap.set(e.id, e);
+    if (e && e.id) {
+      const id = String(e.id);
+      const nameStr = e.name || e.title || 'Exercise';
+      const bpStr = (e.body_part || e.category || 'waist').toLowerCase();
+      const targetStr = (e.target || e.muscle || 'abs').toLowerCase();
+      const eqStr = (e.equipment || 'body weight').toLowerCase();
+
+      exMap.set(id, {
+        ...e,
+        name: nameStr,
+        title: nameStr,
+        body_part: bpStr,
+        category: bpStr,
+        target: targetStr,
+        muscle: targetStr,
+        equipment: eqStr,
+        difficulty: e.difficulty || 'beginner',
+        gif_url: e.gif_url || e.image_url,
+        image_url: e.image_url || e.gif_url,
+        instructions: e.instructions || ''
+      });
+    }
   });
 
   const deduplicated = Array.from(exMap.values());
 
+  const searchLower = search.toLowerCase().trim();
+  const bpLower = (bodyPart || category).toLowerCase().trim();
+  const targetLower = targetMuscle.toLowerCase().trim();
+  const eqLower = equipment.toLowerCase().trim();
+  const diffLower = difficulty.toLowerCase().trim();
+
   return deduplicated.filter(ex => {
-    const matchesSearch = !search || ex.title?.toLowerCase().includes(search.toLowerCase()) || ex.muscle?.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = !category || ex.category === category;
-    const matchesDifficulty = !difficulty || ex.difficulty === difficulty;
-    return matchesSearch && matchesCategory && matchesDifficulty;
+    const matchesSearch = !searchLower ||
+      ex.name?.toLowerCase().includes(searchLower) ||
+      ex.body_part?.toLowerCase().includes(searchLower) ||
+      ex.target?.toLowerCase().includes(searchLower) ||
+      ex.equipment?.toLowerCase().includes(searchLower) ||
+      ex.instructions?.toLowerCase().includes(searchLower);
+
+    const matchesBp = !bpLower || ex.body_part?.toLowerCase() === bpLower || ex.category?.toLowerCase() === bpLower;
+    const matchesTarget = !targetLower || ex.target?.toLowerCase().includes(targetLower);
+    const matchesEquipment = !eqLower || ex.equipment?.toLowerCase().includes(eqLower);
+    const matchesDiff = !diffLower || ex.difficulty?.toLowerCase() === diffLower;
+
+    return matchesSearch && matchesBp && matchesTarget && matchesEquipment && matchesDiff;
   });
 };
 

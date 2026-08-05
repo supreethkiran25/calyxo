@@ -1,5 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Dumbbell, Search, Plus, Download, Upload, Trash2, Edit, Copy, ChevronLeft, ChevronRight, CheckSquare, Square, Info, Flame, Layers } from 'lucide-react';
+import {
+  Dumbbell,
+  Search,
+  Plus,
+  Download,
+  Upload,
+  Trash2,
+  Edit,
+  Copy,
+  ChevronLeft,
+  ChevronRight,
+  CheckSquare,
+  Square,
+  Info,
+  Flame,
+  Layers,
+  X,
+  Play,
+  ArrowRight
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminExercises, deleteAdminExercise, saveAdminExercise } from '../../services/adminService';
 import ExerciseEditorModal from '../../components/admin/ExerciseEditorModal';
@@ -8,15 +27,100 @@ import useDebounce from '../../hooks/useDebounce';
 
 const ITEMS_PER_PAGE = 24;
 
+const BODY_PARTS_LIST = [
+  'waist', 'chest', 'back', 'shoulders', 'upper arms', 'lower arms', 'upper legs', 'lower legs', 'cardio', 'neck'
+];
+
+const TARGET_MUSCLES_LIST = [
+  'abs', 'biceps', 'triceps', 'quads', 'hamstrings', 'glutes', 'lats', 'pectoralis', 'delts', 'traps', 'calves', 'obliques', 'forearms'
+];
+
+const EQUIPMENT_LIST = [
+  'body weight', 'dumbbell', 'barbell', 'cable', 'leverage machine', 'smith machine', 'band', 'kettlebell', 'assisted'
+];
+
+// Exercise GIF & Details Preview Modal
+const ExercisePreviewModal = ({ exercise, onClose }) => {
+  if (!exercise) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+      <div className="w-full max-w-2xl rounded-3xl bg-neutral-900 border border-neutral-800 p-6 space-y-4 shadow-2xl overflow-hidden relative">
+        <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+          <div>
+            <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+              {exercise.body_part || exercise.category} • {exercise.equipment}
+            </span>
+            <h3 className="text-xl font-extrabold text-white capitalize mt-1">{exercise.name || exercise.title}</h3>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-xl bg-neutral-800 text-neutral-400 hover:text-white cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* GIF / Image Frame */}
+          <div className="h-64 rounded-2xl bg-white p-2 flex items-center justify-center relative overflow-hidden border border-neutral-700">
+            <img
+              src={exercise.gif_url || exercise.image_url}
+              alt={exercise.name}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.style.display = 'none';
+              }}
+            />
+            <span className="absolute top-3 right-3 px-2 py-0.5 rounded bg-emerald-600 text-white font-black text-[9px] uppercase tracking-wider">
+              GIF
+            </span>
+          </div>
+
+          {/* Exercise Info */}
+          <div className="space-y-3 text-xs font-mono">
+            <div className="p-3 rounded-2xl bg-neutral-950/60 border border-neutral-800 space-y-1">
+              <span className="text-neutral-500 block">Primary Target Muscle</span>
+              <span className="text-indigo-400 font-bold capitalize text-sm">{exercise.target || exercise.muscle}</span>
+            </div>
+
+            {exercise.secondary_muscles && exercise.secondary_muscles.length > 0 && (
+              <div className="p-3 rounded-2xl bg-neutral-950/60 border border-neutral-800 space-y-1">
+                <span className="text-neutral-500 block">Secondary Muscles</span>
+                <span className="text-neutral-300 capitalize">{exercise.secondary_muscles.join(', ')}</span>
+              </div>
+            )}
+
+            <div className="p-3 rounded-2xl bg-neutral-950/60 border border-neutral-800 space-y-1">
+              <span className="text-neutral-500 block">Difficulty & Equipment</span>
+              <span className="text-emerald-400 font-bold capitalize">{exercise.difficulty || 'beginner'} • {exercise.equipment}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Step-by-step Instructions */}
+        <div className="space-y-2 pt-2 border-t border-neutral-800">
+          <span className="text-xs font-bold text-white block">Step-by-Step Execution Guide</span>
+          <p className="text-xs text-neutral-300 leading-relaxed max-h-40 overflow-y-auto custom-scrollbar bg-neutral-950/60 p-3 rounded-2xl border border-neutral-800">
+            {exercise.instructions || 'No detailed instructions provided for this exercise.'}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AdminWorkoutDbView = () => {
   const [exercises, setExercises] = useState([]);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
-  const [category, setCategory] = useState('');
-  const [difficulty, setDifficulty] = useState('');
+  const [bodyPartFilter, setBodyPartFilter] = useState('');
+  const [targetMuscleFilter, setTargetMuscleFilter] = useState('');
+  const [equipmentFilter, setEquipmentFilter] = useState('');
+  const [difficultyFilter, setDifficultyFilter] = useState('');
+
   const [modalData, setModalData] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [previewExercise, setPreviewExercise] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -24,10 +128,16 @@ const AdminWorkoutDbView = () => {
   const fetchExercises = async () => {
     setLoading(true);
     try {
-      const list = await getAdminExercises({ search: debouncedSearch, category, difficulty });
+      const list = await getAdminExercises({
+        search: debouncedSearch,
+        bodyPart: bodyPartFilter,
+        targetMuscle: targetMuscleFilter,
+        equipment: equipmentFilter,
+        difficulty: difficultyFilter
+      });
       setExercises(list || []);
     } catch (e) {
-      toast.error('Failed to load exercise database.');
+      toast.error('Failed to load exercise library.');
     } finally {
       setLoading(false);
     }
@@ -35,23 +145,15 @@ const AdminWorkoutDbView = () => {
 
   useEffect(() => {
     fetchExercises();
-  }, [debouncedSearch, category, difficulty]);
+  }, [debouncedSearch, bodyPartFilter, targetMuscleFilter, equipmentFilter, difficultyFilter]);
 
   useEffect(() => {
     setPage(1);
     setSelectedIds([]);
-  }, [debouncedSearch, category, difficulty]);
+  }, [debouncedSearch, bodyPartFilter, targetMuscleFilter, equipmentFilter, difficultyFilter]);
 
   const totalPages = Math.ceil(exercises.length / ITEMS_PER_PAGE) || 1;
   const currentExercises = exercises.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
-
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedIds(currentExercises.map(ex => ex.id));
-    } else {
-      setSelectedIds([]);
-    }
-  };
 
   const handleToggleSelect = (id) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -61,11 +163,12 @@ const AdminWorkoutDbView = () => {
     const copyData = {
       ...ex,
       id: undefined,
-      title: `${ex.title} (Copy)`
+      title: `${ex.name || ex.title} (Copy)`,
+      name: `${ex.name || ex.title} (Copy)`
     };
     try {
       await saveAdminExercise(copyData);
-      toast.success(`Duplicated "${ex.title}".`);
+      toast.success(`Duplicated exercise.`);
       fetchExercises();
     } catch (err) {
       toast.error('Failed to duplicate exercise.');
@@ -76,10 +179,10 @@ const AdminWorkoutDbView = () => {
     if (!deleteTarget) return;
     try {
       await deleteAdminExercise(deleteTarget.id);
-      toast.success(`Deleted exercise "${deleteTarget.title}".`);
+      toast.success(`Deleted exercise "${deleteTarget.name || deleteTarget.title}".`);
       fetchExercises();
     } catch (err) {
-      toast.error('Failed to delete exercise: ' + err.message);
+      toast.error('Failed to delete exercise.');
     } finally {
       setDeleteTarget(null);
     }
@@ -113,9 +216,9 @@ const AdminWorkoutDbView = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exercises, null, 2));
     const a = document.createElement('a');
     a.href = dataStr;
-    a.download = `calyxo_workout_database_master.json`;
+    a.download = `calyxo_master_exercises_dataset_${Date.now()}.json`;
     a.click();
-    toast.success('Exported master workout database JSON.');
+    toast.success('Exported master exercise dataset JSON.');
   };
 
   const handleImportJSON = (e) => {
@@ -146,11 +249,11 @@ const AdminWorkoutDbView = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Dumbbell className="w-6 h-6 text-indigo-400" /> Master Workout Library & Database
+          <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
+            <Dumbbell className="w-6 h-6 text-indigo-400" /> WORKOUTS LIBRARY & MASTER DATABASE
           </h1>
           <p className="text-xs text-neutral-400 font-mono mt-0.5">
-            Manage master exercises, muscle targeting, instructions, default sets/reps & media ({exercises.length} total exercises)
+            Synchronized with user app workout library ({exercises.length} exercises loaded)
           </p>
         </div>
 
@@ -163,7 +266,7 @@ const AdminWorkoutDbView = () => {
             onClick={handleExportJSON}
             className="px-3.5 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
           >
-            <Download className="w-4 h-4 text-neutral-400" /> Export Master JSON
+            <Download className="w-4 h-4 text-neutral-400" /> Export JSON
           </button>
           <button
             onClick={() => { setModalData(null); setIsModalOpen(true); }}
@@ -174,56 +277,67 @@ const AdminWorkoutDbView = () => {
         </div>
       </div>
 
-      {/* Admin Capabilities Banner */}
-      <div className="p-3.5 rounded-2xl bg-indigo-950/30 border border-indigo-500/20 text-indigo-300 text-xs font-mono flex items-center justify-between shadow-lg">
-        <div className="flex items-center gap-2">
-          <Info className="w-4 h-4 text-indigo-400 shrink-0" />
-          <span>Admin Actions: Add, Edit, Duplicate, Bulk Export/Delete, and Manage Master Muscle Target Rules.</span>
-        </div>
-        <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-          Synchronized with User App Library
-        </span>
-      </div>
-
-      {/* Control & Filter Bar */}
-      <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800 flex flex-col md:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+      {/* Control & Search Bar (Matching User App Library Filters) */}
+      <div className="p-5 rounded-3xl bg-neutral-900/80 border border-neutral-800 space-y-4 shadow-2xl">
+        <div className="relative w-full font-mono">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search exercises or target muscles..."
-            className="w-full bg-neutral-950 border border-neutral-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
+            placeholder="Search exercises by name, muscle, equipment..."
+            className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl pl-10 pr-4 py-3 text-xs text-white focus:outline-none focus:border-indigo-500"
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto font-mono">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono">
           <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs rounded-xl px-3 py-2 focus:outline-none"
+            value={bodyPartFilter}
+            onChange={(e) => setBodyPartFilter(e.target.value)}
+            className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs rounded-xl px-3 py-2.5 focus:outline-none capitalize"
           >
-            <option value="">All Categories ({['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Cardio'].length})</option>
-            {['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Cardio'].map(c => (
-              <option key={c} value={c}>{c}</option>
+            <option value="">All Body Parts</option>
+            {BODY_PARTS_LIST.map(bp => (
+              <option key={bp} value={bp} className="capitalize">{bp}</option>
             ))}
           </select>
 
           <select
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value)}
-            className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs rounded-xl px-3 py-2 focus:outline-none"
+            value={targetMuscleFilter}
+            onChange={(e) => setTargetMuscleFilter(e.target.value)}
+            className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs rounded-xl px-3 py-2.5 focus:outline-none capitalize"
+          >
+            <option value="">All Target Muscles</option>
+            {TARGET_MUSCLES_LIST.map(tm => (
+              <option key={tm} value={tm} className="capitalize">{tm}</option>
+            ))}
+          </select>
+
+          <select
+            value={equipmentFilter}
+            onChange={(e) => setEquipmentFilter(e.target.value)}
+            className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs rounded-xl px-3 py-2.5 focus:outline-none capitalize"
+          >
+            <option value="">All Equipment</option>
+            {EQUIPMENT_LIST.map(eq => (
+              <option key={eq} value={eq} className="capitalize">{eq}</option>
+            ))}
+          </select>
+
+          <select
+            value={difficultyFilter}
+            onChange={(e) => setDifficultyFilter(e.target.value)}
+            className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs rounded-xl px-3 py-2.5 focus:outline-none capitalize"
           >
             <option value="">All Difficulties</option>
-            <option value="Beginner">Beginner</option>
-            <option value="Intermediate">Intermediate</option>
-            <option value="Advanced">Advanced</option>
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
           </select>
         </div>
       </div>
 
-      {/* Bulk Selection Action Bar */}
+      {/* Bulk Action Bar */}
       {selectedIds.length > 0 && (
         <div className="p-3 rounded-2xl bg-indigo-950/80 border border-indigo-500/40 flex items-center justify-between text-xs text-white shadow-2xl animate-fade-in">
           <span className="font-mono font-bold text-indigo-300">
@@ -246,94 +360,93 @@ const AdminWorkoutDbView = () => {
         </div>
       )}
 
-      {/* Exercise Cards Grid */}
+      {/* Exercise Cards Grid (Exact User App Library Cards) */}
       {loading ? (
         <div className="p-12 text-center text-xs font-mono text-neutral-500 animate-pulse">
-          Loading master exercise library...
+          Loading master exercise database...
         </div>
       ) : currentExercises.length === 0 ? (
         <div className="p-12 text-center text-xs font-mono text-neutral-500">
-          No exercises found matching search or filter parameters.
+          No matching exercises found. Try resetting filters.
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {currentExercises.map(ex => {
             const isSelected = selectedIds.includes(ex.id);
             return (
               <div
                 key={ex.id}
-                className={`p-4 rounded-2xl bg-neutral-900/60 border transition-all space-y-3 flex flex-col justify-between group shadow-xl ${
-                  isSelected ? 'border-indigo-500 bg-indigo-950/20' : 'border-neutral-800/80 hover:border-neutral-700'
+                className={`rounded-2xl bg-neutral-900 border transition-all p-3.5 space-y-3 flex flex-col justify-between group shadow-xl relative overflow-hidden ${
+                  isSelected ? 'border-indigo-500 bg-indigo-950/20' : 'border-neutral-800 hover:border-neutral-700'
                 }`}
               >
-                <div className="space-y-2">
-                  <div className="h-36 rounded-xl overflow-hidden bg-neutral-950 relative flex items-center justify-center">
-                    <button
-                      onClick={() => handleToggleSelect(ex.id)}
-                      className="absolute top-2 left-2 z-10 p-1 rounded-lg bg-black/80 text-white hover:text-indigo-400 cursor-pointer"
-                    >
-                      {isSelected ? <CheckSquare className="w-4 h-4 text-indigo-400" /> : <Square className="w-4 h-4 text-neutral-400" />}
-                    </button>
+                {/* Admin Select Checkbox */}
+                <button
+                  onClick={() => handleToggleSelect(ex.id)}
+                  className="absolute top-5 left-5 z-20 p-1 rounded-lg bg-black/80 text-white hover:text-indigo-400 cursor-pointer shadow-md"
+                >
+                  {isSelected ? <CheckSquare className="w-4 h-4 text-indigo-400" /> : <Square className="w-4 h-4 text-neutral-400" />}
+                </button>
 
-                    <img
-                      src={ex.image_url}
-                      alt={ex.title}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.style.display = 'none';
-                        e.target.parentElement.innerHTML += `<div class="w-full h-full flex items-center justify-center bg-neutral-950 text-neutral-600"><svg class="w-8 h-8 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg></div>`;
-                      }}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-
-                    <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-sm text-[10px] font-mono text-emerald-400 border border-emerald-500/30">
-                      {ex.difficulty || 'Intermediate'}
-                    </span>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono font-bold">
-                        {ex.category}
-                      </span>
-                      {ex.calories_burned_per_min && (
-                        <span className="text-[10px] font-mono text-amber-400 flex items-center gap-1">
-                          <Flame className="w-3 h-3 text-amber-400" /> {ex.calories_burned_per_min} cal/min
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="font-bold text-white text-base group-hover:text-indigo-400 transition-colors mt-1">{ex.title}</h3>
-                    <p className="text-xs text-neutral-400 font-mono mt-0.5">Target: {ex.muscle} • Equipment: {ex.equipment}</p>
-                  </div>
-
-                  <p className="text-xs text-neutral-400 line-clamp-2 leading-relaxed">{ex.instructions}</p>
+                {/* White Image Container with GIF badge */}
+                <div className="h-44 rounded-xl bg-white p-2 flex items-center justify-center relative overflow-hidden border border-neutral-700">
+                  <img
+                    src={ex.gif_url || ex.image_url}
+                    alt={ex.name || ex.title}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.style.display = 'none';
+                    }}
+                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-neutral-800 text-white font-black text-[9px] uppercase tracking-wider font-mono">
+                    GIF
+                  </span>
                 </div>
 
-                <div className="pt-3 border-t border-neutral-800 flex items-center justify-between">
-                  <span className="text-[10px] text-neutral-500 font-mono">
-                    {ex.default_sets ? `${ex.default_sets} Sets × ${ex.default_reps}` : `ID: ${ex.id}`}
+                {/* Exercise Meta Information */}
+                <div className="space-y-1.5">
+                  <h3 className="font-bold text-white text-sm capitalize truncate leading-tight group-hover:text-indigo-400 transition-colors">
+                    {ex.name || ex.title}
+                  </h3>
+                  <div className="text-[11px] font-mono text-indigo-400 font-bold capitalize">
+                    Target: {ex.target || ex.muscle || 'abs'}
+                  </div>
+                </div>
+
+                {/* Card Footer Action Tags */}
+                <div className="pt-2 border-t border-neutral-800 flex items-center justify-between text-[10px] font-mono">
+                  <span className="px-2 py-0.5 rounded bg-neutral-800 text-neutral-300 font-bold uppercase tracking-wider">
+                    {ex.equipment || 'body weight'}
                   </span>
+
                   <div className="flex items-center gap-1.5">
                     <button
+                      onClick={() => setPreviewExercise(ex)}
+                      className="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-0.5 cursor-pointer"
+                    >
+                      VIEW GIF →
+                    </button>
+                    <button
                       onClick={() => handleDuplicate(ex)}
-                      className="p-1.5 rounded-lg bg-neutral-800 text-neutral-300 hover:bg-neutral-700 transition-colors cursor-pointer"
+                      className="p-1 rounded bg-neutral-800 text-neutral-400 hover:text-white cursor-pointer"
                       title="Duplicate Exercise"
                     >
-                      <Copy className="w-3.5 h-3.5" />
+                      <Copy className="w-3 h-3" />
                     </button>
                     <button
                       onClick={() => { setModalData(ex); setIsModalOpen(true); }}
-                      className="p-1.5 rounded-lg bg-neutral-800 text-neutral-300 hover:bg-neutral-700 transition-colors cursor-pointer"
+                      className="p-1 rounded bg-neutral-800 text-neutral-400 hover:text-white cursor-pointer"
                       title="Edit Exercise"
                     >
-                      <Edit className="w-3.5 h-3.5" />
+                      <Edit className="w-3 h-3" />
                     </button>
                     <button
                       onClick={() => setDeleteTarget(ex)}
-                      className="p-1.5 rounded-lg bg-red-950/40 text-red-400 hover:bg-red-900/60 transition-colors cursor-pointer"
+                      className="p-1 rounded bg-red-950/40 text-red-400 hover:bg-red-900/60 cursor-pointer"
                       title="Delete Exercise"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
@@ -343,7 +456,7 @@ const AdminWorkoutDbView = () => {
         </div>
       )}
 
-      {/* Pagination Bar */}
+      {/* Pagination Controls */}
       <div className="p-4 bg-neutral-900/60 border border-neutral-800 rounded-2xl flex items-center justify-between text-xs text-neutral-400 font-mono">
         <span>
           Showing {(page - 1) * ITEMS_PER_PAGE + 1} - {Math.min(page * ITEMS_PER_PAGE, exercises.length)} of {exercises.length} exercises
@@ -369,6 +482,7 @@ const AdminWorkoutDbView = () => {
         </div>
       </div>
 
+      {/* Modals */}
       <ExerciseEditorModal
         isOpen={isModalOpen}
         initialData={modalData}
@@ -376,10 +490,15 @@ const AdminWorkoutDbView = () => {
         onSuccess={fetchExercises}
       />
 
+      <ExercisePreviewModal
+        exercise={previewExercise}
+        onClose={() => setPreviewExercise(null)}
+      />
+
       <ConfirmDialog
         isOpen={!!deleteTarget}
         title="Delete Exercise"
-        description={`Are you sure you want to delete "${deleteTarget?.title}" from the master exercise database?`}
+        description={`Are you sure you want to delete "${deleteTarget?.name || deleteTarget?.title}" from the master exercise database?`}
         confirmLabel="Delete Exercise"
         variant="danger"
         onConfirm={confirmDelete}
