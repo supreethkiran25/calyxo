@@ -70,15 +70,15 @@ h1, h2, h3, h4, h5, h6 {
   --foreground: #f3f4f6;
   --card: rgba(255, 255, 255, 0.05);
   --card-foreground: #f3f4f6;
-  --primary: #ccff00;
-  --primary-foreground: #000000;
+  --primary: #4D6E00;
+  --primary-foreground: #ffffff;
   --secondary: #12121A;
   --secondary-foreground: #f3f4f6;
   --muted: #1A1A24;
   --muted-foreground: #B9B9C7;
-  --accent: #ccff00;
-  --accent-dim: #a6d900;
-  --accent-foreground: #000000;
+  --accent: #4D6E00;
+  --accent-dim: #3D5900;
+  --accent-foreground: #ffffff;
   --border: rgba(255, 255, 255, 0.1);
   --input: #12121A;
   --input-foreground: #f3f4f6;
@@ -89,10 +89,10 @@ h1, h2, h3, h4, h5, h6 {
   /* Brand overrides */
   --orange-theme: #F59E0B;
   --blue-theme: #3B82F6;
-  --primary-bg: #ccff00;
-  --primary-fg: #000000;
-  --glow-shadow: 0 0 20px rgba(204, 255, 0, 0.4);
-  --accent-glow: rgba(204, 255, 0, 0.2);
+  --primary-bg: #4D6E00;
+  --primary-fg: #ffffff;
+  --glow-shadow: 0 0 20px rgba(77, 110, 0, 0.4);
+  --accent-glow: rgba(77, 110, 0, 0.25);
 
   /* Backward compatibility links */
   --card-bg: var(--card);
@@ -113,15 +113,15 @@ h1, h2, h3, h4, h5, h6 {
   --foreground: #f3f4f6;
   --card: rgba(255, 255, 255, 0.05);
   --card-foreground: #f3f4f6;
-  --primary: #ccff00;
-  --primary-foreground: #000000;
+  --primary: #4D6E00;
+  --primary-foreground: #ffffff;
   --secondary: #12121A;
   --secondary-foreground: #f3f4f6;
   --muted: #1A1A24;
   --muted-foreground: #B9B9C7;
-  --accent: #ccff00;
-  --accent-dim: #a6d900;
-  --accent-foreground: #000000;
+  --accent: #4D6E00;
+  --accent-dim: #3D5900;
+  --accent-foreground: #ffffff;
   --border: rgba(255, 255, 255, 0.1);
   --input: #12121A;
   --input-foreground: #f3f4f6;
@@ -131,10 +131,10 @@ h1, h2, h3, h4, h5, h6 {
 
   --orange-theme: #f57c38;
   --blue-theme: #4fc3f7;
-  --primary-bg: #ccff00;
-  --primary-fg: #000000;
-  --glow-shadow: 0 0 20px rgba(204, 255, 0, 0.4);
-  --accent-glow: rgba(204, 255, 0, 0.2);
+  --primary-bg: #4D6E00;
+  --primary-fg: #ffffff;
+  --glow-shadow: 0 0 20px rgba(77, 110, 0, 0.4);
+  --accent-glow: rgba(77, 110, 0, 0.25);
 
   --card-bg: var(--card);
   --card-border: var(--border);
@@ -147,20 +147,20 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 [data-theme='light'] {
-  /* Light Theme (Calyxo Signature Neon Acid Green) */
+  /* Light Theme (Calyxo Signature Athletic Green) */
   --background: #f8fafc;
   --foreground: #0f172a;
   --card: #ffffff;
   --card-foreground: #0f172a;
-  --primary: #ccff00;
-  --primary-foreground: #000000;
+  --primary: #4D6E00;
+  --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
   --muted: #f1f5f9;
   --muted-foreground: #475569;
-  --accent: #ccff00;
-  --accent-dim: #a6d900;
-  --accent-foreground: #000000;
+  --accent: #4D6E00;
+  --accent-dim: #3D5900;
+  --accent-foreground: #ffffff;
   --border: #e2e8f0;
   --input: #ffffff;
   --input-foreground: #0f172a;
@@ -170,10 +170,10 @@ h1, h2, h3, h4, h5, h6 {
 
   --orange-theme: #d97706;
   --blue-theme: #0284c7;
-  --primary-bg: #ccff00;
-  --primary-fg: #000000;
-  --glow-shadow: 0 0 20px rgba(204, 255, 0, 0.4);
-  --accent-glow: rgba(204, 255, 0, 0.25);
+  --primary-bg: #4D6E00;
+  --primary-fg: #ffffff;
+  --glow-shadow: 0 0 20px rgba(77, 110, 0, 0.2);
+  --accent-glow: rgba(77, 110, 0, 0.15);
 
   --card-bg: var(--card);
   --card-border: var(--border);
@@ -249,26 +249,26 @@ h1, h2, h3, h4, h5, h6 {
   color: #0f172a !important;
 }
 
-/* Light Theme Acid Green Brand Overrides */
-[data-theme='light'] .bg-acid-green {
-  background-color: #ccff00 !important;
-  color: #000000 !important;
+/* Global Brand Utility Overrides */
+.bg-acid-green {
+  background-color: #4D6E00 !important;
+  color: #ffffff !important;
 }
 
-[data-theme='light'] .bg-acid-green\/10,
-[data-theme='light'] .bg-acid-green\/15,
-[data-theme='light'] .bg-acid-green\/20 {
-  background-color: rgba(204, 255, 0, 0.35) !important;
+.text-acid-green {
+  color: #4D6E00 !important;
 }
 
-[data-theme='light'] .text-acid-green {
-  color: #3b5c00 !important;
+.bg-acid-green\/10,
+.bg-acid-green\/15,
+.bg-acid-green\/20 {
+  background-color: rgba(77, 110, 0, 0.15) !important;
 }
 
-[data-theme='light'] .border-acid-green\/30,
-[data-theme='light'] .border-acid-green\/20,
-[data-theme='light'] .border-acid-green\/40 {
-  border-color: rgba(204, 255, 0, 0.6) !important;
+.border-acid-green\/30,
+.border-acid-green\/20,
+.border-acid-green\/40 {
+  border-color: rgba(77, 110, 0, 0.35) !important;
 }
 
 [data-theme='solarized'] {
