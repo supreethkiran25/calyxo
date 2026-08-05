@@ -19,11 +19,11 @@ const AdminLoginPage = () => {
     // If already authenticated as Super Admin, redirect to /admin
     try {
       const savedSession = JSON.parse(localStorage.getItem('calyxo_admin_session') || '{}');
-      if (isSuperAdmin(user) || isSuperAdmin(savedSession)) {
+      if (isSuperAdmin(savedSession)) {
         navigate('/admin', { replace: true });
       }
     } catch (e) {}
-  }, [user, navigate]);
+  }, [navigate]);
 
   const handleAdminSignIn = async (e) => {
     if (e) e.preventDefault();

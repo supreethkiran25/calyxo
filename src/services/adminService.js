@@ -117,11 +117,10 @@ export const LIVE_RAZORPAY_TRANSACTIONS = [
 ];
 
 export const isSuperAdmin = (user) => {
-  if (!user) return false;
-  const email = (typeof user === 'string' ? user : user.email || '')?.toLowerCase().trim();
-  if (SUPER_ADMIN_EMAILS.includes(email)) return true;
-  if (user.role === 'super_admin' || user.user_metadata?.role === 'super_admin') return true;
-  return false;
+  if (!user || typeof user !== 'object') return false;
+  const email = (user.email || '')?.toLowerCase().trim();
+  if (!SUPER_ADMIN_EMAILS.includes(email)) return false;
+  return user.role === 'super_admin' || user.user_metadata?.role === 'super_admin' || user.isAdminSession === true;
 };
 
 export const verifyAdminPermission = async (user) => {
@@ -147,12 +146,6 @@ export const verifyAdminPermission = async (user) => {
 export const logoutSuperAdmin = async () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('calyxo_admin_session');
-    localStorage.removeItem('calyxo_mock_user');
-  }
-  if (!isMockMode) {
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {}
   }
   return true;
 };
@@ -168,6 +161,10 @@ export const loginSuperAdmin = async (email, password) => {
       const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
       if (!error && data?.user) {
         data.user.role = 'super_admin';
+        data.user.isAdminSession = true;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('calyxo_admin_session', JSON.stringify(data.user));
+        }
         return data.user;
       }
     } catch (e) {}
@@ -180,10 +177,11 @@ export const loginSuperAdmin = async (email, password) => {
       email: cleanEmail,
       displayName: 'Super Admin',
       role: 'super_admin',
+      isAdminSession: true,
       subscription_plan: 'HIGH'
     };
     if (typeof window !== 'undefined') {
-      localStorage.setItem('calyxo_mock_user', JSON.stringify(adminUser));
+      localStorage.setItem('calyxo_admin_session', JSON.stringify(adminUser));
     }
     return adminUser;
   }
