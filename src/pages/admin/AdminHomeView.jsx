@@ -180,11 +180,22 @@ const AdminHomeView = () => {
               recentUsers.map(u => (
                 <div
                   key={u.id}
-                  onClick={() => onSelectUser && onSelectUser(u)}
+                  onClick={() => {
+                    if (onSelectUser) onSelectUser(u);
+                    else navigate('/admin/users');
+                  }}
                   className="p-3 rounded-2xl bg-neutral-950/40 hover:bg-neutral-800/60 border border-neutral-800/50 flex items-center justify-between cursor-pointer transition-all"
                 >
                   <div className="flex items-center gap-3">
-                    <img src={u.photoURL} alt="" className="w-9 h-9 rounded-xl object-cover" />
+                    <img
+                      src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'User')}&background=1a1a2e&color=6366f1&bold=true&size=80`}
+                      alt={u.full_name || 'User'}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'U')}&background=1a1a2e&color=6366f1&size=80`;
+                      }}
+                      className="w-9 h-9 rounded-xl object-cover border border-neutral-700"
+                    />
                     <div>
                       <span className="text-xs font-bold text-white block">{u.full_name}</span>
                       <span className="text-[11px] text-neutral-500 font-mono">{u.email} • {u.country}</span>

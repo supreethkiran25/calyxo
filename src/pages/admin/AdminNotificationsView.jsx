@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Plus, Send, CheckCircle2, Eye, MousePointer, Search, Trash2, Smartphone, Users, Zap, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 import { getAdminNotifications, deleteAdminNotification } from '../../services/adminService';
 import { supabase } from '../../lib/supabaseClient';
 import NotificationComposerModal from '../../components/admin/NotificationComposerModal';
+import ConfirmDialog from '../../components/admin/ConfirmDialog';
 
 const AdminNotificationsView = () => {
   const [notifications, setNotifications] = useState([]);
@@ -11,7 +13,7 @@ const AdminNotificationsView = () => {
   const [audienceFilter, setAudienceFilter] = useState('ALL');
   const [pushDevicesCount, setPushDevicesCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [deletingId, setDeletingId] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const fetchNotifs = async () => {
     setLoading(true);
@@ -23,7 +25,7 @@ const AdminNotificationsView = () => {
       setNotifications(list || []);
       if (pushRes?.count !== null) setPushDevicesCount(pushRes.count || 0);
     } catch (e) {
-      console.warn('[AdminNotificationsView] Error fetching data:', e);
+      // Non-fatal fallback
     } finally {
       setLoading(false);
     }
@@ -44,17 +46,18 @@ const AdminNotificationsView = () => {
     };
   }, []);
 
-  const handleDeleteNotif = async (id, title) => {
-    if (window.confirm(`Delete broadcast campaign "${title}"?`)) {
-      try {
-        setDeletingId(id);
-        await deleteAdminNotification(id);
-        fetchNotifs();
-      } catch (err) {
-        alert('Failed to delete notification: ' + err.message);
-      } finally {
-        setDeletingId(null);
-      }
+  const confirmDeleteNotif = async () => {
+    if (!deleteTarget) return;
+    const targetId = deleteTarget.id;
+    // Optimistic deletion
+    setNotifications(prev => prev.filter(n => n.id !== targetId));
+    setDeleteTarget(null);
+    try {
+      await deleteAdminNotification(targetId);
+      toast.success('Campaign deleted successfully.');
+    } catch (err) {
+      toast.error('Failed to delete campaign.');
+      fetchNotifs(); // Restore if failed
     }
   };
 
@@ -195,9 +198,8 @@ const AdminNotificationsView = () => {
                     </td>
                     <td className="p-4 text-right">
                       <button
-                        disabled={deletingId === n.id}
-                        onClick={() => handleDeleteNotif(n.id, n.title)}
-                        className="p-1.5 rounded-lg bg-red-950/40 text-red-400 hover:bg-red-900/60 cursor-pointer disabled:opacity-50"
+                        onClick={() => setDeleteTarget(n)}
+                        className="p-1.5 rounded-lg bg-red-950/40 text-red-400 hover:bg-red-900/60 cursor-pointer"
                         title="Delete Broadcast Campaign"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -215,6 +217,16 @@ const AdminNotificationsView = () => {
         isOpen={composerOpen}
         onClose={() => setComposerOpen(false)}
         onSuccess={fetchNotifs}
+      />
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        title="Delete Broadcast Campaign"
+        description={`Are you sure you want to delete the broadcast campaign "${deleteTarget?.title}"?`}
+        confirmLabel="Delete Campaign"
+        variant="danger"
+        onConfirm={confirmDeleteNotif}
+        onCancel={() => setDeleteTarget(null)}
       />
     </div>
   );

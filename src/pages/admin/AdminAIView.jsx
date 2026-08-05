@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, Sparkles, Cpu, Clock, DollarSign, CheckCircle, AlertTriangle, ThumbsUp, ThumbsDown, MessageSquare, Database, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 import { getAdminSettings, saveAdminSettings, getAdminTrainingLogs } from '../../services/adminService';
 import { supabase } from '../../lib/supabaseClient';
 
 const AdminAIView = () => {
-  const [model, setModel] = useState('Gemini 3.6 Flash (High)');
+  const [model, setModel] = useState('gemini-2.0-flash');
   const [systemPrompt, setSystemPrompt] = useState(
     'You are Calyxo AI Coach, an elite, motivational, evidence-based fitness and nutrition assistant.'
   );
@@ -27,7 +28,7 @@ const AdminAIView = () => {
       setTrainingLogs(logs || []);
       if (sessionsRes?.count !== null) setChatSessionCount(sessionsRes.count || 0);
     } catch (err) {
-      console.warn('[AdminAIView] Error loading AI settings/logs:', err);
+      // Non-fatal error handling
     } finally {
       setLoading(false);
     }
@@ -36,15 +37,20 @@ const AdminAIView = () => {
   useEffect(() => {
     loadAiData();
 
-    // Supabase Realtime for AI Training logs
-    const channel = supabase
-      .channel('admin_ai_realtime')
+    // Split realtime channels for logs and sessions
+    const channelLogs = supabase
+      .channel('admin_ai_logs_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'TrainingLogs' }, () => loadAiData())
+      .subscribe();
+
+    const channelSessions = supabase
+      .channel('admin_ai_sessions_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_sessions' }, () => loadAiData())
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channelLogs);
+      supabase.removeChannel(channelSessions);
     };
   }, []);
 
@@ -55,9 +61,9 @@ const AdminAIView = () => {
         active_ai_model: model,
         ai_system_prompt: systemPrompt
       });
-      alert('AI Configuration & System Prompt successfully saved live to database!');
+      toast.success('AI Configuration & System Prompt successfully saved live!');
     } catch (err) {
-      alert('Failed to save AI configuration: ' + err.message);
+      toast.error('Failed to save AI configuration: ' + err.message);
     } finally {
       setSaving(false);
     }
@@ -105,8 +111,8 @@ const AdminAIView = () => {
         </div>
         <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800">
           <span className="text-xs text-neutral-400 font-medium block">Average Response Latency</span>
-          <span className="text-2xl font-bold text-amber-400 block mt-1">1.12s</span>
-          <span className="text-[10px] text-neutral-500 font-mono mt-1 block">99.9% Model Uptime</span>
+          <span className="text-sm font-bold text-amber-400 block mt-1 font-mono">Latency tracking coming soon</span>
+          <span className="text-[10px] text-neutral-500 font-mono mt-1 block">Real-time Telemetry</span>
         </div>
       </div>
 
@@ -129,9 +135,9 @@ const AdminAIView = () => {
               onChange={(e) => setModel(e.target.value)}
               className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-purple-500"
             >
-              <option value="Gemini 3.6 Flash (High)">Gemini 3.6 Flash (High) — Ultra-Fast Reasoning & Multimodal Vision</option>
-              <option value="Gemini 1.5 Pro">Gemini 1.5 Pro — Deep Complex Analysis & Extended Context</option>
-              <option value="Gemini 2.0 Flash">Gemini 2.0 Flash — Next-Gen Low Latency Coach</option>
+              <option value="gemini-2.0-flash">Gemini 2.0 Flash — Fastest & Lowest Latency</option>
+              <option value="gemini-1.5-flash">Gemini 1.5 Flash — Balanced Speed & Quality</option>
+              <option value="gemini-1.5-pro">Gemini 1.5 Pro — Deep Analysis & Long Context</option>
             </select>
           </div>
 
@@ -201,7 +207,7 @@ const AdminAIView = () => {
                     </td>
                     <td className="p-4 text-neutral-400 max-w-[120px] truncate">{log.userId || log.user_id || 'Anonymous'}</td>
                     <td className="p-4 text-right text-neutral-500">
-                      {log.timestamp ? new Date(Number(log.timestamp)).toLocaleString() : 'N/A'}
+                      {log.timestamp || log.created_at ? new Date(log.timestamp || log.created_at).toLocaleString() : 'N/A'}
                     </td>
                   </tr>
                 ))}

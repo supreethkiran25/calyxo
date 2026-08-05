@@ -9,15 +9,18 @@ import {
   UserCheck,
   CreditCard
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { getAdminUsers, updateUserSubscription, LIVE_RAZORPAY_TRANSACTIONS, CALYXO_PRIMARY_PLAN } from '../../services/adminService';
 import { supabase } from '../../lib/supabaseClient';
 import GrantPremiumModal from '../../components/admin/GrantPremiumModal';
+import ConfirmDialog from '../../components/admin/ConfirmDialog';
 
 const AdminPremiumView = () => {
   const [users, setUsers] = useState([]);
   const [grantModalUser, setGrantModalUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [revokingId, setRevokingId] = useState(null);
+  const [revokingTarget, setRevokingTarget] = useState(null);
   const outletCtx = useOutletContext();
 
   const loadData = async () => {
@@ -41,6 +44,23 @@ const AdminPremiumView = () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  const confirmRevokePass = async () => {
+    if (!revokingTarget) return;
+    try {
+      setRevokingId(revokingTarget.id);
+      const { data: { user } } = await supabase.auth.getUser();
+      const adminEmail = user?.email || 'admin@calyxo.com';
+      await updateUserSubscription(revokingTarget.id, 'FREE', '0', 'Admin revoked', adminEmail);
+      toast.success(`Subscription revoked for ${revokingTarget.full_name || 'User'}`);
+      await loadData();
+    } catch (err) {
+      toast.error(err.message || 'Failed to revoke subscription');
+    } finally {
+      setRevokingId(null);
+      setRevokingTarget(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -129,7 +149,15 @@ const AdminPremiumView = () => {
                 <tr key={u.id} className="hover:bg-neutral-800/40 transition-colors">
                   <td className="p-4 font-sans">
                     <div className="flex items-center gap-3">
-                      <img src={u.photoURL} alt="" className="w-9 h-9 rounded-xl object-cover" />
+                      <img
+                        src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'User')}&background=1a1a2e&color=6366f1&bold=true&size=80`}
+                        alt={u.full_name || 'User'}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'U')}&background=1a1a2e&color=6366f1&size=80`;
+                        }}
+                        className="w-9 h-9 rounded-xl object-cover border border-neutral-700"
+                      />
                       <div>
                         <span className="font-bold text-white block">{u.full_name}</span>
                         <span className="text-neutral-400 text-[11px] font-mono">{u.email}</span>
@@ -164,17 +192,7 @@ const AdminPremiumView = () => {
                       </button>
                       <button
                         disabled={revokingId === u.id}
-                        onClick={async () => {
-                          try {
-                            setRevokingId(u.id);
-                            await updateUserSubscription(u.id, 'FREE', '0', 'Admin revoked', 'supreethkiran25@gmail.com');
-                            await loadData();
-                          } catch (err) {
-                            alert(err.message || 'Failed to revoke subscription');
-                          } finally {
-                            setRevokingId(null);
-                          }
-                        }}
+                        onClick={() => setRevokingTarget(u)}
                         className="px-2.5 py-1 rounded-lg bg-red-950/40 text-red-400 hover:bg-red-900/60 text-xs font-semibold cursor-pointer disabled:opacity-50"
                       >
                         {revokingId === u.id ? 'Revoking...' : 'Revoke Pass'}
@@ -212,7 +230,15 @@ const AdminPremiumView = () => {
                 <tr key={u.id} className="hover:bg-neutral-800/40 transition-colors">
                   <td className="p-4 font-sans">
                     <div className="flex items-center gap-3">
-                      <img src={u.photoURL} alt="" className="w-9 h-9 rounded-xl object-cover" />
+                      <img
+                        src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'User')}&background=1a1a2e&color=6366f1&bold=true&size=80`}
+                        alt={u.full_name || 'User'}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'U')}&background=1a1a2e&color=6366f1&size=80`;
+                        }}
+                        className="w-9 h-9 rounded-xl object-cover border border-neutral-700"
+                      />
                       <div>
                         <span className="font-bold text-white block">{u.full_name}</span>
                         <span className="text-neutral-400 text-[11px] font-mono">{u.email}</span>
@@ -248,6 +274,17 @@ const AdminPremiumView = () => {
           onSuccess={loadData}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={!!revokingTarget}
+        title="Revoke Premium Subscription"
+        description={`Are you sure you want to revoke the High Plan subscription for "${revokingTarget?.full_name || 'this user'}"?`}
+        confirmLabel="Revoke Pass"
+        variant="danger"
+        isLoading={!!revokingId}
+        onConfirm={confirmRevokePass}
+        onCancel={() => setRevokingTarget(null)}
+      />
     </div>
   );
 };

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
-import { supabase } from '../../lib/supabaseClient';
-import { isMockMode } from '../../lib/dbService';
+import { Outlet, useNavigate } from 'react-router-dom';
+import { Toaster, toast } from 'sonner';
 import { useStore } from '../../store/useStore';
+import { verifyAdminAccessRPC, logoutSuperAdmin } from '../../services/adminService';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import AdminHeader from '../../components/admin/AdminHeader';
 import AdminGlobalSearchModal from '../../components/admin/AdminGlobalSearchModal';
@@ -10,6 +10,7 @@ import NotificationComposerModal from '../../components/admin/NotificationCompos
 import UserProfileDetailModal from '../../components/admin/UserProfileDetailModal';
 
 const AdminLayout = () => {
+  const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -19,28 +20,22 @@ const AdminLayout = () => {
   const theme = useStore(state => state.theme);
   const isLight = theme === 'light';
 
-  // Supabase Realtime Event Listener for instant live dashboard stats
+  // Server-side verification on mount
   useEffect(() => {
-    if (isMockMode) return;
-    try {
-      const channel = supabase
-        .channel('admin_realtime_changes')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public' },
-          (payload) => {
-            console.log('⚡ Admin Supabase Realtime update event:', payload);
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    } catch (e) {
-      console.warn('Realtime channel subscription error:', e);
-    }
-  }, []);
+    let isMounted = true;
+    const verifyServerAccess = async () => {
+      const isVerified = await verifyAdminAccessRPC();
+      if (isMounted && !isVerified) {
+        toast.error('Session expired or unauthorized.');
+        await logoutSuperAdmin();
+        navigate('/admin/login', { replace: true });
+      }
+    };
+    verifyServerAccess();
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate]);
 
   return (
     <div className={`min-h-screen font-sans antialiased flex transition-colors duration-200 ${
@@ -48,6 +43,8 @@ const AdminLayout = () => {
         ? 'admin-light-mode bg-slate-50 text-slate-900 selection:bg-indigo-500/20 selection:text-indigo-900'
         : 'bg-neutral-950 text-neutral-100 selection:bg-indigo-500/30 selection:text-indigo-200'
     }`}>
+      <Toaster position="top-right" theme="dark" richColors />
+
       {/* Sidebar */}
       <AdminSidebar
         collapsed={sidebarCollapsed}
@@ -84,7 +81,7 @@ const AdminLayout = () => {
       <NotificationComposerModal
         isOpen={quickActionOpen}
         onClose={() => setQuickActionOpen(false)}
-        onSuccess={() => alert('Quick broadcast sent successfully!')}
+        onSuccess={() => toast.success('Quick broadcast sent successfully!')}
       />
 
       {/* User Profile Detail Inspector Drawer */}

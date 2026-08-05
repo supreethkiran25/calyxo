@@ -123,6 +123,23 @@ export const isSuperAdmin = (user) => {
   return user.role === 'super_admin' || user.user_metadata?.role === 'super_admin' || user.isAdminSession === true;
 };
 
+export const verifyAdminAccessRPC = async () => {
+  if (isMockMode) return true;
+  try {
+    const { data, error } = await supabase.rpc('verify_admin_access');
+    if (!error && data && typeof data.is_admin === 'boolean') {
+      return data.is_admin;
+    }
+  } catch (e) {}
+
+  // Fallback to active session user email check
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) return verifyAdminPermission(user);
+  } catch (e) {}
+  return false;
+};
+
 export const verifyAdminPermission = async (user) => {
   if (!user) return false;
   const email = (typeof user === 'string' ? user : user.email || '')?.toLowerCase().trim();
@@ -147,6 +164,11 @@ export const logoutSuperAdmin = async () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('calyxo_admin_session');
   }
+  if (!isMockMode) {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {}
+  }
   return true;
 };
 
@@ -160,6 +182,17 @@ export const loginSuperAdmin = async (email, password) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
       if (!error && data?.user) {
+        // Attempt RPC verification
+        try {
+          const rpcRes = await supabase.rpc('verify_admin_access');
+          if (rpcRes?.data && rpcRes.data.is_admin === false) {
+            await supabase.auth.signOut();
+            throw new Error('403 Forbidden: Server RPC denied admin access.');
+          }
+        } catch (rpcErr) {
+          // Non-fatal if RPC function not created in DB yet
+        }
+
         data.user.role = 'super_admin';
         data.user.isAdminSession = true;
         if (typeof window !== 'undefined') {
@@ -167,7 +200,9 @@ export const loginSuperAdmin = async (email, password) => {
         }
         return data.user;
       }
-    } catch (e) {}
+    } catch (e) {
+      if (e.message?.includes('403')) throw e;
+    }
   }
 
   if (password === DEFAULT_ADMIN_CREDENTIALS.password || password === 'admin123') {

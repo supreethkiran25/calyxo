@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import {
   X,
   User,
@@ -70,11 +71,11 @@ const UserProfileDetailModal = ({ user, onClose, onRefresh }) => {
         cta_label: 'Open App',
         cta_link: '/user/dashboard'
       });
-      alert(`Notification sent directly to ${user.full_name}!`);
+      toast.success(`Notification sent directly to ${user.full_name}!`);
       setNotificationMsg('');
       setShowNotifInput(false);
     } catch (err) {
-      alert(`Failed to send notification: ${err.message}`);
+      toast.error(`Failed to send notification: ${err.message}`);
     } finally {
       setLoading(false);
     }

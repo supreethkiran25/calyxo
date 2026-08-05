@@ -1,32 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { Utensils, Search, Plus, Download, Upload, Trash2, Edit, ChevronLeft, ChevronRight, Database, Sparkles, PieChart } from 'lucide-react';
+import Papa from 'papaparse';
+import { toast } from 'sonner';
 import { getAdminFoods, deleteAdminFood, saveAdminFood } from '../../services/adminService';
 import { supabase } from '../../lib/supabaseClient';
 import FoodEditorModal from '../../components/admin/FoodEditorModal';
+import ConfirmDialog from '../../components/admin/ConfirmDialog';
+import useDebounce from '../../hooks/useDebounce';
 
 const ITEMS_PER_PAGE = 50;
 
 const AdminNutritionDbView = () => {
   const [foods, setFoods] = useState([]);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [category, setCategory] = useState('');
   const [sourceFilter, setSourceFilter] = useState('ALL');
   const [modalData, setModalData] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
   const fetchFoods = async () => {
     setLoading(true);
-    const list = await getAdminFoods({ search, category });
+    const list = await getAdminFoods({ search: debouncedSearch, category });
     setFoods(list || []);
     setLoading(false);
   };
 
+  // Effect 1: search-driven data fetch
   useEffect(() => {
     fetchFoods();
+  }, [debouncedSearch, category]);
 
-    // Supabase Realtime Channel
+  // Effect 2: realtime channel — mount/unmount only
+  useEffect(() => {
     const channel = supabase
       .channel('admin_nutrition_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'food_database' }, () => fetchFoods())
@@ -35,11 +44,11 @@ const AdminNutritionDbView = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [search, category]);
+  }, []);
 
   useEffect(() => {
     setPage(1);
-  }, [search, category, sourceFilter]);
+  }, [debouncedSearch, category, sourceFilter]);
 
   const filteredFoods = foods.filter(f => {
     if (sourceFilter === 'CUSTOM') return f.source === 'Supabase DB';
@@ -54,10 +63,16 @@ const AdminNutritionDbView = () => {
   const avgCalories = foods.length > 0 ? Math.round(foods.reduce((acc, curr) => acc + (Number(curr.calories) || 0), 0) / foods.length) : 0;
   const avgProtein = foods.length > 0 ? (foods.reduce((acc, curr) => acc + (Number(curr.protein) || 0), 0) / foods.length).toFixed(1) : 0;
 
-  const handleDelete = async (id, name) => {
-    if (window.confirm(`Delete food "${name}" from nutrition database?`)) {
-      await deleteAdminFood(id);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteAdminFood(deleteTarget.id);
+      toast.success(`Food "${deleteTarget.name}" deleted successfully.`);
       fetchFoods();
+    } catch (err) {
+      toast.error('Failed to delete food: ' + err.message);
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -71,6 +86,7 @@ const AdminNutritionDbView = () => {
     a.href = URL.createObjectURL(blob);
     a.download = `calyxo_master_nutrition_db.csv`;
     a.click();
+    toast.success('Exported nutrition database CSV.');
   };
 
   const handleImportCSV = (e) => {
@@ -80,29 +96,25 @@ const AdminNutritionDbView = () => {
     reader.onload = async (evt) => {
       try {
         const text = evt.target.result;
-        const lines = text.split('\n').slice(1);
+        const result = Papa.parse(text, { header: true, skipEmptyLines: true });
         let count = 0;
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          const parts = line.split(',').map(p => p.replace(/"/g, '').trim());
-          if (parts.length >= 8) {
-            await saveAdminFood({
-              name: parts[1],
-              category: parts[2] || 'General',
-              serving_size: parts[3] || '100g',
-              calories: Number(parts[4]) || 100,
-              protein: Number(parts[5]) || 0,
-              carbs: Number(parts[6]) || 0,
-              fat: Number(parts[7]) || 0,
-              fiber: Number(parts[8]) || 0
-            });
-            count++;
-          }
+        for (const row of result.data) {
+          await saveAdminFood({
+            name: row.Name || row.name,
+            category: row.Category || row.category || 'General',
+            serving_size: row['Serving Size'] || row.serving_size || '100g',
+            calories: Number(row.Calories || row.calories) || 0,
+            protein: Number(row.Protein || row.protein) || 0,
+            carbs: Number(row.Carbs || row.carbs) || 0,
+            fat: Number(row.Fat || row.fat) || 0,
+            fiber: Number(row.Fiber || row.fiber) || 0
+          });
+          count++;
         }
+        toast.success(`Imported ${count} food items.`);
         fetchFoods();
-        alert(`Successfully imported ${count} food item(s) to master database!`);
       } catch (err) {
-        alert('Error parsing CSV file.');
+        toast.error('CSV Import Failed: ' + err.message);
       }
     };
     reader.readAsText(file);
@@ -267,7 +279,7 @@ const AdminNutritionDbView = () => {
                           <Edit className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => handleDelete(f.id, f.name)}
+                          onClick={() => setDeleteTarget(f)}
                           className="p-1.5 rounded-lg bg-red-950/40 text-red-400 hover:bg-red-900/60 cursor-pointer"
                           title="Delete Food"
                         >
@@ -314,6 +326,16 @@ const AdminNutritionDbView = () => {
         initialData={modalData}
         onClose={() => setIsModalOpen(false)}
         onSuccess={fetchFoods}
+      />
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        title="Delete Food Item"
+        description={`Are you sure you want to delete "${deleteTarget?.name}" from the master nutrition database?`}
+        confirmLabel="Delete Food"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
       />
     </div>
   );
