@@ -85,6 +85,11 @@ export default function UserLayout() {
   const subscriptionPlan = userProfile?.subscriptionPlan;
   const currentUserEmail = (user?.email || userProfile?.email || "").toLowerCase().trim();
   const isSuperAdmin = currentUserEmail === 'supreethkiran25@gmail.com' || currentUserEmail === 'admin@calyxo.com';
+  const isSubscribed = Boolean(
+    userProfile?.isSubscribed || 
+    (subscriptionPlan && subscriptionPlan !== 'FREE' && subscriptionPlan !== 'DEFAULT') ||
+    isSuperAdmin
+  );
 
   useEffect(() => {
     const loadSettings = async () => {
