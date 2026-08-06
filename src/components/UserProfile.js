@@ -1457,8 +1457,8 @@ export default function UserProfile({ onNotification }) {
   const renderSubscriptionForm = () => {
     const currentPlan = userProfile?.subscriptionPlan || 'FREE';
     const sysSettings = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('calyxo_system_settings') || '{}') : {};
-    const monthlyPriceINR = sysSettings.high_price_monthly_inr || sysSettings.high_price_monthly || '999';
-    const annualPriceINR = sysSettings.high_price_annual_inr || sysSettings.high_price_annual || '7999';
+    const monthlyPriceINR = sysSettings.high_price_monthly_inr || sysSettings.high_price_monthly || '2';
+    const annualPriceINR = sysSettings.high_price_annual_inr || sysSettings.high_price_annual || '2';
 
     const plans = [
       {

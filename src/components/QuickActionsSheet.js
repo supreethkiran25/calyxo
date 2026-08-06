@@ -111,7 +111,7 @@ export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
 
                           {locked && (
                             <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] font-bold uppercase flex items-center gap-1 shrink-0">
-                              <Lock className="w-2.5 h-2.5" /> ₹1/mo
+                              <Lock className="w-2.5 h-2.5" /> ₹2/mo
                             </span>
                           )}
                         </button>

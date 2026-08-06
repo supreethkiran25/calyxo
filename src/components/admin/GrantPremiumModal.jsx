@@ -21,24 +21,24 @@ const GrantPremiumModal = ({ isOpen, onClose, user, onSuccess }) => {
       if (typeof onSuccess === 'function') onSuccess();
       onClose();
     } catch (err) {
-      console.error('[GrantPremiumModal] Error granting premium:', err);
-      setError(err.message || 'Failed to grant premium pass. Please try again.');
+      console.error('[GrantPremiumModal] Error granting access:', err);
+      setError(err.message || 'Failed to grant access. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-lg rounded-2xl bg-neutral-900 border border-neutral-800 shadow-2xl overflow-hidden p-6 space-y-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+      <div className="w-full max-w-lg bg-neutral-900 border border-neutral-800 rounded-xl p-6 space-y-4">
         <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
-              <Crown className="w-5 h-5" />
+            <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <Crown className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Grant Razorpay Premium Pass</h3>
-              <p className="text-xs text-neutral-400">Target User: {user.full_name} ({user.email})</p>
+              <h3 className="text-sm font-semibold text-white">Grant High plan access</h3>
+              <p className="text-xs text-neutral-400">{user.full_name} ({user.email})</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg text-neutral-400 hover:text-white cursor-pointer">
@@ -47,35 +47,33 @@ const GrantPremiumModal = ({ isOpen, onClose, user, onSuccess }) => {
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
             {error}
           </div>
         )}
 
-        {/* Plan Select */}
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-neutral-300 uppercase tracking-wider">Subscription Tier Plan</label>
-          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-neutral-300">Subscription plan</label>
+          <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-between text-xs">
             <div>
-              <span className="font-bold text-amber-300 block">{CALYXO_PRIMARY_PLAN.name}</span>
-              <span className="text-[11px] text-neutral-400 font-mono">Full Access • AI Coach • Analytics</span>
+              <span className="font-semibold text-amber-300 block">{CALYXO_PRIMARY_PLAN.name}</span>
+              <span className="text-[11px] text-neutral-400">Full access</span>
             </div>
-            <span className="font-bold text-amber-400 font-mono text-sm">{CALYXO_PRIMARY_PLAN.symbol}{CALYXO_PRIMARY_PLAN.price.toLocaleString()}</span>
+            <span className="font-semibold text-amber-400 font-mono text-sm">{CALYXO_PRIMARY_PLAN.symbol}{CALYXO_PRIMARY_PLAN.price.toLocaleString()}</span>
           </div>
         </div>
 
-        {/* Duration Select */}
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-neutral-300 uppercase tracking-wider">Subscription Duration</label>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-neutral-300">Duration</label>
           <div className="grid grid-cols-3 gap-2 text-xs">
             {['1 Month', '3 Months', '6 Months', '12 Months', 'Lifetime', 'Custom'].map(d => (
               <button
                 key={d}
                 type="button"
                 onClick={() => setDuration(d)}
-                className={`py-2 rounded-xl font-medium transition-all border cursor-pointer ${
+                className={`py-2 rounded-lg font-medium transition-colors border cursor-pointer ${
                   duration === d
-                    ? 'bg-indigo-600/30 text-indigo-300 border-indigo-500/50'
+                    ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
                     : 'bg-neutral-950 text-neutral-400 border-neutral-800'
                 }`}
               >
@@ -88,42 +86,40 @@ const GrantPremiumModal = ({ isOpen, onClose, user, onSuccess }) => {
               type="number"
               value={customDays}
               onChange={(e) => setCustomDays(e.target.value)}
-              placeholder="Number of Days..."
-              className="w-full mt-2 bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+              placeholder="Number of days..."
+              className="w-full mt-2 bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
             />
           )}
         </div>
 
-        {/* Reason Select */}
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-neutral-300 uppercase tracking-wider">Grant Reason</label>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-neutral-300">Reason</label>
           <select
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+            className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
           >
-            <option value="Manual">Manual Override</option>
-            <option value="Beta Tester">Beta Tester Reward</option>
-            <option value="Influencer">Influencer / Partner</option>
-            <option value="Refund">Refund / Customer Care</option>
-            <option value="Internal">Internal Team Member</option>
+            <option value="Manual">Manual override</option>
+            <option value="Beta Tester">Beta tester</option>
+            <option value="Influencer">Partner</option>
+            <option value="Refund">Customer care</option>
+            <option value="Internal">Team member</option>
           </select>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-neutral-800">
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-neutral-800">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-neutral-400 hover:text-white cursor-pointer"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium text-neutral-400 hover:text-white cursor-pointer"
           >
             Cancel
           </button>
           <button
             onClick={handleGrant}
             disabled={loading}
-            className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold shadow-lg shadow-amber-500/20 cursor-pointer"
+            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
           >
-            {loading ? 'Granting...' : 'Confirm Grant'}
+            {loading ? 'Granting...' : 'Grant access'}
           </button>
         </div>
       </div>

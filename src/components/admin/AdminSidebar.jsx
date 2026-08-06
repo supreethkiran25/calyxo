@@ -15,27 +15,50 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  ShieldAlert,
-  ExternalLink
+  Shield,
+  Search,
+  LogOut
 } from 'lucide-react';
+import { useStore } from '../../store/useStore';
 
-const MENU_ITEMS = [
-  { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-  { path: '/admin/users', label: 'Users', icon: Users },
-  { path: '/admin/premium', label: 'Premium', icon: Crown, badge: 'HIGH' },
-  { path: '/admin/analytics', label: 'Analytics', icon: TrendingUp },
-  { path: '/admin/workout-db', label: 'Workout DB', icon: Dumbbell },
-  { path: '/admin/nutrition-db', label: 'Nutrition DB', icon: Utensils },
-  { path: '/admin/ai', label: 'AI Management', icon: Bot },
-  { path: '/admin/notifications', label: 'Notifications', icon: Bell },
-  { path: '/admin/feedback', label: 'Feedback', icon: MessageSquare },
-  { path: '/admin/revenue', label: 'Revenue', icon: DollarSign },
-  { path: '/admin/logs', label: 'System Logs', icon: FileText },
-  { path: '/admin/settings', label: 'Settings', icon: Settings },
+const MENU_SECTIONS = [
+  {
+    title: 'PLATFORM',
+    items: [
+      { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+      { path: '/admin/users', label: 'Users', icon: Users },
+      { path: '/admin/analytics', label: 'Analytics', icon: TrendingUp },
+    ],
+  },
+  {
+    title: 'REVENUE',
+    items: [
+      { path: '/admin/revenue', label: 'Revenue', icon: DollarSign },
+      { path: '/admin/premium', label: 'Premium', icon: Crown },
+    ],
+  },
+  {
+    title: 'CONTENT',
+    items: [
+      { path: '/admin/nutrition-db', label: 'Nutrition DB', icon: Utensils },
+      { path: '/admin/workout-db', label: 'Workout DB', icon: Dumbbell },
+    ],
+  },
+  {
+    title: 'SYSTEM',
+    items: [
+      { path: '/admin/ai', label: 'AI Hub', icon: Bot },
+      { path: '/admin/notifications', label: 'Notifications', icon: Bell },
+      { path: '/admin/feedback', label: 'Feedback', icon: MessageSquare },
+      { path: '/admin/logs', label: 'Audit Logs', icon: FileText },
+      { path: '/admin/settings', label: 'Settings', icon: Settings },
+    ],
+  },
 ];
 
-const AdminSidebar = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) => {
+const AdminSidebar = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen, onOpenSearch }) => {
   const location = useLocation();
+  const user = useStore(state => state.user);
 
   const isLinkActive = (item) => {
     if (item.exact) {
@@ -44,107 +67,126 @@ const AdminSidebar = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) =>
     return location.pathname.startsWith(item.path);
   };
 
+  const handleSignOut = async () => {
+    const { logoutSuperAdmin } = await import('../../services/adminService');
+    await logoutSuperAdmin();
+    window.location.href = '/admin/login';
+  };
+
   return (
     <>
       {/* Mobile Backdrop */}
       {mobileOpen && (
         <div 
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-black/70 z-40 lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-50 flex flex-col bg-neutral-950/90 backdrop-blur-xl border-r border-neutral-800/80 transition-all duration-300 ${
+        className={`fixed top-0 left-0 bottom-0 z-50 flex flex-col bg-neutral-900 border-r border-neutral-800 transition-all duration-300 ${
           collapsed ? 'w-20' : 'w-64'
         } ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Header Branding */}
-        <div className="h-16 px-4 flex items-center justify-between border-b border-neutral-800/80">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
-              <ShieldAlert className="w-5 h-5 text-white" />
+        <div className="h-14 px-4 flex items-center justify-between border-b border-neutral-800 shrink-0">
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shrink-0">
+              <Shield className="w-4 h-4 text-white" />
             </div>
             {!collapsed && (
-              <div className="flex flex-col">
-                <span className="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
-                  CALYXO <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">ADMIN</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold tracking-tight text-white">CALYXO</span>
+                <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  ADMIN
                 </span>
-                <span className="text-xs text-neutral-400 font-mono">Super Command Center</span>
               </div>
             )}
           </div>
 
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800/60 transition-colors"
+            className="hidden lg:flex p-1 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
         </div>
 
-        {/* Navigation Items */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 custom-scrollbar">
-          {MENU_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const active = isLinkActive(item);
+        {/* Search shortcut button inside sidebar when expanded */}
+        {!collapsed && onOpenSearch && (
+          <div className="px-3 pt-3">
+            <button
+              onClick={onOpenSearch}
+              className="w-full px-3 py-1.5 rounded-lg bg-neutral-950 border border-neutral-800 text-xs text-neutral-400 flex items-center justify-between hover:border-neutral-700 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Search className="w-3.5 h-3.5 text-neutral-500" />
+                <span>Search...</span>
+              </div>
+              <kbd className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400 border border-neutral-700">⌘K</kbd>
+            </button>
+          </div>
+        )}
 
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={() => setMobileOpen(false)}
-                className={`flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-sm transition-all group ${
-                  active
-                    ? 'bg-indigo-600/20 text-white border border-indigo-500/40 shadow-sm shadow-indigo-500/10'
-                    : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900/60 border border-transparent'
-                }`}
-                title={collapsed ? item.label : undefined}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className={`w-5 h-5 shrink-0 transition-colors ${active ? 'text-indigo-400' : 'text-neutral-400 group-hover:text-neutral-200'}`} />
-                  {!collapsed && <span className="truncate">{item.label}</span>}
+        {/* Navigation Sections */}
+        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4 custom-scrollbar">
+          {MENU_SECTIONS.map((section) => (
+            <div key={section.title}>
+              {!collapsed && (
+                <div className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium px-3 mb-1 mt-2">
+                  {section.title}
                 </div>
+              )}
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = isLinkActive(item);
 
-                {!collapsed && item.badge && (
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-semibold ${
-                    item.badge === 'PRO' 
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                      : active ? 'bg-indigo-500/30 text-indigo-200' : 'bg-neutral-800 text-neutral-400'
-                  }`}>
-                    {item.badge}
-                  </span>
-                )}
-              </NavLink>
-            );
-          })}
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setMobileOpen(false)}
+                      className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-colors group ${
+                        active
+                          ? 'bg-blue-500/10 text-blue-400 border-l-2 border-blue-500 rounded-r-lg font-medium'
+                          : 'text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg font-normal'
+                      }`}
+                      title={collapsed ? item.label : undefined}
+                    >
+                      <Icon className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-blue-400' : 'text-neutral-400 group-hover:text-white'}`} />
+                      {!collapsed && <span className="truncate">{item.label}</span>}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
-        {/* Bottom Footer Actions */}
-        <div className="p-3 border-t border-neutral-800/80 space-y-1">
-          <NavLink
-            to="/user/dashboard"
-            className="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-neutral-400 hover:text-white hover:bg-neutral-900/80 transition-colors border border-neutral-800/50"
-            title="Return to Main Calyxo Web App"
-          >
-            <ExternalLink className="w-4 h-4 text-neutral-400 shrink-0" />
-            {!collapsed && <span>Return to Main App</span>}
-          </NavLink>
+        {/* Admin Profile & Sign Out Footer */}
+        <div className="p-3 border-t border-neutral-800 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-semibold text-xs shrink-0 border border-blue-500/30">
+              {user?.displayName ? user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'SK'}
+            </div>
+            {!collapsed && (
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-semibold text-white truncate">{user?.displayName || 'Admin'}</span>
+                <span className="text-[10px] text-neutral-500 truncate">{user?.email || 'admin@calyxo.app'}</span>
+              </div>
+            )}
+          </div>
 
           <button
-            onClick={async () => {
-              const { logoutSuperAdmin } = await import('../../services/adminService');
-              await logoutSuperAdmin();
-              window.location.href = '/admin/login';
-            }}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors border border-rose-500/20 cursor-pointer"
-            title="Sign Out of Super Admin Session"
+            onClick={handleSignOut}
+            className="p-1.5 rounded-lg text-neutral-500 hover:text-red-400 hover:bg-neutral-800 transition-colors shrink-0"
+            title="Sign out"
           >
-            <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
-            {!collapsed && <span>Logout Super Admin</span>}
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </aside>

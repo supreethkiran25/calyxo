@@ -17,11 +17,11 @@ const AdminLayout = () => {
   const [quickActionOpen, setQuickActionOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
-  const theme = useStore(state => state.theme);
-  const isLight = theme === 'light';
+  const initializeTheme = useStore(state => state.initializeTheme);
 
-  // Server-side verification on mount
+  // Initialize theme & server-side verification on mount
   useEffect(() => {
+    initializeTheme();
     let isMounted = true;
     const verifyServerAccess = async () => {
       const isVerified = await verifyAdminAccessRPC();
@@ -35,15 +35,11 @@ const AdminLayout = () => {
     return () => {
       isMounted = false;
     };
-  }, [navigate]);
+  }, [navigate, initializeTheme]);
 
   return (
-    <div className={`min-h-screen font-sans antialiased flex transition-colors duration-200 ${
-      isLight
-        ? 'admin-light-mode bg-slate-50 text-slate-900 selection:bg-indigo-500/20 selection:text-indigo-900'
-        : 'bg-neutral-950 text-neutral-100 selection:bg-indigo-500/30 selection:text-indigo-200'
-    }`}>
-      <Toaster position="top-right" theme="dark" richColors />
+    <div className="min-h-screen font-sans antialiased flex bg-neutral-950 text-neutral-100 selection:bg-blue-500/30 selection:text-blue-200">
+      <Toaster richColors position="top-right" />
 
       {/* Sidebar */}
       <AdminSidebar
@@ -65,7 +61,7 @@ const AdminLayout = () => {
         />
 
         {/* Dynamic Route View */}
-        <main className="flex-1 p-4 lg:p-6 overflow-x-hidden">
+        <main className="flex-1 p-6 overflow-x-hidden">
           <Outlet context={{ onSelectUser: setSelectedUser }} />
         </main>
       </div>

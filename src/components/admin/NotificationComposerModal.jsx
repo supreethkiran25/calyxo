@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Bell, Send, Sparkles } from 'lucide-react';
+import { X, Bell, Send } from 'lucide-react';
 import { sendAdminNotification } from '../../services/adminService';
 
 const NotificationComposerModal = ({ isOpen, onClose, onSuccess }) => {
@@ -7,7 +7,7 @@ const NotificationComposerModal = ({ isOpen, onClose, onSuccess }) => {
     title: '',
     body: '',
     audience: 'Everyone',
-    cta_label: 'View Feature',
+    cta_label: 'View feature',
     cta_link: '/user/dashboard',
     image_url: ''
   });
@@ -33,38 +33,38 @@ const NotificationComposerModal = ({ isOpen, onClose, onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-lg rounded-2xl bg-neutral-900 border border-neutral-800 shadow-2xl overflow-hidden p-6 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+      <div className="w-full max-w-lg bg-neutral-900 border border-neutral-800 rounded-xl p-6 space-y-4">
         <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-              <Bell className="w-5 h-5" />
+            <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              <Bell className="w-4 h-4" />
             </div>
-            <h3 className="text-base font-bold text-white">Broadcast Push Notification</h3>
+            <h3 className="text-sm font-semibold text-white">Broadcast notification</h3>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-neutral-400 hover:text-white">
+          <button onClick={onClose} className="p-1 rounded-lg text-neutral-400 hover:text-white cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3 text-xs">
           <div>
-            <label className="text-neutral-400 font-medium block mb-1">Target Audience</label>
+            <label className="text-neutral-400 font-medium block mb-1">Audience</label>
             <div className="grid grid-cols-3 gap-2">
               {['Everyone', 'Premium Users', 'Free Users'].map(aud => (
                 <button
                   key={aud}
                   type="button"
                   onClick={() => setFormData({ ...formData, audience: aud })}
-                  className={`py-2 rounded-xl font-bold transition-all border ${
+                  className={`py-1.5 rounded-lg font-medium transition-colors border cursor-pointer ${
                     formData.audience === aud
-                      ? 'bg-indigo-600/30 text-indigo-300 border-indigo-500/50'
+                      ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
                       : 'bg-neutral-950 text-neutral-400 border-neutral-800'
                   }`}
                 >
@@ -75,64 +75,64 @@ const NotificationComposerModal = ({ isOpen, onClose, onSuccess }) => {
           </div>
 
           <div>
-            <label className="text-neutral-400 font-medium block mb-1">Notification Title</label>
+            <label className="text-neutral-400 font-medium block mb-1">Title</label>
             <input
               type="text"
               required
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="e.g. ⚡ Gemini 3.6 AI Coach Upgrade Available!"
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+              placeholder="Notification title..."
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="text-neutral-400 font-medium block mb-1">Message Content</label>
+            <label className="text-neutral-400 font-medium block mb-1">Body</label>
             <textarea
               rows="3"
               required
               value={formData.body}
               onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-              placeholder="Enter push notification body..."
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+              placeholder="Notification message body..."
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-neutral-400 font-medium block mb-1">CTA Button Label</label>
+              <label className="text-neutral-400 font-medium block mb-1">CTA label</label>
               <input
                 type="text"
                 value={formData.cta_label}
                 onChange={(e) => setFormData({ ...formData, cta_label: e.target.value })}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="text-neutral-400 font-medium block mb-1">Deep Link Target</label>
+              <label className="text-neutral-400 font-medium block mb-1">Deep link</label>
               <input
                 type="text"
                 value={formData.cta_link}
                 onChange={(e) => setFormData({ ...formData, cta_link: e.target.value })}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-neutral-800">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-neutral-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-neutral-400 hover:text-white"
+              className="px-3 py-1.5 rounded-lg text-neutral-400 hover:text-white cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
+              className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
-              <Send className="w-3.5 h-3.5" /> Broadcast Now
+              <Send className="w-3.5 h-3.5" /> Send broadcast
             </button>
           </div>
         </form>

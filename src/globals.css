@@ -192,17 +192,26 @@ h1, h2, h3, h4, h5, h6 {
   color: #0f172a !important;
 }
 
-[data-theme='light'] .bg-neutral-950,
+[data-theme='light'] .bg-neutral-950 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
 [data-theme='light'] .bg-neutral-900,
 [data-theme='light'] .bg-neutral-900\/90,
 [data-theme='light'] .bg-neutral-900\/80,
 [data-theme='light'] .bg-neutral-900\/60,
-[data-theme='light'] .bg-neutral-900\/50,
-[data-theme='light'] .bg-neutral-900\/40,
-[data-theme='light'] .bg-neutral-900\/30,
-[data-theme='light'] .bg-neutral-900\/20,
-[data-theme='light'] .bg-neutral-900\/10 {
+[data-theme='light'] .bg-neutral-900\/50 {
   background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .bg-neutral-950\/50,
+[data-theme='light'] .bg-neutral-950\/60,
+[data-theme='light'] .bg-neutral-950\/40 {
+  background-color: #f1f5f9 !important;
   border-color: #e2e8f0 !important;
   color: #0f172a !important;
 }
@@ -211,8 +220,8 @@ h1, h2, h3, h4, h5, h6 {
 [data-theme='light'] .bg-neutral-800\/80,
 [data-theme='light'] .bg-neutral-800\/60,
 [data-theme='light'] .bg-neutral-800\/50 {
-  background-color: #f1f5f9 !important;
-  border-color: #e2e8f0 !important;
+  background-color: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
   color: #0f172a !important;
 }
 
@@ -236,8 +245,9 @@ h1, h2, h3, h4, h5, h6 {
   border-color: #e2e8f0 !important;
 }
 
-[data-theme='light'] aside {
-  background-color: rgba(255, 255, 255, 0.95) !important;
+[data-theme='light'] aside,
+[data-theme='light'] header {
+  background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
 }
 
@@ -247,6 +257,59 @@ h1, h2, h3, h4, h5, h6 {
   background-color: #ffffff !important;
   border-color: #cbd5e1 !important;
   color: #0f172a !important;
+}
+
+/* Light Theme Badges & Tints */
+[data-theme='light'] .bg-blue-500\/10,
+[data-theme='light'] .bg-blue-600\/10 {
+  background-color: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+}
+
+[data-theme='light'] .text-blue-400 {
+  color: #2563eb !important;
+}
+
+[data-theme='light'] .bg-emerald-500\/10 {
+  background-color: #ecfdf5 !important;
+  color: #047857 !important;
+  border-color: #a7f3d0 !important;
+}
+
+[data-theme='light'] .text-emerald-400 {
+  color: #059669 !important;
+}
+
+[data-theme='light'] .bg-amber-500\/10 {
+  background-color: #fffbeb !important;
+  color: #b45309 !important;
+  border-color: #fde68a !important;
+}
+
+[data-theme='light'] .text-amber-300,
+[data-theme='light'] .text-amber-400 {
+  color: #d97706 !important;
+}
+
+[data-theme='light'] .bg-red-500\/10 {
+  background-color: #fef2f2 !important;
+  color: #b91c1c !important;
+  border-color: #fecaca !important;
+}
+
+[data-theme='light'] .text-red-400 {
+  color: #dc2626 !important;
+}
+
+[data-theme='light'] .bg-violet-500\/10 {
+  background-color: #f5f3ff !important;
+  color: #6d28d9 !important;
+  border-color: #ddd6fe !important;
+}
+
+[data-theme='light'] .text-violet-400 {
+  color: #7c3aed !important;
 }
 
 /* Global Brand Utility Overrides */

@@ -90,7 +90,7 @@ async function runE2EVerification() {
         granted_by: 'supreethkiran25@gmail.com',
         payment_source: 'Admin Manual',
         payment_id: `qa_grant_${Date.now()}`,
-        amount: 999,
+        amount: 2,
         currency: 'INR',
         updated_at: now.toISOString()
       }, { onConflict: 'user_id' });

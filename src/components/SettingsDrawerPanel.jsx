@@ -771,12 +771,12 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
           {
             id: 'MEDIUM',
             name: 'PREMIUM AI ACCESS',
-            price: '₹1',
+            price: '₹2',
             period: 'per month',
             badge: 'AI PREMIUM ACCESS',
             accentColor: 'border-[var(--color-acid-green)]',
             bgGradient: 'bg-[var(--color-acid-green)]/10',
-            amountPaise: 100,
+            amountPaise: 200,
             features: [
               'Everything in Free Athlete',
               'Unlimited Calyxo AI Coach Concierge',

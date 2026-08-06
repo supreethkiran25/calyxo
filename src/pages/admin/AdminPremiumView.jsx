@@ -1,16 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import {
-  Crown,
-  Sparkles,
-  Zap,
-  CheckCircle2,
-  Plus,
-  UserCheck,
-  CreditCard
-} from 'lucide-react';
+import { Crown, Plus, UserCheck, CreditCard, Users, Zap } from 'lucide-react';
 import { toast } from 'sonner';
-import { getAdminUsers, updateUserSubscription, LIVE_RAZORPAY_TRANSACTIONS, CALYXO_PRIMARY_PLAN } from '../../services/adminService';
+import { getAdminUsers, updateUserSubscription, LIVE_RAZORPAY_TRANSACTIONS } from '../../services/adminService';
 import { supabase } from '../../lib/supabaseClient';
 import GrantPremiumModal from '../../components/admin/GrantPremiumModal';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
@@ -21,7 +12,6 @@ const AdminPremiumView = () => {
   const [loading, setLoading] = useState(true);
   const [revokingId, setRevokingId] = useState(null);
   const [revokingTarget, setRevokingTarget] = useState(null);
-  const outletCtx = useOutletContext();
 
   const loadData = async () => {
     setLoading(true);
@@ -33,7 +23,6 @@ const AdminPremiumView = () => {
   useEffect(() => {
     loadData();
 
-    // Subscribe to Supabase Realtime for instant subscription & user profile updates
     const channel = supabase
       .channel('admin_premium_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_profiles' }, () => loadData())
@@ -65,7 +54,7 @@ const AdminPremiumView = () => {
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
       </div>
     );
   }
@@ -81,188 +70,215 @@ const AdminPremiumView = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Crown className="w-6 h-6 text-amber-400" /> Premium & Subscriptions Hub
-          </h1>
-          <p className="text-xs text-neutral-400 font-mono mt-0.5">
-            Single Plan: {CALYXO_PRIMARY_PLAN.name} ({CALYXO_PRIMARY_PLAN.symbol}{CALYXO_PRIMARY_PLAN.price.toLocaleString()}) • Live Supabase & Razorpay Subscriber Telemetry
+          <h1 className="text-xl font-semibold text-white tracking-tight">Premium subscriptions</h1>
+          <p className="text-xs text-neutral-400 mt-0.5">
+            High plan members and subscription management
           </p>
         </div>
 
         <button
           onClick={() => setGrantModalUser(freeUsers[0] || users[0] || null)}
-          className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-amber-500/20 cursor-pointer"
+          className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto"
         >
-          <Plus className="w-4 h-4" /> Grant Premium High Pass
+          <Plus className="w-3.5 h-3.5" /> Grant access
         </button>
       </div>
 
-      {/* Real KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800">
-          <span className="text-xs text-neutral-400 font-medium block">Active Premium Subscribers</span>
-          <span className="text-2xl font-bold text-amber-400 block mt-1">{premiumUsers.length}</span>
-          <span className="text-[10px] text-amber-500/80 font-mono mt-1 block">{conversionRate}% Conversion Rate</span>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
+              Active premium subscribers
+            </span>
+            <Crown className="w-4 h-4 text-neutral-600" />
+          </div>
+          <div className="text-2xl font-semibold text-amber-400">{premiumUsers.length}</div>
+          <div className="text-[11px] text-neutral-500">{conversionRate}% conversion rate</div>
         </div>
-        <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800">
-          <span className="text-xs text-neutral-400 font-medium block">Free Tier Users</span>
-          <span className="text-2xl font-bold text-white block mt-1">{freeUsers.length}</span>
-          <span className="text-[10px] text-neutral-500 font-mono mt-1 block">Available for upgrade</span>
+
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
+              Free tier users
+            </span>
+            <UserCheck className="w-4 h-4 text-neutral-600" />
+          </div>
+          <div className="text-2xl font-semibold text-white">{freeUsers.length}</div>
+          <div className="text-[11px] text-neutral-500">Available for upgrade</div>
         </div>
-        <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800">
-          <span className="text-xs text-neutral-400 font-medium block">Total Registered Users</span>
-          <span className="text-2xl font-bold text-indigo-400 block mt-1">{totalUsersCount}</span>
-          <span className="text-[10px] text-neutral-500 font-mono mt-1 block">Supabase DB Accounts</span>
+
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
+              Total registered users
+            </span>
+            <Users className="w-4 h-4 text-neutral-600" />
+          </div>
+          <div className="text-2xl font-semibold text-white">{totalUsersCount}</div>
+          <div className="text-[11px] text-neutral-500">Registered accounts</div>
         </div>
-        <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800">
-          <span className="text-xs text-neutral-400 font-medium block">Razorpay Captured Revenue</span>
-          <span className="text-2xl font-bold text-emerald-400 block mt-1">₹{totalRazorpayCaptured.toFixed(2)}</span>
-          <span className="text-[10px] text-neutral-500 font-mono mt-1 block">Live UPI Gateway</span>
+
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
+              Revenue captured
+            </span>
+            <CreditCard className="w-4 h-4 text-neutral-600" />
+          </div>
+          <div className="text-2xl font-semibold text-emerald-400">₹{totalRazorpayCaptured.toFixed(2)}</div>
+          <div className="text-[11px] text-neutral-500">Gateway transactions</div>
         </div>
       </div>
 
       {/* Active Premium Subscribers Table */}
-      <div className="rounded-3xl bg-neutral-900/60 border border-neutral-800/80 overflow-hidden shadow-2xl">
+      <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
         <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Zap className="w-4 h-4 text-amber-400" /> Active High Plan Accounts ({premiumUsers.length})
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <Zap className="w-4 h-4 text-neutral-500" /> Active High plan accounts ({premiumUsers.length})
           </h3>
-          <span className="text-xs text-amber-400 font-mono bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-            {CALYXO_PRIMARY_PLAN.name} ({CALYXO_PRIMARY_PLAN.symbol}{CALYXO_PRIMARY_PLAN.price.toLocaleString()})
-          </span>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-neutral-950/80 border-b border-neutral-800 text-neutral-400 font-mono uppercase text-[11px]">
-              <tr>
-                <th className="p-4 font-bold">User</th>
-                <th className="p-4 font-bold">Tier Plan</th>
-                <th className="p-4 font-bold">Source & Granted By</th>
-                <th className="p-4 font-bold">Subscription Expiry</th>
-                <th className="p-4 font-bold">Renewal Status</th>
-                <th className="p-4 font-bold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-800/60 font-mono">
-              {premiumUsers.map(u => (
-                <tr key={u.id} className="hover:bg-neutral-800/40 transition-colors">
-                  <td className="p-4 font-sans">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'User')}&background=1a1a2e&color=6366f1&bold=true&size=80`}
-                        alt={u.full_name || 'User'}
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'U')}&background=1a1a2e&color=6366f1&size=80`;
-                        }}
-                        className="w-9 h-9 rounded-xl object-cover border border-neutral-700"
-                      />
-                      <div>
-                        <span className="font-bold text-white block">{u.full_name}</span>
-                        <span className="text-neutral-400 text-[11px] font-mono">{u.email}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase">
-                      {CALYXO_PRIMARY_PLAN.name} ({CALYXO_PRIMARY_PLAN.symbol}{CALYXO_PRIMARY_PLAN.price.toLocaleString()})
-                    </span>
-                  </td>
-                  <td className="p-4 text-neutral-300">
-                    <span className="block font-bold text-neutral-200">{u.payment_source || 'Razorpay'}</span>
-                    <span className="text-[10px] text-neutral-400 block font-mono">By: {u.granted_by || 'Razorpay'}</span>
-                  </td>
-                  <td className="p-4 text-neutral-300">
-                    <span className="block font-bold text-amber-300">{u.subscription_expiry}</span>
-                    <span className="text-[10px] text-neutral-400">{u.days_remaining} days remaining</span>
-                  </td>
-                  <td className="p-4">
-                    <span className="text-emerald-400 font-mono flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Active High Member
-                    </span>
-                  </td>
-                  <td className="p-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => setGrantModalUser(u)}
-                        className="px-2.5 py-1 rounded-lg bg-neutral-800 text-amber-300 hover:bg-neutral-700 text-xs font-semibold cursor-pointer"
-                      >
-                        Modify Pass
-                      </button>
-                      <button
-                        disabled={revokingId === u.id}
-                        onClick={() => setRevokingTarget(u)}
-                        className="px-2.5 py-1 rounded-lg bg-red-950/40 text-red-400 hover:bg-red-900/60 text-xs font-semibold cursor-pointer disabled:opacity-50"
-                      >
-                        {revokingId === u.id ? 'Revoking...' : 'Revoke Pass'}
-                      </button>
-                    </div>
-                  </td>
+          {premiumUsers.length === 0 ? (
+            <div className="p-8 text-center text-xs text-neutral-600 font-mono">
+              No active High plan members
+            </div>
+          ) : (
+            <table className="w-full text-left text-xs">
+              <thead className="bg-neutral-950 border-b border-neutral-800 text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
+                <tr>
+                  <th className="p-4">User</th>
+                  <th className="p-4">Plan</th>
+                  <th className="p-4">Granted by</th>
+                  <th className="p-4">Expiry</th>
+                  <th className="p-4">Status</th>
+                  <th className="p-4 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-neutral-800">
+                {premiumUsers.map(u => (
+                  <tr key={u.id} className="hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'User')}&background=1a1a2e&color=3B82F6&bold=true&size=80`}
+                          alt={u.full_name || 'User'}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'U')}&background=1a1a2e&color=3B82F6&size=80`;
+                          }}
+                          className="w-8 h-8 rounded-full object-cover border border-neutral-800"
+                        />
+                        <div>
+                          <span className="text-sm font-medium text-white block">{u.full_name}</span>
+                          <span className="text-[11px] text-neutral-500 font-mono">{u.email}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded border bg-amber-500/10 text-amber-300 border-amber-500/20">
+                        HIGH
+                      </span>
+                    </td>
+                    <td className="p-4 text-neutral-300 text-xs">
+                      {u.granted_by || u.payment_source || 'Razorpay'}
+                    </td>
+                    <td className="p-4 font-mono text-[11px] text-neutral-400">
+                      {u.subscription_expiry} ({u.days_remaining}d)
+                    </td>
+                    <td className="p-4">
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                        Active
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setGrantModalUser(u)}
+                          className="px-2.5 py-1 rounded-lg bg-neutral-800 text-neutral-300 hover:text-white text-xs font-semibold cursor-pointer"
+                        >
+                          Modify
+                        </button>
+                        <button
+                          disabled={revokingId === u.id}
+                          onClick={() => setRevokingTarget(u)}
+                          className="px-2.5 py-1 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-semibold cursor-pointer disabled:opacity-50"
+                        >
+                          {revokingId === u.id ? 'Revoking...' : 'Revoke'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
-      {/* Free Tier Users Directory (Available for Upsell) */}
-      <div className="rounded-3xl bg-neutral-900/60 border border-neutral-800/80 overflow-hidden shadow-2xl">
+      {/* Free Tier Directory */}
+      <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
         <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <UserCheck className="w-4 h-4 text-indigo-400" /> Free Tier Directory ({freeUsers.length})
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <UserCheck className="w-4 h-4 text-neutral-500" /> Free tier ({freeUsers.length})
           </h3>
-          <span className="text-xs text-neutral-400 font-mono">Available for High Plan Upsell</span>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-neutral-950/80 border-b border-neutral-800 text-neutral-400 font-mono uppercase text-[11px]">
-              <tr>
-                <th className="p-4 font-bold">User</th>
-                <th className="p-4 font-bold">Current Tier</th>
-                <th className="p-4 font-bold">Joined On</th>
-                <th className="p-4 font-bold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-800/60 font-mono">
-              {freeUsers.map(u => (
-                <tr key={u.id} className="hover:bg-neutral-800/40 transition-colors">
-                  <td className="p-4 font-sans">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'User')}&background=1a1a2e&color=6366f1&bold=true&size=80`}
-                        alt={u.full_name || 'User'}
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'U')}&background=1a1a2e&color=6366f1&size=80`;
-                        }}
-                        className="w-9 h-9 rounded-xl object-cover border border-neutral-700"
-                      />
-                      <div>
-                        <span className="font-bold text-white block">{u.full_name}</span>
-                        <span className="text-neutral-400 text-[11px] font-mono">{u.email}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-neutral-800 text-neutral-400 border border-neutral-700">
-                      FREE TIER
-                    </span>
-                  </td>
-                  <td className="p-4 text-neutral-400">{u.signup_date}</td>
-                  <td className="p-4 text-right">
-                    <button
-                      onClick={() => setGrantModalUser(u)}
-                      className="px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 text-xs font-bold transition-all cursor-pointer"
-                    >
-                      Grant High Pass
-                    </button>
-                  </td>
+          {freeUsers.length === 0 ? (
+            <div className="p-8 text-center text-xs text-neutral-600 font-mono">
+              No free tier users found
+            </div>
+          ) : (
+            <table className="w-full text-left text-xs">
+              <thead className="bg-neutral-950 border-b border-neutral-800 text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
+                <tr>
+                  <th className="p-4">User</th>
+                  <th className="p-4">Tier</th>
+                  <th className="p-4">Joined on</th>
+                  <th className="p-4 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-neutral-800">
+                {freeUsers.map(u => (
+                  <tr key={u.id} className="hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'User')}&background=1a1a2e&color=3B82F6&bold=true&size=80`}
+                          alt={u.full_name || 'User'}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'U')}&background=1a1a2e&color=3B82F6&size=80`;
+                          }}
+                          className="w-8 h-8 rounded-full object-cover border border-neutral-800"
+                        />
+                        <div>
+                          <span className="text-sm font-medium text-white block">{u.full_name}</span>
+                          <span className="text-[11px] text-neutral-500 font-mono">{u.email}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded border bg-neutral-800 text-neutral-400 border-neutral-700">
+                        FREE
+                      </span>
+                    </td>
+                    <td className="p-4 text-neutral-400 font-mono text-[11px]">{u.signup_date}</td>
+                    <td className="p-4 text-right">
+                      <button
+                        onClick={() => setGrantModalUser(u)}
+                        className="bg-amber-500/10 text-amber-300 border border-amber-500/20 hover:bg-amber-500/20 text-xs font-medium rounded-lg px-3 py-1.5 cursor-pointer"
+                      >
+                        Grant access
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -277,9 +293,9 @@ const AdminPremiumView = () => {
 
       <ConfirmDialog
         isOpen={!!revokingTarget}
-        title="Revoke Premium Subscription"
-        description={`Are you sure you want to revoke the High Plan subscription for "${revokingTarget?.full_name || 'this user'}"?`}
-        confirmLabel="Revoke Pass"
+        title="Revoke subscription"
+        description={`Are you sure you want to revoke the High plan subscription for "${revokingTarget?.full_name || 'this user'}"?`}
+        confirmLabel="Revoke"
         variant="danger"
         isLoading={!!revokingId}
         onConfirm={confirmRevokePass}

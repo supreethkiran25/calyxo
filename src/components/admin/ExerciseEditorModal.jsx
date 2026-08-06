@@ -19,6 +19,9 @@ const ExerciseEditorModal = ({ isOpen, onClose, initialData, onSuccess }) => {
     if (initialData) {
       setFormData({
         ...initialData,
+        title: initialData.name || initialData.title || '',
+        muscle: initialData.target || initialData.muscle || '',
+        category: initialData.body_part || initialData.category || 'Chest',
         secondary_muscles: Array.isArray(initialData.secondary_muscles) ? initialData.secondary_muscles.join(', ') : (initialData.secondary_muscles || '')
       });
     } else {
@@ -42,7 +45,9 @@ const ExerciseEditorModal = ({ isOpen, onClose, initialData, onSuccess }) => {
     setLoading(true);
     const payload = {
       ...formData,
-      secondary_muscles: formData.secondary_muscles.split(',').map(s => s.trim()).filter(Boolean)
+      secondary_muscles: typeof formData.secondary_muscles === 'string'
+        ? formData.secondary_muscles.split(',').map(s => s.trim()).filter(Boolean)
+        : formData.secondary_muscles
     };
     await saveAdminExercise(payload);
     setLoading(false);
@@ -51,30 +56,30 @@ const ExerciseEditorModal = ({ isOpen, onClose, initialData, onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-xl rounded-2xl bg-neutral-900 border border-neutral-800 shadow-2xl overflow-hidden p-6 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+      <div className="w-full max-w-xl bg-neutral-900 border border-neutral-800 rounded-xl p-6 space-y-4">
         <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-              <Dumbbell className="w-5 h-5" />
+            <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              <Dumbbell className="w-4 h-4" />
             </div>
-            <h3 className="text-base font-bold text-white">{initialData ? 'Edit Exercise' : 'Create New Exercise'}</h3>
+            <h3 className="text-sm font-semibold text-white">{initialData ? 'Edit exercise' : 'Add exercise'}</h3>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-neutral-400 hover:text-white">
+          <button onClick={onClose} className="p-1 rounded-lg text-neutral-400 hover:text-white cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3 text-xs">
           <div>
-            <label className="text-neutral-400 font-medium block mb-1">Exercise Title</label>
+            <label className="text-neutral-400 font-medium block mb-1">Exercise title</label>
             <input
               type="text"
               required
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="e.g. Incline Dumbbell Bench Press"
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+              placeholder="e.g. Incline Dumbbell Press"
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
             />
           </div>
 
@@ -84,7 +89,7 @@ const ExerciseEditorModal = ({ isOpen, onClose, initialData, onSuccess }) => {
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
               >
                 {['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Cardio'].map(c => (
                   <option key={c} value={c}>{c}</option>
@@ -96,7 +101,7 @@ const ExerciseEditorModal = ({ isOpen, onClose, initialData, onSuccess }) => {
               <select
                 value={formData.difficulty}
                 onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
               >
                 {['Beginner', 'Intermediate', 'Advanced'].map(d => (
                   <option key={d} value={d}>{d}</option>
@@ -107,14 +112,14 @@ const ExerciseEditorModal = ({ isOpen, onClose, initialData, onSuccess }) => {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-neutral-400 font-medium block mb-1">Target Muscle</label>
+              <label className="text-neutral-400 font-medium block mb-1">Target muscle</label>
               <input
                 type="text"
                 required
                 value={formData.muscle}
                 onChange={(e) => setFormData({ ...formData, muscle: e.target.value })}
                 placeholder="e.g. Pectoralis Major"
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
               />
             </div>
             <div>
@@ -125,57 +130,57 @@ const ExerciseEditorModal = ({ isOpen, onClose, initialData, onSuccess }) => {
                 value={formData.equipment}
                 onChange={(e) => setFormData({ ...formData, equipment: e.target.value })}
                 placeholder="e.g. Barbell, Dumbbells"
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-neutral-400 font-medium block mb-1">Secondary Muscles (comma separated)</label>
+            <label className="text-neutral-400 font-medium block mb-1">Secondary muscles</label>
             <input
               type="text"
               value={formData.secondary_muscles}
               onChange={(e) => setFormData({ ...formData, secondary_muscles: e.target.value })}
               placeholder="e.g. Triceps, Front Shoulders"
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="text-neutral-400 font-medium block mb-1">Instructions Step-by-Step</label>
+            <label className="text-neutral-400 font-medium block mb-1">Instructions</label>
             <textarea
               rows="3"
               value={formData.instructions}
               onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
-              placeholder="Describe execution technique..."
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+              placeholder="Execution technique instructions..."
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="text-neutral-400 font-medium block mb-1">Image / Video Banner URL</label>
+            <label className="text-neutral-400 font-medium block mb-1">Image / GIF URL</label>
             <input
               type="text"
               value={formData.image_url}
               onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-neutral-800">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-neutral-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-neutral-400 hover:text-white"
+              className="px-3 py-1.5 rounded-lg text-neutral-400 hover:text-white cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold flex items-center gap-1.5 shadow-md shadow-indigo-600/20"
+              className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
             >
-              <Save className="w-3.5 h-3.5" /> Save Exercise
+              <Save className="w-3.5 h-3.5" /> Save exercise
             </button>
           </div>
         </form>

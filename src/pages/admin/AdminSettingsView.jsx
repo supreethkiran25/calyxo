@@ -3,25 +3,18 @@ import {
   Settings,
   Shield,
   Key,
-  Sliders,
   Save,
   Globe,
   CreditCard,
   Cpu,
-  Bot,
   Lock,
   Bell,
-  RefreshCw,
   Download,
   Eye,
   EyeOff,
   AlertTriangle,
-  CheckCircle2,
   Zap,
-  SlidersHorizontal,
-  Mail,
-  Server,
-  Layers
+  SlidersHorizontal
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminSettings, saveAdminSettings, DEFAULT_SETTINGS } from '../../services/adminService';
@@ -60,7 +53,7 @@ const AdminSettingsView = () => {
     setSaving(true);
     try {
       await saveAdminSettings(settings);
-      toast.success('System settings & feature flags successfully saved live!');
+      toast.success('System settings saved successfully.');
     } catch (err) {
       toast.error('Failed to save settings: ' + err.message);
     } finally {
@@ -81,7 +74,7 @@ const AdminSettingsView = () => {
     try {
       const { updateAdminPassword } = await import('../../services/adminService');
       await updateAdminPassword(newPass);
-      toast.success('Super Admin Master Password successfully updated in backend!');
+      toast.success('Master password updated.');
       setCurrentPass('');
       setNewPass('');
       setConfirmPass('');
@@ -99,7 +92,7 @@ const AdminSettingsView = () => {
       new Promise((resolve) => setTimeout(resolve, 1200)),
       {
         loading: 'Testing Razorpay Gateway connection...',
-        success: 'Razorpay API Gateway connection verified successfully! (200 OK)',
+        success: 'Razorpay API Gateway connection verified (200 OK)',
         error: 'Razorpay connection test failed.'
       }
     );
@@ -110,7 +103,7 @@ const AdminSettingsView = () => {
       new Promise((resolve) => setTimeout(resolve, 1500)),
       {
         loading: `Pinging ${settings.active_ai_model || 'gemini-2.0-flash'} model...`,
-        success: `${settings.active_ai_model || 'gemini-2.0-flash'} is online! Latency: 142ms. Token limit: ${settings.ai_max_tokens || 2048}.`,
+        success: `${settings.active_ai_model || 'gemini-2.0-flash'} is online (142ms latency)`,
         error: 'AI Model Ping failed.'
       }
     );
@@ -124,7 +117,7 @@ const AdminSettingsView = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(settings, null, 2));
     const a = document.createElement('a');
     a.href = dataStr;
-    a.download = `calyxo_system_settings_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `calyxo_system_settings_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     toast.success('Exported system settings JSON backup.');
   };
@@ -133,7 +126,7 @@ const AdminSettingsView = () => {
     setSettings(DEFAULT_SETTINGS);
     try {
       await saveAdminSettings(DEFAULT_SETTINGS);
-      toast.success('Restored factory default settings.');
+      toast.success('Restored default settings.');
     } catch (err) {
       toast.error('Failed to restore defaults.');
     } finally {
@@ -144,18 +137,18 @@ const AdminSettingsView = () => {
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
       </div>
     );
   }
 
   const tabs = [
-    { id: 'general', label: 'General & Platform', icon: Globe },
-    { id: 'operations', label: 'Features & Ops', icon: SlidersHorizontal },
+    { id: 'general', label: 'General', icon: Globe },
+    { id: 'operations', label: 'Feature flags', icon: SlidersHorizontal },
     { id: 'billing', label: 'Billing & Gateway', icon: CreditCard },
-    { id: 'ai', label: 'AI Engine & Prompts', icon: Cpu },
-    { id: 'security', label: 'Security & Access', icon: Lock },
-    { id: 'push', label: 'Web Push & Keys', icon: Bell }
+    { id: 'ai', label: 'AI Engine', icon: Cpu },
+    { id: 'security', label: 'Security', icon: Lock },
+    { id: 'push', label: 'Web Push', icon: Bell }
   ];
 
   return (
@@ -163,33 +156,33 @@ const AdminSettingsView = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Settings className="w-6 h-6 text-indigo-400" /> Platform System Settings
+          <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">
+            Platform settings
           </h1>
-          <p className="text-xs text-neutral-400 font-mono mt-0.5">
-            Global feature flags, maintenance controls, AI model parameters, Razorpay gateway & security rules
+          <p className="text-xs text-neutral-400 mt-0.5">
+            Feature flags, pricing and system configuration
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           <button
             onClick={handleExportBackup}
-            className="px-3.5 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+            className="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
           >
-            <Download className="w-4 h-4 text-neutral-400" /> Export JSON
+            <Download className="w-3.5 h-3.5 text-neutral-400" /> Export JSON
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-indigo-600/25 cursor-pointer disabled:opacity-50"
+            className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
           >
-            <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Settings'}
+            <Save className="w-3.5 h-3.5" /> {saving ? 'Saving...' : 'Save settings'}
           </button>
         </div>
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex items-center gap-1 p-1.5 rounded-2xl bg-neutral-900/80 border border-neutral-800 overflow-x-auto custom-scrollbar">
+      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-neutral-900 border border-neutral-800 overflow-x-auto text-xs custom-scrollbar">
         {tabs.map(t => {
           const Icon = t.icon;
           const active = activeTab === t.id;
@@ -197,10 +190,10 @@ const AdminSettingsView = () => {
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 whitespace-nowrap cursor-pointer ${
                 active
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -210,200 +203,194 @@ const AdminSettingsView = () => {
         })}
       </div>
 
-      {/* Tab 1: General & Platform Settings */}
+      {/* Tab 1: General */}
       {activeTab === 'general' && (
-        <div className="p-6 rounded-3xl bg-neutral-900/60 border border-neutral-800 space-y-6 shadow-2xl animate-fade-in">
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 space-y-4">
           <div className="border-b border-neutral-800 pb-3">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Globe className="w-4 h-4 text-indigo-400" /> Platform Identity & Brand Configuration
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <Globe className="w-4 h-4 text-neutral-500" /> Platform identity
             </h3>
-            <p className="text-xs text-neutral-400 font-mono mt-0.5">
-              Public branding, application domain URLs & default system localized currency
-            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div>
-              <label className="text-neutral-300 font-bold block mb-1.5">Platform Brand Name</label>
+              <label className="text-neutral-300 font-medium block mb-1.5">Platform name</label>
               <input
                 type="text"
                 value={settings.platform_name || 'Calyxo'}
                 onChange={(e) => setSettings({ ...settings, platform_name: e.target.value })}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="text-neutral-300 font-bold block mb-1.5">Official Support Email</label>
+              <label className="text-neutral-300 font-medium block mb-1.5">Support email</label>
               <input
                 type="email"
                 value={settings.support_email || 'support@calyxo.com'}
                 onChange={(e) => setSettings({ ...settings, support_email: e.target.value })}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="text-neutral-300 font-bold block mb-1.5">Master Web App Domain URL</label>
+              <label className="text-neutral-300 font-medium block mb-1.5">Application URL</label>
               <input
                 type="text"
                 value={settings.app_url || 'https://calyxo.vercel.app'}
                 onChange={(e) => setSettings({ ...settings, app_url: e.target.value })}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="text-neutral-300 font-bold block mb-1.5">Default Currency & Symbol</label>
+              <label className="text-neutral-300 font-medium block mb-1.5">Currency & Symbol</label>
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="text"
                   value={settings.currency || 'INR'}
                   onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
-                  className="bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
-                  placeholder="Code (e.g. INR)"
+                  className="bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
+                  placeholder="Code"
                 />
                 <input
                   type="text"
                   value={settings.currency_symbol || '₹'}
                   onChange={(e) => setSettings({ ...settings, currency_symbol: e.target.value })}
-                  className="bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
-                  placeholder="Symbol (e.g. ₹)"
+                  className="bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
+                  placeholder="Symbol"
                 />
               </div>
             </div>
 
             <div className="md:col-span-2">
-              <label className="text-neutral-300 font-bold block mb-1.5">Platform Tagline & Mission Statement</label>
+              <label className="text-neutral-300 font-medium block mb-1.5">Platform tagline</label>
               <input
                 type="text"
-                value={settings.platform_tagline || 'AI-Powered Elite Fitness & Nutrition Platform'}
+                value={settings.platform_tagline || 'AI-Powered Fitness & Nutrition Platform'}
                 onChange={(e) => setSettings({ ...settings, platform_tagline: e.target.value })}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
               />
             </div>
           </div>
         </div>
       )}
 
-      {/* Tab 2: Feature Flags & Operations */}
+      {/* Tab 2: Feature Flags */}
       {activeTab === 'operations' && (
-        <div className="p-6 rounded-3xl bg-neutral-900/60 border border-neutral-800 space-y-6 shadow-2xl animate-fade-in">
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 space-y-4">
           <div className="border-b border-neutral-800 pb-3">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-indigo-400" /> Operational Feature Flags & System Switches
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <SlidersHorizontal className="w-4 h-4 text-neutral-500" /> Feature flags & system switches
             </h3>
-            <p className="text-xs text-neutral-400 font-mono mt-0.5">
-              Instantly enable or disable core application modules live across all user clients
-            </p>
           </div>
 
           <div className="space-y-3 text-xs">
             {/* Maintenance Mode */}
-            <div className="p-4 rounded-2xl bg-neutral-950/60 border border-neutral-800 space-y-3">
+            <div className="bg-neutral-950/50 rounded-lg border border-neutral-800 p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="font-bold text-white text-sm block">System Maintenance Mode</span>
-                  <span className="text-neutral-400 text-[11px]">Temporarily lock out public user logins during updates</span>
+                  <span className="font-semibold text-white text-sm block">Maintenance mode</span>
+                  <span className="text-neutral-400 text-[11px]">Lock out public logins during updates</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSettings({ ...settings, maintenance_mode: !settings.maintenance_mode })}
-                  className={`w-12 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${
+                  className={`w-11 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${
                     settings.maintenance_mode ? 'bg-red-600' : 'bg-neutral-800'
                   }`}
                 >
                   <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
-                    settings.maintenance_mode ? 'translate-x-6' : 'translate-x-0'
+                    settings.maintenance_mode ? 'translate-x-5' : 'translate-x-0'
                   }`} />
                 </button>
               </div>
 
               {settings.maintenance_mode && (
                 <div className="pt-2">
-                  <label className="text-neutral-400 font-bold block mb-1">Maintenance Banner Announcement Text</label>
+                  <label className="text-neutral-400 font-medium block mb-1">Maintenance message</label>
                   <input
                     type="text"
                     value={settings.maintenance_message || ''}
                     onChange={(e) => setSettings({ ...settings, maintenance_message: e.target.value })}
-                    className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-3 py-2 text-white font-mono"
+                    className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-white"
                   />
                 </div>
               )}
             </div>
 
             {/* Public Signup */}
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-neutral-950/60 border border-neutral-800">
+            <div className="flex items-center justify-between bg-neutral-950/50 rounded-lg border border-neutral-800 p-4">
               <div>
-                <span className="font-bold text-white text-sm block">Allow Public User Registrations</span>
-                <span className="text-neutral-400 text-[11px]">Permit new users to sign up via web and mobile apps</span>
+                <span className="font-semibold text-white text-sm block">Public user registration</span>
+                <span className="text-neutral-400 text-[11px]">Allow new user signups</span>
               </div>
               <button
                 type="button"
                 onClick={() => setSettings({ ...settings, public_signup_enabled: settings.public_signup_enabled !== false })}
-                className={`w-12 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${
-                  settings.public_signup_enabled !== false ? 'bg-emerald-600' : 'bg-neutral-800'
+                className={`w-11 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${
+                  settings.public_signup_enabled !== false ? 'bg-blue-600' : 'bg-neutral-800'
                 }`}
               >
                 <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
-                  settings.public_signup_enabled !== false ? 'translate-x-6' : 'translate-x-0'
+                  settings.public_signup_enabled !== false ? 'translate-x-5' : 'translate-x-0'
                 }`} />
               </button>
             </div>
 
             {/* Gemini AI Assistant */}
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-neutral-950/60 border border-neutral-800">
+            <div className="flex items-center justify-between bg-neutral-950/50 rounded-lg border border-neutral-800 p-4">
               <div>
-                <span className="font-bold text-white text-sm block">Gemini AI Assistant Engine</span>
-                <span className="text-neutral-400 text-[11px]">Enable AI Coach, chat, and automated workout generation</span>
+                <span className="font-semibold text-white text-sm block">AI Assistant engine</span>
+                <span className="text-neutral-400 text-[11px]">Enable AI Coach and chat features</span>
               </div>
               <button
                 type="button"
                 onClick={() => setSettings({ ...settings, ai_feature_enabled: !settings.ai_feature_enabled })}
-                className={`w-12 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${
-                  settings.ai_feature_enabled ? 'bg-indigo-600' : 'bg-neutral-800'
+                className={`w-11 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${
+                  settings.ai_feature_enabled ? 'bg-blue-600' : 'bg-neutral-800'
                 }`}
               >
                 <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
-                  settings.ai_feature_enabled ? 'translate-x-6' : 'translate-x-0'
+                  settings.ai_feature_enabled ? 'translate-x-5' : 'translate-x-0'
                 }`} />
               </button>
             </div>
 
-            {/* AI Camera Vision Scanner */}
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-neutral-950/60 border border-neutral-800">
+            {/* AI Vision Food Scanner */}
+            <div className="flex items-center justify-between bg-neutral-950/50 rounded-lg border border-neutral-800 p-4">
               <div>
-                <span className="font-bold text-white text-sm block">AI Vision Food & Meal Scanner</span>
-                <span className="text-neutral-400 text-[11px]">Allow users to scan food photos for instant macro detection</span>
+                <span className="font-semibold text-white text-sm block">Camera food scanner</span>
+                <span className="text-neutral-400 text-[11px]">Photo meal scanning and detection</span>
               </div>
               <button
                 type="button"
                 onClick={() => setSettings({ ...settings, camera_scan_enabled: !settings.camera_scan_enabled })}
-                className={`w-12 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${
-                  settings.camera_scan_enabled ? 'bg-indigo-600' : 'bg-neutral-800'
+                className={`w-11 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${
+                  settings.camera_scan_enabled ? 'bg-blue-600' : 'bg-neutral-800'
                 }`}
               >
                 <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
-                  settings.camera_scan_enabled ? 'translate-x-6' : 'translate-x-0'
+                  settings.camera_scan_enabled ? 'translate-x-5' : 'translate-x-0'
                 }`} />
               </button>
             </div>
 
-            {/* Personal Trainer Marketplace */}
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-neutral-950/60 border border-neutral-800">
+            {/* Personal Trainer Network */}
+            <div className="flex items-center justify-between bg-neutral-950/50 rounded-lg border border-neutral-800 p-4">
               <div>
-                <span className="font-bold text-white text-sm block">Personal Trainer (PT) Network</span>
-                <span className="text-neutral-400 text-[11px]">Enable trainer connection workflows and coach assignments</span>
+                <span className="font-semibold text-white text-sm block">Trainer network</span>
+                <span className="text-neutral-400 text-[11px]">Trainer assignment and client connections</span>
               </div>
               <button
                 type="button"
                 onClick={() => setSettings({ ...settings, pt_connection_enabled: !settings.pt_connection_enabled })}
-                className={`w-12 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${
-                  settings.pt_connection_enabled ? 'bg-indigo-600' : 'bg-neutral-800'
+                className={`w-11 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${
+                  settings.pt_connection_enabled ? 'bg-blue-600' : 'bg-neutral-800'
                 }`}
               >
                 <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
-                  settings.pt_connection_enabled ? 'translate-x-6' : 'translate-x-0'
+                  settings.pt_connection_enabled ? 'translate-x-5' : 'translate-x-0'
                 }`} />
               </button>
             </div>
@@ -411,54 +398,51 @@ const AdminSettingsView = () => {
         </div>
       )}
 
-      {/* Tab 3: Billing & Gateway Configuration */}
+      {/* Tab 3: Billing & Gateway */}
       {activeTab === 'billing' && (
-        <div className="p-6 rounded-3xl bg-neutral-900/60 border border-neutral-800 space-y-6 shadow-2xl animate-fade-in">
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 space-y-4">
           <div className="border-b border-neutral-800 pb-3">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-emerald-400" /> Subscription Pricing & Razorpay Gateway
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-neutral-500" /> Subscription pricing — High plan (₹ INR)
             </h3>
-            <p className="text-xs text-neutral-400 font-mono mt-0.5">
-              Set High Plan pricing in ₹ INR and configure Razorpay live gateway keys
-            </p>
           </div>
 
           <div className="space-y-4 text-xs">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-neutral-300 font-bold block mb-1.5">High Plan Monthly Price (₹ INR)</label>
+                <label className="text-neutral-300 font-medium block mb-1.5">Monthly price (₹ INR)</label>
                 <input
                   type="text"
-                  value={settings.high_price_monthly_inr || '999'}
-                  onChange={(e) => setSettings({ ...settings, high_price_monthly_inr: e.target.value })}
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
+                  value={settings.high_price_monthly_inr || settings.high_price_monthly || '2'}
+                  onChange={(e) => setSettings({ ...settings, high_price_monthly_inr: e.target.value, high_price_monthly: e.target.value })}
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-neutral-300 font-bold block mb-1.5">High Plan Annual Price (₹ INR)</label>
+                <label className="text-neutral-300 font-medium block mb-1.5">Annual price (₹ INR)</label>
                 <input
                   type="text"
-                  value={settings.high_price_annual_inr || '7999'}
+                  value={settings.high_price_annual_inr || '2'}
                   onChange={(e) => setSettings({ ...settings, high_price_annual_inr: e.target.value })}
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
                 />
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-neutral-950/60 border border-neutral-800 space-y-4">
-              <h4 className="font-bold text-amber-400 flex items-center gap-2">
-                <Shield className="w-4 h-4" /> Razorpay Live Gateway Credentials
+            <div className="bg-neutral-950/50 rounded-lg border border-neutral-800 p-4 space-y-3">
+              <h4 className="font-semibold text-white flex items-center gap-2">
+                <Shield className="w-4 h-4 text-neutral-500" /> Razorpay gateway credentials
               </h4>
 
               <div>
-                <label className="text-neutral-400 font-bold block mb-1">Razorpay Key ID</label>
+                <label className="text-neutral-400 font-medium block mb-1">Razorpay Key ID</label>
                 <div className="relative">
                   <input
                     type={showSecrets['razorpay_key_id'] ? 'text' : 'password'}
                     value={settings.razorpay_key_id || 'rzp_live_CalyxoGateway2026'}
                     onChange={(e) => setSettings({ ...settings, razorpay_key_id: e.target.value })}
-                    className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-3.5 py-2 text-white font-mono pr-10"
+                    className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-white pr-10 focus:border-blue-500 focus:outline-none"
                   />
                   <button
                     type="button"
@@ -471,13 +455,13 @@ const AdminSettingsView = () => {
               </div>
 
               <div>
-                <label className="text-neutral-400 font-bold block mb-1">Razorpay Webhook Secret Key</label>
+                <label className="text-neutral-400 font-medium block mb-1">Razorpay Webhook Secret</label>
                 <div className="relative">
                   <input
                     type={showSecrets['razorpay_webhook_secret'] ? 'text' : 'password'}
                     value={settings.razorpay_webhook_secret || 'whsec_calyxo_secure_2026'}
                     onChange={(e) => setSettings({ ...settings, razorpay_webhook_secret: e.target.value })}
-                    className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-3.5 py-2 text-white font-mono pr-10"
+                    className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-white pr-10 focus:border-blue-500 focus:outline-none"
                   />
                   <button
                     type="button"
@@ -493,9 +477,9 @@ const AdminSettingsView = () => {
                 <button
                   type="button"
                   onClick={handleTestRazorpayGateway}
-                  className="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md"
+                  className="px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white font-medium text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
                 >
-                  <Zap className="w-4 h-4 text-amber-400" /> Test Gateway Connection
+                  <Zap className="w-3.5 h-3.5 text-neutral-400" /> Test connection
                 </button>
               </div>
             </div>
@@ -503,54 +487,51 @@ const AdminSettingsView = () => {
         </div>
       )}
 
-      {/* Tab 4: AI Engine & Prompts */}
+      {/* Tab 4: AI Engine */}
       {activeTab === 'ai' && (
-        <div className="p-6 rounded-3xl bg-neutral-900/60 border border-neutral-800 space-y-6 shadow-2xl animate-fade-in">
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 space-y-4">
           <div className="border-b border-neutral-800 pb-3 flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Cpu className="w-4 h-4 text-purple-400" /> Google Gemini AI Engine & Global Persona
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-neutral-500" /> AI engine configuration
               </h3>
-              <p className="text-xs text-neutral-400 font-mono mt-0.5">
-                Select model architecture, token constraints, and system persona prompts
-              </p>
             </div>
             <button
               type="button"
               onClick={handleTestAIPing}
-              className="px-3.5 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white font-medium text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
             >
-              <Zap className="w-4 h-4 text-purple-400" /> Test AI Model Ping
+              <Zap className="w-3.5 h-3.5 text-neutral-400" /> Test AI ping
             </button>
           </div>
 
           <div className="space-y-4 text-xs">
             <div>
-              <label className="text-neutral-300 font-bold uppercase tracking-wider block mb-1.5">Active Gemini Engine Model</label>
+              <label className="text-neutral-300 font-medium block mb-1.5">Active Gemini model</label>
               <select
                 value={settings.active_ai_model || 'gemini-2.0-flash'}
                 onChange={(e) => setSettings({ ...settings, active_ai_model: e.target.value })}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-purple-500"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
               >
-                <option value="gemini-2.0-flash">Gemini 2.0 Flash — Fastest & Lowest Latency (Recommended)</option>
-                <option value="gemini-1.5-flash">Gemini 1.5 Flash — Balanced Speed & Quality</option>
-                <option value="gemini-1.5-pro">Gemini 1.5 Pro — Deep Analysis & Long Context</option>
+                <option value="gemini-2.0-flash">Gemini 2.0 Flash — Fast & efficient</option>
+                <option value="gemini-1.5-flash">Gemini 1.5 Flash — Balanced speed & quality</option>
+                <option value="gemini-1.5-pro">Gemini 1.5 Pro — Deep analysis</option>
               </select>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-neutral-300 font-bold block mb-1.5">Max Tokens per Response</label>
+                <label className="text-neutral-300 font-medium block mb-1.5">Max tokens per response</label>
                 <input
                   type="text"
                   value={settings.ai_max_tokens || '2048'}
                   onChange={(e) => setSettings({ ...settings, ai_max_tokens: e.target.value })}
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-purple-500"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-neutral-300 font-bold block mb-1.5">Temperature / Randomness ({settings.ai_temperature || '0.7'})</label>
+                <label className="text-neutral-300 font-medium block mb-1.5">Temperature ({settings.ai_temperature || '0.7'})</label>
                 <input
                   type="range"
                   min="0.1"
@@ -558,72 +539,68 @@ const AdminSettingsView = () => {
                   step="0.05"
                   value={settings.ai_temperature || '0.7'}
                   onChange={(e) => setSettings({ ...settings, ai_temperature: e.target.value })}
-                  className="w-full accent-purple-500 cursor-pointer mt-2"
+                  className="w-full accent-blue-500 cursor-pointer mt-2"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-neutral-300 font-bold uppercase tracking-wider block mb-1.5">Global System Persona Instruction</label>
+              <label className="text-neutral-300 font-medium block mb-1.5">Global system persona</label>
               <textarea
                 rows="4"
                 value={settings.ai_system_prompt || 'You are Calyxo AI Coach, an elite, motivational, evidence-based fitness and nutrition assistant.'}
                 onChange={(e) => setSettings({ ...settings, ai_system_prompt: e.target.value })}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-white font-mono focus:outline-none focus:border-purple-500 leading-relaxed"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none leading-relaxed"
               />
             </div>
           </div>
         </div>
       )}
 
-      {/* Tab 5: Security & Access Controls */}
+      {/* Tab 5: Security */}
       {activeTab === 'security' && (
-        <div className="p-6 rounded-3xl bg-neutral-900/60 border border-neutral-800 space-y-6 shadow-2xl animate-fade-in">
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 space-y-4">
           <div className="border-b border-neutral-800 pb-3">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Lock className="w-4 h-4 text-red-400" /> Super Admin Security & Credentials
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <Lock className="w-4 h-4 text-neutral-500" /> Admin security & credentials
             </h3>
-            <p className="text-xs text-neutral-400 font-mono mt-0.5">
-              Update Master Password, session timeouts, and IP whitelisting rules
-            </p>
           </div>
 
-          <div className="space-y-6 text-xs">
-            {/* Update Master Password Form */}
-            <form onSubmit={handlePasswordChange} className="p-4 rounded-2xl bg-neutral-950/60 border border-neutral-800 space-y-4">
-              <h4 className="font-bold text-white flex items-center gap-2">
-                <Key className="w-4 h-4 text-indigo-400" /> Change Super Admin Master Password
+          <div className="space-y-4 text-xs">
+            <form onSubmit={handlePasswordChange} className="bg-neutral-950/50 rounded-lg border border-neutral-800 p-4 space-y-3">
+              <h4 className="font-semibold text-white flex items-center gap-2">
+                <Key className="w-4 h-4 text-neutral-500" /> Change master password
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="text-neutral-400 block mb-1">Current Password</label>
+                  <label className="text-neutral-400 block mb-1">Current password</label>
                   <input
                     type="password"
                     required
                     value={currentPass}
                     onChange={(e) => setCurrentPass(e.target.value)}
-                    className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-3 py-2 text-white font-mono"
+                    className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-neutral-400 block mb-1">New Master Password</label>
+                  <label className="text-neutral-400 block mb-1">New password</label>
                   <input
                     type="password"
                     required
                     value={newPass}
                     onChange={(e) => setNewPass(e.target.value)}
-                    className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-3 py-2 text-white font-mono"
+                    className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-neutral-400 block mb-1">Confirm New Password</label>
+                  <label className="text-neutral-400 block mb-1">Confirm new password</label>
                   <input
                     type="password"
                     required
                     value={confirmPass}
                     onChange={(e) => setConfirmPass(e.target.value)}
-                    className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-3 py-2 text-white font-mono"
+                    className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -631,37 +608,36 @@ const AdminSettingsView = () => {
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs cursor-pointer shadow-md"
+                  className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs cursor-pointer transition-colors"
                 >
-                  Update Master Password
+                  Update password
                 </button>
               </div>
             </form>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-neutral-300 font-bold block mb-1.5">Admin Session Inactivity Timeout</label>
+                <label className="text-neutral-300 font-medium block mb-1.5">Session inactivity timeout</label>
                 <select
                   value={settings.session_timeout_minutes || '60'}
                   onChange={(e) => setSettings({ ...settings, session_timeout_minutes: e.target.value })}
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
                 >
-                  <option value="15">15 Minutes</option>
-                  <option value="30">30 Minutes</option>
-                  <option value="60">60 Minutes (Default)</option>
-                  <option value="720">12 Hours</option>
-                  <option value="1440">24 Hours</option>
+                  <option value="15">15 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="60">60 minutes</option>
+                  <option value="720">12 hours</option>
                 </select>
               </div>
 
               <div>
-                <label className="text-neutral-300 font-bold block mb-1.5">IP Whitelist CIDR Restrictions (Optional)</label>
+                <label className="text-neutral-300 font-medium block mb-1.5">IP whitelist CIDR (Optional)</label>
                 <input
                   type="text"
-                  placeholder="e.g. 192.168.1.1/32, 10.0.0.0/24"
+                  placeholder="e.g. 192.168.1.1/32"
                   value={settings.admin_ip_whitelist || ''}
                   onChange={(e) => setSettings({ ...settings, admin_ip_whitelist: e.target.value })}
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
                 />
               </div>
             </div>
@@ -669,36 +645,33 @@ const AdminSettingsView = () => {
         </div>
       )}
 
-      {/* Tab 6: Web Push & VAPID Keys */}
+      {/* Tab 6: Web Push */}
       {activeTab === 'push' && (
-        <div className="p-6 rounded-3xl bg-neutral-900/60 border border-neutral-800 space-y-6 shadow-2xl animate-fade-in">
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 space-y-4">
           <div className="border-b border-neutral-800 pb-3">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Bell className="w-4 h-4 text-indigo-400" /> Web Push Notification Protocol & VAPID Keys
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <Bell className="w-4 h-4 text-neutral-500" /> Web push & VAPID keys
             </h3>
-            <p className="text-xs text-neutral-400 font-mono mt-0.5">
-              W3C WebPush credentials for desktop & mobile browser push notifications
-            </p>
           </div>
 
           <div className="space-y-4 text-xs">
             <div>
-              <label className="text-neutral-300 font-bold block mb-1.5">VAPID Public Key</label>
+              <label className="text-neutral-300 font-medium block mb-1.5">VAPID public key</label>
               <textarea
                 rows="2"
                 value={settings.vapid_public_key || 'BEl62iUYgUivxIkv69yViEuiC2PEc03v2_...'}
                 onChange={(e) => setSettings({ ...settings, vapid_public_key: e.target.value })}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-white font-mono focus:outline-none focus:border-indigo-500 break-all"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none break-all font-mono"
               />
             </div>
 
             <div>
-              <label className="text-neutral-300 font-bold block mb-1.5">Push Provider Service</label>
+              <label className="text-neutral-300 font-medium block mb-1.5">Push provider service</label>
               <input
                 type="text"
                 value={settings.push_provider || 'WebPush Native VAPID'}
                 onChange={(e) => setSettings({ ...settings, push_provider: e.target.value })}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
               />
             </div>
           </div>
@@ -706,31 +679,29 @@ const AdminSettingsView = () => {
       )}
 
       {/* Footer Quick Actions */}
-      <div className="p-5 rounded-3xl bg-neutral-900/60 border border-neutral-800/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="p-4 rounded-xl bg-neutral-900 border border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-4">
         <button
           type="button"
           onClick={() => setRestoreConfirmOpen(true)}
-          className="text-xs text-neutral-400 hover:text-red-400 font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
+          className="text-xs text-neutral-400 hover:text-red-400 flex items-center gap-1.5 transition-colors cursor-pointer"
         >
-          <AlertTriangle className="w-3.5 h-3.5" /> Restore Factory Default Settings
+          <AlertTriangle className="w-3.5 h-3.5" /> Restore default settings
         </button>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-xl shadow-indigo-600/30 cursor-pointer disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" /> {saving ? 'Saving Settings...' : 'Save All Settings'}
-          </button>
-        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+        >
+          <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save system settings'}
+        </button>
       </div>
 
       <ConfirmDialog
         isOpen={restoreConfirmOpen}
-        title="Restore Factory Default Settings"
-        description="Are you sure you want to reset all system settings and feature flags back to factory defaults?"
-        confirmLabel="Reset to Defaults"
+        title="Restore default settings"
+        description="Are you sure you want to reset all system settings back to factory defaults?"
+        confirmLabel="Reset to defaults"
         variant="danger"
         onConfirm={handleRestoreDefaults}
         onCancel={() => setRestoreConfirmOpen(false)}

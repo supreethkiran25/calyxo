@@ -17,14 +17,14 @@ export const DEFAULT_ADMIN_CREDENTIALS = {
 export const CALYXO_PRIMARY_PLAN = {
   name: 'High Plan',
   code: 'HIGH',
-  price: 999,
+  price: 2,
   currency: 'INR',
   symbol: '₹'
 };
 
 export const PLAN_PRICES_INR = {
   FREE: 0,
-  HIGH: 999
+  HIGH: 2
 };
 
 /**
@@ -1344,7 +1344,9 @@ export const getAdminTrainingLogs = async () => {
    ========================================================================== */
 export const DEFAULT_SETTINGS = {
   maintenance_mode: false,
-  high_price_monthly: '999',
+  high_price_monthly: '2',
+  high_price_monthly_inr: '2',
+  high_price_annual_inr: '2',
   currency: 'INR',
   currency_symbol: '₹',
   ai_feature_enabled: true,

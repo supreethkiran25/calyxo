@@ -66,7 +66,7 @@ export default async function handler(req, res) {
             granted_by: 'Razorpay Webhook',
             payment_source: 'Razorpay',
             payment_id: paymentId || `pay_wh_${Date.now()}`,
-            amount: (payload.amount ? payload.amount / 100 : 999),
+            amount: (payload.amount ? payload.amount / 100 : 2),
             currency: 'INR',
             updated_at: now.toISOString()
           }, { onConflict: 'user_id' });
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
               event: eventType,
               payment_id: paymentId,
               email: userEmail,
-              amount: payload.amount ? payload.amount / 100 : 999
+              amount: payload.amount ? payload.amount / 100 : 2
             })
           });
         }

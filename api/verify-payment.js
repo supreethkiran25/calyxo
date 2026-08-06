@@ -71,7 +71,7 @@ export default async function handler(req, res) {
           granted_by: 'Razorpay Gateway',
           payment_source: 'Razorpay',
           payment_id: razorpay_payment_id,
-          amount: 999,
+          amount: 2,
           currency: 'INR',
           updated_at: now.toISOString()
         }, { onConflict: 'user_id' });
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
             payment_id: razorpay_payment_id,
             order_id: razorpay_order_id,
             plan: 'HIGH',
-            amount: 999,
+            amount: 2,
             expiry_date: expiryDate.toISOString()
           })
         });

@@ -38,7 +38,7 @@ export default function AIChatModal() {
             ) : (
               <PremiumGate 
                 title="AI Coach Chat Locked"
-                description="AI Coach chat requires an active AI Premium subscription (₹1/month). Subscribe now to unlock full AI Coach features."
+                description="AI Coach chat requires an active AI Premium subscription (₹2/month). Subscribe now to unlock full AI Coach features."
                 requiredTier="MEDIUM"
               />
             )}

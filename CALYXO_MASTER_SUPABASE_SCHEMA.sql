@@ -367,7 +367,7 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
   granted_by text,
   payment_source text DEFAULT 'Razorpay',
   payment_id text,
-  amount numeric DEFAULT 999,
+  amount numeric DEFAULT 2,
   currency text DEFAULT 'INR',
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL

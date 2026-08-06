@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, Sparkles, Cpu, Clock, DollarSign, CheckCircle, AlertTriangle, ThumbsUp, ThumbsDown, MessageSquare, Database, RefreshCw } from 'lucide-react';
+import { Bot, Cpu, ThumbsUp, ThumbsDown, MessageSquare, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminSettings, saveAdminSettings, getAdminTrainingLogs } from '../../services/adminService';
 import { supabase } from '../../lib/supabaseClient';
@@ -37,7 +37,6 @@ const AdminAIView = () => {
   useEffect(() => {
     loadAiData();
 
-    // Split realtime channels for logs and sessions
     const channelLogs = supabase
       .channel('admin_ai_logs_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'TrainingLogs' }, () => loadAiData())
@@ -61,7 +60,7 @@ const AdminAIView = () => {
         active_ai_model: model,
         ai_system_prompt: systemPrompt
       });
-      toast.success('AI Configuration & System Prompt successfully saved live!');
+      toast.success('AI configuration saved successfully.');
     } catch (err) {
       toast.error('Failed to save AI configuration: ' + err.message);
     } finally {
@@ -77,78 +76,98 @@ const AdminAIView = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Bot className="w-6 h-6 text-purple-400" /> AI System, Models & Self-Training Hub
+          <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">
+            <Bot className="w-5 h-5 text-violet-400" /> AI Hub
           </h1>
-          <p className="text-xs text-neutral-400 font-mono mt-0.5">
-            Configure Gemini AI engine, monitor live token volume, system prompt & user feedback ratings
+          <p className="text-xs text-neutral-400 mt-0.5">
+            Model configuration, prompt settings, and training feedback
           </p>
         </div>
         <button
           onClick={loadAiData}
-          className="px-3.5 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+          className="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
         >
-          <RefreshCw className={`w-4 h-4 text-purple-400 ${loading ? 'animate-spin' : ''}`} /> Refresh Telemetry
+          <RefreshCw className={`w-3.5 h-3.5 text-neutral-500 ${loading ? 'animate-spin' : ''}`} /> Refresh
         </button>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800">
-          <span className="text-xs text-neutral-400 font-medium block">Total User Chat Sessions</span>
-          <span className="text-2xl font-bold text-purple-400 block mt-1">{chatSessionCount.toLocaleString()}</span>
-          <span className="text-[10px] text-neutral-500 font-mono mt-1 block">Live Supabase Storage</span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
+              Chat sessions
+            </span>
+            <MessageSquare className="w-4 h-4 text-neutral-600" />
+          </div>
+          <div className="text-2xl font-semibold text-violet-400">{chatSessionCount.toLocaleString()}</div>
+          <div className="text-[11px] text-neutral-500">Total logged sessions</div>
         </div>
-        <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800">
-          <span className="text-xs text-neutral-400 font-medium block">AI Training Ratings Logged</span>
-          <span className="text-2xl font-bold text-emerald-400 block mt-1">{trainingLogs.length}</span>
-          <span className="text-[10px] text-neutral-500 font-mono mt-1 block">{ratingRate}% Positive Feedback Rate</span>
+
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
+              Feedback logs
+            </span>
+            <ThumbsUp className="w-4 h-4 text-neutral-600" />
+          </div>
+          <div className="text-2xl font-semibold text-violet-400">{trainingLogs.length}</div>
+          <div className="text-[11px] text-neutral-500">{ratingRate}% positive rate</div>
         </div>
-        <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800">
-          <span className="text-xs text-neutral-400 font-medium block">Active Engine Model</span>
-          <span className="text-sm font-bold text-indigo-400 block mt-1 font-mono truncate">{model}</span>
-          <span className="text-[10px] text-neutral-500 font-mono mt-1 block">Google Gemini API</span>
+
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
+              Active engine model
+            </span>
+            <Cpu className="w-4 h-4 text-neutral-600" />
+          </div>
+          <div className="text-sm font-medium text-white truncate mt-1">{model}</div>
+          <div className="text-[11px] text-neutral-500">Google Gemini API</div>
         </div>
-        <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800">
-          <span className="text-xs text-neutral-400 font-medium block">Average Response Latency</span>
-          <span className="text-sm font-bold text-amber-400 block mt-1 font-mono">Latency tracking coming soon</span>
-          <span className="text-[10px] text-neutral-500 font-mono mt-1 block">Real-time Telemetry</span>
+
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
+              Response latency
+            </span>
+            <Bot className="w-4 h-4 text-neutral-600" />
+          </div>
+          <div className="text-sm font-medium text-neutral-500 mt-1">Latency tracking coming soon</div>
+          <div className="text-[11px] text-neutral-500">Telemetry engine</div>
         </div>
       </div>
 
       {/* Model Settings & System Prompt */}
-      <div className="p-6 rounded-3xl bg-neutral-900/60 border border-neutral-800 space-y-5 shadow-2xl">
+      <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 space-y-4">
         <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Cpu className="w-4 h-4 text-purple-400" /> Active AI Model & Global Persona Configuration
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <Cpu className="w-4 h-4 text-neutral-500" /> Model & persona configuration
           </h3>
-          <span className="text-xs text-purple-400 font-mono bg-purple-500/10 px-2.5 py-1 rounded border border-purple-500/20">
-            Live Settings Engine
-          </span>
         </div>
 
         <div className="space-y-4 text-xs">
           <div>
-            <label className="text-neutral-300 font-bold uppercase tracking-wider block mb-1.5">Default AI Engine Model</label>
+            <label className="text-neutral-300 font-medium block mb-1.5">Default AI engine model</label>
             <select
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-purple-500"
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
             >
-              <option value="gemini-2.0-flash">Gemini 2.0 Flash — Fastest & Lowest Latency</option>
-              <option value="gemini-1.5-flash">Gemini 1.5 Flash — Balanced Speed & Quality</option>
-              <option value="gemini-1.5-pro">Gemini 1.5 Pro — Deep Analysis & Long Context</option>
+              <option value="gemini-2.0-flash">Gemini 2.0 Flash — Fast & efficient</option>
+              <option value="gemini-1.5-flash">Gemini 1.5 Flash — Balanced speed & quality</option>
+              <option value="gemini-1.5-pro">Gemini 1.5 Pro — Deep analysis</option>
             </select>
           </div>
 
           <div>
-            <label className="text-neutral-300 font-bold uppercase tracking-wider block mb-1.5">Global System Prompt Instruction</label>
+            <label className="text-neutral-300 font-medium block mb-1.5">Global system prompt</label>
             <textarea
               rows="4"
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
               placeholder="System prompt instruction sent to Gemini API..."
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-white font-mono focus:outline-none focus:border-purple-500 leading-relaxed"
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none leading-relaxed"
             />
           </div>
 
@@ -156,57 +175,56 @@ const AdminAIView = () => {
             <button
               disabled={saving}
               onClick={handleSaveConfig}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-purple-500/20 cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50"
             >
-              {saving ? 'Saving Settings...' : 'Save AI Configuration'}
+              {saving ? 'Saving...' : 'Save configuration'}
             </button>
           </div>
         </div>
       </div>
 
-      {/* AI Self-Training & Feedback Logs Table */}
-      <div className="rounded-3xl bg-neutral-900/60 border border-neutral-800/80 overflow-hidden shadow-2xl">
+      {/* Training Logs Table */}
+      <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
         <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-purple-400" /> AI Coach Self-Training Logs ({trainingLogs.length})
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-neutral-500" /> Training logs ({trainingLogs.length})
           </h3>
-          <span className="text-xs text-neutral-400 font-mono">User Ratings & Query Telemetry</span>
         </div>
 
         <div className="overflow-x-auto">
           {trainingLogs.length === 0 ? (
-            <div className="p-8 text-center text-xs text-neutral-400 font-mono">
-              No training feedback logs recorded yet. User 👍 / 👎 ratings will appear here in real time.
+            <div className="p-8 text-center text-xs text-neutral-600">
+              No training feedback logs recorded yet
             </div>
           ) : (
             <table className="w-full text-left text-xs">
-              <thead className="bg-neutral-950/80 border-b border-neutral-800 text-neutral-400 font-mono uppercase text-[11px]">
+              <thead className="bg-neutral-950 border-b border-neutral-800 text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
                 <tr>
-                  <th className="p-4 font-bold">User Query</th>
-                  <th className="p-4 font-bold">AI Coach Response</th>
-                  <th className="p-4 font-bold">Feedback Rating</th>
-                  <th className="p-4 font-bold">User ID</th>
-                  <th className="p-4 font-bold text-right">Timestamp</th>
+                  <th className="p-4">User query</th>
+                  <th className="p-4">AI response</th>
+                  <th className="p-4">Rating</th>
+                  <th className="p-4">User ID</th>
+                  <th className="p-4 text-right">Timestamp</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-800/60 font-mono">
+              <tbody className="divide-y divide-neutral-800">
                 {trainingLogs.map((log, idx) => (
-                  <tr key={log.id || idx} className="hover:bg-neutral-800/40 transition-colors">
-                    <td className="p-4 font-sans max-w-xs truncate text-white font-medium">{log.user_query}</td>
-                    <td className="p-4 font-sans max-w-md truncate text-neutral-300">{log.bot_response}</td>
+                  <tr key={log.id || idx} className="hover:bg-neutral-800/50 transition-colors">
+                    <td className="p-4 max-w-xs truncate text-white font-medium">{log.user_query}</td>
+                    <td className="p-4 max-w-md truncate text-neutral-300">{log.bot_response}</td>
                     <td className="p-4">
                       {log.rating === 1 ? (
-                        <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1 w-max">
-                          <ThumbsUp className="w-3 h-3" /> Helpful (1)
+                        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-medium px-2 py-0.5 rounded inline-flex items-center gap-1">
+                          <ThumbsUp className="w-3 h-3" /> Helpful
                         </span>
                       ) : (
-                        <span className="px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-bold flex items-center gap-1 w-max">
-                          <ThumbsDown className="w-3 h-3" /> Needs Improvement (0)
+                        <span className="bg-red-500/10 text-red-400 border border-red-500/20 text-[11px] font-medium px-2 py-0.5 rounded inline-flex items-center gap-1">
+                          <ThumbsDown className="w-3 h-3" /> Needs improvement
                         </span>
                       )}
                     </td>
-                    <td className="p-4 text-neutral-400 max-w-[120px] truncate">{log.userId || log.user_id || 'Anonymous'}</td>
-                    <td className="p-4 text-right text-neutral-500">
+                    <td className="p-4 font-mono text-[11px] text-neutral-400 max-w-[120px] truncate">{log.userId || log.user_id || 'Anonymous'}</td>
+                    <td className="p-4 text-right font-mono text-[11px] text-neutral-500">
                       {log.timestamp || log.created_at ? new Date(log.timestamp || log.created_at).toLocaleString() : 'N/A'}
                     </td>
                   </tr>
