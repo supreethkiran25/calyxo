@@ -13,10 +13,22 @@ import { HealthSyncEngine } from '../../services/health/HealthSyncEngine';
 import { AIHealthInsightService } from '../../services/health/AIHealthInsightService';
 import { HealthGoalManager } from '../../services/health/HealthGoalManager';
 import HealthConnectionsModal from './HealthConnectionsModal';
-
 import { PWAPedometerService } from '../../services/health/PWAPedometerService';
+import PremiumGate from '../PremiumGate';
+import { useStore } from '../../store/useStore';
 
 export default function HealthHubPage({ onNotification }) {
+  const user = useStore(state => state.user);
+  const userProfile = useStore(state => state.userProfile);
+  const plan = userProfile?.subscriptionPlan;
+  const email = (user?.email || userProfile?.email || "").toLowerCase().trim();
+
+  const isSubscribed = Boolean(
+    userProfile?.isSubscribed || 
+    (plan && plan !== 'FREE' && plan !== 'DEFAULT') ||
+    email === 'supreethkiran25@gmail.com'
+  );
+
   const [isConnected, setIsConnected] = useState(HealthPermissionManager.isConnected());
   const [showOnboarding, setShowOnboarding] = useState(!HealthPermissionManager.isConnected());
   const [metrics, setMetrics] = useState(null);
@@ -29,6 +41,16 @@ export default function HealthHubPage({ onNotification }) {
 
   const platform = HealthPermissionManager.getPlatform();
   const platformLabel = platform === 'ios_apple_health' ? 'Apple Health' : platform === 'android_health_connect' ? 'Android Health Connect' : 'Health Platform';
+
+  if (!isSubscribed) {
+    return (
+      <PremiumGate 
+        title="Universal Health Hub Locked"
+        description="Real-time Apple Health (HealthKit) and Android Health Connect integration, multi-timeframe historical analytics, AI health insights, and automated workout sync are reserved for Calyxo Premium members."
+        requiredTier="HIGH"
+      />
+    );
+  }
 
   // Initial Load & Subscription to Sync Engine + PWA Pedometer
   useEffect(() => {
