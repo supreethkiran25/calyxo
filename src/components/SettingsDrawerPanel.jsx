@@ -850,7 +850,7 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
                     )}
 
                     <div>
-                      <h4 className="text-xs font-black uppercase text-[var(--foreground)]">{plan.name}</h4>
+                      <h4 className="text-xs font-black uppercase text-[var(--foreground)] pr-16 leading-tight">{plan.name}</h4>
                       <div className="flex items-baseline gap-1 my-1">
                         <span className="text-xl font-black text-[var(--foreground)]">{plan.price}</span>
                         <span className="text-[10px] text-[var(--muted-foreground)]">{plan.period}</span>

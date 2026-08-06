@@ -1563,7 +1563,7 @@ export default function UserProfile({ onNotification }) {
                 )}
                 
                 <div>
-                  <h4 className="text-sm font-black tracking-tight text-foreground uppercase mb-1">{plan.name}</h4>
+                  <h4 className="text-sm font-black tracking-tight text-foreground uppercase mb-1 pr-20 leading-tight">{plan.name}</h4>
                   <div className="flex items-baseline gap-1 my-2">
                     <span className="text-2xl font-black text-foreground">{plan.price}</span>
                     <span className="text-[10px] text-muted">{plan.period}</span>
