@@ -638,78 +638,120 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
   const expiryDate = new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
   const statusStr = isRevoke ? 'Revoked' : 'Active';
 
-  if (!isMockMode && userId) {
-    // 1. First, ensure parent user_profiles record exists to satisfy foreign key constraint subscriptions_user_id_fkey
-    try {
-      const { data: profileCheck } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('id', userId)
-        .maybeSingle();
+  const isValidUuid = (id) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-      if (!profileCheck) {
+  // Resolve target UUID if userId is an email or non-standard string
+  let targetUuid = userId;
+  let targetEmail = typeof userId === 'string' && userId.includes('@') ? userId.toLowerCase().trim() : null;
+
+  const masterMatch = MASTER_SUPABASE_AUTH_ACCOUNTS.find(m => 
+    m.id === userId || (targetEmail && m.email.toLowerCase() === targetEmail)
+  );
+
+  if (masterMatch) {
+    if (isValidUuid(masterMatch.id)) targetUuid = masterMatch.id;
+    if (!targetEmail) targetEmail = masterMatch.email.toLowerCase();
+    masterMatch.subscription_plan = plan;
+    masterMatch.subscription_expiry = isRevoke ? 'N/A' : expiryDate.toISOString().substring(0, 10);
+    masterMatch.days_remaining = isRevoke ? '0' : String(daysToAdd);
+  }
+
+  if (!isMockMode && targetUuid) {
+    // 1. Ensure targetUuid is a valid Postgres UUID
+    if (!isValidUuid(targetUuid) && targetEmail) {
+      try {
+        const { data: pData } = await supabase
+          .from('user_profiles')
+          .select('id')
+          .eq('email', targetEmail)
+          .maybeSingle();
+        if (pData?.id && isValidUuid(pData.id)) {
+          targetUuid = pData.id;
+        }
+      } catch (e) {}
+    }
+
+    const finalUuid = isValidUuid(targetUuid) ? targetUuid : null;
+
+    if (finalUuid) {
+      // 2. Ensure parent user_profiles record exists to satisfy foreign key constraint subscriptions_user_id_fkey
+      try {
         await supabase.from('user_profiles').upsert({
-          id: userId,
+          id: finalUuid,
+          ...(targetEmail ? { email: targetEmail } : {}),
           subscription_plan: plan,
           updated_at: now.toISOString()
         }, { onConflict: 'id' });
-      } else {
-        await supabase
-          .from('user_profiles')
-          .update({ subscription_plan: plan, updated_at: now.toISOString() })
-          .eq('id', userId);
+      } catch (pErr) {
+        console.warn('[adminService] user_profiles pre-sync warning:', pErr);
       }
-    } catch (pErr) {
-      console.warn('[adminService] user_profiles pre-sync warning:', pErr);
+
+      // 3. Upsert subscriptions table
+      const subFields = {
+        user_id: finalUuid,
+        plan: plan,
+        status: statusStr,
+        purchase_date: now.toISOString(),
+        expiry_date: expiryDate.toISOString(),
+        granted_by: adminId,
+        payment_source: 'Admin Manual',
+        payment_id: `admin_grant_${Date.now()}`,
+        amount: plan === 'HIGH' ? CALYXO_PRIMARY_PLAN.price : (plan === 'HIGH_ANNUAL' ? 199 : 0),
+        currency: CALYXO_PRIMARY_PLAN.currency,
+        updated_at: now.toISOString()
+      };
+
+      try {
+        const { error: subErr } = await supabase.from('subscriptions').upsert(subFields, { onConflict: 'user_id' });
+        if (subErr) {
+          console.warn('[adminService] Subscriptions table upsert warning:', subErr.message);
+        }
+      } catch (sErr) {
+        console.warn('[adminService] Subscriptions table exception:', sErr);
+      }
+
+      // 4. Best-effort sync users_metrics bio payload
+      try {
+        const { data: metrics } = await supabase.from('users_metrics').select('bio').eq('id', `${finalUuid}_profile`).maybeSingle();
+        let bioObj = {};
+        if (metrics?.bio) {
+          try { bioObj = JSON.parse(metrics.bio); } catch (e) {}
+        }
+        bioObj.subscriptionPlan = plan;
+        bioObj.isSubscribed = !isRevoke;
+        bioObj.subscriptionDate = now.toISOString();
+        bioObj.subscriptionExpiry = expiryDate.toISOString();
+        bioObj.grantedBy = adminId;
+        bioObj.activePass = plan;
+
+        await supabase.from('users_metrics').upsert({
+          id: `${finalUuid}_profile`,
+          userId: finalUuid,
+          bio: JSON.stringify(bioObj),
+          updatedAt: now.toISOString()
+        });
+      } catch (mErr) {
+        console.warn('[adminService] Metrics bio sync (non-fatal):', mErr);
+      }
     }
+  }
 
-    // 2. Upsert subscriptions table
-    const subFields = {
-      user_id: userId,
-      plan: plan,
-      status: statusStr,
-      purchase_date: now.toISOString(),
-      expiry_date: expiryDate.toISOString(),
-      granted_by: adminId,
-      payment_source: 'Admin Manual',
-      payment_id: `admin_grant_${Date.now()}`,
-      amount: plan === 'HIGH' ? CALYXO_PRIMARY_PLAN.price : (plan === 'HIGH_ANNUAL' ? 199 : 0),
-      currency: CALYXO_PRIMARY_PLAN.currency,
-      updated_at: now.toISOString()
-    };
-
+  // 5. Update local user profile state in localStorage if granting to active user
+  if (typeof window !== 'undefined') {
     try {
-      const { error: subErr } = await supabase.from('subscriptions').upsert(subFields, { onConflict: 'user_id' });
-      if (subErr) {
-        console.warn('[adminService] Subscriptions table upsert warning (falling back to user_profiles):', subErr.message);
+      const activeUserStr = localStorage.getItem('calyxo_user_profile');
+      if (activeUserStr) {
+        const activeProfile = JSON.parse(activeUserStr);
+        if (activeProfile.id === userId || activeProfile.email === targetEmail || targetEmail === activeProfile.email?.toLowerCase()) {
+          activeProfile.subscriptionPlan = plan;
+          activeProfile.isSubscribed = !isRevoke;
+          activeProfile.activePass = plan;
+          activeProfile.subscriptionDate = now.toISOString();
+          activeProfile.subscriptionExpiry = expiryDate.toISOString();
+          localStorage.setItem('calyxo_user_profile', JSON.stringify(activeProfile));
+        }
       }
-    } catch (sErr) {
-      console.warn('[adminService] Subscriptions table exception (falling back to user_profiles):', sErr);
-    }
-
-    // 3. Best-effort sync users_metrics bio payload
-    try {
-      const { data: metrics } = await supabase.from('users_metrics').select('bio').eq('id', `${userId}_profile`).maybeSingle();
-      let bioObj = {};
-      if (metrics?.bio) {
-        try { bioObj = JSON.parse(metrics.bio); } catch (e) {}
-      }
-      bioObj.subscriptionPlan = plan;
-      bioObj.isSubscribed = !isRevoke;
-      bioObj.subscriptionDate = now.toISOString();
-      bioObj.subscriptionExpiry = expiryDate.toISOString();
-      bioObj.grantedBy = adminId;
-      bioObj.activePass = plan;
-
-      await supabase.from('users_metrics').upsert({
-        id: `${userId}_profile`,
-        userId: userId,
-        bio: JSON.stringify(bioObj),
-        updatedAt: now.toISOString()
-      });
-    } catch (mErr) {
-      console.warn('[adminService] Metrics bio sync (non-fatal):', mErr);
-    }
+    } catch (e) {}
   }
 
   // 4. Log immutable audit entry
