@@ -1457,8 +1457,10 @@ export default function UserProfile({ onNotification }) {
   const renderSubscriptionForm = () => {
     const currentPlan = userProfile?.subscriptionPlan || 'FREE';
     const sysSettings = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('calyxo_system_settings') || '{}') : {};
-    const monthlyPriceINR = sysSettings.high_price_monthly_inr || sysSettings.high_price_monthly || '2';
-    const annualPriceINR = sysSettings.high_price_annual_inr || sysSettings.high_price_annual || '199';
+    const rawMonthly = sysSettings.high_price_monthly_inr || sysSettings.high_price_monthly;
+    const monthlyPriceINR = (rawMonthly === '20' || !rawMonthly) ? '2' : rawMonthly;
+    const rawAnnual = sysSettings.high_price_annual_inr || sysSettings.high_price_annual;
+    const annualPriceINR = (!rawAnnual || rawAnnual === '2' || rawAnnual === '7999') ? '199' : rawAnnual;
 
     const monthlyCostYr = Number(monthlyPriceINR) * 12;
     const annualCost = Number(annualPriceINR);
@@ -1475,15 +1477,15 @@ export default function UserProfile({ onNotification }) {
         accentColor: 'border-card-border',
         bgGradient: 'bg-surface/40',
         features: [
-          'Unlimited Workout & Food Logging',
-          'Daily Calorie & Water Tracking',
-          'Basic AI Coach Queries',
-          'Community Features'
+          'Basic Calorie & Water Tracking',
+          'Manual Workout & Food Logging',
+          'Standard Community Feed Access',
+          'Basic AI Fitness Queries'
         ]
       },
       {
         id: 'HIGH',
-        name: 'HIGH PLAN (MONTHLY)',
+        name: 'HIGH MONTHLY',
         price: `₹${monthlyPriceINR}`,
         period: 'per month',
         badge: 'MONTHLY',
@@ -1491,28 +1493,29 @@ export default function UserProfile({ onNotification }) {
         bgGradient: 'bg-acid-green/10',
         amountPaise: Number(monthlyPriceINR) * 100,
         features: [
-          'Everything in Free Athlete',
-          'Unlimited Calyxo AI Coach Concierge',
-          'AI Vision Food & Meal Scanner',
-          'Personal Trainer (PT) Connections',
-          'Priority Ultra-Fast AI Processing'
+          'Unlimited 24/7 Calyxo AI Fitness & Diet Coach',
+          'AI Camera Vision Photo Food & Meal Scanner',
+          'Universal HealthHub (Apple & Android Sync)',
+          'AI Health Twin & 3D Predictive Analytics',
+          'Personal Trainer (PT) Direct Connections',
+          'Priority Ultra-Fast AI Engine (Zero Delay)'
         ]
       },
       {
         id: 'HIGH_ANNUAL',
-        name: 'HIGH PLAN (ANNUAL)',
+        name: 'HIGH ANNUAL',
         price: `₹${annualPriceINR}`,
         period: 'per year',
         badge: discountPct > 0 ? `SAVE ${discountPct}%` : 'BEST VALUE',
-        savingsText: savingsAmount > 0 ? `Save ₹${savingsAmount}/yr vs monthly` : 'Full 12 Months Access',
+        savingsText: savingsAmount > 0 ? `Save ₹${savingsAmount}/yr vs monthly` : 'Full 12 Months All-Access',
         accentColor: 'border-indigo-500',
         bgGradient: 'bg-indigo-500/10',
         amountPaise: Number(annualPriceINR) * 100,
         features: [
-          'Everything in High Plan Monthly',
-          'Full 12 Months Access',
-          'Exclusive Member Perks',
-          'Priority Support Channel'
+          'Everything in High Monthly Plan Included',
+          'Full 12 Months Uninterrupted Access',
+          'VIP Early Access to New AI Features',
+          'Priority Direct PT & VIP Support'
         ]
       }
     ];
