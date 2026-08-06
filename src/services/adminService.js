@@ -639,8 +639,33 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
   const statusStr = isRevoke ? 'Revoked' : 'Active';
 
   if (!isMockMode && userId) {
-    // 1. Upsert subscriptions table — this is the source of truth
+    // 1. First, ensure parent user_profiles record exists to satisfy foreign key constraint subscriptions_user_id_fkey
+    try {
+      const { data: profileCheck } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (!profileCheck) {
+        await supabase.from('user_profiles').upsert({
+          id: userId,
+          subscription_plan: plan,
+          updated_at: now.toISOString()
+        }, { onConflict: 'id' });
+      } else {
+        await supabase
+          .from('user_profiles')
+          .update({ subscription_plan: plan, updated_at: now.toISOString() })
+          .eq('id', userId);
+      }
+    } catch (pErr) {
+      console.warn('[adminService] user_profiles pre-sync warning:', pErr);
+    }
+
+    // 2. Upsert subscriptions table
     const subFields = {
+      user_id: userId,
       plan: plan,
       status: statusStr,
       purchase_date: now.toISOString(),
@@ -648,34 +673,18 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
       granted_by: adminId,
       payment_source: 'Admin Manual',
       payment_id: `admin_grant_${Date.now()}`,
-      amount: plan === 'HIGH' ? CALYXO_PRIMARY_PLAN.price : 0,
+      amount: plan === 'HIGH' ? CALYXO_PRIMARY_PLAN.price : (plan === 'HIGH_ANNUAL' ? 199 : 0),
       currency: CALYXO_PRIMARY_PLAN.currency,
       updated_at: now.toISOString()
     };
 
-    const { data: existingSub } = await supabase
-      .from('subscriptions')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (existingSub) {
-      const { error: subErr } = await supabase.from('subscriptions').update(subFields).eq('user_id', userId);
-      if (subErr) throw new Error(`Subscriptions update failed: ${subErr.message}`);
-    } else {
-      const { error: subErr } = await supabase.from('subscriptions').insert({ user_id: userId, ...subFields });
-      if (subErr) throw new Error(`Subscriptions insert failed: ${subErr.message}`);
-    }
-
-    // 2. Partial UPDATE on user_profiles (preserves email and all existing fields)
-    const { error: profileErr } = await supabase
-      .from('user_profiles')
-      .update({ subscription_plan: plan })
-      .eq('id', userId);
-
-    if (profileErr) {
-      console.warn('[adminService] user_profiles subscription_plan update warning:', profileErr.message);
-      // Non-fatal: subscriptions table is the source of truth
+    try {
+      const { error: subErr } = await supabase.from('subscriptions').upsert(subFields, { onConflict: 'user_id' });
+      if (subErr) {
+        console.warn('[adminService] Subscriptions table upsert warning (falling back to user_profiles):', subErr.message);
+      }
+    } catch (sErr) {
+      console.warn('[adminService] Subscriptions table exception (falling back to user_profiles):', sErr);
     }
 
     // 3. Best-effort sync users_metrics bio payload
