@@ -752,6 +752,13 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
         );
 
       case 'subscription':
+        const sysSettings = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('calyxo_system_settings') || '{}') : {};
+        const monthlyPriceINR = Number(sysSettings.high_price_monthly_inr || sysSettings.high_price_monthly || 2);
+        const annualPriceINR = Number(sysSettings.high_price_annual_inr || sysSettings.high_price_annual || 199);
+        const monthlyYrCost = monthlyPriceINR * 12;
+        const savingsAmount = monthlyYrCost - annualPriceINR;
+        const discountPct = (monthlyYrCost > annualPriceINR && annualPriceINR > 0) ? Math.round((savingsAmount / monthlyYrCost) * 100) : 0;
+
         const plans = [
           {
             id: 'FREE',
@@ -769,20 +776,36 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
             ]
           },
           {
-            id: 'MEDIUM',
-            name: 'PREMIUM AI ACCESS',
-            price: '₹2',
+            id: 'HIGH',
+            name: 'HIGH PLAN (MONTHLY)',
+            price: `₹${monthlyPriceINR}`,
             period: 'per month',
-            badge: 'AI PREMIUM ACCESS',
+            badge: 'MONTHLY',
             accentColor: 'border-[var(--color-acid-green)]',
             bgGradient: 'bg-[var(--color-acid-green)]/10',
-            amountPaise: 200,
+            amountPaise: monthlyPriceINR * 100,
             features: [
               'Everything in Free Athlete',
               'Unlimited Calyxo AI Coach Concierge',
-              'Long-Term AI Fitness & Diet Memory',
-              'Custom Macro & Micro Target Engine',
+              'AI Vision Food & Meal Scanner',
+              'Personal Trainer (PT) Connections',
               'Priority Ultra-Fast AI Processing'
+            ]
+          },
+          {
+            id: 'HIGH_ANNUAL',
+            name: 'HIGH PLAN (ANNUAL)',
+            price: `₹${annualPriceINR}`,
+            period: 'per year',
+            badge: discountPct > 0 ? `SAVE ${discountPct}%` : 'BEST VALUE',
+            accentColor: 'border-indigo-500',
+            bgGradient: 'bg-indigo-500/10',
+            amountPaise: annualPriceINR * 100,
+            features: [
+              'Everything in High Plan Monthly',
+              'Full 12 Months Access',
+              'Exclusive Member Perks',
+              'Priority Support Channel'
             ]
           }
         ];

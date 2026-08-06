@@ -423,12 +423,39 @@ const AdminSettingsView = () => {
                 <label className="text-neutral-300 font-medium block mb-1.5">Annual price (₹ INR)</label>
                 <input
                   type="text"
-                  value={settings.high_price_annual_inr || '2'}
+                  value={settings.high_price_annual_inr || '199'}
                   onChange={(e) => setSettings({ ...settings, high_price_annual_inr: e.target.value })}
                   className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
                 />
               </div>
             </div>
+
+            {/* Calculated Discount Preview Pill */}
+            {(() => {
+              const m = Number(settings.high_price_monthly_inr || settings.high_price_monthly || 2);
+              const a = Number(settings.high_price_annual_inr || 199);
+              const yrCost = m * 12;
+              const savings = yrCost - a;
+              const discountPct = (yrCost > a && a > 0) ? Math.round((savings / yrCost) * 100) : 0;
+              return (
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center justify-between">
+                  <div>
+                    <span className="font-semibold block">Calculated Annual Discount</span>
+                    <span className="text-[11px] text-neutral-400 font-mono">
+                      Monthly: ₹{m}/mo (₹{yrCost}/yr) • Annual: ₹{a}/yr
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 font-black text-xs border border-emerald-500/30">
+                      {discountPct > 0 ? `SAVE ${discountPct}%` : 'STANDARD PRICE'}
+                    </span>
+                    {savings > 0 && (
+                      <span className="text-[10px] text-emerald-400 block mt-0.5">Save ₹{savings}/yr</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="bg-neutral-950/50 rounded-lg border border-neutral-800 p-4 space-y-3">
               <h4 className="font-semibold text-white flex items-center gap-2">

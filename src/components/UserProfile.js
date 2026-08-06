@@ -1458,7 +1458,12 @@ export default function UserProfile({ onNotification }) {
     const currentPlan = userProfile?.subscriptionPlan || 'FREE';
     const sysSettings = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('calyxo_system_settings') || '{}') : {};
     const monthlyPriceINR = sysSettings.high_price_monthly_inr || sysSettings.high_price_monthly || '2';
-    const annualPriceINR = sysSettings.high_price_annual_inr || sysSettings.high_price_annual || '2';
+    const annualPriceINR = sysSettings.high_price_annual_inr || sysSettings.high_price_annual || '199';
+
+    const monthlyCostYr = Number(monthlyPriceINR) * 12;
+    const annualCost = Number(annualPriceINR);
+    const savingsAmount = monthlyCostYr - annualCost;
+    const discountPct = (monthlyCostYr > annualCost && annualCost > 0) ? Math.round((savingsAmount / monthlyCostYr) * 100) : 0;
 
     const plans = [
       {
@@ -1481,7 +1486,7 @@ export default function UserProfile({ onNotification }) {
         name: 'HIGH PLAN (MONTHLY)',
         price: `₹${monthlyPriceINR}`,
         period: 'per month',
-        badge: 'HIGH PLAN',
+        badge: 'MONTHLY',
         accentColor: 'border-acid-green',
         bgGradient: 'bg-acid-green/10',
         amountPaise: Number(monthlyPriceINR) * 100,
@@ -1498,7 +1503,8 @@ export default function UserProfile({ onNotification }) {
         name: 'HIGH PLAN (ANNUAL)',
         price: `₹${annualPriceINR}`,
         period: 'per year',
-        badge: 'BEST VALUE',
+        badge: discountPct > 0 ? `SAVE ${discountPct}%` : 'BEST VALUE',
+        savingsText: savingsAmount > 0 ? `Save ₹${savingsAmount}/yr vs monthly` : 'Full 12 Months Access',
         accentColor: 'border-indigo-500',
         bgGradient: 'bg-indigo-500/10',
         amountPaise: Number(annualPriceINR) * 100,
@@ -1562,6 +1568,11 @@ export default function UserProfile({ onNotification }) {
                     <span className="text-2xl font-black text-foreground">{plan.price}</span>
                     <span className="text-[10px] text-muted">{plan.period}</span>
                   </div>
+                  {plan.savingsText && (
+                    <span className="inline-block text-[10px] font-bold text-acid-green bg-acid-green/10 px-2 py-0.5 rounded border border-acid-green/20 mb-2">
+                      {plan.savingsText}
+                    </span>
+                  )}
 
                   <ul className="space-y-2 my-4 pl-0 list-none">
                     {plan.features.map((feat, idx) => (

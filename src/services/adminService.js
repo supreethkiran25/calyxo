@@ -22,9 +22,18 @@ export const CALYXO_PRIMARY_PLAN = {
   symbol: '₹'
 };
 
+export const CALYXO_ANNUAL_PLAN = {
+  name: 'High Plan (Annual)',
+  code: 'HIGH_ANNUAL',
+  price: 199,
+  currency: 'INR',
+  symbol: '₹'
+};
+
 export const PLAN_PRICES_INR = {
   FREE: 0,
-  HIGH: 2
+  HIGH: 2,
+  HIGH_ANNUAL: 199
 };
 
 /**
@@ -1346,7 +1355,7 @@ export const DEFAULT_SETTINGS = {
   maintenance_mode: false,
   high_price_monthly: '2',
   high_price_monthly_inr: '2',
-  high_price_annual_inr: '2',
+  high_price_annual_inr: '199',
   currency: 'INR',
   currency_symbol: '₹',
   ai_feature_enabled: true,

@@ -39,7 +39,7 @@ export const startRazorpayCheckout = async ({
     // Read dynamic admin system settings
     const sysSettings = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('calyxo_system_settings') || '{}') : {};
     const monthlyPriceINR = Number(sysSettings.high_price_monthly_inr || sysSettings.high_price_monthly || 2);
-    const annualPriceINR = Number(sysSettings.high_price_annual_inr || sysSettings.high_price_annual || 2);
+    const annualPriceINR = Number(sysSettings.high_price_annual_inr || sysSettings.high_price_annual || 199);
 
     let priceInINR = monthlyPriceINR;
     if (plan.id === 'HIGH_ANNUAL' || plan.isAnnual || plan.duration === 'Annual') {
