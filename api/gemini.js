@@ -17,10 +17,9 @@ export default async function handler(req, res) {
     model = 'gemini-2.5-flash';
   }
   
-  // Retrieve API Key exclusively from Server Environment Variables (Completely hidden from browser clients)
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || 'AIzaSyC_kwCmfgILI3UirtKpyxnhTNDhXMHvsZ4';
 
-  const modelsToTry = Array.from(new Set([model, 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-3.5-flash']));
+  const modelsToTry = [model, 'gemini-1.5-flash', 'gemini-2.0-flash'];
   let lastData = null;
   let lastStatus = 500;
 
@@ -38,6 +37,11 @@ export default async function handler(req, res) {
       lastData = data;
 
       if (response.ok && data && !data.error) {
+        return res.status(response.status).json(data);
+      }
+
+      // If rate limited (429) or client error (400, 401, 403), stop immediately — do not loop models
+      if (response.status === 429 || response.status === 400 || response.status === 401 || response.status === 403) {
         return res.status(response.status).json(data);
       }
     }

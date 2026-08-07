@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { AlertCircle, RefreshCw, Upload, X } from 'lucide-react';
 import { scanFoodImage } from '@/lib/geminiVision';
@@ -17,32 +17,55 @@ const FoodScanner = ({ onClose, onLogged }) => {
   const [scanError, setScanError] = useState(null);
   const [logging, setLogging] = useState(false);
 
-  console.log(`[FoodScanner] Rendered stage: ${stage}, scanResult:`, scanResult ? scanResult.food_name : 'null');
+  // Synchronous Request Lock to prevent duplicate calls
+  const isAnalyzingRef = useRef(false);
+  const currentReqIdRef = useRef(null);
+
+  useEffect(() => {
+    console.log(`[FoodScanner] Component mounted. Initial stage: '${stage}'`);
+    return () => {
+      console.log(`[FoodScanner] Component unmounting. Active stage was: '${stage}'`);
+    };
+  }, []);
+
+  console.log(`[FoodScanner] Rendered stage: '${stage}', scanResult:`, scanResult ? scanResult.food_name : 'null');
 
   const handleCapture = async (base64Image, previewUrl) => {
-    console.log("[FoodScanner] handleCapture initiated.");
+    if (isAnalyzingRef.current) {
+      console.warn("[FoodScanner] Request locked — ignoring duplicate capture event.");
+      return;
+    }
+
+    isAnalyzingRef.current = true;
+    const reqId = `scan_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    currentReqIdRef.current = reqId;
+
+    console.log(`[FoodScanner:${reqId}] handleCapture initiated. Payload length:`, base64Image?.length || 0);
+
     setRawBase64(base64Image);
     setImagePreview(previewUrl);
     setScanError(null);
     setStage('analysing');
 
     try {
-      const result = await scanFoodImage(base64Image);
-      console.log("[FoodScanner] Scan succeeded. Transitioning to 'reviewing'. Result:", result);
+      const result = await scanFoodImage(base64Image, reqId);
+      console.log(`[FoodScanner:${reqId}] Scan succeeded. Transitioning stage to 'reviewing'. Result:`, result);
       setScanResult(result);
       setStage('reviewing');
     } catch (err) {
-      console.error("[FoodScanner] Scan failed with error:", err.message);
+      console.error(`[FoodScanner:${reqId}] Scan failed with error:`, err.message);
       const msg = err.message || 'Scan failed. Try again with a clearer photo.';
       setScanError(msg);
       toast.error(msg);
       setStage('error');
+    } finally {
+      isAnalyzingRef.current = false;
     }
   };
 
   const handleRetryAnalysis = () => {
-    console.log("[FoodScanner] Retrying analysis with existing image.");
-    if (rawBase64 && imagePreview) {
+    console.log("[FoodScanner] User clicked Retry Analysis.");
+    if (rawBase64 && imagePreview && !isAnalyzingRef.current) {
       handleCapture(rawBase64, imagePreview);
     } else {
       handleRetry();
@@ -51,6 +74,7 @@ const FoodScanner = ({ onClose, onLogged }) => {
 
   const handleRetry = () => {
     console.log("[FoodScanner] Resetting scanner state to 'capturing'.");
+    isAnalyzingRef.current = false;
     setScanResult(null);
     setImagePreview(null);
     setRawBase64(null);
@@ -120,10 +144,10 @@ const FoodScanner = ({ onClose, onLogged }) => {
     }
   };
 
-  // Analysing state (full-screen spinner)
+  // Analysing state (full-screen spinner with disabled interactions)
   if (stage === 'analysing') {
     return (
-      <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 select-none pointer-events-auto">
         <div className="text-center space-y-4 p-8 bg-neutral-900 border border-neutral-800 rounded-2xl max-w-sm w-full shadow-2xl">
           {imagePreview && (
             <div className="relative w-48 h-48 mx-auto rounded-2xl overflow-hidden shadow-2xl">

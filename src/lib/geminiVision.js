@@ -27,15 +27,11 @@ Rules:
 
 function extractJsonFromText(rawText) {
   if (!rawText) return null;
-
-  // Step 1: Strip markdown fences if present
   let clean = rawText.replace(/```json|```/gi, '').trim();
 
-  // Direct JSON parse attempt
   try {
     return JSON.parse(clean);
   } catch (e) {
-    // Step 2: Extract JSON object substring using Regex
     const jsonMatch = clean.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       try {
@@ -79,11 +75,11 @@ function parseGeminiStatusError(status, data, defaultMsg) {
   return geminiMessage || defaultMsg || `Gemini API error (HTTP ${status}).`;
 }
 
-async function fetchWithRetry(url, options, maxRetries = 2) {
+async function fetchWithRetry(url, options, reqId, maxRetries = 1) {
   let attempt = 0;
   while (attempt <= maxRetries) {
     try {
-      console.log(`[FoodScan] Requesting ${url} (Attempt ${attempt + 1}/${maxRetries + 1})`);
+      console.log(`[FoodScan:${reqId}] Executing fetch to ${url} (Attempt ${attempt + 1}/${maxRetries + 1})`);
       const response = await fetch(url, options);
       const data = await response.json().catch(() => ({}));
 
@@ -92,28 +88,28 @@ async function fetchWithRetry(url, options, maxRetries = 2) {
       }
 
       const status = response.status;
-      const isRateLimitOrBusy = status === 429 || status === 503;
+      console.warn(`[FoodScan:${reqId}] HTTP ${status} response:`, data);
 
-      if (isRateLimitOrBusy && attempt < maxRetries) {
-        const retryAfterHeader = response.headers.get('Retry-After') || response.headers.get('retry-after-ms');
-        let delayMs = Math.pow(2, attempt) * 1500;
-        if (retryAfterHeader) {
-          const parsedHeader = parseInt(retryAfterHeader);
-          if (!isNaN(parsedHeader)) {
-            delayMs = parsedHeader > 100 ? parsedHeader : parsedHeader * 1000;
+      if (status === 429 || status === 503) {
+        if (attempt < maxRetries) {
+          const retryAfterHeader = response.headers.get('Retry-After') || response.headers.get('retry-after-ms');
+          let delayMs = Math.pow(2, attempt) * 2000;
+          if (retryAfterHeader) {
+            const parsedHeader = parseInt(retryAfterHeader);
+            if (!isNaN(parsedHeader)) delayMs = parsedHeader > 100 ? parsedHeader : parsedHeader * 1000;
           }
+          console.warn(`[FoodScan:${reqId}] Rate limit hit. Backoff delay ${delayMs}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          attempt++;
+          continue;
         }
-        console.warn(`[FoodScan] HTTP ${status} rate limit. Exponential backoff delay ${delayMs}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-        attempt++;
-        continue;
       }
 
       return { ok: false, status, data };
     } catch (e) {
+      console.warn(`[FoodScan:${reqId}] Network exception:`, e.message);
       if (attempt < maxRetries) {
-        const delayMs = Math.pow(2, attempt) * 1500;
-        console.warn(`[FoodScan] Network exception: ${e.message}. Retrying in ${delayMs}ms...`);
+        const delayMs = 2000;
         await new Promise(resolve => setTimeout(resolve, delayMs));
         attempt++;
         continue;
@@ -123,13 +119,19 @@ async function fetchWithRetry(url, options, maxRetries = 2) {
   }
 }
 
-export async function scanFoodImage(base64Image) {
-  // Sanitize base64 string for Android / Web compatibility
+export async function scanFoodImage(base64Image, requestId = null) {
+  const reqId = requestId || `req_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+  
   const cleanBase64 = (base64Image || '')
     .replace(/^data:image\/[a-z]+;base64,/, '')
     .replace(/[\r\n\s]/g, '');
 
-  console.log("[FoodScan] Starting image scan. Clean Base64 size:", cleanBase64.length);
+  console.log(`[FoodScan:${reqId}] Scan started. Payload base64 length: ${cleanBase64.length}`);
+
+  if (!cleanBase64 || cleanBase64.length < 100) {
+    console.error(`[FoodScan:${reqId}] Invalid or truncated base64 image data.`);
+    throw new Error('Invalid or truncated image data. Please retake photo.');
+  }
 
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || 'AIzaSyC_kwCmfgILI3UirtKpyxnhTNDhXMHvsZ4';
 
@@ -161,76 +163,67 @@ export async function scanFoodImage(base64Image) {
   let lastStatus = 0;
   let lastData = null;
 
-  // 1. Try local serverless proxy /api/gemini first ONLY on browser web (skip relative fetch on Capacitor Android)
+  // 1. Web browser: Query /api/gemini proxy once
   if (!isNativeCapacitor) {
     try {
-      console.log("[FoodScan] Querying backend proxy /api/gemini...");
+      console.log(`[FoodScan:${reqId}] Querying backend proxy /api/gemini...`);
       const result = await fetchWithRetry('/api/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: 'gemini-2.5-flash', payload })
-      }, 1);
+      }, reqId, 1);
 
       if (result.ok && result.text) {
         rawText = result.text;
-        console.log("[FoodScan] Successfully received text from /api/gemini proxy.");
+        console.log(`[FoodScan:${reqId}] Proxy success.`);
       } else {
         lastStatus = result.status;
         lastData = result.data;
-        console.warn(`[FoodScan] Proxy query failed with status ${result.status}`);
+        console.warn(`[FoodScan:${reqId}] Proxy failed status: ${result.status}`);
       }
     } catch (e) {
-      console.warn("[FoodScan] Proxy fetch exception:", e.message);
+      console.warn(`[FoodScan:${reqId}] Proxy exception:`, e.message);
     }
   }
 
-  // 2. Direct Gemini REST API fetch with model retries & backoff (Primary for Android Capacitor, fallback for Web)
+  // 2. Native Android Capacitor / Fallback: Query primary model gemini-2.5-flash directly
   if (!rawText) {
-    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
+    const primaryModel = 'gemini-2.5-flash';
+    console.log(`[FoodScan:${reqId}] Direct query to Gemini model: ${primaryModel}`);
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${primaryModel}:generateContent?key=${apiKey}`;
+    
+    const result = await fetchWithRetry(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }, reqId, 1);
 
-    for (const modelName of modelsToTry) {
-      console.log(`[FoodScan] Querying Gemini endpoint model: ${modelName} (isNative: ${isNativeCapacitor})`);
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-      
-      const result = await fetchWithRetry(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      }, 1);
-
-      if (result.ok && result.text) {
-        rawText = result.text;
-        console.log(`[FoodScan] Received response from direct model ${modelName}`);
-        break;
-      } else {
-        lastStatus = result.status || lastStatus;
-        lastData = result.data || lastData;
-        console.warn(`[FoodScan] Direct model ${modelName} status ${result.status}`);
-
-        // If rate limit (429), break model loop to show rate limit error immediately
-        if (result.status === 429) {
-          break;
-        }
-      }
+    if (result.ok && result.text) {
+      rawText = result.text;
+      console.log(`[FoodScan:${reqId}] Direct API success.`);
+    } else {
+      lastStatus = result.status || lastStatus;
+      lastData = result.data || lastData;
+      console.warn(`[FoodScan:${reqId}] Direct model ${primaryModel} failed status: ${result.status}`);
     }
   }
 
   if (!rawText) {
-    console.error("[FoodScan] All Gemini API endpoints failed. Status:", lastStatus, lastData);
-    const specificError = parseGeminiStatusError(lastStatus, lastData, 'Gemini API unreachable. Please check your connection and API key configuration.');
+    console.error(`[FoodScan:${reqId}] Gemini request failed. Status: ${lastStatus}`, lastData);
+    const specificError = parseGeminiStatusError(lastStatus, lastData, 'Gemini API unreachable. Please check connection and API key configuration.');
     throw new Error(specificError);
   }
 
-  console.log("[FoodScan] Raw response text:", rawText);
+  console.log(`[FoodScan:${reqId}] Raw Gemini response received:`, rawText.substring(0, 150) + "...");
 
   const parsed = extractJsonFromText(rawText);
 
   if (!parsed) {
-    console.error("[FoodScan] Failed to parse JSON from Gemini text output.");
+    console.error(`[FoodScan:${reqId}] Failed to parse JSON from text:`, rawText);
     throw new Error('Gemini returned unformatted response. Please retry with a clearer photo.');
   }
 
-  console.log("[FoodScan] Parsed JSON object:", parsed);
+  console.log(`[FoodScan:${reqId}] Parsed JSON:`, parsed);
 
   if (parsed.error === 'not_food') {
     throw new Error('No food detected in this image. Try again with a clearer photo of a meal.');
@@ -239,7 +232,6 @@ export async function scanFoodImage(base64Image) {
     throw new Error('Image too dark or blurry. Move to better lighting and try again.');
   }
 
-  // Map field variants with safe defaults
   const foodName = parsed.food_name || parsed.foodName || parsed.name || parsed.item || "Scanned Meal";
   const calories = Number(parsed.calories ?? parsed.energy ?? parsed.kcal) || 200;
   const protein = Number(parsed.protein_g ?? parsed.protein ?? parsed.proteinGrams) || 0;
@@ -264,6 +256,6 @@ export async function scanFoodImage(base64Image) {
     notes: notes
   };
 
-  console.log("[FoodScan] Final mapped scan result:", finalResult);
+  console.log(`[FoodScan:${reqId}] Scan successful. Final result:`, finalResult.food_name, `${finalResult.calories} kcal`);
   return finalResult;
 }
