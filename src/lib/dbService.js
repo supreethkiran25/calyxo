@@ -819,10 +819,9 @@ export const getUserProfile = async (userId) => {
           extra = { bio: data.bio };
         }
       }
-      const localState = getLocalState(userId);
       const isKnownPremiumEmail = cleanEmail === 'supreethkiran25@gmail.com';
       const subPlan = isKnownPremiumEmail ? 'HIGH' : (userProfileSubPlan || extra.subscriptionPlan || localState.userProfile?.subscriptionPlan || 'FREE');
-      const isSub = isKnownPremiumEmail ? true : (subPlan !== 'FREE' && subPlan !== 'DEFAULT');
+      const isSub = isKnownPremiumEmail || isUserSubscribed || (subPlan !== 'FREE' && subPlan !== 'DEFAULT');
 
       const combinedProfile = {
         ...localState.userProfile,
@@ -1145,6 +1144,14 @@ export const subscribeToUserDataChanges = (userId, onDataChange) => {
       () => {
         invalidateUserDataCache(userId);
         if (onDataChange) onDataChange('user_profiles');
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'subscriptions', filter: `user_id=eq.${userId}` },
+      () => {
+        invalidateUserDataCache(userId);
+        if (onDataChange) onDataChange('subscriptions');
       }
     )
     .subscribe();
