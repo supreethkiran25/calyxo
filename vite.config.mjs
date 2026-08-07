@@ -2,6 +2,13 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
+const GEMINI_VISION_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-lite'
+];
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   return {
@@ -17,7 +24,6 @@ export default defineConfig(({ mode }) => {
         configureServer(server) {
           // Proxy /api/food-scan locally for dev environment
           server.middlewares.use('/api/food-scan', async (req, res) => {
-            // Set CORS Headers for dev server
             res.setHeader('Access-Control-Allow-Origin', '*');
             res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
             res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -89,63 +95,79 @@ Required format:
                 generationConfig: { temperature: 0.1, maxOutputTokens: 512 }
               };
 
-              const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-              const fetchRes = await fetch(googleUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-              });
+              let lastStatus = 500;
+              let lastData = {};
 
-              const data = await fetchRes.json().catch(() => ({}));
-              res.statusCode = fetchRes.status;
-              res.setHeader('Content-Type', 'application/json');
+              // Model pool fallback loop for local dev server
+              for (const modelName of GEMINI_VISION_MODELS) {
+                const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                const fetchRes = await fetch(googleUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
 
-              if (!fetchRes.ok) {
-                if (fetchRes.status === 429) {
-                  res.end(JSON.stringify({
-                    error: {
-                      code: 429,
-                      message: "You've reached the Gemini API rate limit. Please wait a minute and try again, or upgrade your API quota."
+                lastStatus = fetchRes.status;
+                lastData = await fetchRes.json().catch(() => ({}));
+
+                if (fetchRes.ok) {
+                  const rawText = lastData?.candidates?.[0]?.content?.parts?.[0]?.text;
+                  let cleanText = (rawText || '').replace(/```json|```/gi, '').trim();
+                  let parsed = null;
+                  try {
+                    parsed = JSON.parse(cleanText);
+                  } catch {
+                    const match = cleanText.match(/\{[\s\S]*\}/);
+                    if (match) {
+                      try { parsed = JSON.parse(match[0]); } catch {}
                     }
-                  }));
-                  return;
+                  }
+
+                  if (parsed) {
+                    const result = {
+                      food_name: parsed.food_name || parsed.name || "Scanned Meal",
+                      estimated_grams: Number(parsed.estimated_grams || parsed.grams) || 100,
+                      confidence: parsed.confidence || 'medium',
+                      calories: Math.round(Number(parsed.calories) || 200),
+                      protein_g: parseFloat((Number(parsed.protein_g || parsed.protein) || 0).toFixed(1)),
+                      carbs_g: parseFloat((Number(parsed.carbs_g || parsed.carbs) || 0).toFixed(1)),
+                      fat_g: parseFloat((Number(parsed.fat_g || parsed.fat) || 0).toFixed(1)),
+                      fiber_g: parseFloat((Number(parsed.fiber_g || parsed.fiber) || 0).toFixed(1)),
+                      serving_description: parsed.serving_description || `~${parsed.estimated_grams || 100}g`,
+                      notes: parsed.notes || null,
+                      model_used: modelName
+                    };
+
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify({ success: true, result }));
+                    return;
+                  }
                 }
-                res.end(JSON.stringify(data));
+
+                if (fetchRes.status === 429) {
+                  console.warn(`[DevServerFoodScan] Model ${modelName} hit 429 rate limit. Trying next model...`);
+                  continue;
+                }
+
+                if (fetchRes.status >= 400 && fetchRes.status < 500 && fetchRes.status !== 429) {
+                  break;
+                }
+              }
+
+              res.statusCode = lastStatus;
+              res.setHeader('Content-Type', 'application/json');
+              if (lastStatus === 429) {
+                res.end(JSON.stringify({
+                  error: {
+                    code: 429,
+                    message: "You've reached the Gemini API rate limit. Please wait a minute and try again, or upgrade your API quota."
+                  }
+                }));
                 return;
               }
+              res.end(JSON.stringify(lastData));
 
-              const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-              let cleanText = (rawText || '').replace(/```json|```/gi, '').trim();
-              let parsed = null;
-              try {
-                parsed = JSON.parse(cleanText);
-              } catch {
-                const match = cleanText.match(/\{[\s\S]*\}/);
-                if (match) {
-                  try { parsed = JSON.parse(match[0]); } catch {}
-                }
-              }
-
-              if (!parsed) {
-                res.statusCode = 422;
-                res.end(JSON.stringify({ error: { message: 'Failed to parse structured nutrition JSON from Gemini response.' } }));
-                return;
-              }
-
-              const result = {
-                food_name: parsed.food_name || parsed.name || "Scanned Meal",
-                estimated_grams: Number(parsed.estimated_grams || parsed.grams) || 100,
-                confidence: parsed.confidence || 'medium',
-                calories: Math.round(Number(parsed.calories) || 200),
-                protein_g: parseFloat((Number(parsed.protein_g || parsed.protein) || 0).toFixed(1)),
-                carbs_g: parseFloat((Number(parsed.carbs_g || parsed.carbs) || 0).toFixed(1)),
-                fat_g: parseFloat((Number(parsed.fat_g || parsed.fat) || 0).toFixed(1)),
-                fiber_g: parseFloat((Number(parsed.fiber_g || parsed.fiber) || 0).toFixed(1)),
-                serving_description: parsed.serving_description || `~${parsed.estimated_grams || 100}g`,
-                notes: parsed.notes || null
-              };
-
-              res.end(JSON.stringify({ success: true, result }));
             } catch (err) {
               res.statusCode = 500;
               res.setHeader('Content-Type', 'application/json');
