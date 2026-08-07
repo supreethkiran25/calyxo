@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { scanFoodImage } from '@/lib/geminiVision';
 import { supabase } from '@/lib/supabaseClient';
+import { addFoodLog, getCurrentUserIdSync } from '@/lib/dbService';
 import CameraCapture from './CameraCapture';
 import FoodScanResult from './FoodScanResult';
 
@@ -36,29 +37,57 @@ const FoodScanner = ({ onClose, onLogged }) => {
   const handleConfirmLog = async (logData) => {
     setLogging(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      let userId = null;
+      try {
+        const { data } = await supabase.auth.getUser();
+        userId = data?.user?.id || null;
+      } catch (e) {}
 
-      const { error } = await supabase.from('nutrition_logs').insert({
-        user_id: user.id,
-        food_name: logData.food_name,
+      if (!userId) {
+        userId = getCurrentUserIdSync() || "local-user";
+      }
+
+      // 1. Log to nutrition_logs table for AI Telemetry
+      try {
+        await supabase.from('nutrition_logs').insert({
+          user_id: userId,
+          food_name: logData.food_name,
+          calories: logData.calories,
+          protein_g: logData.protein_g,
+          carbs_g: logData.carbs_g,
+          fat_g: logData.fat_g,
+          fiber_g: logData.fiber_g,
+          serving_size: logData.serving_size,
+          scan_source: 'camera',
+          scan_confidence: logData.scan_confidence,
+          logged_at: new Date().toISOString()
+        });
+      } catch (dbErr) {
+        console.warn("nutrition_logs insert error:", dbErr);
+      }
+
+      // 2. Log to primary food_logs via dbService
+      const logEntry = {
+        name: logData.food_name,
         calories: logData.calories,
-        protein_g: logData.protein_g,
-        carbs_g: logData.carbs_g,
-        fat_g: logData.fat_g,
-        fiber_g: logData.fiber_g,
-        serving_size: logData.serving_size,
-        scan_source: 'camera',
-        scan_confidence: logData.scan_confidence,
-        logged_at: new Date().toISOString()
-      });
+        protein: logData.protein_g,
+        carbs: logData.carbs_g,
+        fat: logData.fat_g,
+        portionWeight: parseInt(logData.serving_size) || 100,
+        timestamp: Date.now()
+      };
 
-      if (error) throw error;
+      let savedEntry = logEntry;
+      try {
+        savedEntry = await addFoodLog(userId, logEntry);
+      } catch (e) {
+        console.warn("addFoodLog call error:", e);
+      }
 
       toast.success(`${logData.food_name} logged — ${logData.calories} kcal`);
       setStage('done');
-      onLogged?.(logData);
-      setTimeout(onClose, 800);
+      onLogged?.(savedEntry || logData);
+      setTimeout(onClose, 600);
     } catch (err) {
       toast.error(err.message || 'Failed to log meal. Try again.');
     } finally {
@@ -72,7 +101,7 @@ const FoodScanner = ({ onClose, onLogged }) => {
       <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center">
         <div className="text-center space-y-4 p-8">
           {imagePreview && (
-            <div className="relative w-48 h-48 mx-auto rounded-2xl overflow-hidden">
+            <div className="relative w-48 h-48 mx-auto rounded-2xl overflow-hidden shadow-2xl">
               <img src={imagePreview} alt="" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                 <div className="w-10 h-10 rounded-full border-2 border-blue-400 border-t-transparent animate-spin" />
