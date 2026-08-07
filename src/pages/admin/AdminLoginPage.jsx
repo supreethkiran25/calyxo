@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Shield, Lock, Mail, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useStore } from '../../store/useStore';
-import { loginSuperAdmin, isSuperAdmin } from '../../services/adminService';
+import { loginSuperAdmin, isSuperAdmin, logoutSuperAdmin } from '../../services/adminService';
 
 const AdminLoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const setUser = useStore(state => state.setUser);
 
   const [emailInput, setEmailInput] = useState('');
@@ -15,13 +16,19 @@ const AdminLoginPage = () => {
   const [loggingIn, setLoggingIn] = useState(false);
 
   useEffect(() => {
+    // If logout query parameter present, purge all old session storage
+    if (location.search.includes('logout=true')) {
+      logoutSuperAdmin();
+      return;
+    }
+
     try {
       const savedSession = JSON.parse(localStorage.getItem('calyxo_admin_session') || '{}');
       if (isSuperAdmin(savedSession)) {
         navigate('/admin', { replace: true });
       }
     } catch (e) {}
-  }, [navigate]);
+  }, [navigate, location]);
 
   const handleAdminSignIn = async (e) => {
     if (e) e.preventDefault();
@@ -65,7 +72,7 @@ const AdminLoginPage = () => {
         )}
 
         {/* Form */}
-        <form onSubmit={handleAdminSignIn} className="space-y-4 text-xs">
+        <form onSubmit={handleAdminSignIn} className="space-y-4 text-xs" autoComplete="off">
           <div>
             <label className="text-neutral-400 font-medium block mb-1">Email</label>
             <div className="relative">
@@ -73,6 +80,7 @@ const AdminLoginPage = () => {
               <input
                 type="email"
                 required
+                autoComplete="off"
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 placeholder="admin@calyxo.com"
@@ -88,6 +96,7 @@ const AdminLoginPage = () => {
               <input
                 type={showPassword ? "text" : "password"}
                 required
+                autoComplete="new-password"
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
                 placeholder="••••••••••••"
@@ -107,7 +116,7 @@ const AdminLoginPage = () => {
 
           <button
             type="submit"
-            disabled={loggingIn}
+            disabled={loggingIn || !emailInput || !passwordInput}
             className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-50"
           >
             {loggingIn ? 'Authenticating...' : 'Sign in'} <ArrowRight className="w-4 h-4" />

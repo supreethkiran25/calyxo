@@ -188,7 +188,16 @@ export const verifyAdminPermission = async (user) => {
 export const logoutSuperAdmin = async () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('calyxo_admin_session');
+    localStorage.removeItem('calyxo_user');
+    localStorage.removeItem('calyxo_ecosystem_state');
+    sessionStorage.clear();
   }
+  try {
+    const { useStore } = await import('../store/useStore');
+    useStore.getState().setUser(null);
+    useStore.getState().setUserProfile(null);
+  } catch (e) {}
+
   if (!isMockMode) {
     try {
       await supabase.auth.signOut();
