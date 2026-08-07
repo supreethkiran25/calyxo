@@ -49,18 +49,22 @@ function extractJsonFromText(rawText) {
 }
 
 export async function scanFoodImage(base64Image) {
-  console.log("[FoodScan] Starting image scan. Base64 payload size:", base64Image?.length || 0);
+  // Sanitize base64 string for Android / Web compatibility
+  const cleanBase64 = (base64Image || '')
+    .replace(/^data:image\/[a-z]+;base64,/, '')
+    .replace(/[\r\n\s]/g, '');
+
+  console.log("[FoodScan] Starting image scan. Clean Base64 size:", cleanBase64.length);
 
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || 'AIzaSyC_kwCmfgILI3UirtKpyxnhTNDhXMHvsZ4';
 
-  // Standard Gemini REST v1beta JSON payload schema with inlineData & mimeType
   const payload = {
     contents: [{
       parts: [
         {
           inlineData: {
             mimeType: 'image/jpeg',
-            data: base64Image
+            data: cleanBase64
           }
         },
         { text: FOOD_SCAN_PROMPT }
@@ -72,38 +76,46 @@ export async function scanFoodImage(base64Image) {
     }
   };
 
+  const isNativeCapacitor = typeof window !== 'undefined' && (
+    window.Capacitor?.isNativePlatform?.() ||
+    window.location.protocol === 'capacitor:' ||
+    window.location.hostname === 'localhost'
+  );
+
   let rawText = null;
 
-  // 1. Try local serverless proxy /api/gemini first
-  try {
-    console.log("[FoodScan] Querying backend proxy /api/gemini...");
-    const proxyRes = await fetch('/api/gemini', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gemini-2.5-flash', payload })
-    });
+  // 1. Try local serverless proxy /api/gemini first ONLY on browser web (skip relative fetch on Capacitor Android)
+  if (!isNativeCapacitor) {
+    try {
+      console.log("[FoodScan] Querying backend proxy /api/gemini...");
+      const proxyRes = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'gemini-2.5-flash', payload })
+      });
 
-    if (proxyRes.ok) {
-      const data = await proxyRes.json();
-      rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (rawText) {
-        console.log("[FoodScan] Successfully received text from /api/gemini proxy.");
+      if (proxyRes.ok) {
+        const data = await proxyRes.json();
+        rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText) {
+          console.log("[FoodScan] Successfully received text from /api/gemini proxy.");
+        }
+      } else {
+        const pErr = await proxyRes.json().catch(() => ({}));
+        console.warn("[FoodScan] Proxy returned status:", proxyRes.status, pErr);
       }
-    } else {
-      const pErr = await proxyRes.json().catch(() => ({}));
-      console.warn("[FoodScan] Proxy returned status:", proxyRes.status, pErr);
+    } catch (e) {
+      console.warn("[FoodScan] Proxy fetch exception:", e.message);
     }
-  } catch (e) {
-    console.warn("[FoodScan] Proxy fetch exception:", e.message);
   }
 
-  // 2. Direct Gemini REST API fallback with model retries
+  // 2. Direct Gemini REST API fetch with model retries (Primary for Android Capacitor, fallback for Web)
   if (!rawText) {
     const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
 
     for (const modelName of modelsToTry) {
       try {
-        console.log(`[FoodScan] Fallback direct query to model: ${modelName}`);
+        console.log(`[FoodScan] Direct query to model: ${modelName} (isNative: ${isNativeCapacitor})`);
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
         const response = await fetch(endpoint, {
           method: 'POST',

@@ -71,38 +71,79 @@ const CameraCapture = ({ onCapture, onClose }) => {
     }
   };
 
-  // Handle file upload
+  // Handle file upload (compatible with Web and Android WebView)
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Compress to max 1024px before sending to Gemini
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX = 1024;
-        const scale = Math.min(1, MAX / Math.max(img.width, img.height));
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        try {
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-          const base64 = dataUrl.split(',')[1];
-          setCapturedImage(dataUrl);
-          setCapturedBlob(base64);
-          setMode('preview');
-          onCapture(base64, dataUrl);
-        } catch (err) {
-          console.error("Image processing error", err);
+    console.log("[FoodScanNative] Processing selected file:", file.name, file.size, file.type);
+
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const canvas = document.createElement('canvas');
+      const MAX = 1024;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+
+      console.log(`[FoodScanNative] Rescaling image to ${canvas.width}x${canvas.height}`);
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      
+      try {
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const base64 = dataUrl.split(',')[1]?.replace(/[\r\n\s]/g, '');
+        console.log("[FoodScanNative] Base64 string generated. Length:", base64?.length || 0);
+
+        if (!base64 || base64.length === 0) {
+          throw new Error("Generated base64 string is empty");
         }
-      };
-      img.src = reader.result;
+
+        setCapturedImage(dataUrl);
+        setCapturedBlob(base64);
+        setMode('preview');
+        onCapture(base64, dataUrl);
+      } catch (err) {
+        console.error("[FoodScanNative] Canvas export error:", err);
+      }
     };
-    reader.readAsDataURL(file);
+
+    img.onerror = (err) => {
+      URL.revokeObjectURL(objectUrl);
+      console.error("[FoodScanNative] Image load error from ObjectURL, fallback to FileReader:", err);
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const fallbackImg = new Image();
+        fallbackImg.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX = 1024;
+          const scale = Math.min(1, MAX / Math.max(fallbackImg.width, fallbackImg.height));
+          canvas.width = Math.round(fallbackImg.width * scale);
+          canvas.height = Math.round(fallbackImg.height * scale);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(fallbackImg, 0, 0, canvas.width, canvas.height);
+          try {
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            const base64 = dataUrl.split(',')[1]?.replace(/[\r\n\s]/g, '');
+            setCapturedImage(dataUrl);
+            setCapturedBlob(base64);
+            setMode('preview');
+            onCapture(base64, dataUrl);
+          } catch (e) {
+            console.error("[FoodScanNative] Fallback canvas export error:", e);
+          }
+        };
+        fallbackImg.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    };
+
+    img.src = objectUrl;
   };
 
   const retake = () => {
