@@ -51,19 +51,15 @@ function extractJsonFromText(rawText) {
 export async function scanFoodImage(base64Image) {
   console.log("[FoodScan] Starting image scan. Base64 payload size:", base64Image?.length || 0);
 
-  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || 'AIzaSyC_kwCmfgILI3UirtKpyxnhTNDhXMHvsZ4';
 
-  if (!apiKey) {
-    console.error("[FoodScan] Gemini API Key is missing");
-    throw new Error('Gemini API key is not configured. Please check your environment settings.');
-  }
-
+  // Standard Gemini REST v1beta JSON payload schema with inlineData & mimeType
   const payload = {
     contents: [{
       parts: [
         {
-          inline_data: {
-            mime_type: 'image/jpeg',
+          inlineData: {
+            mimeType: 'image/jpeg',
             data: base64Image
           }
         },
@@ -76,61 +72,62 @@ export async function scanFoodImage(base64Image) {
     }
   };
 
-  const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
   let rawText = null;
 
-  // Try direct fetch first with model fallback
-  for (const modelName of modelsToTry) {
-    try {
-      console.log(`[FoodScan] Querying Gemini model: ${modelName}`);
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+  // 1. Try local serverless proxy /api/gemini first
+  try {
+    console.log("[FoodScan] Querying backend proxy /api/gemini...");
+    const proxyRes = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'gemini-2.5-flash', payload })
+    });
 
-      if (response.ok) {
-        const data = await response.json();
-        rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (rawText) {
-          console.log(`[FoodScan] Received response from model ${modelName}`);
-          break;
-        }
-      } else {
-        const errJson = await response.json().catch(() => ({}));
-        console.warn(`[FoodScan] Model ${modelName} returned status ${response.status}:`, errJson);
+    if (proxyRes.ok) {
+      const data = await proxyRes.json();
+      rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (rawText) {
+        console.log("[FoodScan] Successfully received text from /api/gemini proxy.");
       }
-    } catch (e) {
-      console.warn(`[FoodScan] Direct fetch error for ${modelName}:`, e);
+    } else {
+      const pErr = await proxyRes.json().catch(() => ({}));
+      console.warn("[FoodScan] Proxy returned status:", proxyRes.status, pErr);
     }
+  } catch (e) {
+    console.warn("[FoodScan] Proxy fetch exception:", e.message);
   }
 
-  // Fallback to local serverless proxy /api/gemini if direct call was blocked
+  // 2. Direct Gemini REST API fallback with model retries
   if (!rawText) {
-    try {
-      console.log("[FoodScan] Attempting serverless proxy fallback: /api/gemini");
-      const proxyRes = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'gemini-2.0-flash', payload })
-      });
-      if (proxyRes.ok) {
-        const data = await proxyRes.json();
-        rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        console.log("[FoodScan] Received response from proxy");
-      } else {
-        const pErr = await proxyRes.json().catch(() => ({}));
-        console.warn("[FoodScan] Proxy returned status:", proxyRes.status, pErr);
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
+
+    for (const modelName of modelsToTry) {
+      try {
+        console.log(`[FoodScan] Fallback direct query to model: ${modelName}`);
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        if (response.ok && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+          rawText = data.candidates[0].content.parts[0].text;
+          console.log(`[FoodScan] Received response from direct model ${modelName}`);
+          break;
+        } else if (data?.error) {
+          console.warn(`[FoodScan] Direct model ${modelName} error:`, data.error);
+        }
+      } catch (e) {
+        console.warn(`[FoodScan] Direct fetch exception for ${modelName}:`, e.message);
       }
-    } catch (e) {
-      console.warn("[FoodScan] Proxy fallback exception:", e);
     }
   }
 
   if (!rawText) {
     console.error("[FoodScan] All Gemini API endpoints failed to return text.");
-    throw new Error('Gemini API unreachable. Please check your internet connection and try again.');
+    throw new Error('Gemini API unreachable. Please check network connection and API key configuration.');
   }
 
   console.log("[FoodScan] Raw response text:", rawText);
