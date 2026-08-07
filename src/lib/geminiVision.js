@@ -1,7 +1,6 @@
 /**
- * Calyxo Production Secure AI Food Vision Service
- * Architecture: Browser -> Backend (/api/food-scan) -> Gemini -> Frontend
- * Zero secret API keys in client JavaScript bundles or network tabs.
+ * Calyxo Production AI Food Vision Service
+ * Architecture: Client -> Backend (/api/food-scan) -> Gemini -> Frontend
  */
 
 export async function scanFoodImage(base64Image, requestId = null) {
@@ -30,7 +29,7 @@ export async function scanFoodImage(base64Image, requestId = null) {
     ? 'https://calyxo.app/api/food-scan'
     : '/api/food-scan';
 
-  console.log(`[FoodScan:${reqId}] Dispatching request to secure backend: ${backendEndpoint}`);
+  console.log(`[FoodScan:${reqId}] Dispatching request to backend: ${backendEndpoint}`);
 
   try {
     const response = await fetch(backendEndpoint, {
@@ -46,8 +45,13 @@ export async function scanFoodImage(base64Image, requestId = null) {
 
     const data = await response.json().catch(() => ({}));
 
+    if (response.ok && data.success && data.result) {
+      console.log(`[FoodScan:${reqId}] Scan successful. Result: ${data.result.food_name} (${data.result.calories} kcal)`);
+      return data.result;
+    }
+
     if (!response.ok) {
-      console.warn(`[FoodScan:${reqId}] Backend API returned status ${response.status}:`, data);
+      console.warn(`[FoodScan:${reqId}] Backend API status ${response.status}:`, data);
       
       const errMsg = data?.error?.message || data?.message;
 
@@ -64,16 +68,10 @@ export async function scanFoodImage(base64Image, requestId = null) {
       throw new Error(errMsg || `AI food scan service returned status ${response.status}. Please retry.`);
     }
 
-    if (!data.success || !data.result) {
-      console.error(`[FoodScan:${reqId}] Invalid response schema:`, data);
-      throw new Error("Invalid response format from AI service. Please retry with a clearer photo.");
-    }
-
-    console.log(`[FoodScan:${reqId}] Scan successful. Result: ${data.result.food_name} (${data.result.calories} kcal)`);
-    return data.result;
+    throw new Error("Invalid response format from AI service. Please retry with a clearer photo.");
 
   } catch (err) {
-    console.error(`[FoodScan:${reqId}] Network or API exception:`, err.message);
+    console.error(`[FoodScan:${reqId}] Exception:`, err.message);
     throw err;
   }
 }
