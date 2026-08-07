@@ -759,30 +759,49 @@ export const getUserProfile = async (userId) => {
     }
 
     let userProfileSubPlan = null;
+    let isUserSubscribed = false;
+
+    // 1. Query user_profiles table by ID or Email
     try {
-      const { data: upData } = await supabase
+      let { data: upData } = await supabase
         .from("user_profiles")
-        .select("subscription_plan, email")
+        .select("subscription_plan, email, is_subscribed, subscription_status")
         .eq("id", userId)
         .maybeSingle();
 
-      if (upData?.subscription_plan) {
-        userProfileSubPlan = upData.subscription_plan;
+      if (!upData && userEmail) {
+        const { data: upByEmail } = await supabase
+          .from("user_profiles")
+          .select("subscription_plan, email, is_subscribed, subscription_status")
+          .eq("email", userEmail.toLowerCase().trim())
+          .maybeSingle();
+        if (upByEmail) upData = upByEmail;
       }
-      if (upData?.email) {
-        userEmail = userEmail || upData.email;
+
+      if (upData) {
+        if (upData.email) userEmail = userEmail || upData.email;
+        const statusUpper = (upData.subscription_status || '').toUpperCase();
+        if (upData.is_subscribed === true || statusUpper === 'ACTIVE' || (upData.subscription_plan && upData.subscription_plan !== 'FREE' && upData.subscription_plan !== 'DEFAULT')) {
+          userProfileSubPlan = upData.subscription_plan || 'HIGH';
+          isUserSubscribed = true;
+        }
       }
     } catch (upErr) { /* ignore fallback query error */ }
 
+    // 2. Query subscriptions table by user_id
     try {
-      const { data: subData } = await supabase
+      let { data: subData } = await supabase
         .from("subscriptions")
         .select("plan, status")
         .eq("user_id", userId)
         .maybeSingle();
 
-      if (subData?.status === 'Active' && subData?.plan === 'HIGH') {
-        userProfileSubPlan = 'HIGH';
+      if (subData) {
+        const statusUpper = (subData.status || '').toUpperCase();
+        if ((statusUpper === 'ACTIVE' || statusUpper === 'CAPTURED') && subData.plan && subData.plan !== 'FREE') {
+          userProfileSubPlan = subData.plan;
+          isUserSubscribed = true;
+        }
       }
     } catch (subErr) { /* ignore subscription table error */ }
 

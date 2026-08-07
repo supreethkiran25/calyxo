@@ -673,8 +673,6 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
         const { data: pData } = await supabase
           .from('user_profiles')
           .select('id')
-          .eq('email', targetEmail)
-          .maybeSingle();
         if (pData?.id && isValidUuid(pData.id)) {
           targetUuid = pData.id;
         }
@@ -683,9 +681,9 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
 
     const finalUuid = isValidUuid(targetUuid) ? targetUuid : null;
 
-    if (finalUuid) {
-      // 2. Ensure parent user_profiles record exists and is_subscribed is updated to true
-      try {
+    // 2. Ensure user_profiles is updated (by UUID or by Email)
+    try {
+      if (finalUuid) {
         await supabase.from('user_profiles').upsert({
           id: finalUuid,
           ...(targetEmail ? { email: targetEmail } : {}),
@@ -695,11 +693,21 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
           subscription_expires_at: expiryDate.toISOString(),
           updated_at: now.toISOString()
         }, { onConflict: 'id' });
-      } catch (pErr) {
-        console.warn('[adminService] user_profiles pre-sync warning:', pErr);
+      } else if (targetEmail) {
+        await supabase.from('user_profiles').update({
+          subscription_plan: plan,
+          is_subscribed: !isRevoke,
+          subscription_status: isRevoke ? 'EXPIRED' : 'ACTIVE',
+          subscription_expires_at: expiryDate.toISOString(),
+          updated_at: now.toISOString()
+        }).eq('email', targetEmail);
       }
+    } catch (pErr) {
+      console.warn('[adminService] user_profiles pre-sync warning:', pErr);
+    }
 
-      // 3. Upsert subscriptions table
+    // 3. Upsert subscriptions table
+    if (finalUuid) {
       const subFields = {
         user_id: finalUuid,
         plan: plan,
@@ -722,8 +730,10 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
       } catch (sErr) {
         console.warn('[adminService] Subscriptions table exception:', sErr);
       }
+    }
 
-      // 4. Best-effort sync users_metrics bio payload
+    // 4. Best-effort sync users_metrics bio payload
+    if (finalUuid) {
       try {
         const { data: metrics } = await supabase.from('users_metrics').select('bio').eq('id', `${finalUuid}_profile`).maybeSingle();
         let bioObj = {};
