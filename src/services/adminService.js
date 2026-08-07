@@ -247,6 +247,7 @@ export const loginSuperAdmin = async (email, password) => {
   throw new Error('Invalid Super Admin credentials');
 };
 
+
 /* ==========================================================================
    AUDIT LOGS
    ========================================================================== */
@@ -683,12 +684,15 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
     const finalUuid = isValidUuid(targetUuid) ? targetUuid : null;
 
     if (finalUuid) {
-      // 2. Ensure parent user_profiles record exists to satisfy foreign key constraint subscriptions_user_id_fkey
+      // 2. Ensure parent user_profiles record exists and is_subscribed is updated to true
       try {
         await supabase.from('user_profiles').upsert({
           id: finalUuid,
           ...(targetEmail ? { email: targetEmail } : {}),
           subscription_plan: plan,
+          is_subscribed: !isRevoke,
+          subscription_status: isRevoke ? 'EXPIRED' : 'ACTIVE',
+          subscription_expires_at: expiryDate.toISOString(),
           updated_at: now.toISOString()
         }, { onConflict: 'id' });
       } catch (pErr) {
