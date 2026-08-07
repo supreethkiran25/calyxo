@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { CheckCircle, AlertTriangle, Edit3, Flame, Beef, Wheat, Droplets, Leaf } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Edit3, Flame } from 'lucide-react';
 
 const MacroField = ({ label, value, onChange, unit = 'g', color }) => (
   <div className="space-y-1">
@@ -22,34 +22,40 @@ const MacroField = ({ label, value, onChange, unit = 'g', color }) => (
 );
 
 const FoodScanResult = ({ imagePreview, scanResult, onConfirm, onRetry, loading }) => {
-  const [foodName, setFoodName] = useState(scanResult.food_name);
-  const [calories, setCalories] = useState(scanResult.calories);
-  const [protein, setProtein] = useState(scanResult.protein_g);
-  const [carbs, setCarbs] = useState(scanResult.carbs_g);
-  const [fat, setFat] = useState(scanResult.fat_g);
-  const [fiber, setFiber] = useState(scanResult.fiber_g);
-  const [grams, setGrams] = useState(scanResult.estimated_grams);
+  const [foodName, setFoodName] = useState(scanResult?.food_name || 'Scanned Meal');
+  const [calories, setCalories] = useState(scanResult?.calories ?? 200);
+  const [protein, setProtein] = useState(scanResult?.protein_g ?? 0);
+  const [carbs, setCarbs] = useState(scanResult?.carbs_g ?? 0);
+  const [fat, setFat] = useState(scanResult?.fat_g ?? 0);
+  const [fiber, setFiber] = useState(scanResult?.fiber_g ?? 0);
+  const [grams, setGrams] = useState(scanResult?.estimated_grams ?? 100);
 
-  const isLowConfidence = scanResult.confidence === 'low';
-  const isMediumConfidence = scanResult.confidence === 'medium';
+  const confidence = scanResult?.confidence || 'medium';
+  const isLowConfidence = confidence === 'low';
+  const isMediumConfidence = confidence === 'medium';
 
   const handleLog = () => {
+    const numProt = typeof protein === 'number' ? protein : parseFloat(protein) || 0;
+    const numCarbs = typeof carbs === 'number' ? carbs : parseFloat(carbs) || 0;
+    const numFat = typeof fat === 'number' ? fat : parseFloat(fat) || 0;
+    const numFiber = typeof fiber === 'number' ? fiber : parseFloat(fiber) || 0;
+
     onConfirm({
-      food_name: foodName,
-      calories: Math.round(calories),
-      protein_g: parseFloat(protein.toFixed(1)),
-      carbs_g: parseFloat(carbs.toFixed(1)),
-      fat_g: parseFloat(fat.toFixed(1)),
-      fiber_g: parseFloat(fiber.toFixed(1)),
-      serving_size: `${grams}g`,
+      food_name: foodName || 'Scanned Meal',
+      calories: Math.round(Number(calories) || 0),
+      protein_g: parseFloat(numProt.toFixed(1)),
+      carbs_g: parseFloat(numCarbs.toFixed(1)),
+      fat_g: parseFloat(numFat.toFixed(1)),
+      fiber_g: parseFloat(numFiber.toFixed(1)),
+      serving_size: `${grams || 100}g`,
       scan_source: 'camera',
-      scan_confidence: scanResult.confidence
+      scan_confidence: confidence
     });
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="w-full sm:max-w-md bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl overflow-hidden max-h-[92vh] overflow-y-auto">
+      <div className="w-full sm:max-w-md bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl overflow-hidden max-h-[92vh] overflow-y-auto shadow-2xl">
 
         {/* Image strip */}
         {imagePreview && (
@@ -59,17 +65,17 @@ const FoodScanResult = ({ imagePreview, scanResult, onConfirm, onRetry, loading 
             <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between">
               <div>
                 <p className="text-[10px] text-neutral-400 uppercase tracking-wider">Detected</p>
-                <p className="text-white font-semibold text-sm leading-tight">{scanResult.food_name}</p>
+                <p className="text-white font-semibold text-sm leading-tight">{foodName}</p>
               </div>
               {/* Confidence badge */}
-              <span className={`text-[11px] font-medium px-2 py-0.5 rounded border ${
+              <span className={`text-[11px] font-medium px-2 py-0.5 rounded border capitalize ${
                 isLowConfidence
                   ? 'bg-red-500/20 text-red-400 border-red-500/30'
                   : isMediumConfidence
                     ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
                     : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
               }`}>
-                {scanResult.confidence} confidence
+                {confidence} confidence
               </span>
             </div>
           </div>
@@ -88,7 +94,7 @@ const FoodScanResult = ({ imagePreview, scanResult, onConfirm, onRetry, loading 
           )}
 
           {/* Notes from Gemini */}
-          {scanResult.notes && (
+          {scanResult?.notes && (
             <div className="px-3 py-2 rounded-lg bg-blue-500/5 border border-blue-500/20">
               <p className="text-xs text-blue-300">{scanResult.notes}</p>
             </div>
@@ -121,7 +127,7 @@ const FoodScanResult = ({ imagePreview, scanResult, onConfirm, onRetry, loading 
               />
               <span className="text-xs text-neutral-500">g</span>
               <span className="text-xs text-neutral-600 font-mono">
-                ({scanResult.serving_description})
+                ({scanResult?.serving_description || `~${grams}g`})
               </span>
             </div>
           </div>
@@ -156,14 +162,14 @@ const FoodScanResult = ({ imagePreview, scanResult, onConfirm, onRetry, loading 
             <button
               onClick={onRetry}
               disabled={loading}
-              className="flex-1 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-sm font-medium transition-colors disabled:opacity-50"
+              className="flex-1 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-sm font-medium transition-colors disabled:opacity-50 cursor-pointer"
             >
               Retake
             </button>
             <button
               onClick={handleLog}
               disabled={loading || !foodName}
-              className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? (
                 <span className="flex items-center gap-2">

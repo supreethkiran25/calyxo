@@ -1,40 +1,65 @@
 'use client';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { AlertCircle, RefreshCw, Upload, X } from 'lucide-react';
 import { scanFoodImage } from '@/lib/geminiVision';
 import { supabase } from '@/lib/supabaseClient';
 import { addFoodLog, getCurrentUserIdSync } from '@/lib/dbService';
 import CameraCapture from './CameraCapture';
 import FoodScanResult from './FoodScanResult';
 
-// States: idle → capturing → analysing → reviewing → logging → done
+// States: capturing → analysing → reviewing → error → logging → done
 const FoodScanner = ({ onClose, onLogged }) => {
   const [stage, setStage] = useState('capturing');
   const [imagePreview, setImagePreview] = useState(null);
+  const [rawBase64, setRawBase64] = useState(null);
   const [scanResult, setScanResult] = useState(null);
+  const [scanError, setScanError] = useState(null);
   const [logging, setLogging] = useState(false);
 
+  console.log(`[FoodScanner] Rendered stage: ${stage}, scanResult:`, scanResult ? scanResult.food_name : 'null');
+
   const handleCapture = async (base64Image, previewUrl) => {
+    console.log("[FoodScanner] handleCapture initiated.");
+    setRawBase64(base64Image);
     setImagePreview(previewUrl);
+    setScanError(null);
     setStage('analysing');
 
     try {
       const result = await scanFoodImage(base64Image);
+      console.log("[FoodScanner] Scan succeeded. Transitioning to 'reviewing'. Result:", result);
       setScanResult(result);
       setStage('reviewing');
     } catch (err) {
-      toast.error(err.message || 'Scan failed. Try again with a clearer photo.');
-      setStage('capturing');
+      console.error("[FoodScanner] Scan failed with error:", err.message);
+      const msg = err.message || 'Scan failed. Try again with a clearer photo.';
+      setScanError(msg);
+      toast.error(msg);
+      setStage('error');
+    }
+  };
+
+  const handleRetryAnalysis = () => {
+    console.log("[FoodScanner] Retrying analysis with existing image.");
+    if (rawBase64 && imagePreview) {
+      handleCapture(rawBase64, imagePreview);
+    } else {
+      handleRetry();
     }
   };
 
   const handleRetry = () => {
+    console.log("[FoodScanner] Resetting scanner state to 'capturing'.");
     setScanResult(null);
     setImagePreview(null);
+    setRawBase64(null);
+    setScanError(null);
     setStage('capturing');
   };
 
   const handleConfirmLog = async (logData) => {
+    console.log("[FoodScanner] Confirming log for meal:", logData.food_name);
     setLogging(true);
     try {
       let userId = null;
@@ -98,8 +123,8 @@ const FoodScanner = ({ onClose, onLogged }) => {
   // Analysing state (full-screen spinner)
   if (stage === 'analysing') {
     return (
-      <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center">
-        <div className="text-center space-y-4 p-8">
+      <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="text-center space-y-4 p-8 bg-neutral-900 border border-neutral-800 rounded-2xl max-w-sm w-full shadow-2xl">
           {imagePreview && (
             <div className="relative w-48 h-48 mx-auto rounded-2xl overflow-hidden shadow-2xl">
               <img src={imagePreview} alt="" className="w-full h-full object-cover" />
@@ -111,6 +136,58 @@ const FoodScanner = ({ onClose, onLogged }) => {
           <div>
             <p className="text-white font-semibold text-sm">Analysing food...</p>
             <p className="text-neutral-400 text-xs mt-1">Gemini Vision is identifying the meal</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state (preserve image, display error, offer retry)
+  if (stage === 'error') {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="w-full max-w-sm bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-2xl">
+          <div className="flex items-center justify-between p-4 border-b border-neutral-800">
+            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-400" />
+              Scan Error
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg bg-neutral-800 text-neutral-400 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="p-5 space-y-4">
+            {imagePreview && (
+              <div className="relative h-40 rounded-xl overflow-hidden border border-neutral-800">
+                <img src={imagePreview} alt="Captured food" className="w-full h-full object-cover" />
+              </div>
+            )}
+
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 space-y-1">
+              <p className="font-semibold">Analysis Notice</p>
+              <p className="text-[11px] opacity-90">{scanError || 'Could not identify meal. Please retry with clearer lighting.'}</p>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-1">
+              <button
+                onClick={handleRetryAnalysis}
+                className="flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors cursor-pointer"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Retry Analysis
+              </button>
+              <button
+                onClick={handleRetry}
+                className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-medium transition-colors cursor-pointer"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                Upload Different Photo
+              </button>
+            </div>
           </div>
         </div>
       </div>

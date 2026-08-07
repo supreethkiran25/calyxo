@@ -25,8 +25,38 @@ Rules:
 - If the image is too dark or blurry to identify: {"error": "unclear_image"}
 - All numeric values must be realistic — do not fabricate extreme values`;
 
+function extractJsonFromText(rawText) {
+  if (!rawText) return null;
+
+  // Step 1: Strip markdown fences if present
+  let clean = rawText.replace(/```json|```/gi, '').trim();
+
+  // Direct JSON parse attempt
+  try {
+    return JSON.parse(clean);
+  } catch (e) {
+    // Step 2: Extract JSON object substring using Regex
+    const jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch (err) {
+        console.warn("[FoodScan] Regex JSON parse error:", err);
+      }
+    }
+  }
+  return null;
+}
+
 export async function scanFoodImage(base64Image) {
+  console.log("[FoodScan] Starting image scan. Base64 payload size:", base64Image?.length || 0);
+
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    console.error("[FoodScan] Gemini API Key is missing");
+    throw new Error('Gemini API key is not configured. Please check your environment settings.');
+  }
 
   const payload = {
     contents: [{
@@ -52,6 +82,7 @@ export async function scanFoodImage(base64Image) {
   // Try direct fetch first with model fallback
   for (const modelName of modelsToTry) {
     try {
+      console.log(`[FoodScan] Querying Gemini model: ${modelName}`);
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -62,16 +93,23 @@ export async function scanFoodImage(base64Image) {
       if (response.ok) {
         const data = await response.json();
         rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (rawText) break;
+        if (rawText) {
+          console.log(`[FoodScan] Received response from model ${modelName}`);
+          break;
+        }
+      } else {
+        const errJson = await response.json().catch(() => ({}));
+        console.warn(`[FoodScan] Model ${modelName} returned status ${response.status}:`, errJson);
       }
     } catch (e) {
-      console.warn(`Direct fetch failed for ${modelName}`, e);
+      console.warn(`[FoodScan] Direct fetch error for ${modelName}:`, e);
     }
   }
 
   // Fallback to local serverless proxy /api/gemini if direct call was blocked
   if (!rawText) {
     try {
+      console.log("[FoodScan] Attempting serverless proxy fallback: /api/gemini");
       const proxyRes = await fetch('/api/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -80,49 +118,64 @@ export async function scanFoodImage(base64Image) {
       if (proxyRes.ok) {
         const data = await proxyRes.json();
         rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        console.log("[FoodScan] Received response from proxy");
+      } else {
+        const pErr = await proxyRes.json().catch(() => ({}));
+        console.warn("[FoodScan] Proxy returned status:", proxyRes.status, pErr);
       }
     } catch (e) {
-      console.warn("Proxy fallback error", e);
+      console.warn("[FoodScan] Proxy fallback exception:", e);
     }
   }
 
-  if (!rawText) throw new Error('No response from Gemini Vision. Try again with a clearer photo.');
-
-  // Strip any accidental markdown fences
-  const clean = rawText.replace(/```json|```/gi, '').trim();
-
-  let parsed;
-  try {
-    parsed = JSON.parse(clean);
-  } catch {
-    throw new Error('Gemini returned invalid JSON — try again');
+  if (!rawText) {
+    console.error("[FoodScan] All Gemini API endpoints failed to return text.");
+    throw new Error('Gemini API unreachable. Please check your internet connection and try again.');
   }
 
+  console.log("[FoodScan] Raw response text:", rawText);
+
+  const parsed = extractJsonFromText(rawText);
+
+  if (!parsed) {
+    console.error("[FoodScan] Failed to parse JSON from Gemini text output.");
+    throw new Error('Gemini returned unformatted response. Please retry with a clearer photo.');
+  }
+
+  console.log("[FoodScan] Parsed JSON object:", parsed);
+
   if (parsed.error === 'not_food') {
-    throw new Error('No food detected in this image. Try again with a clearer photo.');
+    throw new Error('No food detected in this image. Try again with a clearer photo of a meal.');
   }
   if (parsed.error === 'unclear_image') {
     throw new Error('Image too dark or blurry. Move to better lighting and try again.');
   }
 
-  // Validate required fields
-  const required = ['food_name', 'calories', 'protein_g', 'carbs_g', 'fat_g'];
-  for (const field of required) {
-    if (parsed[field] === undefined || parsed[field] === null) {
-      throw new Error(`Incomplete scan result — missing ${field}. Try again.`);
-    }
-  }
+  // Map field variants with safe defaults
+  const foodName = parsed.food_name || parsed.foodName || parsed.name || parsed.item || "Scanned Meal";
+  const calories = Number(parsed.calories ?? parsed.energy ?? parsed.kcal) || 200;
+  const protein = Number(parsed.protein_g ?? parsed.protein ?? parsed.proteinGrams) || 0;
+  const carbs = Number(parsed.carbs_g ?? parsed.carbs ?? parsed.carbohydrates) || 0;
+  const fat = Number(parsed.fat_g ?? parsed.fat ?? parsed.fats) || 0;
+  const fiber = Number(parsed.fiber_g ?? parsed.fiber) || 0;
+  const grams = Number(parsed.estimated_grams ?? parsed.grams ?? parsed.weight) || 100;
+  const confidence = parsed.confidence || 'medium';
+  const serving = parsed.serving_description || parsed.serving || parsed.portion || `~${grams}g`;
+  const notes = parsed.notes || null;
 
-  return {
-    food_name: parsed.food_name,
-    estimated_grams: parsed.estimated_grams || 100,
-    confidence: parsed.confidence || 'medium',
-    calories: Math.round(parsed.calories),
-    protein_g: parseFloat((parsed.protein_g || 0).toFixed(1)),
-    carbs_g: parseFloat((parsed.carbs_g || 0).toFixed(1)),
-    fat_g: parseFloat((parsed.fat_g || 0).toFixed(1)),
-    fiber_g: parseFloat((parsed.fiber_g || 0).toFixed(1)),
-    serving_description: parsed.serving_description || `~${parsed.estimated_grams || 100}g`,
-    notes: parsed.notes || null
+  const finalResult = {
+    food_name: foodName,
+    estimated_grams: grams,
+    confidence: confidence,
+    calories: Math.round(calories),
+    protein_g: parseFloat(protein.toFixed(1)),
+    carbs_g: parseFloat(carbs.toFixed(1)),
+    fat_g: parseFloat(fat.toFixed(1)),
+    fiber_g: parseFloat(fiber.toFixed(1)),
+    serving_description: serving,
+    notes: notes
   };
+
+  console.log("[FoodScan] Final mapped scan result:", finalResult);
+  return finalResult;
 }
