@@ -48,6 +48,81 @@ function extractJsonFromText(rawText) {
   return null;
 }
 
+function parseGeminiStatusError(status, data, defaultMsg) {
+  const geminiMessage = data?.error?.message || data?.message;
+
+  if (status === 429) {
+    return "You've reached the Gemini API rate limit. Please wait a minute and try again, or upgrade your API quota.";
+  }
+  if (status === 400) {
+    return geminiMessage || "Invalid image payload or request parameters. Try taking another photo.";
+  }
+  if (status === 401) {
+    return "Invalid Gemini API key. Please check your environment key configuration.";
+  }
+  if (status === 403) {
+    return "Access denied to Gemini API. Check API key permissions and billing status.";
+  }
+  if (status === 404) {
+    return "Requested Gemini model endpoint was not found.";
+  }
+  if (status === 408) {
+    return "Request timed out while analyzing image. Please try again.";
+  }
+  if (status === 413) {
+    return "Image payload size is too large. Image rescaled automatically.";
+  }
+  if (status === 500 || status === 503) {
+    return geminiMessage || "Gemini AI service is temporarily busy or unavailable. Retrying...";
+  }
+
+  return geminiMessage || defaultMsg || `Gemini API error (HTTP ${status}).`;
+}
+
+async function fetchWithRetry(url, options, maxRetries = 2) {
+  let attempt = 0;
+  while (attempt <= maxRetries) {
+    try {
+      console.log(`[FoodScan] Requesting ${url} (Attempt ${attempt + 1}/${maxRetries + 1})`);
+      const response = await fetch(url, options);
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        return { ok: true, status: response.status, data, text: data.candidates[0].content.parts[0].text };
+      }
+
+      const status = response.status;
+      const isRateLimitOrBusy = status === 429 || status === 503;
+
+      if (isRateLimitOrBusy && attempt < maxRetries) {
+        const retryAfterHeader = response.headers.get('Retry-After') || response.headers.get('retry-after-ms');
+        let delayMs = Math.pow(2, attempt) * 1500;
+        if (retryAfterHeader) {
+          const parsedHeader = parseInt(retryAfterHeader);
+          if (!isNaN(parsedHeader)) {
+            delayMs = parsedHeader > 100 ? parsedHeader : parsedHeader * 1000;
+          }
+        }
+        console.warn(`[FoodScan] HTTP ${status} rate limit. Exponential backoff delay ${delayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        attempt++;
+        continue;
+      }
+
+      return { ok: false, status, data };
+    } catch (e) {
+      if (attempt < maxRetries) {
+        const delayMs = Math.pow(2, attempt) * 1500;
+        console.warn(`[FoodScan] Network exception: ${e.message}. Retrying in ${delayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        attempt++;
+        continue;
+      }
+      return { ok: false, status: 0, error: e };
+    }
+  }
+}
+
 export async function scanFoodImage(base64Image) {
   // Sanitize base64 string for Android / Web compatibility
   const cleanBase64 = (base64Image || '')
@@ -83,63 +158,67 @@ export async function scanFoodImage(base64Image) {
   );
 
   let rawText = null;
+  let lastStatus = 0;
+  let lastData = null;
 
   // 1. Try local serverless proxy /api/gemini first ONLY on browser web (skip relative fetch on Capacitor Android)
   if (!isNativeCapacitor) {
     try {
       console.log("[FoodScan] Querying backend proxy /api/gemini...");
-      const proxyRes = await fetch('/api/gemini', {
+      const result = await fetchWithRetry('/api/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: 'gemini-2.5-flash', payload })
-      });
+      }, 1);
 
-      if (proxyRes.ok) {
-        const data = await proxyRes.json();
-        rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (rawText) {
-          console.log("[FoodScan] Successfully received text from /api/gemini proxy.");
-        }
+      if (result.ok && result.text) {
+        rawText = result.text;
+        console.log("[FoodScan] Successfully received text from /api/gemini proxy.");
       } else {
-        const pErr = await proxyRes.json().catch(() => ({}));
-        console.warn("[FoodScan] Proxy returned status:", proxyRes.status, pErr);
+        lastStatus = result.status;
+        lastData = result.data;
+        console.warn(`[FoodScan] Proxy query failed with status ${result.status}`);
       }
     } catch (e) {
       console.warn("[FoodScan] Proxy fetch exception:", e.message);
     }
   }
 
-  // 2. Direct Gemini REST API fetch with model retries (Primary for Android Capacitor, fallback for Web)
+  // 2. Direct Gemini REST API fetch with model retries & backoff (Primary for Android Capacitor, fallback for Web)
   if (!rawText) {
     const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
 
     for (const modelName of modelsToTry) {
-      try {
-        console.log(`[FoodScan] Direct query to model: ${modelName} (isNative: ${isNativeCapacitor})`);
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+      console.log(`[FoodScan] Querying Gemini endpoint model: ${modelName} (isNative: ${isNativeCapacitor})`);
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      
+      const result = await fetchWithRetry(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }, 1);
 
-        const data = await response.json();
-        if (response.ok && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-          rawText = data.candidates[0].content.parts[0].text;
-          console.log(`[FoodScan] Received response from direct model ${modelName}`);
+      if (result.ok && result.text) {
+        rawText = result.text;
+        console.log(`[FoodScan] Received response from direct model ${modelName}`);
+        break;
+      } else {
+        lastStatus = result.status || lastStatus;
+        lastData = result.data || lastData;
+        console.warn(`[FoodScan] Direct model ${modelName} status ${result.status}`);
+
+        // If rate limit (429), break model loop to show rate limit error immediately
+        if (result.status === 429) {
           break;
-        } else if (data?.error) {
-          console.warn(`[FoodScan] Direct model ${modelName} error:`, data.error);
         }
-      } catch (e) {
-        console.warn(`[FoodScan] Direct fetch exception for ${modelName}:`, e.message);
       }
     }
   }
 
   if (!rawText) {
-    console.error("[FoodScan] All Gemini API endpoints failed to return text.");
-    throw new Error('Gemini API unreachable. Please check network connection and API key configuration.');
+    console.error("[FoodScan] All Gemini API endpoints failed. Status:", lastStatus, lastData);
+    const specificError = parseGeminiStatusError(lastStatus, lastData, 'Gemini API unreachable. Please check your connection and API key configuration.');
+    throw new Error(specificError);
   }
 
   console.log("[FoodScan] Raw response text:", rawText);
