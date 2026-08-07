@@ -114,7 +114,7 @@ async function callGeminiAPI(model = 'gemini-2.5-flash', payload) {
   }
 
   // 2. Direct fallback to Google Gemini REST API
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || (typeof process !== 'undefined' && process.env ? (process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY) : '') || 'AIzaSyC_kwCmfgILI3UirtKpyxnhTNDhXMHvsZ4';
+  const apiKey = (typeof process !== 'undefined' && process.env ? (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY) : '') || '';
 
   const modelsToTry = Array.from(new Set([model, 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']));
   let lastError = null;

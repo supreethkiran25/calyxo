@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     model = 'gemini-2.5-flash';
   }
   
-  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || 'AIzaSyC_kwCmfgILI3UirtKpyxnhTNDhXMHvsZ4';
+  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
   const modelsToTry = [model, 'gemini-1.5-flash', 'gemini-2.0-flash'];
   let lastData = null;

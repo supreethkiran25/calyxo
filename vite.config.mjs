@@ -15,11 +15,12 @@ export default defineConfig(({ mode }) => {
       {
         name: 'local-api-proxy',
         configureServer(server) {
-          server.middlewares.use('/api/gemini', async (req, res) => {
+          // Proxy /api/food-scan locally for dev environment
+          server.middlewares.use('/api/food-scan', async (req, res) => {
             if (req.method !== 'POST') {
               res.statusCode = 405;
               res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({ error: 'Method not allowed' }));
+              res.end(JSON.stringify({ error: { message: 'Method not allowed' } }));
               return;
             }
 
@@ -28,43 +29,104 @@ export default defineConfig(({ mode }) => {
             req.on('end', async () => {
               try {
                 const body = JSON.parse(bodyStr || '{}');
-                let { model = 'gemini-2.5-flash', payload } = body;
-                if (!model) {
-                  model = 'gemini-2.5-flash';
-                }
+                const { base64Image, requestId } = body;
                 const apiKey = env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
                 if (!apiKey) {
                   res.statusCode = 500;
                   res.setHeader('Content-Type', 'application/json');
-                  res.end(JSON.stringify({ error: { message: 'Server Gemini API key is not configured.' } }));
+                  res.end(JSON.stringify({ error: { message: 'Gemini API key is not configured on server.' } }));
                   return;
                 }
 
-                const modelsToTry = Array.from(new Set([model, 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-3.5-flash']));
-                let lastData = null;
-                let lastStatus = 500;
+                const cleanBase64 = (base64Image || '')
+                  .replace(/^data:image\/[a-z]+;base64,/, '')
+                  .replace(/[\r\n\s]/g, '');
 
-                for (const targetModel of modelsToTry) {
-                  const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`;
-                  const fetchRes = await fetch(googleUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                  });
+                const FOOD_SCAN_PROMPT = `You are a nutrition analysis AI. Analyse this food image.
+Return ONLY a valid JSON object — no markdown, no backticks, no explanation.
 
-                  const data = await fetchRes.json();
-                  lastStatus = fetchRes.status;
-                  lastData = data;
+Required format:
+{
+  "food_name": "string (specific name, e.g. 'Butter Chicken with Basmati Rice')",
+  "estimated_grams": number (realistic portion weight in grams),
+  "confidence": "high" | "medium" | "low",
+  "calories": number (kcal),
+  "protein_g": number,
+  "carbs_g": number,
+  "fat_g": number,
+  "fiber_g": number,
+  "serving_description": "string (e.g. '1 bowl ~300g' or '2 rotis ~120g')",
+  "notes": "string or null (e.g. 'Multiple items detected, showing dominant item' or 'Home-cooked estimate')"
+}`;
 
-                  if (fetchRes.ok && data && !data.error) {
-                    break;
+                const payload = {
+                  contents: [{
+                    parts: [
+                      { inlineData: { mimeType: 'image/jpeg', data: cleanBase64 } },
+                      { text: FOOD_SCAN_PROMPT }
+                    ]
+                  }],
+                  generationConfig: { temperature: 0.1, maxOutputTokens: 512 }
+                };
+
+                const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+                const fetchRes = await fetch(googleUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
+
+                const data = await fetchRes.json().catch(() => ({}));
+                res.statusCode = fetchRes.status;
+                res.setHeader('Content-Type', 'application/json');
+
+                if (!fetchRes.ok) {
+                  if (fetchRes.status === 429) {
+                    res.end(JSON.stringify({
+                      error: {
+                        code: 429,
+                        message: "You've reached the Gemini API rate limit. Please wait a minute and try again, or upgrade your API quota."
+                      }
+                    }));
+                    return;
+                  }
+                  res.end(JSON.stringify(data));
+                  return;
+                }
+
+                const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                let cleanText = (rawText || '').replace(/```json|```/gi, '').trim();
+                let parsed = null;
+                try {
+                  parsed = JSON.parse(cleanText);
+                } catch {
+                  const match = cleanText.match(/\{[\s\S]*\}/);
+                  if (match) {
+                    try { parsed = JSON.parse(match[0]); } catch {}
                   }
                 }
 
-                res.statusCode = lastStatus;
-                res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify(lastData));
+                if (!parsed) {
+                  res.statusCode = 422;
+                  res.end(JSON.stringify({ error: { message: 'Failed to parse structured nutrition JSON from Gemini response.' } }));
+                  return;
+                }
+
+                const result = {
+                  food_name: parsed.food_name || parsed.name || "Scanned Meal",
+                  estimated_grams: Number(parsed.estimated_grams || parsed.grams) || 100,
+                  confidence: parsed.confidence || 'medium',
+                  calories: Math.round(Number(parsed.calories) || 200),
+                  protein_g: parseFloat((Number(parsed.protein_g || parsed.protein) || 0).toFixed(1)),
+                  carbs_g: parseFloat((Number(parsed.carbs_g || parsed.carbs) || 0).toFixed(1)),
+                  fat_g: parseFloat((Number(parsed.fat_g || parsed.fat) || 0).toFixed(1)),
+                  fiber_g: parseFloat((Number(parsed.fiber_g || parsed.fiber) || 0).toFixed(1)),
+                  serving_description: parsed.serving_description || `~${parsed.estimated_grams || 100}g`,
+                  notes: parsed.notes || null
+                };
+
+                res.end(JSON.stringify({ success: true, result }));
               } catch (err) {
                 res.statusCode = 500;
                 res.setHeader('Content-Type', 'application/json');
@@ -76,10 +138,8 @@ export default defineConfig(({ mode }) => {
       }
     ],
     define: {
-      'process.env': JSON.stringify(env),
       'process.env.NEXT_PUBLIC_SUPABASE_URL': JSON.stringify(env.NEXT_PUBLIC_SUPABASE_URL || ''),
       'process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY': JSON.stringify(env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''),
-      'process.env.NEXT_PUBLIC_GEMINI_API_KEY': JSON.stringify(env.NEXT_PUBLIC_GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || ''),
     },
     esbuild: {
       loader: 'jsx',
@@ -109,14 +169,11 @@ export default defineConfig(({ mode }) => {
               if (id.includes('framer-motion')) {
                 return 'vendor-framer';
               }
-              if (id.includes('recharts') || id.includes('d3')) {
-                return 'vendor-charts';
-              }
               if (id.includes('@supabase')) {
                 return 'vendor-supabase';
               }
-              if (id.includes('lucide-react')) {
-                return 'vendor-icons';
+              if (id.includes('recharts') || id.includes('lucide-react')) {
+                return 'vendor-charts';
               }
               return 'vendor';
             }
