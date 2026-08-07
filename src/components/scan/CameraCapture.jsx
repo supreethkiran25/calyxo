@@ -58,17 +58,17 @@ const CameraCapture = ({ onCapture, onClose }) => {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0);
 
-    canvas.toBlob((blob) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result.split(',')[1];
-        setCapturedImage(reader.result); // full data URL for preview
-        setCapturedBlob(base64);         // base64 for Gemini
-        setMode('preview');
-        stopCamera();
-      };
-      reader.readAsDataURL(blob);
-    }, 'image/jpeg', 0.85);
+    try {
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      const base64 = dataUrl.split(',')[1];
+      setCapturedImage(dataUrl);
+      setCapturedBlob(base64);
+      setMode('preview');
+      stopCamera();
+      onCapture(base64, dataUrl);
+    } catch (err) {
+      console.error("Frame capture error", err);
+    }
   };
 
   // Handle file upload
@@ -76,7 +76,7 @@ const CameraCapture = ({ onCapture, onClose }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Compress to max 1MB before sending to Gemini
+    // Compress to max 1024px before sending to Gemini
     const reader = new FileReader();
     reader.onloadend = () => {
       const img = new Image();
@@ -84,19 +84,21 @@ const CameraCapture = ({ onCapture, onClose }) => {
         const canvas = document.createElement('canvas');
         const MAX = 1024;
         const scale = Math.min(1, MAX / Math.max(img.width, img.height));
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob((blob) => {
-          const r2 = new FileReader();
-          r2.onloadend = () => {
-            const base64 = r2.result.split(',')[1];
-            setCapturedImage(r2.result);
-            setCapturedBlob(base64);
-            setMode('preview');
-          };
-          r2.readAsDataURL(blob);
-        }, 'image/jpeg', 0.85);
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        try {
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          const base64 = dataUrl.split(',')[1];
+          setCapturedImage(dataUrl);
+          setCapturedBlob(base64);
+          setMode('preview');
+          onCapture(base64, dataUrl);
+        } catch (err) {
+          console.error("Image processing error", err);
+        }
       };
       img.src = reader.result;
     };

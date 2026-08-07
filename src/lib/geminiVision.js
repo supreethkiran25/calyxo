@@ -27,38 +27,66 @@ Rules:
 
 export async function scanFoodImage(base64Image) {
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{
-        parts: [
-          {
-            inline_data: {
-              mime_type: 'image/jpeg',
-              data: base64Image
-            }
-          },
-          { text: FOOD_SCAN_PROMPT }
-        ]
-      }],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 512
+  const payload = {
+    contents: [{
+      parts: [
+        {
+          inline_data: {
+            mime_type: 'image/jpeg',
+            data: base64Image
+          }
+        },
+        { text: FOOD_SCAN_PROMPT }
+      ]
+    }],
+    generationConfig: {
+      temperature: 0.1,
+      maxOutputTokens: 512
+    }
+  };
+
+  const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
+  let rawText = null;
+
+  // Try direct fetch first with model fallback
+  for (const modelName of modelsToTry) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText) break;
       }
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`Gemini API error: ${response.status}`);
+    } catch (e) {
+      console.warn(`Direct fetch failed for ${modelName}`, e);
+    }
   }
 
-  const data = await response.json();
-  const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  // Fallback to local serverless proxy /api/gemini if direct call was blocked
+  if (!rawText) {
+    try {
+      const proxyRes = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'gemini-2.0-flash', payload })
+      });
+      if (proxyRes.ok) {
+        const data = await proxyRes.json();
+        rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      }
+    } catch (e) {
+      console.warn("Proxy fallback error", e);
+    }
+  }
 
-  if (!rawText) throw new Error('No response from Gemini Vision');
+  if (!rawText) throw new Error('No response from Gemini Vision. Try again with a clearer photo.');
 
   // Strip any accidental markdown fences
   const clean = rawText.replace(/```json|```/gi, '').trim();
