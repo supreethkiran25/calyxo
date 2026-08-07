@@ -78,6 +78,30 @@ CREATE TABLE IF NOT EXISTS public.food_logs (
 
 ALTER TABLE public.food_logs ENABLE ROW LEVEL SECURITY;
 
+-- 4b. AI Food Scan Nutrition Logs Table
+CREATE TABLE IF NOT EXISTS public.nutrition_logs (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  food_name text NOT NULL,
+  calories integer,
+  protein_g numeric,
+  carbs_g numeric,
+  fat_g numeric,
+  fiber_g numeric,
+  serving_size text,
+  logged_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  scan_source text DEFAULT 'manual',
+  scan_confidence text DEFAULT NULL
+);
+
+COMMENT ON COLUMN public.nutrition_logs.scan_source IS 'manual | camera';
+COMMENT ON COLUMN public.nutrition_logs.scan_confidence IS 'high | medium | low | null for manual entries';
+
+ALTER TABLE public.nutrition_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.nutrition_logs ADD COLUMN IF NOT EXISTS scan_source TEXT DEFAULT 'manual';
+ALTER TABLE public.nutrition_logs ADD COLUMN IF NOT EXISTS scan_confidence TEXT DEFAULT NULL;
+
+
 -- 5. User Workout Logs Table
 CREATE TABLE IF NOT EXISTS public.workout_logs (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,

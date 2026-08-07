@@ -17,10 +17,11 @@ import { useEcosystemStore } from '../store/useEcosystemStore';
 import { INDIAN_FOODS } from '../lib/indianFoods';
 import { 
   Plus, Search, BookOpen, Trash2, Sparkles, Check, X, ShieldAlert, 
-  ShoppingBag, Star, ChevronLeft, ChevronRight, Calendar, Edit2, Pencil 
+  ShoppingBag, Star, ChevronLeft, ChevronRight, Calendar, Edit2, Pencil, Scan
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getTodayDateString, formatDateToLocalString, isSameLocalDate } from '../utils/dateUtils';
+import FoodScanner from './scan/FoodScanner';
 
 const FOODS_CATALOG = [
   { name: "Scrambled Eggs (2 large)", calories: 140, protein: 12, carbs: 1, fat: 10, fiber: 0, sugar: 0, sodium: 180 },
@@ -252,6 +253,19 @@ export default function FoodTracker({ onNotification }) {
   const [groceryList, setGroceryList] = useState([]);
   const [generatingGrocery, setGeneratingGrocery] = useState(false);
   const [assignedMealPlans, setAssignedMealPlans] = useState([]);
+
+  // Scanner Modal State
+  const [scannerOpen, setScannerOpen] = useState(false);
+
+  const refetchFoodLogs = async () => {
+    if (!userId) return;
+    try {
+      const data = await getFoodLogs(userId);
+      setFoodLogs(data || []);
+    } catch (err) {
+      console.error("Error refreshing food logs", err);
+    }
+  };
 
   // Hydrate Initial Food state & Trainer Assignments
   useEffect(() => {
@@ -648,8 +662,20 @@ export default function FoodTracker({ onNotification }) {
               {/* Log meal search column */}
               <div className="space-y-6">
                 <section className="glass rounded-2xl p-6 relative">
-                  <h2 className="text-xs font-bold text-foreground uppercase tracking-wider mb-1">Search Foods & Log</h2>
-                  <p className="text-muted text-[10px] uppercase font-bold tracking-wider mb-4">Select items to track macros ({formatDisplayDate(selectedDate)})</p>
+                  <div className="flex items-center justify-between gap-2 mb-4">
+                    <div>
+                      <h2 className="text-xs font-bold text-foreground uppercase tracking-wider mb-0.5">Search Foods & Log</h2>
+                      <p className="text-muted text-[10px] uppercase font-bold tracking-wider">Select items to track macros ({formatDisplayDate(selectedDate)})</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setScannerOpen(true)}
+                      className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 text-xs font-semibold transition-colors cursor-pointer shrink-0"
+                    >
+                      <Scan className="w-4 h-4 text-blue-400" />
+                      Scan food
+                    </button>
+                  </div>
 
                   <div ref={dropdownRef} className="relative">
                     <div className="relative flex items-center">
@@ -1137,6 +1163,27 @@ export default function FoodTracker({ onNotification }) {
           </div>
         )}
       </AnimatePresence>
+
+      {scannerOpen && (
+        <FoodScanner
+          onClose={() => setScannerOpen(false)}
+          onLogged={(scannedMeal) => {
+            if (scannedMeal) {
+              addFoodLogStore({
+                id: 'scan-' + Date.now(),
+                name: scannedMeal.food_name,
+                calories: scannedMeal.calories,
+                protein: scannedMeal.protein_g,
+                carbs: scannedMeal.carbs_g,
+                fat: scannedMeal.fat_g,
+                portionWeight: parseInt(scannedMeal.serving_size) || 100,
+                timestamp: Date.now()
+              });
+            }
+            refetchFoodLogs();
+          }}
+        />
+      )}
 
     </div>
   );

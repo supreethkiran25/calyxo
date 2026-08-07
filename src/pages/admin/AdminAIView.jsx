@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, Cpu, ThumbsUp, ThumbsDown, MessageSquare, RefreshCw } from 'lucide-react';
+import { Bot, Cpu, ThumbsUp, ThumbsDown, MessageSquare, RefreshCw, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminSettings, saveAdminSettings, getAdminTrainingLogs } from '../../services/adminService';
 import { supabase } from '../../lib/supabaseClient';
@@ -13,20 +13,27 @@ const AdminAIView = () => {
   const [loading, setLoading] = useState(true);
   const [trainingLogs, setTrainingLogs] = useState([]);
   const [chatSessionCount, setChatSessionCount] = useState(0);
+  const [scanStats, setScanStats] = useState({ totalScans: 0, scanAccuracy: 0 });
 
   const loadAiData = async () => {
     setLoading(true);
     try {
-      const [settings, logs, sessionsRes] = await Promise.all([
+      const [settings, logs, sessionsRes, scanRes] = await Promise.all([
         getAdminSettings(),
         getAdminTrainingLogs(),
-        supabase.from('chat_sessions').select('*', { count: 'exact', head: true })
+        supabase.from('chat_sessions').select('*', { count: 'exact', head: true }),
+        supabase.from('nutrition_logs').select('scan_confidence', { count: 'exact' }).eq('scan_source', 'camera')
       ]);
 
       if (settings?.active_ai_model) setModel(settings.active_ai_model);
       if (settings?.ai_system_prompt) setSystemPrompt(settings.ai_system_prompt);
       setTrainingLogs(logs || []);
       if (sessionsRes?.count !== null) setChatSessionCount(sessionsRes.count || 0);
+
+      const totalScans = scanRes.count || (scanRes.data ? scanRes.data.length : 0);
+      const highConfScans = (scanRes.data || []).filter(r => r.scan_confidence === 'high').length;
+      const scanAccuracy = totalScans > 0 ? Math.round((highConfScans / totalScans) * 100) : 0;
+      setScanStats({ totalScans, scanAccuracy });
     } catch (err) {
       // Non-fatal error handling
     } finally {
@@ -92,7 +99,7 @@ const AdminAIView = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
@@ -124,6 +131,17 @@ const AdminAIView = () => {
           </div>
           <div className="text-sm font-medium text-white truncate mt-1">{model}</div>
           <div className="text-[11px] text-neutral-500">Google Gemini API</div>
+        </div>
+
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
+              Food scans
+            </span>
+            <Camera className="w-4 h-4 text-neutral-600" />
+          </div>
+          <div className="text-2xl font-semibold text-white">{scanStats.totalScans}</div>
+          <div className="text-[11px] text-neutral-500">{scanStats.scanAccuracy}% high confidence</div>
         </div>
 
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-1">
