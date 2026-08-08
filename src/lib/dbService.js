@@ -335,11 +335,23 @@ export const signOutUser = async () => {
     }
   } catch (e) {}
 
-  if (isMockMode) {
+  if (typeof window !== 'undefined') {
     localStorage.removeItem("calyxo_mock_user");
-    return;
+    localStorage.removeItem("calyxo_user");
+    localStorage.removeItem("calyxo_user_profile");
+    sessionStorage.clear();
   }
-  await supabase.auth.signOut();
+
+  try {
+    const { useStore } = await import('../store/useStore');
+    useStore.getState().resetStore();
+  } catch (e) {}
+
+  if (!isMockMode) {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {}
+  }
 };
 
 export const sendPasswordReset = async (email) => {

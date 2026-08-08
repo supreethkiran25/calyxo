@@ -1,25 +1,50 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { isSuperAdmin } from '../../services/adminService';
+import { isSuperAdmin, verifyAdminAccessRPC } from '../../services/adminService';
+import LaunchScreen from '../LaunchScreen';
 
 const AdminGuard = ({ children }) => {
-  const checkAdminAuth = () => {
-    try {
-      const savedSession = JSON.parse(localStorage.getItem('calyxo_admin_session') || '{}');
-      return isSuperAdmin(savedSession);
-    } catch (e) {
-      return false;
-    }
-  };
-
-  const [authorized, setAuthorized] = useState(checkAdminAuth);
+  const [authStatus, setAuthStatus] = useState({
+    loading: true,
+    authorized: false
+  });
 
   useEffect(() => {
-    setAuthorized(checkAdminAuth());
+    let mounted = true;
+
+    const verify = async () => {
+      let isAuth = false;
+      try {
+        const savedSession = JSON.parse(localStorage.getItem('calyxo_admin_session') || '{}');
+        if (savedSession && isSuperAdmin(savedSession)) {
+          isAuth = true;
+        } else {
+          isAuth = await verifyAdminAccessRPC();
+        }
+      } catch (e) {
+        isAuth = false;
+      }
+
+      if (mounted) {
+        setAuthStatus({
+          loading: false,
+          authorized: isAuth
+        });
+      }
+    };
+
+    verify();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  // If unauthenticated for admin portal, redirect to /admin/login
-  if (!authorized) {
+  if (authStatus.loading) {
+    return <LaunchScreen isLoading={true} />;
+  }
+
+  if (!authStatus.authorized) {
     return <Navigate to="/admin/login" replace />;
   }
 

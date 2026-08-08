@@ -6,6 +6,7 @@ import LaunchScreen from './components/LaunchScreen';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 import { useStore } from './store/useStore';
 import AdminGuard from './components/admin/AdminGuard';
+import UserGuard from './components/UserGuard';
 
 // Layout — lazy loaded with chunk retry protection
 const UserLayout = lazyWithRetry(() => import('./layouts/UserLayout'));
@@ -70,7 +71,7 @@ function App() {
               <Route path="/admin/login" element={<AdminLoginPage />} />
 
               {/* User Routes */}
-              <Route path="/user" element={<UserLayout />}>
+              <Route path="/user" element={<UserGuard><UserLayout /></UserGuard>}>
                 <Route path="dashboard" element={<UserDashboardPage />} />
                 <Route path="nutrition" element={<UserNutritionPage />} />
                 <Route path="workout" element={<UserWorkoutPage />} />

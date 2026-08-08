@@ -206,11 +206,6 @@ export default function UserLayout() {
         if (water !== undefined && water !== null) setWaterIntake(water);
         if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
         useEcosystemStore.getState().checkDailyLoginStreak();
-      } else {
-        const storeUser = useStore.getState().user;
-        if (!storeUser) {
-          window.location.href = '/';
-        }
       }
     });
 
