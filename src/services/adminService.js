@@ -1581,24 +1581,26 @@ export const saveAdminSettings = async (settings) => {
 /* ==========================================================================
    LIVE DASHBOARD METRICS FROM REAL SUPABASE QUERIES & RAZORPAY TRANSACTIONS
    ========================================================================== */
-export const getAdminDashboardMetrics = async () => {
-  let liveUserCount = 0;
-  let liveHighPlanCount = 0;
+export const getAdminDashboardMetrics = async (dateRange = 'ALL') => {
+  const usersRes = await getAdminUsers({ limit: 10000 });
+  const allUsers = usersRes.users || [];
+  const totalUsers = allUsers.length;
+  const premiumUsers = allUsers.filter(u => u.subscription_plan === 'HIGH' || u.subscription_plan === 'HIGH_ANNUAL').length;
+
+  const totalCapturedRazorpay = LIVE_RAZORPAY_TRANSACTIONS.reduce((sum, tx) => sum + tx.amount, 0);
+  const liveMrrINR = premiumUsers * PLAN_PRICES_INR.HIGH;
+
   let liveFoodCount = 0;
   let liveWorkoutCount = 0;
   let liveAiCount = 0;
 
   if (!isMockMode) {
     try {
-      const [uRes, pRes, fRes, wRes, cRes] = await Promise.all([
-        supabase.from('user_profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('user_profiles').select('*', { count: 'exact', head: true }).eq('subscription_plan', 'HIGH'),
+      const [fRes, wRes, cRes] = await Promise.all([
         supabase.from('food_logs').select('*', { count: 'exact', head: true }),
         supabase.from('workout_logs').select('*', { count: 'exact', head: true }),
         supabase.from('chat_sessions').select('*', { count: 'exact', head: true })
       ]);
-      if (uRes.count !== null) liveUserCount = uRes.count;
-      if (pRes.count !== null) liveHighPlanCount = pRes.count;
       if (fRes.count !== null) liveFoodCount = fRes.count;
       if (wRes.count !== null) liveWorkoutCount = wRes.count;
       if (cRes.count !== null) liveAiCount = cRes.count;
@@ -1607,17 +1609,57 @@ export const getAdminDashboardMetrics = async () => {
     }
   }
 
-  // Sum actual captured Razorpay payment transactions
-  const totalCapturedRazorpay = LIVE_RAZORPAY_TRANSACTIONS.reduce((sum, tx) => sum + tx.amount, 0);
-  const liveMrrINR = liveHighPlanCount * PLAN_PRICES_INR.HIGH;
+  // Generate real daily/monthly user growth chart from signup_date
+  const growthMap = new Map();
+  allUsers.forEach(u => {
+    const d = u.signup_date || '2026-07-25';
+    growthMap.set(d, (growthMap.get(d) || 0) + 1);
+  });
+
+  const sortedDates = Array.from(growthMap.keys()).sort();
+  let cumulative = 0;
+  const user_growth_chart = sortedDates.map(d => {
+    cumulative += growthMap.get(d);
+    return {
+      date: d.substring(5),
+      total: cumulative,
+      daily: growthMap.get(d),
+      premium: premiumUsers
+    };
+  });
+
+  if (user_growth_chart.length === 0) {
+    user_growth_chart.push({ date: 'Today', total: totalUsers, premium: premiumUsers });
+  }
+
+  // Revenue chart from Razorpay transactions
+  const revMap = new Map();
+  LIVE_RAZORPAY_TRANSACTIONS.forEach(tx => {
+    const month = tx.purchase_date ? tx.purchase_date.substring(0, 7) : '2026-07';
+    revMap.set(month, (revMap.get(month) || 0) + tx.amount);
+  });
+
+  const revenue_chart = Array.from(revMap.entries()).map(([m, val]) => ({
+    month: m,
+    revenue_inr: val,
+    mrr_inr: liveMrrINR
+  }));
+
+  if (revenue_chart.length === 0) {
+    revenue_chart.push({ month: 'Jul 2026', revenue_inr: totalCapturedRazorpay, mrr_inr: liveMrrINR });
+  }
+
+  const todayStr = new Date().toISOString().substring(0, 10);
+  const newUsersToday = allUsers.filter(u => u.signup_date === todayStr).length;
 
   return {
     kpis: {
-      total_users: liveUserCount,
-      premium_users: liveHighPlanCount,
-      new_users_today: 0,
-      dau: Math.min(liveUserCount, 1),
-      mau: liveUserCount,
+      total_users: totalUsers,
+      premium_users: premiumUsers,
+      active_trainers: 0,
+      new_users_today: newUsersToday,
+      dau: Math.min(totalUsers, 1),
+      mau: totalUsers,
       revenue_total_inr: totalCapturedRazorpay,
       mrr_inr: liveMrrINR,
       calories_logged_today: liveFoodCount * 250,
@@ -1630,12 +1672,8 @@ export const getAdminDashboardMetrics = async () => {
       push_notifications_sent: 0,
       support_tickets_open: 0
     },
-    user_growth_chart: [
-      { date: 'Today', total: liveUserCount, premium: liveHighPlanCount, dau: Math.min(liveUserCount, 1) }
-    ],
-    revenue_chart: [
-      { month: 'Jul 2026', revenue_inr: totalCapturedRazorpay, mrr_inr: liveMrrINR }
-    ],
+    user_growth_chart,
+    revenue_chart,
     top_countries: [
       { country: 'India 🇮🇳', percentage: 100 }
     ],
