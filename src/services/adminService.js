@@ -428,23 +428,58 @@ const resolveInAppName = (email, profileName, metricsName, bioExtra = {}) => {
 };
 
 /* ==========================================================================
+   PERSISTENT ADMIN SUBSCRIPTION GRANTS LEDGER
+   ========================================================================== */
+export const getAdminGrantedSubscriptions = () => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem('calyxo_admin_granted_subscriptions');
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+};
+
+export const saveAdminGrantedSubscription = (userKey, subData) => {
+  if (typeof window === 'undefined' || !userKey) return;
+  try {
+    const current = getAdminGrantedSubscriptions();
+    const cleanKey = String(userKey).toLowerCase().trim();
+    if (!subData || subData.plan === 'FREE') {
+      delete current[cleanKey];
+    } else {
+      current[cleanKey] = {
+        ...subData,
+        updated_at: new Date().toISOString()
+      };
+    }
+    localStorage.setItem('calyxo_admin_granted_subscriptions', JSON.stringify(current));
+  } catch (e) {}
+};
+
+/* ==========================================================================
    USER MANAGEMENT — STRICTLY SUPABASE AUTH ACCOUNTS WITH REALTIME PERSISTENCE
    ========================================================================== */
 export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter = '', page = 1, limit = 100, sortBy = 'signup_date', sortDir = 'desc' } = {}) => {
   const userMap = new Map();
+  const persistentGrants = getAdminGrantedSubscriptions();
 
   // Prepopulate registered Supabase Auth users
   MASTER_SUPABASE_AUTH_ACCOUNTS.forEach(u => {
     const key = u.email.toLowerCase().trim();
+    const grant = persistentGrants[key] || (u.id ? persistentGrants[u.id] : null);
+    const plan = grant?.plan || u.subscription_plan || 'FREE';
+
     userMap.set(key, {
       ...u,
+      subscription_plan: plan,
       phone: 'N/A',
       last_active: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      days_remaining: u.subscription_plan === 'HIGH' ? '357' : '0',
-      subscription_expiry: u.subscription_plan === 'HIGH' ? '2027-07-25' : 'N/A',
-      granted_by: u.subscription_plan === 'HIGH' ? 'Razorpay' : 'N/A',
-      payment_source: u.subscription_plan === 'HIGH' ? 'Razorpay' : 'N/A',
-      last_payment_id: u.subscription_plan === 'HIGH' ? 'pay_TlEl9QNm2AuW7I' : 'N/A',
+      days_remaining: grant?.daysRemaining || (plan === 'HIGH' ? '357' : '0'),
+      subscription_expiry: grant?.expiryStr || (plan === 'HIGH' ? '2027-07-25' : 'N/A'),
+      granted_by: grant?.grantedBy || (plan === 'HIGH' ? 'Razorpay' : 'N/A'),
+      payment_source: grant?.grantedBy ? 'Admin Manual' : (plan === 'HIGH' ? 'Razorpay' : 'N/A'),
+      last_payment_id: plan === 'HIGH' ? 'pay_TlEl9QNm2AuW7I' : 'N/A',
       goal: 'Maintain',
       streak: 0,
       total_workouts: 0,
@@ -478,7 +513,7 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
 
       const subsByUser = new Map();
       subsData.forEach(s => {
-        if (s.user_id) subsByUser.set(s.user_id, s);
+        if (s.user_id) subsByUser.set(String(s.user_id).toLowerCase(), s);
       });
 
       // 1. Process profiles from Supabase user_profiles
@@ -495,23 +530,28 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
           photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(p.email)}&background=6366f1&color=fff`
         };
 
-        const subRecord = subsByUser.get(p.id);
-        const isPaidUser = (subRecord && subRecord.status === 'Active' && subRecord.plan === 'HIGH') ||
-                           (p.subscription_plan && p.subscription_plan === 'HIGH') ||
-                           key === 'supreethkiran25@gmail.com' ||
-                           key === 'malipatilharshith@gmail.com' ||
-                           LIVE_RAZORPAY_TRANSACTIONS.some(tx => tx.customer_email.toLowerCase() === key);
+        const subRecord = subsByUser.get(String(p.id).toLowerCase()) || subsByUser.get(key);
+        const grant = persistentGrants[key] || (p.id ? persistentGrants[p.id] : null);
 
-        const plan = isPaidUser ? 'HIGH' : 'FREE';
+        const isPaidUser = Boolean(
+          (grant && grant.plan && grant.plan !== 'FREE') ||
+          (subRecord && (subRecord.status === 'Active' || subRecord.status === 'CAPTURED') && subRecord.plan && subRecord.plan !== 'FREE') ||
+          (p.subscription_plan && p.subscription_plan !== 'FREE' && p.subscription_plan !== 'DEFAULT') ||
+          key === 'supreethkiran25@gmail.com' ||
+          key === 'malipatilharshith@gmail.com' ||
+          LIVE_RAZORPAY_TRANSACTIONS.some(tx => tx.customer_email.toLowerCase() === key)
+        );
+
+        const plan = isPaidUser ? (grant?.plan || subRecord?.plan || p.subscription_plan || 'HIGH') : 'FREE';
         const subDate = p.created_at ? p.created_at.substring(0, 10) : existing.signup_date;
         const name = resolveInAppName(p.email, p.full_name || p.display_name || p.nickname);
 
-        let expiryStr = subRecord?.expiry_date ? subRecord.expiry_date.substring(0, 10) : (plan === 'HIGH' ? '2027-07-25' : 'N/A');
-        let daysRem = '0';
-        if (plan === 'HIGH') {
+        let expiryStr = grant?.expiryStr || subRecord?.expiry_date?.substring(0, 10) || p.subscription_expires_at?.substring(0, 10) || (plan !== 'FREE' ? '2027-07-25' : 'N/A');
+        let daysRem = grant?.daysRemaining || '0';
+        if (plan !== 'FREE' && daysRem === '0') {
           const expTime = new Date(expiryStr === 'N/A' ? '2027-07-25' : expiryStr).getTime();
           const diff = Math.ceil((expTime - Date.now()) / (1000 * 60 * 60 * 24));
-          daysRem = diff > 0 ? String(diff) : '0';
+          daysRem = diff > 0 ? String(diff) : '365';
         }
 
         userMap.set(key, {
@@ -522,9 +562,9 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
           signup_date: subDate,
           subscription_expiry: expiryStr,
           days_remaining: daysRem,
-          granted_by: subRecord?.granted_by || (plan === 'HIGH' ? 'Razorpay' : 'N/A'),
-          payment_source: subRecord?.payment_source || (plan === 'HIGH' ? 'Razorpay' : 'N/A'),
-          last_payment_id: subRecord?.payment_id || (plan === 'HIGH' ? 'pay_live_001' : 'N/A'),
+          granted_by: grant?.grantedBy || subRecord?.granted_by || (plan !== 'FREE' ? 'Razorpay' : 'N/A'),
+          payment_source: grant?.grantedBy ? 'Admin Manual' : (subRecord?.payment_source || (plan !== 'FREE' ? 'Razorpay' : 'N/A')),
+          last_payment_id: subRecord?.payment_id || (plan !== 'FREE' ? 'pay_live_001' : 'N/A'),
           goal: p.goal || existing.goal || 'Maintain',
           photoURL: (p.photoURL && !p.photoURL.includes('unsplash')) ? p.photoURL : existing.photoURL
         });
@@ -552,12 +592,13 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
         if (matchedKey) {
           const existing = userMap.get(matchedKey);
           const customName = resolveInAppName(existing.email, existing.full_name, m.displayName, bioExtra);
-          const isPaid = existing.subscription_plan === 'HIGH';
+          const grant = persistentGrants[matchedKey] || (existing.id ? persistentGrants[existing.id] : null);
+          const isPaid = (grant && grant.plan && grant.plan !== 'FREE') || existing.subscription_plan !== 'FREE' || bioExtra.isSubscribed === true;
 
           userMap.set(matchedKey, {
             ...existing,
             full_name: customName,
-            subscription_plan: isPaid ? 'HIGH' : 'FREE',
+            subscription_plan: isPaid ? (grant?.plan || existing.subscription_plan || 'HIGH') : 'FREE',
             age: m.age || bioExtra.age || existing.age,
             gender: m.gender || bioExtra.gender || existing.gender,
             goal: m.goal || bioExtra.goal || existing.goal,
@@ -666,13 +707,37 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
     masterMatch.days_remaining = isRevoke ? '0' : String(daysToAdd);
   }
 
-  if (!isMockMode && targetUuid) {
+  // Save grant persistently into local ledger cache so refreshes NEVER lose the granted plan
+  const localGrantData = {
+    plan,
+    status: statusStr,
+    expiryDate: expiryDate.toISOString(),
+    expiryStr: isRevoke ? 'N/A' : expiryDate.toISOString().substring(0, 10),
+    daysRemaining: isRevoke ? '0' : String(daysToAdd),
+    grantedBy: adminId,
+    reason,
+    duration
+  };
+
+  if (typeof userId === 'string') {
+    saveAdminGrantedSubscription(userId, isRevoke ? null : localGrantData);
+  }
+  if (targetEmail) {
+    saveAdminGrantedSubscription(targetEmail, isRevoke ? null : localGrantData);
+  }
+  if (targetUuid && targetUuid !== userId) {
+    saveAdminGrantedSubscription(targetUuid, isRevoke ? null : localGrantData);
+  }
+
+  if (!isMockMode && (targetUuid || targetEmail)) {
     // 1. Ensure targetUuid is a valid Postgres UUID
     if (!isValidUuid(targetUuid) && targetEmail) {
       try {
         const { data: pData } = await supabase
           .from('user_profiles')
           .select('id')
+          .eq('email', targetEmail)
+          .maybeSingle();
         if (pData?.id && isValidUuid(pData.id)) {
           targetUuid = pData.id;
         }
@@ -681,7 +746,7 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
 
     const finalUuid = isValidUuid(targetUuid) ? targetUuid : null;
 
-    // 2. Ensure user_profiles is updated (by UUID or by Email)
+    // 2. Ensure user_profiles is updated/upserted
     try {
       if (finalUuid) {
         await supabase.from('user_profiles').upsert({
@@ -694,22 +759,33 @@ export const updateUserSubscription = async (userId, plan = 'HIGH', duration = '
           updated_at: now.toISOString()
         }, { onConflict: 'id' });
       } else if (targetEmail) {
-        await supabase.from('user_profiles').update({
+        const { data: updatedRows } = await supabase.from('user_profiles').update({
           subscription_plan: plan,
           is_subscribed: !isRevoke,
           subscription_status: isRevoke ? 'EXPIRED' : 'ACTIVE',
           subscription_expires_at: expiryDate.toISOString(),
           updated_at: now.toISOString()
-        }).eq('email', targetEmail);
+        }).eq('email', targetEmail).select('id');
+
+        if (!updatedRows || updatedRows.length === 0) {
+          await supabase.from('user_profiles').insert({
+            email: targetEmail,
+            subscription_plan: plan,
+            is_subscribed: !isRevoke,
+            subscription_status: isRevoke ? 'EXPIRED' : 'ACTIVE',
+            subscription_expires_at: expiryDate.toISOString(),
+            updated_at: now.toISOString()
+          });
+        }
       }
     } catch (pErr) {
       console.warn('[adminService] user_profiles pre-sync warning:', pErr);
     }
 
     // 3. Upsert subscriptions table
-    if (finalUuid) {
+    if (finalUuid || targetEmail) {
       const subFields = {
-        user_id: finalUuid,
+        user_id: finalUuid || targetEmail,
         plan: plan,
         status: statusStr,
         purchase_date: now.toISOString(),

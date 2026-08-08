@@ -817,9 +817,26 @@ export const getUserProfile = async (userId) => {
       }
     } catch (subErr) { /* ignore subscription table error */ }
 
+    // 3. Query persistent admin granted subscriptions ledger from localStorage
+    try {
+      if (typeof window !== 'undefined') {
+        const rawGrants = localStorage.getItem('calyxo_admin_granted_subscriptions');
+        if (rawGrants) {
+          const grants = JSON.parse(rawGrants);
+          const cleanKey = (userEmail || "").toLowerCase().trim();
+          const grant = grants[userId] || (cleanKey ? grants[cleanKey] : null);
+          if (grant && grant.plan && grant.plan !== 'FREE') {
+            userProfileSubPlan = grant.plan;
+            isUserSubscribed = true;
+          }
+        }
+      }
+    } catch (gErr) { /* ignore grant cache error */ }
+
     const cleanEmail = (userEmail || "").toLowerCase().trim();
     if (cleanEmail === 'supreethkiran25@gmail.com') {
       userProfileSubPlan = 'HIGH';
+      isUserSubscribed = true;
     }
 
     if (data) {
