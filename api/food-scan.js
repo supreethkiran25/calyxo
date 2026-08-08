@@ -25,10 +25,10 @@ Rules:
 - If the image is too dark or blurry to identify: {"error": "unclear_image"}
 - All numeric values must be realistic — do not fabricate extreme values`;
 
-// Models sorted by quota priority (if primary model reaches 429, seamlessly fallback)
+// Models sorted by quota priority (if primary model reaches 429 or 404, seamlessly fallback)
 const GEMINI_VISION_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
   'gemini-1.5-flash',
   'gemini-1.5-flash-lite'
 ];
@@ -146,8 +146,8 @@ export default async function handler(req, res) {
         }
       }
 
-      if (response.status === 429) {
-        console.warn(`[ServerFoodScan:${reqId}] Model ${modelName} hit 429 rate limit. Trying next candidate model...`);
+      if (response.status === 429 || response.status === 404 || response.status === 400) {
+        console.warn(`[ServerFoodScan:${reqId}] Model ${modelName} returned status ${response.status}. Trying next candidate model...`);
         continue;
       }
 

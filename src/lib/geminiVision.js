@@ -107,13 +107,12 @@ export async function scanFoodImage(base64Image, requestId = null) {
         throw new Error("You've reached the Gemini API rate limit. Please wait a minute and try again, or upgrade your API quota.");
       }
       if (response.status === 400) {
-        throw new Error(errMsg || "Invalid image payload or request parameters. Try taking another photo.");
+        lastError = new Error(errMsg || "Invalid image payload or request parameters. Try taking another photo.");
+      } else if (response.status === 401 || response.status === 403) {
+        lastError = new Error("AI service authentication issue. Please contact support.");
+      } else {
+        lastError = new Error(errMsg || `AI food scan service status ${response.status}.`);
       }
-      if (response.status === 401 || response.status === 403) {
-        throw new Error("AI service authentication issue. Please contact support.");
-      }
-      
-      lastError = new Error(errMsg || `AI food scan service status ${response.status}.`);
     }
   } catch (err) {
     console.warn(`[FoodScan:${reqId}] Backend endpoint fetch exception:`, err.message);
@@ -136,7 +135,7 @@ export async function scanFoodImage(base64Image, requestId = null) {
         generationConfig: { temperature: 0.1, maxOutputTokens: 512 }
       };
 
-      const directUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      const directUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
       const response = await fetch(directUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

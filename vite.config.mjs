@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 const GEMINI_VISION_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
   'gemini-1.5-flash',
   'gemini-1.5-flash-lite'
 ];
@@ -145,13 +145,9 @@ Required format:
                   }
                 }
 
-                if (fetchRes.status === 429) {
-                  console.warn(`[DevServerFoodScan] Model ${modelName} hit 429 rate limit. Trying next model...`);
+                if (fetchRes.status === 429 || fetchRes.status === 404 || fetchRes.status === 400) {
+                  console.warn(`[DevServerFoodScan] Model ${modelName} returned status ${fetchRes.status}. Trying next model...`);
                   continue;
-                }
-
-                if (fetchRes.status >= 400 && fetchRes.status < 500 && fetchRes.status !== 429) {
-                  break;
                 }
               }
 
