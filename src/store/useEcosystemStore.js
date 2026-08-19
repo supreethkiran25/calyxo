@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { getSecureItem, setSecureItem, getCurrentUserIdSync, saveEcosystemState } from '../lib/dbService';
-import { calculateConsecutiveDaysStreak } from '../utils/streakEngine';
+import { calculateConsecutiveDaysStreak, calculateWaterGoalStreak } from '../utils/streakEngine';
 
 const LOCAL_ECOSYSTEM_KEY = "calyxo_ecosystem_state";
 
@@ -140,21 +140,23 @@ export const useEcosystemStore = create((set, get) => ({
     return { streaks: next };
   }),
 
-  recalculateDynamicStreaks: (foodLogs = [], workoutLogs = [], waterLogs = []) => set((state) => {
+  recalculateDynamicStreaks: (foodLogs = [], workoutLogs = [], waterLogs = [], waterTarget = 2500) => set((state) => {
     const uid = getCurrentUserIdSync();
     const nutritionTimestamps = (foodLogs || []).map(f => f.timestamp || f.created_at);
-    const workoutTimestamps = (workoutLogs || []).map(w => w.timestamp || w.created_at);
-    const waterTimestamps = (waterLogs || []).map(w => w.timestamp || w.created_at);
+    // Count ONLY completed workout sessions (not abandoned or in-progress)
+    const completedWorkoutTimestamps = (workoutLogs || [])
+      .filter(w => w && w.completed !== false && w.status !== 'abandoned' && w.status !== 'started')
+      .map(w => w.timestamp || w.created_at);
 
     const nutritionStreak = calculateConsecutiveDaysStreak(nutritionTimestamps);
-    const workoutStreak = calculateConsecutiveDaysStreak(workoutTimestamps);
-    const waterStreak = calculateConsecutiveDaysStreak(waterTimestamps);
+    const workoutStreak = calculateConsecutiveDaysStreak(completedWorkoutTimestamps);
+    const waterStreak = calculateWaterGoalStreak(waterLogs, waterTarget);
 
     const nextStreaks = {
       ...(state.streaks || {}),
-      nutritionStreak: Math.max(nutritionStreak, state.streaks?.nutritionStreak || 0),
-      workoutStreak: Math.max(workoutStreak, state.streaks?.workoutStreak || 0),
-      waterStreak: Math.max(waterStreak, state.streaks?.waterStreak || 0)
+      nutritionStreak,
+      workoutStreak,
+      waterStreak
     };
 
     const nextState = { ...state, streaks: nextStreaks };

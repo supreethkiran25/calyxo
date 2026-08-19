@@ -64,3 +64,38 @@ export function calculateConsecutiveDaysStreak(timestampsList = [], todayStr = g
 
   return streak;
 }
+
+/**
+ * Calculates consecutive-day water streak based on completing daily water target.
+ * @param {Array<Object>} waterLogs 
+ * @param {number} [waterTarget=2500] 
+ * @param {string} [todayStr=getTodayDateString()] 
+ * @returns {number}
+ */
+export function calculateWaterGoalStreak(waterLogs = [], waterTarget = 2500, todayStr = getTodayDateString()) {
+  if (!Array.isArray(waterLogs) || waterLogs.length === 0) return 0;
+  
+  const dayTotals = new Map();
+  waterLogs.forEach(w => {
+    if (!w) return;
+    const ts = w.timestamp || w.created_at || w.date;
+    const d = parseSafeDate(ts);
+    if (d && !isNaN(d.getTime())) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const dateKey = `${year}-${month}-${day}`;
+      const amount = Number(w.amount || w.water || w.volume || 0);
+      dayTotals.set(dateKey, (dayTotals.get(dateKey) || 0) + amount);
+    }
+  });
+
+  const completedGoalDates = [];
+  dayTotals.forEach((total, dateKey) => {
+    if (total >= waterTarget) {
+      completedGoalDates.push(dateKey);
+    }
+  });
+
+  return calculateConsecutiveDaysStreak(completedGoalDates, todayStr);
+}

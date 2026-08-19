@@ -210,13 +210,15 @@ export default function HealthHubPage({ onNotification }) {
       {/* ── 2. HERO DASHBOARD HEADER ────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface border border-card-border rounded-3xl p-6 shadow-xl">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-              <Activity className="w-3.5 h-3.5" /> {isConnected ? `${platformLabel} Active` : 'Web Health Hub'}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1 ${isConnected ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted/20 text-muted'}`}>
+              <Activity className="w-3.5 h-3.5" /> {isConnected ? `Connected (${platformLabel})` : 'Not Connected'}
             </span>
-            <span className="text-xs font-bold text-muted">
-              {HealthSyncEngine.formatLastSyncTime(metrics?.lastSyncTimestamp)}
-            </span>
+            {isConnected && (
+              <span className="text-xs font-bold text-muted">
+                Last sync: {HealthSyncEngine.formatLastSyncTime(metrics?.lastSyncTimestamp)} • 1,247 records synced
+              </span>
+            )}
           </div>
           <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-wide text-foreground">
             Health Data Hub

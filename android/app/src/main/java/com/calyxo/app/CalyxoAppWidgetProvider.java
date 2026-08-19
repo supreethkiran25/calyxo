@@ -25,7 +25,6 @@ public class CalyxoAppWidgetProvider extends AppWidgetProvider {
     public static void updateAppWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.calyxo_widget_layout);
 
-        // Read real widget payload written by Capacitor Preferences
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String rawData = prefs.getString(WIDGET_KEY, null);
 
@@ -54,16 +53,45 @@ public class CalyxoAppWidgetProvider extends AppWidgetProvider {
         views.setTextViewText(R.id.widget_water_val, water + " ml");
         views.setTextViewText(R.id.widget_workout_status, "💪 " + workoutName);
 
-        // Deep Link PendingIntent to open MainActivity cleanly
-        Intent launchIntent = new Intent(context, MainActivity.class);
-        launchIntent.setAction(Intent.ACTION_VIEW);
-        launchIntent.setData(Uri.parse("com.supreethkiran.calyxo://auth/callback"));
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                context, 0, launchIntent,
+        // General Container Launch PendingIntent
+        Intent mainIntent = new Intent(context, MainActivity.class);
+        mainIntent.setAction(Intent.ACTION_VIEW);
+        mainIntent.setData(Uri.parse("calyxo://user/dashboard"));
+        PendingIntent mainPendingIntent = PendingIntent.getActivity(
+                context, 0, mainIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
+        views.setOnClickPendingIntent(R.id.widget_container, mainPendingIntent);
 
-        views.setOnClickPendingIntent(R.id.widget_container, pendingIntent);
+        // Add Water Action PendingIntent
+        Intent waterIntent = new Intent(context, MainActivity.class);
+        waterIntent.setAction(Intent.ACTION_VIEW);
+        waterIntent.setData(Uri.parse("calyxo://water/add"));
+        PendingIntent waterPendingIntent = PendingIntent.getActivity(
+                context, 1, waterIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+        views.setOnClickPendingIntent(R.id.btn_add_water, waterPendingIntent);
+
+        // View Calories Action PendingIntent
+        Intent caloriesIntent = new Intent(context, MainActivity.class);
+        caloriesIntent.setAction(Intent.ACTION_VIEW);
+        caloriesIntent.setData(Uri.parse("calyxo://nutrition/view"));
+        PendingIntent caloriesPendingIntent = PendingIntent.getActivity(
+                context, 2, caloriesIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+        views.setOnClickPendingIntent(R.id.btn_view_calories, caloriesPendingIntent);
+
+        // Start Workout Action PendingIntent
+        Intent workoutIntent = new Intent(context, MainActivity.class);
+        workoutIntent.setAction(Intent.ACTION_VIEW);
+        workoutIntent.setData(Uri.parse("calyxo://workout/start"));
+        PendingIntent workoutPendingIntent = PendingIntent.getActivity(
+                context, 3, workoutIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+        views.setOnClickPendingIntent(R.id.widget_workout_status, workoutPendingIntent);
 
         appWidgetManager.updateAppWidget(appWidgetId, views);
     }
