@@ -327,6 +327,13 @@ export const signInWithUsernameOrEmail = async (identifier, password, remember =
   }
 };
 
+export const getAuthRedirectUrl = () => {
+  if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform()) {
+    return 'com.supreethkiran.calyxo://auth/callback';
+  }
+  return `${window.location.origin}/user/dashboard`;
+};
+
 export const signInWithGoogle = async (remember = true) => {
   if (isMockMode) {
     const mockUser = { id: "mock-google-user", uid: "mock-google-user", email: "google.tester@calyxo.com", displayName: "Google Tester" };
@@ -336,7 +343,7 @@ export const signInWithGoogle = async (remember = true) => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/user/dashboard`,
+      redirectTo: getAuthRedirectUrl(),
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
@@ -361,7 +368,7 @@ export const signInWithApple = async (remember = true) => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'apple',
     options: {
-      redirectTo: `${window.location.origin}/user/dashboard`
+      redirectTo: getAuthRedirectUrl()
     }
   });
   if (error) {

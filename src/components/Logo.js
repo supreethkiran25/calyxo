@@ -7,7 +7,7 @@ export default function Logo({ className = "w-8 h-8", glow = false, color, showT
 
   const iconElement = (
     <div 
-      className={`${className} ${colorClass} transition-all duration-300 relative inline-flex items-center justify-center shrink-0`}
+      className={`${className} ${colorClass} transition-all duration-300 relative inline-flex items-center justify-center shrink-0 p-[2%] overflow-visible`}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -16,7 +16,7 @@ export default function Logo({ className = "w-8 h-8", glow = false, color, showT
         color: color || undefined
       }}
     >
-      {/* Front Mask Element - Scaled to trim transparent padding and fit container perfectly */}
+      {/* Front Mask Element - Scaled to contain perfectly without clipping */}
       <div 
         className="w-full h-full"
         style={{
@@ -25,8 +25,8 @@ export default function Logo({ className = "w-8 h-8", glow = false, color, showT
           backgroundColor: 'currentColor', // Dynamically inherits text-foreground or custom text color
           WebkitMaskImage: 'url(/calyxo-removebg-preview.png)',
           maskImage: 'url(/calyxo-removebg-preview.png)',
-          WebkitMaskSize: '145%',
-          maskSize: '145%',
+          WebkitMaskSize: 'contain',
+          maskSize: 'contain',
           WebkitMaskRepeat: 'no-repeat',
           maskRepeat: 'no-repeat',
           WebkitMaskPosition: 'center',
@@ -43,8 +43,8 @@ export default function Logo({ className = "w-8 h-8", glow = false, color, showT
             backgroundColor: 'currentColor',
             WebkitMaskImage: 'url(/calyxo-removebg-preview.png)',
             maskImage: 'url(/calyxo-removebg-preview.png)',
-            WebkitMaskSize: '145%',
-            maskSize: '145%',
+            WebkitMaskSize: 'contain',
+            maskSize: 'contain',
             WebkitMaskRepeat: 'no-repeat',
             maskRepeat: 'no-repeat',
             WebkitMaskPosition: 'center',
@@ -70,4 +70,5 @@ export default function Logo({ className = "w-8 h-8", glow = false, color, showT
 }
 
 export { Logo };
+
 

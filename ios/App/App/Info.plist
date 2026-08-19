@@ -8,6 +8,19 @@
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>Calyxo</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.supreethkiran.calyxo</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.supreethkiran.calyxo</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
