@@ -21,6 +21,10 @@
 	</array>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Calyxo requires access to read your step count, active energy, heart rate, and sleep data to sync your health progress.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Calyxo requires access to write workout data to Apple Health.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

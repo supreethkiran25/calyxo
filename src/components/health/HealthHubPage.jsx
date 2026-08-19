@@ -14,6 +14,8 @@ import { AIHealthInsightService } from '../../services/health/AIHealthInsightSer
 import { HealthGoalManager } from '../../services/health/HealthGoalManager';
 import HealthConnectionsModal from './HealthConnectionsModal';
 import { PWAPedometerService } from '../../services/health/PWAPedometerService';
+import LiveActivityManager from '../../services/LiveActivityManager';
+import { syncWidgetData } from '../../services/widgetDataService';
 import PremiumGate from '../PremiumGate';
 import { useStore } from '../../store/useStore';
 
@@ -221,7 +223,30 @@ export default function HealthHubPage({ onNotification }) {
           </h1>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={async () => {
+              await LiveActivityManager.startLiveActivity({ title: 'Calyxo Track', workoutName: 'Dev Health Test' });
+            }}
+            className="px-3 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-black uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all"
+            title="Test iOS Dynamic Island Live Activity"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Dynamic Island</span>
+          </button>
+
+          <button
+            onClick={async () => {
+              await syncWidgetData({ calories: metrics?.activeCalories || 380, calorieGoal: 500, protein: 125, water: 2200, streak: 7 });
+              alert('📱 Synced metrics to native iOS & Android Widget storage!');
+            }}
+            className="px-3 py-2 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 text-[10px] font-black uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all"
+            title="Test Widget Storage Sync"
+          >
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>Widget Sync</span>
+          </button>
+
           <button
             onClick={handleRefreshData}
             disabled={isSyncing}
