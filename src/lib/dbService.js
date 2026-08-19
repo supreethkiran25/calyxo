@@ -330,7 +330,7 @@ export const signInWithUsernameOrEmail = async (identifier, password, remember =
 
 export const getAuthRedirectUrl = () => {
   if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform()) {
-    return 'com.supreethkiran.calyxo://auth/callback';
+    return 'calyxo://auth/callback';
   }
   return `${window.location.origin}/user/dashboard`;
 };
