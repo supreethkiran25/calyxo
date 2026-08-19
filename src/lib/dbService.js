@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient";
+import { Browser } from '@capacitor/browser';
 
 const getEnvVal = (key) => {
   try {
@@ -340,10 +341,12 @@ export const signInWithGoogle = async (remember = true) => {
     localStorage.setItem("calyxo_mock_user", JSON.stringify(mockUser));
     return mockUser;
   }
+  const isNative = typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
       redirectTo: getAuthRedirectUrl(),
+      skipBrowserRedirect: isNative,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
@@ -356,6 +359,9 @@ export const signInWithGoogle = async (remember = true) => {
     }
     throw error;
   }
+  if (isNative && data?.url) {
+    await Browser.open({ url: data.url, windowName: '_self' });
+  }
   return data;
 };
 
@@ -365,10 +371,12 @@ export const signInWithApple = async (remember = true) => {
     localStorage.setItem("calyxo_mock_user", JSON.stringify(mockUser));
     return mockUser;
   }
+  const isNative = typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'apple',
     options: {
-      redirectTo: getAuthRedirectUrl()
+      redirectTo: getAuthRedirectUrl(),
+      skipBrowserRedirect: isNative
     }
   });
   if (error) {
@@ -376,6 +384,9 @@ export const signInWithApple = async (remember = true) => {
       throw new Error("Apple Sign-In is not enabled in your Supabase Auth Providers settings. Please enable Apple provider in Supabase Dashboard.");
     }
     throw error;
+  }
+  if (isNative && data?.url) {
+    await Browser.open({ url: data.url, windowName: '_self' });
   }
   return data;
 };

@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
+import { Browser } from '@capacitor/browser';
 import { supabase } from '../lib/supabaseClient';
 
 export default function NativeMobileBridge() {
@@ -54,6 +55,13 @@ export default function NativeMobileBridge() {
         appUrlListener = await CapApp.addListener('appUrlOpen', async (data) => {
           console.log('[NativeMobileBridge] App opened with URL:', data?.url);
           if (!data?.url) return;
+
+          // Automatically close in-app browser tab when OAuth completes
+          try {
+            await Browser.close();
+          } catch (bErr) {
+            // Browser might already be closed or not active
+          }
 
           const rawUrl = data.url;
           // Check if deep link contains auth parameters (#access_token=... or ?code=...)
