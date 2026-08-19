@@ -5,6 +5,9 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { Browser } from '@capacitor/browser';
 import { supabase } from '../lib/supabaseClient';
+import { useStore } from '../store/useStore';
+import { loadUserData, migratePreAuthLocalState } from '../lib/dbService';
+import { useEcosystemStore } from '../store/useEcosystemStore';
 
 export default function NativeMobileBridge() {
   useEffect(() => {
@@ -68,7 +71,7 @@ export default function NativeMobileBridge() {
           if (rawUrl.includes('access_token=') || rawUrl.includes('code=')) {
             try {
               if (rawUrl.includes('code=')) {
-                const urlObj = new URL(rawUrl.replace('com.supreethkiran.calyxo://', 'https://localhost/'));
+                const urlObj = new URL(rawUrl.replace('calyxo://', 'https://localhost/').replace('com.supreethkiran.calyxo://', 'https://localhost/'));
                 const code = urlObj.searchParams.get('code');
                 if (code) {
                   await supabase.auth.exchangeCodeForSession(code);
@@ -87,8 +90,41 @@ export default function NativeMobileBridge() {
                   }
                 }
               }
-              // Redirect cleanly to dashboard inside native app
-              window.location.href = '/user/dashboard';
+
+              // Verify session restoration and load user profile synchronously
+              const { data: sessionRes } = await supabase.auth.getSession();
+              const authUser = sessionRes?.session?.user;
+              
+              if (authUser) {
+                const uid = authUser.id;
+                migratePreAuthLocalState(uid);
+
+                const { profile, foods, workouts, weights, water, ecosystem } = await loadUserData(uid);
+                
+                console.log('[AuthAudit] Google OAuth Session Restored:', {
+                  userId: uid,
+                  email: authUser.email,
+                  onboarded: profile?.onboarded,
+                  foodCount: foods?.length || 0,
+                  workoutCount: workouts?.length || 0
+                });
+
+                const store = useStore.getState();
+                store.setUser(authUser);
+                if (profile) store.setUserProfile(profile);
+                if (foods) store.setFoodLogs(foods);
+                if (workouts) store.setWorkoutLogs(workouts);
+                if (weights) store.setWeightLogs(weights);
+                if (water !== undefined && water !== null) store.setWaterIntake(water);
+                if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
+              }
+
+              // Trigger smooth in-app navigation to dashboard
+              if (window.location.pathname !== '/user/dashboard') {
+                window.history.pushState(null, '', '/user/dashboard');
+                window.dispatchEvent(new Event('popstate'));
+              }
+              window.dispatchEvent(new CustomEvent('calyxo_data_sync'));
             } catch (err) {
               console.error('[NativeMobileBridge] Deep link auth session error:', err);
             }

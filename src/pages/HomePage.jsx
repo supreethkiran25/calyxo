@@ -25,14 +25,13 @@ export default function HomePage() {
       if (authUser) {
         const uid = authUser.uid || authUser.id;
         const { profile, foods, workouts, weights, water } = await loadUserData(uid);
-        setUserProfile(profile || { onboarded: false });
+        if (profile) setUserProfile(profile);
         if (foods) useStore.getState().setFoodLogs(foods);
         if (workouts) useStore.getState().setWorkoutLogs(workouts);
         if (weights) useStore.getState().setWeightLogs(weights);
         if (water !== undefined && water !== null) useStore.getState().setWaterIntake(water);
         setLoading(false);
       } else {
-        setUserProfile({ onboarded: false });
         setLoading(false);
       }
     });

@@ -223,6 +223,41 @@ const saveLocalState = (userId, state) => {
   setSecureItem(LOCAL_STATE_KEY, state, userId);
 };
 
+export const migratePreAuthLocalState = (newUserId) => {
+  if (!newUserId || typeof window === 'undefined') return;
+
+  try {
+    const unauthRaw = localStorage.getItem(LOCAL_STATE_KEY);
+    if (!unauthRaw) return;
+
+    const unauthState = getLocalState(null);
+    const existingAuthKey = `${LOCAL_STATE_KEY}_${newUserId}`;
+    const authState = getLocalState(newUserId);
+
+    if (unauthState && (unauthState.userProfile?.onboarded === true || (unauthState.foodLogs && unauthState.foodLogs.length > 0))) {
+      const mergedProfile = {
+        ...unauthState.userProfile,
+        ...(authState?.userProfile || {}),
+        onboarded: (unauthState.userProfile?.onboarded === true) || (authState?.userProfile?.onboarded === true)
+      };
+
+      const mergedState = {
+        foodLogs: mergeLogs(authState?.foodLogs || [], unauthState.foodLogs || []),
+        workoutLogs: mergeLogs(authState?.workoutLogs || [], unauthState.workoutLogs || []),
+        weightLogs: mergeLogs(authState?.weightLogs || [], unauthState.weightLogs || []),
+        waterIntake: Math.max(authState?.waterIntake || 0, unauthState.waterIntake || 0),
+        waterDate: unauthState.waterDate || new Date().toDateString(),
+        userProfile: mergedProfile
+      };
+
+      setSecureItem(LOCAL_STATE_KEY, mergedState, newUserId);
+      console.log(`[dbService] Migrated pre-auth onboarding state to authenticated user: ${newUserId}`, mergedProfile);
+    }
+  } catch (err) {
+    console.warn('[dbService] migratePreAuthLocalState error:', err);
+  }
+};
+
 /* ==========================================================================
    AUTHENTICATION API
    ========================================================================== */
@@ -881,6 +916,11 @@ export const getUserProfile = async (userId) => {
   if (isMockMode || !userId) {
     return getLocalState(userId).userProfile;
   }
+  
+  // Auto-migrate any pre-auth local onboarding state to this authenticated user
+  migratePreAuthLocalState(userId);
+  const localState = getLocalState(userId);
+
   try {
     const { data, error } = await supabase
       .from("users_metrics")
@@ -1003,17 +1043,17 @@ export const getUserProfile = async (userId) => {
         subscriptionDate: extra.subscriptionDate || localState.userProfile?.subscriptionDate || null,
         passPurchases: extra.passPurchases || localState.userProfile?.passPurchases || null,
         activePass: extra.activePass || localState.userProfile?.activePass || subPlan,
-        onboarded: extra.onboarded === true || data.onboarded === true,
+        onboarded: extra.onboarded === true || data.onboarded === true || localState.userProfile?.onboarded === true,
         id: data.id,
         userId: data.userId,
         displayName: resolvedDisplayName,
         photoURL: resolvedPhotoURL,
-        gender: data.gender || extra.gender || 'male',
-        age: data.age || extra.age || 25,
-        weight: data.weight || extra.weight || 70,
-        height: data.height || extra.height || 175,
-        activity: data.activity || extra.activity || 1.55,
-        goal: data.goal || extra.goal || 'lose',
+        gender: data.gender || extra.gender || localState.userProfile?.gender || 'male',
+        age: data.age || extra.age || localState.userProfile?.age || 25,
+        weight: data.weight || extra.weight || localState.userProfile?.weight || 70,
+        height: data.height || extra.height || localState.userProfile?.height || 175,
+        activity: data.activity || extra.activity || localState.userProfile?.activity || 1.55,
+        goal: data.goal || extra.goal || localState.userProfile?.goal || 'lose',
         bio: ('bio' in extra && typeof extra.bio === 'string') ? extra.bio : ""
       };
 
@@ -1033,9 +1073,9 @@ export const getUserProfile = async (userId) => {
       ...localProf,
       subscriptionPlan: fallbackPlan,
       isSubscribed: fallbackPlan !== 'FREE' && fallbackPlan !== 'DEFAULT',
-      onboarded: localProf?.onboarded === true ? true : false
+      onboarded: localProf?.onboarded === true || localState.userProfile?.onboarded === true
     };
-    if (fallbackPlan !== 'FREE') {
+    if (fallbackPlan !== 'FREE' || fallbackSub.onboarded) {
       saveUserProfile(userId, fallbackSub).catch(() => { });
     }
     return fallbackSub;

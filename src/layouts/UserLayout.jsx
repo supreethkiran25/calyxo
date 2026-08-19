@@ -179,15 +179,15 @@ export default function UserLayout() {
     );
   }
 
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+
   useEffect(() => {
     useStore.getState().checkDailyReset();
     useEcosystemStore.getState().checkDailyLoginStreak();
     const setUser = useStore.getState().setUser;
     const setUserProfile = useStore.getState().setUserProfile;
     const setWaterIntake = useStore.getState().setWaterIntake;
-    // Sequence counter: discard results from superseded (stale) auth callbacks.
-    // Supabase fires both INITIAL_SESSION and getSession().then() nearly simultaneously;
-    // the earlier in-flight loadUserData must not overwrite store state set by a newer call.
+
     let authSeq = 0;
     const unsubscribeAuth = subscribeToAuth(async (authUser) => {
       if (authUser) {
@@ -202,12 +202,8 @@ export default function UserLayout() {
 
         if (profile) {
           setUserProfile(profile);
-        } else {
-          setUserProfile({ onboarded: false });
         }
-        // Non-regression guard: never overwrite non-empty store data with an empty array.
-        // This prevents a stale loadUserData (started before food/workout was added) from
-        // clearing data that was correctly written by addFoodLog/addWorkoutLog.
+
         const store = useStore.getState();
         if (foods && (foods.length > 0 || store.foodLogs.length === 0)) store.setFoodLogs(foods);
         if (workouts && (workouts.length > 0 || store.workoutLogs.length === 0)) store.setWorkoutLogs(workouts);
@@ -216,6 +212,9 @@ export default function UserLayout() {
         if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
         useEcosystemStore.getState().checkDailyLoginStreak();
         useEcosystemStore.getState().recalculateDynamicStreaks(foods || [], workouts || [], weights || []);
+        setIsProfileLoading(false);
+      } else {
+        setIsProfileLoading(false);
       }
     });
 
@@ -291,6 +290,10 @@ export default function UserLayout() {
     };
   }, [user]);
 
+
+  if (isProfileLoading) {
+    return <LaunchScreen isLoading={true} />;
+  }
 
   // If user is authenticated but has not completed onboarding, trigger OnboardingFlow
   if (user && (!userProfile || userProfile.onboarded !== true)) {
