@@ -91,10 +91,26 @@ export default function NativeMobileBridge() {
       }
     };
 
+    // App State Change Listener (App foreground / resume auto-sync on phones)
+    let appStateListener = null;
+    const initAppStateChange = async () => {
+      try {
+        appStateListener = await CapApp.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) {
+            console.log('[NativeMobileBridge] Mobile app resumed — triggering instant cross-device auto-sync');
+            window.dispatchEvent(new CustomEvent('calyxo_data_sync'));
+          }
+        });
+      } catch (e) {
+        console.warn('[NativeMobileBridge] AppState listener error:', e);
+      }
+    };
+
     initStatusBar();
     hideSplash();
     initBackButton();
     initDeepLinks();
+    initAppStateChange();
 
     return () => {
       if (backButtonListener && typeof backButtonListener.remove === 'function') {
@@ -103,9 +119,13 @@ export default function NativeMobileBridge() {
       if (appUrlListener && typeof appUrlListener.remove === 'function') {
         appUrlListener.remove();
       }
+      if (appStateListener && typeof appStateListener.remove === 'function') {
+        appStateListener.remove();
+      }
     };
   }, []);
 
   return null;
 }
+
 
