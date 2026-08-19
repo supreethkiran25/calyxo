@@ -3,8 +3,8 @@
     android:minWidth="180dp"
     android:minHeight="110dp"
     android:updatePeriodMillis="1800000"
-    android:previewImage="@mipmap/ic_launcher"
-    android:initialLayout="@mipmap/ic_launcher"
+    android:initialLayout="@layout/calyxo_widget_layout"
+    android:previewLayout="@layout/calyxo_widget_layout"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen">
 </appwidget-provider>
