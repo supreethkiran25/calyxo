@@ -1,0 +1,184 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { DollarSign, Download, ArrowUpRight, CheckCircle2, CreditCard, Search, Calendar, RefreshCw } from 'lucide-react';
+import { getAdminTransactions, getAdminDashboardMetrics } from '../../services/adminService';
+import { AdminStatCard, AdminStatusBadge, AdminLoadingSkeleton } from '../../components/admin/AdminUIPrimitives';
+import { useAdminRealtime } from '../../hooks/useAdminRealtime';
+
+const AdminRevenueView = () => {
+  const [metrics, setMetrics] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const loadData = useCallback(async () => {
+    try {
+      const [m, txs] = await Promise.all([
+        getAdminDashboardMetrics(),
+        getAdminTransactions()
+      ]);
+      setMetrics(m);
+      setTransactions(txs || []);
+    } catch (e) {
+      console.error('[AdminRevenueView] Error loading data:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Real-time listener for subscriptions & payments from Supabase
+  useAdminRealtime(['subscriptions', 'admin_audit_logs', 'user_profiles'], () => {
+    loadData();
+  });
+
+  const totalGrossRevenue = transactions.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
+
+  const filteredTx = transactions.filter(tx => 
+    !search || 
+    (tx.payment_id && tx.payment_id.toLowerCase().includes(search.toLowerCase())) || 
+    (tx.customer_name && tx.customer_name.toLowerCase().includes(search.toLowerCase())) || 
+    (tx.customer_email && tx.customer_email.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const exportCSV = () => {
+    let csv = 'Payment ID,Customer Name,Customer Email,Plan,Amount (INR),Currency,Status,Provider,Date\n';
+    transactions.forEach(tx => {
+      csv += `"${tx.payment_id}","${tx.customer_name}","${tx.customer_email}","${tx.plan}","${tx.amount}","${tx.currency}","${tx.status}","${tx.payment_provider || 'Razorpay Gateway'}","${tx.purchase_date}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `calyxo_revenue_ledger_${new Date().toISOString().substring(0, 10)}.csv`;
+    a.click();
+  };
+
+  if (loading || !metrics) {
+    return <AdminLoadingSkeleton rows={5} />;
+  }
+
+  const { kpis } = metrics;
+
+  return (
+    <div className="space-y-6">
+      {/* Header Context */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-neutral-800/80">
+        <div>
+          <h2 className="text-xl font-bold text-white tracking-tight">Financial Revenue & Transaction Ledger</h2>
+          <p className="text-xs text-neutral-400 font-mono mt-0.5">
+            Realtime Supabase & Razorpay payment audit stream and subscription financial metrics
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadData}
+            className="p-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white border border-neutral-800 transition-colors cursor-pointer"
+            title="Refresh Ledger"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          <button
+            onClick={exportCSV}
+            className="px-4 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold border border-neutral-800 transition-colors flex items-center gap-2 cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            <span>Export Financial Ledger</span>
+          </button>
+        </div>
+      </div>
+
+      {/* KPI Cards Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <AdminStatCard
+          title="Total Verified Revenue"
+          value={`₹${totalGrossRevenue.toLocaleString()}`}
+          icon={DollarSign}
+          change="Razorpay Live"
+          changeType="positive"
+          subtitle="Gross captured transactions"
+        />
+        <AdminStatCard
+          title="Monthly Recurring Revenue (MRR)"
+          value={`₹${kpis.mrr_inr.toLocaleString()}`}
+          icon={CreditCard}
+          subtitle="Current active high plan subscribers"
+        />
+        <AdminStatCard
+          title="Annualized Run Rate (ARR)"
+          value={`₹${(kpis.mrr_inr * 12).toLocaleString()}`}
+          icon={ArrowUpRight}
+          subtitle="Projected annualized ARR"
+        />
+      </div>
+
+      {/* Filter Bar */}
+      <div className="p-4 bg-neutral-900/90 border border-neutral-800/80 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search payment ID, email, or customer name..."
+            className="w-full pl-10 pr-4 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 font-mono"
+          />
+        </div>
+      </div>
+
+      {/* Transactions Table */}
+      <div className="bg-neutral-900/90 border border-neutral-800/80 rounded-xl overflow-hidden shadow-xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-neutral-800 bg-neutral-950/60 text-neutral-400 font-mono uppercase text-[10px]">
+                <th className="p-3.5">Payment ID</th>
+                <th className="p-3.5">Customer</th>
+                <th className="p-3.5">Plan</th>
+                <th className="p-3.5">Amount</th>
+                <th className="p-3.5">Status</th>
+                <th className="p-3.5">Provider / Source</th>
+                <th className="p-3.5 text-right">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-800/60 font-sans">
+              {filteredTx.map((tx, idx) => (
+                <tr key={tx.payment_id || idx} className="hover:bg-neutral-800/50 transition-colors">
+                  <td className="p-3.5 font-mono text-xs font-bold text-blue-400">
+                    {tx.payment_id}
+                  </td>
+                  <td className="p-3.5">
+                    <div>
+                      <span className="font-bold text-white block">{tx.customer_name}</span>
+                      <span className="text-[10px] text-neutral-400 font-mono">{tx.customer_email}</span>
+                    </div>
+                  </td>
+                  <td className="p-3.5 font-mono font-bold text-amber-300">
+                    {tx.plan}
+                  </td>
+                  <td className="p-3.5 font-mono font-bold text-white">
+                    ₹{Number(tx.amount).toLocaleString()} {tx.currency || 'INR'}
+                  </td>
+                  <td className="p-3.5">
+                    <AdminStatusBadge status={tx.status} />
+                  </td>
+                  <td className="p-3.5 font-mono text-[11px] text-neutral-400">
+                    {tx.payment_provider || 'Razorpay Gateway'}
+                  </td>
+                  <td className="p-3.5 text-right font-mono text-[11px] text-neutral-400">
+                    {tx.purchase_date}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdminRevenueView;
