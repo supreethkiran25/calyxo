@@ -13,6 +13,7 @@ import Logo from '../components/Logo';
 import ThemeToggle from '../components/ThemeToggle';
 import OfflineSyncIndicator from '../components/OfflineSyncIndicator';
 import PWAInstallBanner from '../components/PWAInstallBanner';
+import LaunchScreen from '../components/LaunchScreen';
 
 const BackgroundEffects = lazy(() => import('../components/BackgroundEffects'));
 const QuickActionsSheet = lazy(() => import('../components/QuickActionsSheet'));
