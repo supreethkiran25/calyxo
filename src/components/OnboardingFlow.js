@@ -56,6 +56,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
   const [activity, setActivity] = useState(1.55);
   const [goal, setGoal] = useState('lose');
   const [experience, setExperience] = useState('beginner');
+  const [workoutStartPeriod, setWorkoutStartPeriod] = useState('1_2_years');
 
   // Nutrition Preferences
   const [dietPreferences, setDietPreferences] = useState([]);
@@ -167,6 +168,8 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
       goal,
       units,
       experience,
+      workoutStartPeriod,
+      workoutExperienceYears: workoutStartPeriod === '5_plus_years' ? 6.0 : workoutStartPeriod === '3_5_years' ? 4.0 : workoutStartPeriod === '1_2_years' ? 1.5 : workoutStartPeriod === 'under_6m' ? 0.5 : 0.0,
       // Calculated Macro Targets & Metrology
       bmr: Math.round(bmr),
       tdee: Math.round(tdee),
@@ -533,6 +536,34 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                         }`}
                       >
                         {exp}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-col space-y-1.5">
+                  <label className="text-[10px] text-muted font-bold uppercase tracking-wider">
+                    When did you start your workout journey? (Used for AI Twin Fitness Age)
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                      { id: 'just_starting', label: 'Just Starting' },
+                      { id: 'under_6m', label: '< 6 Months' },
+                      { id: '1_2_years', label: '1–2 Years' },
+                      { id: '3_5_years', label: '3–5 Years' },
+                      { id: '5_plus_years', label: '5+ Years (Veteran)' }
+                    ].map(item => (
+                      <button
+                        key={item.id}
+                        onClick={() => setWorkoutStartPeriod(item.id)}
+                        type="button"
+                        className={`py-3 px-2 border font-bold text-[10px] uppercase tracking-wide rounded-xl transition-colors cursor-pointer text-center ${
+                          workoutStartPeriod === item.id
+                            ? 'bg-acid-green/10 border-acid-green text-acid-green' 
+                            : 'bg-surface border-card-border text-muted hover:text-foreground'
+                        }`}
+                      >
+                        {item.label}
                       </button>
                     ))}
                   </div>

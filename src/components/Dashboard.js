@@ -293,11 +293,27 @@ export default function Dashboard({ onNotification }) {
       recovery = 68;
     }
 
-    // Fitness Age dynamic modifier based on athletic execution
-    const fitnessAge = score >= 85 ? Math.max(18, userAge - 2) : score >= 70 ? Math.max(18, userAge - 1) : userAge;
+    // ── Clinical Fitness Age Calculation based on Real Training Start Date & Metrics ──
+    const expYears = Number(userProfile?.workoutExperienceYears) || 
+      (userProfile?.workoutStartPeriod === '5_plus_years' ? 6.0 :
+       userProfile?.workoutStartPeriod === '3_5_years' ? 4.0 :
+       userProfile?.workoutStartPeriod === '1_2_years' ? 1.5 :
+       userProfile?.workoutStartPeriod === 'under_6m' ? 0.5 : 0.0);
 
-    // Sleep Debt
-    const sleepDebt = ecoStore.healthTwin?.sleepDebt ?? (score > 80 ? 0 : 1);
+    // Training experience cellular adaptation benefit (years younger)
+    let experienceBenefit = 0;
+    if (expYears >= 5.0) experienceBenefit = 3.0;
+    else if (expYears >= 3.0) experienceBenefit = 2.0;
+    else if (expYears >= 1.0) experienceBenefit = 1.0;
+    else if (expYears === 0.0 && score < 50) experienceBenefit = -1.0;
+
+    // Daily athletic execution & metabolic adherence modifier
+    let adherenceBenefit = 0;
+    if (score >= 85) adherenceBenefit = 1.0;
+    else if (score < 45) adherenceBenefit = -1.0;
+
+    const fitnessAge = Math.max(16, Math.round((userAge - experienceBenefit - adherenceBenefit) * 10) / 10);
+    const fitnessAgeDelta = Math.round((userAge - fitnessAge) * 10) / 10;
 
     // Dynamic AI Insights & actionable recommendations tailored to real gaps
     const recommendations = [];
@@ -334,7 +350,10 @@ export default function Dashboard({ onNotification }) {
 
     return {
       dailyHealthScore: ecoStore.healthTwin?.dailyHealthScore || score,
-      fitnessAge: ecoStore.healthTwin?.fitnessAge || fitnessAge,
+      fitnessAge,
+      fitnessAgeDelta,
+      userAge,
+      expYears,
       recoveryScore: ecoStore.healthTwin?.recoveryScore || recovery,
       sleepDebt,
       weeklyHealthForecast: forecast,
@@ -540,10 +559,20 @@ export default function Dashboard({ onNotification }) {
                 <div>
                   <div className="flex items-center justify-center sm:justify-start gap-1 text-[9px] text-muted font-bold uppercase tracking-wider"><Activity className="w-3 h-3 text-acid-green"/> Fitness Age</div>
                   <div className="text-sm font-black text-foreground">{dynamicHealthTwin.fitnessAge} yrs</div>
+                  <span className="text-[9px] font-bold block mt-0.5 text-muted">
+                    {dynamicHealthTwin.fitnessAgeDelta > 0 
+                      ? `🔥 ${dynamicHealthTwin.fitnessAgeDelta} yrs younger (Bio: ${dynamicHealthTwin.userAge})` 
+                      : dynamicHealthTwin.fitnessAgeDelta < 0 
+                      ? `⚠️ +${Math.abs(dynamicHealthTwin.fitnessAgeDelta)} yrs (Bio: ${dynamicHealthTwin.userAge})` 
+                      : `✨ Bio: ${dynamicHealthTwin.userAge} yrs`}
+                  </span>
                 </div>
                 <div>
                   <div className="flex items-center justify-center sm:justify-start gap-1 text-[9px] text-muted font-bold uppercase tracking-wider"><Zap className="w-3 h-3 text-orange"/> Recovery</div>
                   <div className="text-sm font-black text-foreground">{dynamicHealthTwin.recoveryScore}%</div>
+                  <span className="text-[9px] font-bold block mt-0.5 text-muted">
+                    {dynamicHealthTwin.recoveryScore >= 85 ? 'Optimal Readiness' : 'Normal Capacity'}
+                  </span>
                 </div>
                 <div className="col-span-2">
                   <div className="flex items-center justify-center sm:justify-start gap-1 text-[9px] text-muted font-bold uppercase tracking-wider"><Moon className="w-3 h-3 text-blue-400"/> Sleep Debt</div>
