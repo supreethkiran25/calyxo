@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { signUpUser, signInWithUsernameOrEmail, signInWithGoogle, signInWithApple, sendPasswordReset, loadUserData } from '../lib/dbService';
 import { useStore } from '../store/useStore';
 import Logo from './Logo';
+import LegalModal from './modals/LegalModal';
 
 export default function AuthFlow({ isInitialSignUp = false }) {
   const navigate = useNavigate();
@@ -19,6 +20,8 @@ export default function AuthFlow({ isInitialSignUp = false }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
+  const [termsAgreed, setTermsAgreed] = useState(false);
+  const [legalModalType, setLegalModalType] = useState(null);
 
   const [forgotMode, setForgotMode] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -78,6 +81,12 @@ export default function AuthFlow({ isInitialSignUp = false }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (isSignUp && !termsAgreed) {
+      setError('You must agree to the Terms of Service, Privacy Policy, and Medical Disclaimer to create an account.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -288,17 +297,57 @@ export default function AuthFlow({ isInitialSignUp = false }) {
               )}
             </div>
 
+            {/* Mandatory Legal Consent for Sign Up */}
+            {isSignUp && (
+              <div className="p-3 rounded-2xl bg-surface/70 border border-card-border space-y-2 text-[11px] text-muted leading-tight">
+                <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                  <input 
+                    type="checkbox" 
+                    checked={termsAgreed} 
+                    onChange={(e) => setTermsAgreed(e.target.checked)} 
+                    className="w-4 h-4 mt-0.5 rounded bg-[var(--input)] border border-card-border accent-acid-green focus:ring-0 cursor-pointer shrink-0"
+                  />
+                  <span>
+                    I agree to Calyxo's{' '}
+                    <button 
+                      type="button" 
+                      onClick={(e) => { e.preventDefault(); setLegalModalType('terms'); }}
+                      className="text-acid-green hover:underline font-bold bg-transparent border-none p-0 cursor-pointer"
+                    >
+                      Terms of Service
+                    </button>
+                    {', '}
+                    <button 
+                      type="button" 
+                      onClick={(e) => { e.preventDefault(); setLegalModalType('privacy'); }}
+                      className="text-acid-green hover:underline font-bold bg-transparent border-none p-0 cursor-pointer"
+                    >
+                      Privacy Policy
+                    </button>
+                    {', and Medical & Exercise Disclaimer.'}
+                  </span>
+                </label>
+              </div>
+            )}
+
             <motion.button
               whileTap={{ scale: 0.98 }}
               type="submit"
-              disabled={loading}
+              disabled={loading || (isSignUp && !termsAgreed)}
               className="w-full bg-[#10B981] hover:bg-[#059669] text-white font-bold text-sm py-3.5 rounded-xl mt-6 cursor-pointer hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-[0.98] transition-all disabled:opacity-50 border-none"
             >
-              {loading ? "Authenticating..." : (isSignUp ? "Sign Up" : "Sign In")}
+              {loading ? "Authenticating..." : (isSignUp ? "Create Account & Agree" : "Sign In")}
             </motion.button>
           </form>
         </>
       )}
+
+      {/* Embedded Legal Modal Viewer */}
+      <LegalModal 
+        isOpen={Boolean(legalModalType)} 
+        onClose={() => setLegalModalType(null)} 
+        type={legalModalType || 'terms'} 
+      />
 
       {/* Divider */}
       <div className="relative flex py-5 items-center">

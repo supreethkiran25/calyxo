@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Activity, Sparkles, ChevronRight, ChevronLeft, Heart, Target, Calendar } from 'lucide-react';
+import { User, Activity, Sparkles, ChevronRight, ChevronLeft, Heart, Target, Calendar, Shield, Scale, Lock, Check } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { saveUserProfile, saveEcosystemState } from '../lib/dbService';
 import { generateProgram } from '../services/geminiService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
+import LegalModal from './modals/LegalModal';
 
 const STEPS = [
   { id: 'identity', title: 'Who are you?', icon: User, desc: 'Let\'s get to know you better.' },
@@ -14,6 +15,7 @@ const STEPS = [
   { id: 'biometrics', title: 'Your measurements', icon: Activity, desc: 'Specify your current size and goal.' },
   { id: 'fitness', title: 'Activity & Experience', icon: Target, desc: 'How active are you on a weekly basis?' },
   { id: 'nutrition', title: 'Dietary Preferences', icon: Heart, desc: 'Customize Calyxo to fit your kitchen.' },
+  { id: 'consent', title: 'Health & Legal Consent', icon: Shield, desc: 'Review disclaimers and terms to finalize.' },
   { id: 'generating', title: 'Creating Profile', icon: Sparkles, desc: 'Architecting your personalized AI program...' }
 ];
 
@@ -61,6 +63,11 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
   const [medicalRestrictions, setMedicalRestrictions] = useState('');
   const [foodDislikes, setFoodDislikes] = useState('');
   const [favoriteFoods, setFavoriteFoods] = useState('');
+
+  // Legal Consent & Medical Disclaimer States
+  const [consentMedical, setConsentMedical] = useState(false);
+  const [consentTerms, setConsentTerms] = useState(false);
+  const [legalModalType, setLegalModalType] = useState(null);
 
   // Loading/Generating State
   const [generating, setGenerating] = useState(false);
@@ -176,6 +183,12 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
       medicalRestrictions,
       foodDislikes,
       favoriteFoods,
+      // Legal Compliance & Health Disclaimers
+      termsAccepted: true,
+      termsAcceptedAt: new Date().toISOString(),
+      termsVersion: '2026.1',
+      medicalDisclaimerAccepted: true,
+      privacyAccepted: true,
       // Coach Settings
       coachPersonality: 'motivational',
       responseLength: 'short',
@@ -234,6 +247,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
     if (stepIdx === 0 && (!firstName.trim() || !nickname.trim())) return true;
     if (stepIdx === 1 && !dob) return true;
     if (stepIdx === 2 && (weight <= 0 || height <= 0 || goalWeight <= 0)) return true;
+    if (stepIdx === 5 && (!consentMedical || !consentTerms)) return true;
     return false;
   };
 
@@ -598,6 +612,74 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                 </div>
               </div>
             )}
+
+            {/* STEP 5: Mandatory Legal Consent & Medical Disclaimer */}
+            {stepIdx === 5 && (
+              <div className="space-y-4">
+                {/* Medical Disclaimer Alert */}
+                <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/30 space-y-1.5">
+                  <div className="flex items-center gap-2 text-destructive font-black text-xs uppercase tracking-wider">
+                    <Heart className="w-4 h-4 text-red-400" /> Medical & Health Disclaimer
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Calyxo is a digital fitness and nutrition companion, <strong>not a medical device or healthcare provider</strong>. All training programs, caloric budgets, and AI recommendations are for general athletic conditioning only. Always consult a physician before beginning any strenuous workout routine or diet.
+                  </p>
+                </div>
+
+                {/* Privacy & Wearables Guarantee */}
+                <div className="p-3.5 rounded-2xl bg-surface border border-card-border space-y-1 text-[11px]">
+                  <div className="flex items-center gap-1.5 text-acid-green font-bold uppercase tracking-wider text-[10px]">
+                    <Shield className="w-3.5 h-3.5" /> Biometrics & Wearables Privacy
+                  </div>
+                  <p className="text-muted leading-relaxed">
+                    Apple Health (HealthKit), Android Health Connect, and wearable sensor data are stored securely and <strong>never sold to third-party advertisers</strong>.
+                  </p>
+                </div>
+
+                {/* Required Agreement Checkboxes */}
+                <div className="space-y-3 pt-1">
+                  <label className="flex items-start gap-3 p-3 rounded-2xl bg-[var(--input)] border border-card-border hover:border-acid-green/40 transition-colors cursor-pointer select-none">
+                    <input 
+                      type="checkbox" 
+                      checked={consentMedical} 
+                      onChange={(e) => setConsentMedical(e.target.checked)} 
+                      className="w-4 h-4 mt-0.5 rounded bg-surface border border-card-border accent-acid-green focus:ring-0 cursor-pointer shrink-0"
+                    />
+                    <span className="text-xs text-foreground font-semibold leading-snug">
+                      I acknowledge the Medical Disclaimer and confirm I am physically capable of performing athletic training.
+                    </span>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-3 rounded-2xl bg-[var(--input)] border border-card-border hover:border-acid-green/40 transition-colors cursor-pointer select-none">
+                    <input 
+                      type="checkbox" 
+                      checked={consentTerms} 
+                      onChange={(e) => setConsentTerms(e.target.checked)} 
+                      className="w-4 h-4 mt-0.5 rounded bg-surface border border-card-border accent-acid-green focus:ring-0 cursor-pointer shrink-0"
+                    />
+                    <span className="text-xs text-foreground font-semibold leading-snug">
+                      I have read and agree to Calyxo's{' '}
+                      <button 
+                        type="button" 
+                        onClick={(e) => { e.preventDefault(); setLegalModalType('terms'); }}
+                        className="text-acid-green hover:underline font-bold bg-transparent border-none p-0 cursor-pointer"
+                      >
+                        Terms of Service
+                      </button>
+                      {' and '}
+                      <button 
+                        type="button" 
+                        onClick={(e) => { e.preventDefault(); setLegalModalType('privacy'); }}
+                        className="text-acid-green hover:underline font-bold bg-transparent border-none p-0 cursor-pointer"
+                      >
+                        Privacy Policy
+                      </button>
+                      .
+                    </span>
+                  </label>
+                </div>
+              </div>
+            )}
           </motion.div>
         </AnimatePresence>
 
@@ -618,11 +700,18 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
               disabled={isNextDisabled()}
               className="py-3 px-6 rounded-xl bg-acid-green text-accent-foreground text-xs font-bold uppercase tracking-wider cursor-pointer hover:shadow-lg disabled:opacity-50 border-none flex items-center gap-1.5"
             >
-              {stepIdx === STEPS.length - 2 ? 'Finalize Program' : 'Continue'}
+              {stepIdx === STEPS.length - 2 ? 'Agree & Launch Calyxo' : 'Continue'}
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         )}
+
+        {/* Embedded Legal Modal Viewer */}
+        <LegalModal 
+          isOpen={Boolean(legalModalType)} 
+          onClose={() => setLegalModalType(null)} 
+          type={legalModalType || 'terms'} 
+        />
       </div>
     </div>
   );
