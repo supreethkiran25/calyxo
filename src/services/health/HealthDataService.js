@@ -8,6 +8,7 @@ import { Capacitor } from '@capacitor/core';
 import { HealthPermissionManager } from './HealthPermissionManager';
 import { HealthCache } from './HealthCache';
 import { PWAPedometerService } from './PWAPedometerService';
+import { PhoneSleepTrackerService } from './PhoneSleepTrackerService';
 import { syncWidgetData } from '../widgetDataService';
 
 export class HealthDataService {
@@ -75,6 +76,18 @@ export class HealthDataService {
         const parsed = typeof res === 'string' ? JSON.parse(res) : res;
         if (parsed) {
           metrics = { ...metrics, ...parsed, lastSyncTimestamp: Date.now() };
+        }
+      }
+
+      // Automatically evaluate phone nighttime inactivity sleep if watch sleep is unavailable
+      if (!metrics.sleepHours || metrics.sleepHours <= 0) {
+        const phoneSleep = PhoneSleepTrackerService.getTodaySleep();
+        if (phoneSleep && phoneSleep.durationHours > 0) {
+          metrics.sleepHours = phoneSleep.durationHours;
+          metrics.sleepQualityPct = phoneSleep.sleepQualityPct || 0;
+          metrics.bedTime = phoneSleep.bedTime;
+          metrics.wakeTime = phoneSleep.wakeTime;
+          metrics.sleepDetectionMethod = phoneSleep.detectionMethod;
         }
       }
 

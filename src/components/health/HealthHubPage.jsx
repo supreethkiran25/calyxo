@@ -376,13 +376,17 @@ export default function HealthHubPage({ onNotification }) {
         <div className="bg-surface border border-card-border rounded-3xl p-5 space-y-2">
           <div className="flex justify-between items-center text-muted">
             <Moon className="w-4 h-4 text-emerald-400" />
-            <span className="text-[9px] font-bold uppercase">SLEEP</span>
+            <span className="text-[9px] font-bold uppercase">SLEEP (PHONE & WATCH)</span>
           </div>
           <div>
-            <span className="text-2xl font-black text-foreground">{metrics?.sleepHours || 7.4}</span>
+            <span className="text-2xl font-black text-foreground">{metrics?.sleepHours > 0 ? metrics.sleepHours : 0.0}</span>
             <span className="text-xs font-bold text-muted ml-1">hrs</span>
           </div>
-          <span className="text-[10px] font-bold text-emerald-400 block">{metrics?.sleepQualityPct || 88}% Quality</span>
+          <span className="text-[10px] font-bold text-emerald-400 block">
+            {metrics?.bedTime && metrics?.bedTime !== '--:--' && metrics?.wakeTime && metrics?.wakeTime !== '--:--'
+              ? `🌙 ${metrics.bedTime} → ☀️ ${metrics.wakeTime}`
+              : (metrics?.sleepQualityPct > 0 ? `${metrics.sleepQualityPct}% Quality` : 'Tracking Inactivity')}
+          </span>
         </div>
 
         {/* Weight Trend */}

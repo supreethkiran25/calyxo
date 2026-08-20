@@ -47,6 +47,7 @@ const AdminLogsView = lazyWithRetry(() => import('./pages/admin/AdminLogsView'))
 const AdminSettingsView = lazyWithRetry(() => import('./pages/admin/AdminSettingsView'));
 
 import { registerServiceWorker, scheduleDailyReminders } from './services/notificationService';
+import { PhoneSleepTrackerService } from './services/health/PhoneSleepTrackerService';
 import NativeMobileBridge from './components/NativeMobileBridge';
 import UniversalLiveHUD from './components/UniversalLiveHUD';
 
@@ -55,6 +56,7 @@ function App() {
 
   useEffect(() => {
     initializeTheme();
+    PhoneSleepTrackerService.init();
     registerServiceWorker().then(() => {
       scheduleDailyReminders();
     });
