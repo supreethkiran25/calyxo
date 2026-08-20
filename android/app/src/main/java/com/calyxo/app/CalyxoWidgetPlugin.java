@@ -105,6 +105,15 @@ public class CalyxoWidgetPlugin extends Plugin {
         call.resolve(ret);
     }
 
+    @PluginMethod
+    public void isMusicPlaying(PluginCall call) {
+        android.media.AudioManager audioManager = (android.media.AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+        boolean isPlaying = audioManager != null && audioManager.isMusicActive();
+        JSObject ret = new JSObject();
+        ret.put("isPlaying", isPlaying);
+        call.resolve(ret);
+    }
+
     private void reloadAllWidgets(Context context) {
         AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
         ComponentName thisWidget = new ComponentName(context, CalyxoAppWidgetProvider.class);

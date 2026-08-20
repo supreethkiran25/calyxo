@@ -1,5 +1,6 @@
 import Capacitor
 import WidgetKit
+import AVFoundation
 
 /// Capacitor Plugin bridging JavaScript state to shared App Group UserDefaults & WidgetKit timelines.
 /// JS calls: Capacitor.Plugins.CalyxoWidget.syncWidgetData(...)
@@ -10,7 +11,8 @@ public class CalyxoWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "syncWidgetData", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearWidgetData", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "reloadWidgets", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "reloadWidgets", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "isMusicPlaying", returnType: CAPPluginReturnPromise)
     ]
 
     @objc func syncWidgetData(_ call: CAPPluginCall) {
@@ -92,5 +94,10 @@ public class CalyxoWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
             WidgetCenter.shared.reloadAllTimelines()
         }
         call.resolve(["success": true])
+    }
+
+    @objc func isMusicPlaying(_ call: CAPPluginCall) {
+        let isPlaying = AVAudioSession.sharedInstance().isOtherAudioPlaying
+        call.resolve(["isPlaying": isPlaying])
     }
 }

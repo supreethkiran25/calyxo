@@ -785,11 +785,6 @@ export default function Dashboard({ onNotification }) {
           </div>
         </div>
 
-        {/* ── Workout Beats & Audio Control HUD ── */}
-        <div className="md:col-span-2 lg:col-span-3">
-          <WorkoutMusicPlayerHUD onNotification={onNotification} />
-        </div>
-
         {/* ── Biometrics Quick Stats Card ── */}
         <div className="glass rounded-2xl border border-[var(--card-border)] overflow-hidden shadow-md md:col-span-2 lg:col-span-3">
           <div className="flex justify-between items-center px-6 py-4 border-b border-card-border">
@@ -840,6 +835,9 @@ export default function Dashboard({ onNotification }) {
         </div>
 
       </div>
+
+      {/* Floating Spotify-Style Now-Playing Capsule */}
+      <WorkoutMusicPlayerHUD onNotification={onNotification} />
     </div>
   );
 }
