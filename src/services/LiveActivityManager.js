@@ -62,8 +62,7 @@ export class LiveActivityManager {
 
     // Sync widget state with active workout
     await syncWidgetData({
-      activeWorkout: { name: workoutName, duration: 0 },
-      calories: caloriesBurned
+      activeWorkout: { name: workoutName, duration: 0 }
     });
 
     if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'ios') {

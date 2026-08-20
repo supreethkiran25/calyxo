@@ -14,6 +14,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import OfflineSyncIndicator from '../components/OfflineSyncIndicator';
 import PWAInstallBanner from '../components/PWAInstallBanner';
 import LaunchScreen from '../components/LaunchScreen';
+import { syncWidgetData } from '../services/widgetDataService';
 
 const BackgroundEffects = lazy(() => import('../components/BackgroundEffects'));
 const QuickActionsSheet = lazy(() => import('../components/QuickActionsSheet'));
@@ -213,6 +214,7 @@ export default function UserLayout() {
         if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
         useEcosystemStore.getState().checkDailyLoginStreak();
         useEcosystemStore.getState().recalculateDynamicStreaks(foods || [], workouts || [], weights || []);
+        syncWidgetData();
         setIsProfileLoading(false);
       } else {
         setIsProfileLoading(false);
