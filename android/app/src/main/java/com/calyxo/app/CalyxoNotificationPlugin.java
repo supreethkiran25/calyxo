@@ -114,6 +114,9 @@ public class CalyxoNotificationPlugin extends Plugin {
         int notifId = Math.abs(idStr.hashCode());
         Context context = getContext();
 
+        // Ensure channels are active
+        createNotificationChannels();
+
         Intent intent = new Intent(context, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
@@ -133,7 +136,8 @@ public class CalyxoNotificationPlugin extends Plugin {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(pendingIntent)
             .setAutoCancel(!isOngoing)
-            .setOngoing(isOngoing);
+            .setOngoing(isOngoing)
+            .setOnlyAlertOnce(isOngoing);
 
         if (isOngoing) {
             builder.setStyle(new NotificationCompat.BigTextStyle().bigText(body));

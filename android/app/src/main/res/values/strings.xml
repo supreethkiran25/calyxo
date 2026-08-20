@@ -4,4 +4,6 @@
     <string name="title_activity_main">Calyxo</string>
     <string name="package_name">com.calyxo.app</string>
     <string name="custom_url_scheme">com.calyxo.app</string>
+    <string name="widget_name">Calyxo Daily Fitness</string>
+    <string name="widget_description">Track daily calories, hydration, workout sets, and streaks</string>
 </resources>

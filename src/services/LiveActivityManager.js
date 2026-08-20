@@ -169,7 +169,17 @@ export class LiveActivityManager {
           title: `⏳ Rest Time: ${restDurationSeconds || 60}s`,
           body: `Next up: Set ${this.currentSet} of ${this.currentExerciseName}`,
           delayMs: 100,
-          tag: 'calyxo-live-workout'
+          tag: 'calyxo-live-workout',
+          isOngoing: true
+        });
+      } else {
+        scheduleExactNotification({
+          id: this.activeNotifId || `android-live-${Date.now()}`,
+          title: `🏋️ Calyxo Workout: ${this.currentExerciseName}`,
+          body: `Set ${this.currentSet} of ${this.totalSets} • ${this.currentReps} Reps • ${this.caloriesBurned} kcal burned`,
+          delayMs: 100,
+          tag: 'calyxo-live-workout',
+          isOngoing: true
         });
       }
     }
