@@ -197,7 +197,7 @@ export default function UserLayout() {
         const uid = authUser.uid || authUser.id;
         const seq = ++authSeq;
 
-        const { profile, foods, workouts, weights, water, ecosystem } = await loadUserData(uid);
+        const { profile, foods, workouts, weights, water, waterLogs, ecosystem } = await loadUserData(uid);
 
         // Discard if a newer auth callback already completed.
         if (seq !== authSeq) return;
@@ -213,7 +213,8 @@ export default function UserLayout() {
         if (water !== undefined && water !== null) setWaterIntake(water);
         if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
         useEcosystemStore.getState().checkDailyLoginStreak();
-        useEcosystemStore.getState().recalculateDynamicStreaks(foods || [], workouts || [], weights || []);
+        const waterTarget = Number(profile?.waterGoal || profile?.waterTarget || store.userProfile?.waterTarget || 2500);
+        useEcosystemStore.getState().recalculateDynamicStreaks(foods || [], workouts || [], waterLogs || [], waterTarget);
         syncWidgetData();
         setIsProfileLoading(false);
       } else {
@@ -244,7 +245,7 @@ export default function UserLayout() {
     // OR the store is already empty (prevents a failed/empty refetch from clearing real data).
     const unsubCrossDevice = subscribeToUserDataChanges(uid, async () => {
       invalidateUserDataCache(uid);
-      const { profile, foods, workouts, weights, water, ecosystem } = await loadUserData(uid);
+      const { profile, foods, workouts, weights, water, waterLogs, ecosystem } = await loadUserData(uid);
       const store = useStore.getState();
       if (profile) store.setUserProfile(profile);
       if (foods && (foods.length > 0 || store.foodLogs.length === 0)) store.setFoodLogs(foods);
@@ -252,7 +253,8 @@ export default function UserLayout() {
       if (weights && (weights.length > 0 || store.weightLogs.length === 0)) store.setWeightLogs(weights);
       if (water !== undefined && water !== null) store.setWaterIntake(water);
       if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
-      useEcosystemStore.getState().recalculateDynamicStreaks(foods || [], workouts || [], weights || []);
+      const waterTarget = Number(profile?.waterGoal || profile?.waterTarget || store.userProfile?.waterTarget || 2500);
+      useEcosystemStore.getState().recalculateDynamicStreaks(foods || [], workouts || [], waterLogs || [], waterTarget);
     });
 
     // 3. Tab visibility and window focus listener — refresh data when user returns to tab.
@@ -264,7 +266,7 @@ export default function UserLayout() {
     const handleFocusSync = async () => {
       const seq = ++focusSyncSeq;
       invalidateUserDataCache(uid);
-      const { profile, foods, workouts, weights, water, ecosystem } = await loadUserData(uid);
+      const { profile, foods, workouts, weights, water, waterLogs, ecosystem } = await loadUserData(uid);
       // Discard result if a newer sync started while this one was in-flight
       if (seq !== focusSyncSeq) return;
       const store = useStore.getState();
@@ -274,7 +276,8 @@ export default function UserLayout() {
       if (weights && (weights.length > 0 || store.weightLogs.length === 0)) store.setWeightLogs(weights);
       if (water !== undefined && water !== null) store.setWaterIntake(water);
       if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
-      useEcosystemStore.getState().recalculateDynamicStreaks(foods || [], workouts || [], weights || []);
+      const waterTarget = Number(profile?.waterGoal || profile?.waterTarget || store.userProfile?.waterTarget || 2500);
+      useEcosystemStore.getState().recalculateDynamicStreaks(foods || [], workouts || [], waterLogs || [], waterTarget);
     };
 
     window.addEventListener('focus', handleFocusSync);

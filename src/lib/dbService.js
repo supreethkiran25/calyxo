@@ -884,6 +884,29 @@ export const saveWaterIntake = async (userId, amount) => {
   }
 };
 
+export const getWaterLogs = async (userId) => {
+  const localLogs = getLocalState(userId).waterLogs || [];
+  if (isMockMode || !userId) {
+    return localLogs;
+  }
+  const validUid = toValidUuid(userId);
+  try {
+    const { data, error } = await supabase
+      .from("users_metrics")
+      .select("*")
+      .eq("userId", validUid);
+    if (error) throw error;
+    const remoteLogs = (data || []).map(d => ({
+      date: d.date,
+      amount: Number(d.amount) || 0,
+      timestamp: d.timestamp || d.created_at || (d.date ? new Date(d.date).getTime() : Date.now())
+    }));
+    return mergeLogs(remoteLogs, localLogs);
+  } catch (err) {
+    return localLogs;
+  }
+};
+
 /* ==========================================================================
    WEIGHT API
    ========================================================================== */
@@ -1348,15 +1371,16 @@ export const loadUserData = async (userId) => {
     return cachedEntry.data;
   }
 
-  const [profile, foods, workouts, weights, water, ecosystem] = await Promise.all([
+  const [profile, foods, workouts, weights, water, waterLogs, ecosystem] = await Promise.all([
     getUserProfile(userId),
     getFoodLogs(userId),
     getWorkoutLogs(userId),
     getWeightLogs(userId),
     getWaterIntake(userId),
+    getWaterLogs(userId),
     getEcosystemState(userId)
   ]);
-  const result = { profile, foods, workouts, weights, water, ecosystem };
+  const result = { profile, foods, workouts, weights, water, waterLogs, ecosystem };
   userDataCacheMap[userId] = { data: result, timestamp: now };
   return result;
 };

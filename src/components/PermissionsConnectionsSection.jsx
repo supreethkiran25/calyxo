@@ -12,12 +12,14 @@ import { HealthSyncEngine } from '../services/health/HealthSyncEngine';
 import { LiveActivityManager } from '../services/LiveActivityManager';
 import { getNotificationStatus, requestNotificationPermission } from '../services/notificationService';
 import { useStore } from '../store/useStore';
+import WearableCompanionModal from './modals/WearableCompanionModal';
 
 export default function PermissionsConnectionsSection({ onNotification }) {
   const user = useStore(state => state.user);
   const isNative = Capacitor.isNativePlatform();
   const platform = HealthPermissionManager.getPlatform();
 
+  const [isWearableOpen, setIsWearableOpen] = useState(false);
   const [pwaState, setPwaState] = useState(pwaManager.getState());
   const [swStatus, setSwStatus] = useState('Checking...');
   const [bgSyncSupported, setBgSyncSupported] = useState(false);
@@ -156,7 +158,7 @@ export default function PermissionsConnectionsSection({ onNotification }) {
         </div>
 
         {/* 2. WEARABLE OS & WATCH COMPANION */}
-        <div className="p-4 rounded-2xl bg-surface border border-emerald-500/30 space-y-2 bg-gradient-to-br from-emerald-950/20 to-transparent">
+        <div className="p-4 rounded-2xl bg-surface border border-emerald-500/30 space-y-3 bg-gradient-to-br from-emerald-950/20 to-transparent">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Watch className="w-4 h-4 text-emerald-400" />
@@ -173,15 +175,25 @@ export default function PermissionsConnectionsSection({ onNotification }) {
             Supports Apple Watch (Series 3 through Ultra 2), Galaxy Watch, and Garmin (Forerunner 245) / Whoop / Oura via Apple Health & Health Connect. If you have no wearable, your phone tracks everything automatically.
           </p>
 
-          <button
-            onClick={() => {
-              if (onNotification) onNotification("Wearable sync active. Live workouts and metrics stream automatically from your paired watch or Garmin.");
-            }}
-            className="w-full py-2.5 rounded-xl bg-surface hover:bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-black text-xs uppercase tracking-wider cursor-pointer transition-all flex items-center justify-center gap-1.5"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Sync Wearable Telemetry
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setIsWearableOpen(true)}
+              className="py-2.5 rounded-xl bg-emerald-500 text-black font-black text-xs uppercase tracking-wider cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-md hover:brightness-110"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Install on Watch
+            </button>
+
+            <button
+              onClick={() => {
+                if (onNotification) onNotification("Wearable sync active. Live workouts and metrics stream automatically from your paired watch or Garmin.");
+              }}
+              className="py-2.5 rounded-xl bg-surface hover:bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-black text-xs uppercase tracking-wider cursor-pointer transition-all flex items-center justify-center gap-1.5"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Sync Telemetry
+            </button>
+          </div>
         </div>
 
         {/* 3. WORKOUT & REST NOTIFICATIONS */}
@@ -232,6 +244,12 @@ export default function PermissionsConnectionsSection({ onNotification }) {
         </div>
 
       </div>
+
+      <WearableCompanionModal
+        isOpen={isWearableOpen}
+        onClose={() => setIsWearableOpen(false)}
+        onNotification={onNotification}
+      />
     </div>
   );
 }

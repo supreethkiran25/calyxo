@@ -225,6 +225,15 @@ export default function HealthHubPage({ onNotification }) {
 
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setIsWearableModalOpen(true)}
+            className="px-3.5 py-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 text-xs font-black uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all shadow-sm"
+            title="Install or Preview Watch Companion"
+          >
+            <Watch className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Install on Watch</span>
+          </button>
+
+          <button
             onClick={handleRefreshData}
             disabled={isSyncing}
             className="px-4 py-2.5 rounded-2xl bg-surface border border-card-border text-foreground hover:border-emerald-400 text-xs font-black uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all"
