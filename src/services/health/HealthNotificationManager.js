@@ -1,7 +1,4 @@
-/**
- * Calyxo Universal Health Data Integration - Notification Manager
- * Quiet hours compliant notification triggers for step milestones and movement alerts
- */
+import { sendOSNotification } from '../notificationService';
 
 export class HealthNotificationManager {
   /**
@@ -28,14 +25,7 @@ export class HealthNotificationManager {
       onNotifyCallback(`${title}: ${body}`);
     }
 
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-      try {
-        new Notification(title, {
-          body,
-          icon: '/favicon.ico'
-        });
-      } catch (e) {}
-    }
+    sendOSNotification(title, body, '/user/dashboard');
   }
 
   /**

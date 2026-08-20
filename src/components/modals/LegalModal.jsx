@@ -54,10 +54,10 @@ export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
               <>
                 <section className="space-y-2">
                   <h3 className="text-sm font-black uppercase tracking-widest text-acid-green flex items-center gap-2">
-                    <Shield className="w-4 h-4" /> 1. Commitment to Health Data Privacy
+                    <Shield className="w-4 h-4" /> 1. Data Fiduciary & Statutory Framework
                   </h3>
                   <p>
-                    Calyxo is committed to protecting your biometric information. This Privacy Policy outlines how your personal fitness, nutrition, and device data are collected, processed, and secured.
+                    Calyxo Health Technologies operates as a Data Fiduciary under the <strong>Digital Personal Data Protection Act, 2023 (DPDP Act)</strong>, the <strong>Information Technology Act, 2000</strong>, and international privacy regulations (GDPR / CCPA). We collect, process, and secure your fitness telemetry with strict lawful consent.
                   </p>
                 </section>
 
@@ -66,21 +66,21 @@ export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
                     <Activity className="w-4 h-4" /> 2. Apple HealthKit & Wearables Compliance
                   </h3>
                   <p>
-                    When you authorize Apple Health (HealthKit), Android Health Connect, or paired fitness wearables (Apple Watch, Garmin, Galaxy Watch, WHOOP, Oura), Calyxo reads only explicit authorized categories (active energy, steps, heart rate, workouts).
+                    When you authorize Apple Health (HealthKit), Android Health Connect, or paired fitness wearables (Apple Watch, Garmin, WHOOP, Oura), Calyxo reads only explicit authorized categories (active energy, steps, heart rate, workouts).
                   </p>
                   <div className="p-3.5 rounded-2xl bg-[var(--input)] border border-card-border space-y-1.5 text-[11px]">
-                    <span className="font-black text-acid-green uppercase">Strict HealthKit Guarantee:</span>
+                    <span className="font-black text-acid-green uppercase">Strict Compliance Guarantee:</span>
                     <ul className="list-disc list-inside space-y-1">
-                      <li>HealthKit data is <strong>NEVER</strong> used for marketing or behavioral advertising.</li>
-                      <li>HealthKit data is <strong>NEVER</strong> sold to data brokers or third parties.</li>
-                      <li>Data is processed on-device and in encrypted personal storage solely to power your live health rings, workout logs, and recovery metrics.</li>
+                      <li>HealthKit & Health Connect data is <strong>NEVER</strong> used for marketing or behavioural advertising.</li>
+                      <li>Data is <strong>NEVER</strong> sold to data brokers, insurers, or third-party networks.</li>
+                      <li>Data is processed on-device and in encrypted personal database tables protected by Row Level Security (RLS).</li>
                     </ul>
                   </div>
                 </section>
 
                 <section className="space-y-2">
                   <h3 className="text-sm font-black uppercase tracking-widest text-acid-green flex items-center gap-2">
-                    <FileText className="w-4 h-4" /> 3. Information We Collect
+                    <FileText className="w-4 h-4" /> 3. Categories of Data Collected
                   </h3>
                   <ul className="list-disc list-inside space-y-1">
                     <li><strong>Account Credentials:</strong> Email, username, authentication identifiers.</li>
@@ -101,60 +101,79 @@ export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
 
                 <section className="space-y-2">
                   <h3 className="text-sm font-black uppercase tracking-widest text-acid-green flex items-center gap-2">
-                    <Lock className="w-4 h-4" /> 5. Security & Coach Access Controls
+                    <Scale className="w-4 h-4" /> 5. Data Principal Rights & Erasure
                   </h3>
                   <p>
-                    Data is protected via Supabase Row Level Security (RLS) policies. Health data is completely private by default. Only trainers you explicitly approve have access to your metrics, and consent can be revoked with 1 tap.
+                    Under Chapter III of the DPDP Act 2023 and GDPR, you have the right to access summaries of your data, request correction of inaccurate metrics, or initiate <strong>1-tap permanent account deletion</strong> via Account Settings.
                   </p>
+                </section>
+
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-acid-green flex items-center gap-2">
+                    <Mail className="w-4 h-4" /> 6. Grievance Officer (India)
+                  </h3>
+                  <div className="p-3 rounded-xl bg-[var(--input)] border border-card-border space-y-1 text-[11px]">
+                    <p><strong>Grievance Redressal Officer:</strong> Calyxo Health Technologies Pvt Ltd</p>
+                    <p><strong>Email:</strong> grievance@calyxo.com (cc: privacy@calyxo.com)</p>
+                  </div>
                 </section>
               </>
             ) : (
               <>
                 <section className="space-y-2">
                   <h3 className="text-sm font-black uppercase tracking-widest text-acid-green flex items-center gap-2">
-                    <Scale className="w-4 h-4" /> 1. Acceptance of Terms
+                    <Scale className="w-4 h-4" /> 1. Binding User Contract
                   </h3>
                   <p>
-                    By creating an account, accessing, or downloading Calyxo, you agree to these Terms of Service. If you do not agree, you must discontinue using Calyxo immediately.
+                    By creating an account, accessing, or downloading Calyxo, you enter into a legally binding contract under the <strong>Indian Contract Act, 1872</strong>. If you do not agree, you must discontinue using Calyxo immediately.
                   </p>
                 </section>
 
                 <section className="space-y-2">
                   <h3 className="text-sm font-black uppercase tracking-widest text-acid-green flex items-center gap-2">
-                    <Heart className="w-4 h-4 text-red-400" /> 2. Medical & Exercise Disclaimer
+                    <Heart className="w-4 h-4 text-red-400" /> 2. Comprehensive Medical & Exercise Disclaimer
                   </h3>
                   <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/30 space-y-2">
                     <p className="font-bold text-destructive text-[11px]">
                       CALYXO IS NOT A MEDICAL DEVICE AND DOES NOT PROVIDE MEDICAL ADVICE OR DIAGNOSIS.
                     </p>
                     <p className="text-muted-foreground text-[11px]">
-                      All workout splits, nutrition suggestions, calorie targets, and AI recommendations are for general athletic conditioning only. Always consult a physician before beginning any strenuous workout routine or diet.
+                      All workout splits, nutrition suggestions, calorie targets, and AI recommendations are for general athletic conditioning only. Always consult a licensed physician before beginning any strenuous workout routine or diet. Stop exercising immediately if you experience dizziness, pain, or shortness of breath.
                     </p>
                   </div>
                 </section>
 
                 <section className="space-y-2">
                   <h3 className="text-sm font-black uppercase tracking-widest text-acid-green flex items-center gap-2">
-                    <Activity className="w-4 h-4" /> 3. Assumption of Risk
+                    <Activity className="w-4 h-4" /> 3. Voluntary Assumption of Risk
                   </h3>
                   <p>
-                    You voluntarily assume all risks associated with your physical exercise and dietary choices, releasing Calyxo, its trainers, and affiliates from liability for any injuries or damages.
+                    You voluntarily assume all risks associated with your physical exercise and dietary choices, releasing Calyxo, its trainers, and affiliates from liability for any injuries or damages to the maximum extent permitted by law.
                   </p>
                 </section>
 
                 <section className="space-y-2">
                   <h3 className="text-sm font-black uppercase tracking-widest text-acid-green flex items-center gap-2">
-                    <Shield className="w-4 h-4" /> 4. Subscriptions & Billing
+                    <Shield className="w-4 h-4" /> 4. Subscriptions & Payments
                   </h3>
                   <p>
-                    Subscriptions (Calyxo High / Annual Pass) are billed on a recurring basis via authorized payment gateways (Razorpay / Apple IAP) and can be canceled anytime prior to renewal in Account Settings.
+                    Subscriptions (Calyxo High / Annual Pass) are billed on a recurring basis via authorized payment gateways (Razorpay / Apple IAP) under RBI recurring mandate guidelines, and can be canceled anytime prior to renewal in Account Settings.
+                  </p>
+                </section>
+
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-acid-green flex items-center gap-2">
+                    <Scale className="w-4 h-4" /> 5. Dispute Resolution & Jurisdiction
+                  </h3>
+                  <p>
+                    Governed by the laws of the Republic of India. Disputes are resolved via binding arbitration under the <strong>Arbitration and Conciliation Act, 1996</strong> in Bengaluru, Karnataka.
                   </p>
                 </section>
               </>
             )}
 
             <div className="p-4 rounded-2xl bg-surface/80 border border-card-border flex items-center justify-between text-xs">
-              <span className="text-muted font-semibold">Questions or Data Privacy Inquiries?</span>
+              <span className="text-muted font-semibold">Questions or Legal Inquiries?</span>
               <a href="mailto:support@calyxo.com" className="text-acid-green font-bold hover:underline flex items-center gap-1">
                 <Mail className="w-3.5 h-3.5" /> support@calyxo.com
               </a>

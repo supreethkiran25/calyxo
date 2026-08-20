@@ -527,35 +527,7 @@ export default function WorkoutLogger({ onNotification }) {
   const restEndTimeRef = useRef(null);
 
   const sendBrowserNotification = (title, body) => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      if (Notification.permission === "granted") {
-        try {
-          new Notification(title, {
-            body,
-            icon: "/favicon.ico",
-            tag: "workout-rest-timer",
-            requireInteraction: true
-          });
-        } catch (e) {
-          console.warn("Browser notification failed", e);
-        }
-      } else if (Notification.permission !== "denied") {
-        Notification.requestPermission().then(perm => {
-          if (perm === "granted") {
-            try {
-              new Notification(title, {
-                body,
-                icon: "/favicon.ico",
-                tag: "workout-rest-timer",
-                requireInteraction: true
-              });
-            } catch (e) {
-              console.warn("Browser notification failed", e);
-            }
-          }
-        });
-      }
-    }
+    sendOSNotification(title, body, '/user/dashboard');
   };
 
   const triggerTimerCompletion = () => {

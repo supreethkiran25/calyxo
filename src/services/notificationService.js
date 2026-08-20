@@ -93,11 +93,11 @@ export async function triggerOSNotification(title, body, url = '/user/dashboard'
 
   if (typeof window === 'undefined' || !('Notification' in window)) return;
 
-  if (Notification.permission === 'granted') {
+  if (typeof window !== 'undefined' && typeof window.Notification !== 'undefined' && Notification.permission === 'granted') {
     try {
       const notifTag = tag || `calyxo-${title.replace(/\s+/g, '-').toLowerCase()}`;
       if ('serviceWorker' in navigator) {
-        const reg = swRegistration || await navigator.serviceWorker.ready;
+        const reg = swRegistration || await navigator.serviceWorker.ready.catch(() => null);
         if (reg && reg.showNotification) {
           await reg.showNotification(title, {
             body: body,
@@ -111,11 +111,18 @@ export async function triggerOSNotification(title, body, url = '/user/dashboard'
           return;
         }
       }
-      new Notification(title, {
-        body: body,
-        icon: '/icon-192x192.png',
-        tag: notifTag
-      });
+      // Only instantiate if constructor is supported and not in iOS WKWebView
+      if (!Capacitor.isNativePlatform() && typeof window.Notification === 'function') {
+        try {
+          new Notification(title, {
+            body: body,
+            icon: '/icon-192x192.png',
+            tag: notifTag
+          });
+        } catch (e) {
+          // Ignored on platforms forbidding direct constructor
+        }
+      }
     } catch (e) {
       console.warn('[NotificationService] OS notification trigger exception:', e);
     }
