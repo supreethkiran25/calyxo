@@ -25,8 +25,8 @@ export default function WearableCompanionModal({ isOpen, onClose, onNotification
   // Compute live metrics from store
   const todayStr = getTodayDateString();
   const todaysLogs = foodLogs.filter(x => isSameLocalDate(x.timestamp, todayStr) || isToday(x.timestamp));
-  const calories = todaysLogs.reduce((s, x) => s + (Number(x.calories) || 0), 0);
-  const protein = todaysLogs.reduce((s, x) => s + (Number(x.protein) || 0), 0);
+  const calories = Math.round(todaysLogs.reduce((s, x) => s + (Number(x.calories) || 0), 0));
+  const protein = Math.round(todaysLogs.reduce((s, x) => s + (Number(x.protein) || 0), 0));
   const calGoal = Number(userProfile?.calorieGoal || userProfile?.dailyCalories || 2000);
   const protGoal = Number(userProfile?.proteinGoal || 150);
   const waterGoal = Number(userProfile?.waterGoal || 2500);
