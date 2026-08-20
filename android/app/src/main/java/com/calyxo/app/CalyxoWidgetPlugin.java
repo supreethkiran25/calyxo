@@ -76,6 +76,35 @@ public class CalyxoWidgetPlugin extends Plugin {
         call.resolve(ret);
     }
 
+    @PluginMethod
+    public void pinWidget(PluginCall call) {
+        Context context = getContext();
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
+            ComponentName myProvider = new ComponentName(context, CalyxoAppWidgetProvider.class);
+
+            if (appWidgetManager.isRequestPinAppWidgetSupported()) {
+                Intent pinnedWidgetCallbackIntent = new Intent(context, CalyxoAppWidgetProvider.class);
+                pinnedWidgetCallbackIntent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+                android.app.PendingIntent successCallback = android.app.PendingIntent.getBroadcast(
+                    context, 0, pinnedWidgetCallbackIntent,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE
+                );
+
+                appWidgetManager.requestPinAppWidget(myProvider, null, successCallback);
+                JSObject ret = new JSObject();
+                ret.put("success", true);
+                ret.put("supported", true);
+                call.resolve(ret);
+                return;
+            }
+        }
+        JSObject ret = new JSObject();
+        ret.put("success", false);
+        ret.put("supported", false);
+        call.resolve(ret);
+    }
+
     private void reloadAllWidgets(Context context) {
         AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
         ComponentName thisWidget = new ComponentName(context, CalyxoAppWidgetProvider.class);

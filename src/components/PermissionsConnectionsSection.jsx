@@ -13,6 +13,7 @@ import { LiveActivityManager } from '../services/LiveActivityManager';
 import { getNotificationStatus, requestNotificationPermission } from '../services/notificationService';
 import { useStore } from '../store/useStore';
 import WearableCompanionModal from './modals/WearableCompanionModal';
+import { pinWidgetToHomeScreen } from '../services/widgetDataService';
 
 export default function PermissionsConnectionsSection({ onNotification }) {
   const user = useStore(state => state.user);
@@ -241,6 +242,38 @@ export default function PermissionsConnectionsSection({ onNotification }) {
           <p className="text-[11px] text-muted leading-relaxed">
             Active workout sets and rest timers stream automatically to your Dynamic Island, Lock Screen, and Apple Watch Smart Stack.
           </p>
+        </div>
+
+        {/* 5. HOME SCREEN & LOCK SCREEN WIDGETS */}
+        <div className="p-4 rounded-2xl bg-surface border border-card-border space-y-3">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <LayoutGrid className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-black uppercase tracking-wide">Home Screen Widgets</span>
+            </div>
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-black uppercase tracking-wider">
+              IOS & ANDROID
+            </span>
+          </div>
+
+          <p className="text-[11px] text-muted leading-relaxed">
+            Real-time daily calories, hydration rings, steps, and active workout timers right on your Home Screen.
+          </p>
+
+          <button
+            onClick={async () => {
+              const res = await pinWidgetToHomeScreen();
+              if (res && res.supported) {
+                if (onNotification) onNotification("Prompting to add Calyxo Widget to your Home Screen...");
+              } else {
+                if (onNotification) onNotification("To add Widget: Long-press your Home screen → Tap '+' or 'Widgets' → Select Calyxo!");
+              }
+            }}
+            className="w-full py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-black text-xs uppercase tracking-wider cursor-pointer transition-all flex items-center justify-center gap-1.5"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Add Widget to Home Screen
+          </button>
         </div>
 
       </div>

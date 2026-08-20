@@ -177,3 +177,13 @@ export const getWidgetData = async () => {
     return null;
   }
 };
+
+export const pinWidgetToHomeScreen = async () => {
+  if (Capacitor.isNativePlatform()) {
+    const { CalyxoWidget } = Capacitor.Plugins;
+    if (CalyxoWidget && CalyxoWidget.pinWidget) {
+      return await CalyxoWidget.pinWidget();
+    }
+  }
+  return { supported: false, success: false };
+};
