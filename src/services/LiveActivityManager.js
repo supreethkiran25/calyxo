@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { syncWidgetData } from './widgetDataService';
+import { scheduleExactNotification, cancelNotification } from './notificationService';
 
 export class LiveActivityManager {
   static activeActivityId = null;
@@ -12,30 +13,54 @@ export class LiveActivityManager {
   static currentReps = 10;
   static caloriesBurned = 0;
   static heartRate = 0;
+  static activeNotifId = null;
 
   /**
-   * Check whether Live Activities are enabled in iOS Settings
+   * Broadcast state to universal in-app Dynamic Island / Notch HUD
    */
-  static async isAvailable() {
-    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'ios') {
-      console.log('[CALYXO-LIVE] Live Activities unavailable (non-iOS platform)');
-      return { available: false, enabled: false };
+  static broadcastUniversalHUD(isEnded = false, restDurationSeconds = 0) {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('calyxo_live_activity_sync', {
+          detail: {
+            isEnded,
+            workoutName: this.workoutName,
+            exerciseName: this.currentExerciseName,
+            currentSet: this.currentSet,
+            totalSets: this.totalSets,
+            currentReps: this.currentReps,
+            isResting: this.isResting,
+            restDurationSeconds: restDurationSeconds || (this.isResting ? 60 : 0),
+            caloriesBurned: this.caloriesBurned,
+            heartRate: this.heartRate,
+            isPaused: this.isPaused
+          }
+        })
+      );
     }
-    try {
-      const { CalyxoLiveActivity } = Capacitor.Plugins;
-      if (CalyxoLiveActivity) {
-        const res = await CalyxoLiveActivity.isAvailable();
-        console.log('[CALYXO-LIVE] areActivitiesEnabled =', res?.enabled);
-        return res;
-      }
-    } catch (err) {
-      console.warn('[CALYXO-LIVE] Availability check error:', err);
-    }
-    return { available: false, enabled: false };
   }
 
   /**
-   * Start a Live Activity on Dynamic Island & Lock Screen
+   * Check whether Live Activities are enabled
+   */
+  static async isAvailable() {
+    if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+      try {
+        const { CalyxoLiveActivity } = Capacitor.Plugins;
+        if (CalyxoLiveActivity) {
+          const res = await CalyxoLiveActivity.isAvailable();
+          return res;
+        }
+      } catch (err) {
+        console.warn('[CALYXO-LIVE] Availability check error:', err);
+      }
+    }
+    // Available universally across Android, Notch devices & Web via in-app Dynamic HUD
+    return { available: true, enabled: true };
+  }
+
+  /**
+   * Start a Live Activity (Dynamic Island, Notch, Android Heads-Up & Lock Screen)
    */
   static async startLiveActivity({
     title = 'Calyxo Workout',
@@ -49,7 +74,6 @@ export class LiveActivityManager {
     caloriesBurned = 0,
     heartRate = 0
   } = {}) {
-    console.log(`[CALYXO-LIVE] JS startLiveActivity called: ${workoutName} - ${exerciseName}`);
     this.workoutName = workoutName;
     this.currentExerciseName = exerciseName;
     this.currentSet = currentSet;
@@ -65,42 +89,54 @@ export class LiveActivityManager {
       activeWorkout: { name: workoutName, duration: 0 }
     });
 
-    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'ios') {
-      console.log('[CALYXO-LIVE] Simulated Live Activity on web platform.');
-      return 'web-simulated-activity';
+    // 1. Universal In-App HUD Broadcast
+    this.broadcastUniversalHUD(false, restDurationSeconds);
+
+    // 2. Android Native Ongoing Live Notification
+    if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
+      this.activeNotifId = `android-live-${Date.now()}`;
+      scheduleExactNotification({
+        id: this.activeNotifId,
+        title: `🏋️ Calyxo Workout: ${exerciseName}`,
+        body: `Set ${currentSet} of ${totalSets} • ${currentReps} Reps • ${caloriesBurned} kcal burned`,
+        delayMs: 100,
+        tag: 'calyxo-live-workout'
+      });
+      return 'android-live-session';
     }
 
-    try {
-      const { CalyxoLiveActivity } = Capacitor.Plugins;
-      if (CalyxoLiveActivity) {
-        const res = await CalyxoLiveActivity.startActivity({
-          title,
-          workoutName,
-          exerciseName,
-          currentSet,
-          totalSets,
-          currentReps,
-          isResting,
-          restDurationSeconds,
-          caloriesBurned,
-          heartRate
-        });
-        if (res && res.activityId) {
-          this.activeActivityId = res.activityId;
-          console.log(`[CALYXO-LIVE] Activity.request SUCCEEDED id=${res.activityId}`);
-          return res.activityId;
+    // 3. iOS Dynamic Island & Lock Screen Live Activity
+    if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+      try {
+        const { CalyxoLiveActivity } = Capacitor.Plugins;
+        if (CalyxoLiveActivity) {
+          const res = await CalyxoLiveActivity.startActivity({
+            title,
+            workoutName,
+            exerciseName,
+            currentSet,
+            totalSets,
+            currentReps,
+            isResting,
+            restDurationSeconds,
+            caloriesBurned,
+            heartRate
+          });
+          if (res && res.activityId) {
+            this.activeActivityId = res.activityId;
+            return res.activityId;
+          }
         }
-      } else {
-        console.warn('[CALYXO-LIVE] CalyxoLiveActivity plugin not found on native iOS');
+      } catch (err) {
+        console.error('[CALYXO-LIVE] Activity.request FAILED:', err);
       }
-    } catch (err) {
-      console.error('[CALYXO-LIVE] Activity.request FAILED:', err);
     }
-    return null;
+
+    return 'universal-hud-session';
   }
 
   /**
-   * Update the active Live Activity state (sets, reps, rest timer, calories, pause)
+   * Update the active Live Activity state
    */
   static async updateLiveActivity({
     exerciseName,
@@ -122,35 +158,50 @@ export class LiveActivityManager {
     if (heartRate !== undefined) this.heartRate = heartRate;
     if (isPaused !== undefined) this.isPaused = isPaused;
 
-    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'ios') return;
+    // 1. Universal In-App HUD Broadcast
+    this.broadcastUniversalHUD(false, restDurationSeconds);
 
-    try {
-      const { CalyxoLiveActivity } = Capacitor.Plugins;
-      if (CalyxoLiveActivity) {
-        await CalyxoLiveActivity.updateActivity({
-          id: this.activeActivityId || '',
-          exerciseName: this.currentExerciseName,
-          currentSet: this.currentSet,
-          totalSets: this.totalSets,
-          currentReps: this.currentReps,
-          isResting: this.isResting,
-          restDurationSeconds: restDurationSeconds || 0,
-          calories: this.caloriesBurned,
-          heartRate: this.heartRate,
-          isPaused: this.isPaused
+    // 2. Android Live Notification Update
+    if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
+      if (this.isResting) {
+        scheduleExactNotification({
+          id: this.activeNotifId || `android-rest-${Date.now()}`,
+          title: `⏳ Rest Time: ${restDurationSeconds || 60}s`,
+          body: `Next up: Set ${this.currentSet} of ${this.currentExerciseName}`,
+          delayMs: 100,
+          tag: 'calyxo-live-workout'
         });
-        console.log(`[CALYXO-LIVE] Live Activity updated: ${this.currentExerciseName} | Set ${this.currentSet}/${this.totalSets} | Resting: ${this.isResting}`);
       }
-    } catch (err) {
-      console.error('[CALYXO-LIVE] Failed to update Live Activity:', err);
+    }
+
+    // 3. iOS Live Activity Update
+    if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+      try {
+        const { CalyxoLiveActivity } = Capacitor.Plugins;
+        if (CalyxoLiveActivity) {
+          await CalyxoLiveActivity.updateActivity({
+            id: this.activeActivityId || '',
+            exerciseName: this.currentExerciseName,
+            currentSet: this.currentSet,
+            totalSets: this.totalSets,
+            currentReps: this.currentReps,
+            isResting: this.isResting,
+            restDurationSeconds: restDurationSeconds || 0,
+            calories: this.caloriesBurned,
+            heartRate: this.heartRate,
+            isPaused: this.isPaused
+          });
+        }
+      } catch (err) {
+        console.error('[CALYXO-LIVE] Failed to update Live Activity:', err);
+      }
     }
   }
 
   /**
-   * Start rest timer countdown in Dynamic Island and Lock Screen
+   * Start rest timer countdown
    */
   static async startRestTimer(durationSeconds = 60) {
-    console.log(`[CALYXO-LIVE] Starting rest countdown in Dynamic Island: ${durationSeconds}s`);
     await this.updateLiveActivity({
       isResting: true,
       restDurationSeconds: durationSeconds,
@@ -162,7 +213,6 @@ export class LiveActivityManager {
    * Complete rest timer
    */
   static async endRestTimer() {
-    console.log('[CALYXO-LIVE] Rest timer completed.');
     await this.updateLiveActivity({
       isResting: false,
       restDurationSeconds: 0,
@@ -195,65 +245,52 @@ export class LiveActivityManager {
     this.isPaused = false;
     this.isResting = false;
 
+    // 1. Universal In-App HUD Dismissal
+    this.broadcastUniversalHUD(true, 0);
+
+    // 2. Clear Android Notification
+    if (this.activeNotifId) {
+      cancelNotification(this.activeNotifId);
+      this.activeNotifId = null;
+    }
+
     await syncWidgetData({ activeWorkout: null });
 
-    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'ios') return;
-
-    try {
-      const { CalyxoLiveActivity } = Capacitor.Plugins;
-      if (CalyxoLiveActivity) {
-        await CalyxoLiveActivity.endActivity({ id: activityId || '' });
-        console.log(`[CALYXO-LIVE] Ended Live Activity: ${activityId}`);
+    // 3. Dismiss iOS Live Activity
+    if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+      try {
+        const { CalyxoLiveActivity } = Capacitor.Plugins;
+        if (CalyxoLiveActivity) {
+          await CalyxoLiveActivity.endActivity({ id: activityId || '' });
+        }
+      } catch (err) {
+        console.error('[CALYXO-LIVE] Failed to end Live Activity:', err);
       }
-    } catch (err) {
-      console.error('[CALYXO-LIVE] Failed to end Live Activity:', err);
     }
   }
 
   /**
-   * Reconcile Live Activity state after app relaunch.
-   *
-   * Called once on mount with the result of loadActiveRest().
-   * - If restState is non-null and remaining > 0: update existing activity with correct countdown.
-   * - If restState is null (expired/none): end any stale activity that is still showing rest UI.
-   * - Never creates a new activity during reconciliation.
+   * Reconcile Live Activity state after app relaunch
    */
   static async reconcileAfterLaunch(restState = null) {
-    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'ios') return;
-
-    try {
-      const { CalyxoLiveActivity } = Capacitor.Plugins;
-      if (!CalyxoLiveActivity) return;
-
-      const availability = await CalyxoLiveActivity.isAvailable();
-      if (!availability?.enabled) return;
-
-      if (restState && restState.remainingSeconds > 0) {
-        // Active rest — update the Live Activity with the correct remaining time
-        console.log(`[CALYXO-LIVE] Reconcile: updating activity with ${restState.remainingSeconds}s remaining rest`);
-        this.currentExerciseName = restState.exerciseName || this.currentExerciseName;
-        this.currentSet = restState.setNumber || this.currentSet;
-        await this.updateLiveActivity({
-          exerciseName: restState.exerciseName,
-          currentSet: restState.setNumber,
-          isResting: true,
-          restDurationSeconds: restState.remainingSeconds,
-          isPaused: false
-        });
-      } else if (!restState) {
-        // No active rest — if a stale activity is still showing isResting=true, end the rest state
-        console.log('[CALYXO-LIVE] Reconcile: no active rest, clearing rest state from Live Activity if present');
-        await this.updateLiveActivity({
-          isResting: false,
-          restDurationSeconds: 0,
-          isPaused: false
-        });
-      }
-    } catch (err) {
-      console.warn('[CALYXO-LIVE] reconcileAfterLaunch error (non-fatal):', err);
+    if (restState && restState.remainingSeconds > 0) {
+      this.currentExerciseName = restState.exerciseName || this.currentExerciseName;
+      this.currentSet = restState.setNumber || this.currentSet;
+      await this.updateLiveActivity({
+        exerciseName: restState.exerciseName,
+        currentSet: restState.setNumber,
+        isResting: true,
+        restDurationSeconds: restState.remainingSeconds,
+        isPaused: false
+      });
+    } else {
+      await this.updateLiveActivity({
+        isResting: false,
+        restDurationSeconds: 0,
+        isPaused: false
+      });
     }
   }
 }
 
 export default LiveActivityManager;
-

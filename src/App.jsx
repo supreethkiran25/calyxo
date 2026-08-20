@@ -48,6 +48,7 @@ const AdminSettingsView = lazyWithRetry(() => import('./pages/admin/AdminSetting
 
 import { registerServiceWorker, scheduleDailyReminders } from './services/notificationService';
 import NativeMobileBridge from './components/NativeMobileBridge';
+import UniversalLiveHUD from './components/UniversalLiveHUD';
 
 function App() {
   const initializeTheme = useStore(state => state.initializeTheme);
@@ -64,6 +65,7 @@ function App() {
       <ErrorBoundary>
         <BrowserRouter>
           <NativeMobileBridge />
+          <UniversalLiveHUD />
           <Suspense fallback={<LaunchScreen isLoading={true} />}>
             <Routes>
               {/* Root */}
