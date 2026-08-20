@@ -15,10 +15,10 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
   const [importing, setImporting] = useState(false);
   const [importTimeframe, setImportTimeframe] = useState('30d');
   const [importProgress, setImportProgress] = useState(null);
+  const [isConnected, setIsConnected] = useState(HealthPermissionManager.isConnected());
+  const [grantedPerms, setGrantedPerms] = useState(HealthPermissionManager.getGrantedPermissions());
 
   const platform = HealthPermissionManager.getPlatform();
-  const isConnected = HealthPermissionManager.isConnected();
-  const grantedPerms = HealthPermissionManager.getGrantedPermissions();
 
   const platformName = platform === 'ios_apple_health'
     ? 'Apple Health (HealthKit)'
@@ -27,7 +27,9 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
     : 'Device Sensor & Health API';
 
   const handleConnect = async () => {
-    await HealthPermissionManager.requestPermissions({ includeOptional: true });
+    const res = await HealthPermissionManager.requestPermissions({ includeOptional: true });
+    setIsConnected(HealthPermissionManager.isConnected());
+    setGrantedPerms(HealthPermissionManager.getGrantedPermissions());
     await HealthSyncEngine.triggerSync();
     if (onNotification) onNotification(`Connected to ${platformName}! Syncing health metrics.`);
   };
@@ -64,6 +66,8 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
   const handleDisconnect = () => {
     if (window.confirm("Disconnect health platform? Active sync will pause.")) {
       HealthPermissionManager.disconnect();
+      setIsConnected(false);
+      setGrantedPerms({});
       if (onNotification) onNotification("Health platform disconnected.");
       onClose();
     }
@@ -221,8 +225,8 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
               <Info className="w-4 h-4 text-emerald-400" /> Troubleshooting Guidance
             </div>
             <ul className="text-[11px] text-muted space-y-1 pl-4 list-disc leading-relaxed">
-              <li><strong>iOS:</strong> Open iPhone Settings $\rightarrow$ Health $\rightarrow$ Data Access & Devices $\rightarrow$ Calyxo to re-enable permissions.</li>
-              <li><strong>Android:</strong> Open Health Connect Settings $\rightarrow$ App Permissions $\rightarrow$ Calyxo $\rightarrow$ Allow All.</li>
+              <li><strong>iOS:</strong> Open iPhone Settings → Health → Data Access & Devices → Calyxo to re-enable permissions.</li>
+              <li><strong>Android:</strong> Open Health Connect Settings → App Permissions → Calyxo → Allow All.</li>
             </ul>
           </div>
 

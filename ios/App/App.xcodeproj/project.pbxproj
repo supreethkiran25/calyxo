@@ -16,7 +16,42 @@
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
+		CA1A00012FE9A00000000001 /* CalyxoLiveActivityBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1A00002FE9A00000000001 /* CalyxoLiveActivityBridge.swift */; };
+		CA1A00042FE9A00000000004 /* CalyxoHealthKitPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1A00052FE9A00000000005 /* CalyxoHealthKitPlugin.swift */; };
+		CA2B00012FE9B00000000001 /* CalyxoActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA2B00002FE9B00000000000 /* CalyxoActivityAttributes.swift */; };
+		CA2B00022FE9B00000000002 /* CalyxoActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA2B00002FE9B00000000000 /* CalyxoActivityAttributes.swift */; };
+		CA2B00112FE9B00000000011 /* CalyxoWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA2B00102FE9B00000000010 /* CalyxoWidgetBundle.swift */; };
+		CA2B00132FE9B00000000013 /* CalyxoHomeWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA2B00122FE9B00000000012 /* CalyxoHomeWidgets.swift */; };
+		CA2B00152FE9B00000000015 /* CalyxoLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA2B00142FE9B00000000014 /* CalyxoLiveActivity.swift */; };
+		CA2B00412FE9B00000000041 /* CalyxoWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CA2B00402FE9B00000000040 /* CalyxoWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CA3C00012FE9C00000000001 /* CalyxoLiveActivityPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3C00002FE9C00000000000 /* CalyxoLiveActivityPlugin.swift */; };
+		CA3C00032FE9C00000000003 /* CalyxoWidgetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3C00022FE9C00000000002 /* CalyxoWidgetPlugin.swift */; };
+		CA4D00012FE9D00000000001 /* CalyxoNotificationPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4D00002FE9D00000000000 /* CalyxoNotificationPlugin.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CA2B00512FE9B00000000051 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CA2B00302FE9B00000000030;
+			remoteInfo = CalyxoWidgetsExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		CA2B00602FE9B00000000060 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				CA2B00412FE9B00000000041 /* CalyxoWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
@@ -30,6 +65,19 @@
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		CA1A00002FE9A00000000001 /* CalyxoLiveActivityBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalyxoLiveActivityBridge.swift; sourceTree = "<group>"; };
+		CA1A00032FE9A00000000003 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
+		CA1A00052FE9A00000000005 /* CalyxoHealthKitPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalyxoHealthKitPlugin.swift; sourceTree = "<group>"; };
+		CA2B00002FE9B00000000000 /* CalyxoActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalyxoActivityAttributes.swift; sourceTree = "<group>"; };
+		CA2B00102FE9B00000000010 /* CalyxoWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalyxoWidgetBundle.swift; sourceTree = "<group>"; };
+		CA2B00122FE9B00000000012 /* CalyxoHomeWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalyxoHomeWidgets.swift; sourceTree = "<group>"; };
+		CA2B00142FE9B00000000014 /* CalyxoLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalyxoLiveActivity.swift; sourceTree = "<group>"; };
+		CA2B00162FE9B00000000016 /* CalyxoWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CalyxoWidgets.entitlements; sourceTree = "<group>"; };
+		CA2B00182FE9B00000000018 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		CA2B00402FE9B00000000040 /* CalyxoWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CalyxoWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA3C00002FE9C00000000000 /* CalyxoLiveActivityPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalyxoLiveActivityPlugin.swift; sourceTree = "<group>"; };
+		CA3C00022FE9C00000000002 /* CalyxoWidgetPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalyxoWidgetPlugin.swift; sourceTree = "<group>"; };
+		CA4D00002FE9D00000000000 /* CalyxoNotificationPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalyxoNotificationPlugin.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -41,6 +89,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CA2B00332FE9B00000000033 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -49,6 +104,7 @@
 			children = (
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
+				CA2B00702FE9B00000000070 /* CalyxoWidgets */,
 				504EC3051FED79650016851F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -57,6 +113,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* App.app */,
+				CA2B00402FE9B00000000040 /* CalyxoWidgetsExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -64,9 +121,16 @@
 		504EC3061FED79650016851F /* App */ = {
 			isa = PBXGroup;
 			children = (
+				CA1A00032FE9A00000000003 /* App.entitlements */,
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
+				CA2B00002FE9B00000000000 /* CalyxoActivityAttributes.swift */,
+				CA1A00002FE9A00000000001 /* CalyxoLiveActivityBridge.swift */,
+				CA1A00052FE9A00000000005 /* CalyxoHealthKitPlugin.swift */,
+				CA3C00002FE9C00000000000 /* CalyxoLiveActivityPlugin.swift */,
+				CA3C00022FE9C00000000002 /* CalyxoWidgetPlugin.swift */,
+				CA4D00002FE9D00000000000 /* CalyxoNotificationPlugin.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -75,6 +139,18 @@
 				50B271D01FEDC1A000F3C39B /* public */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		CA2B00702FE9B00000000070 /* CalyxoWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				CA2B00162FE9B00000000016 /* CalyxoWidgets.entitlements */,
+				CA2B00102FE9B00000000010 /* CalyxoWidgetBundle.swift */,
+				CA2B00122FE9B00000000012 /* CalyxoHomeWidgets.swift */,
+				CA2B00142FE9B00000000014 /* CalyxoLiveActivity.swift */,
+				CA2B00182FE9B00000000018 /* Info.plist */,
+			);
+			path = CalyxoWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -87,10 +163,12 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				CA2B00602FE9B00000000060 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				CA2B00522FE9B00000000052 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -99,6 +177,23 @@
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
+		};
+		CA2B00302FE9B00000000030 /* CalyxoWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA2B00802FE9B00000000080 /* Build configuration list for PBXNativeTarget "CalyxoWidgetsExtension" */;
+			buildPhases = (
+				CA2B00312FE9B00000000031 /* Sources */,
+				CA2B00332FE9B00000000033 /* Frameworks */,
+				CA2B00342FE9B00000000034 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CalyxoWidgetsExtension;
+			productName = CalyxoWidgetsExtension;
+			productReference = CA2B00402FE9B00000000040 /* CalyxoWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -111,7 +206,13 @@
 				TargetAttributes = {
 					504EC3031FED79650016851F = {
 						CreatedOnToolsVersion = 9.2;
+						DevelopmentTeam = LYRAC6MJY2;
 						LastSwiftMigration = 1100;
+						ProvisioningStyle = Automatic;
+					};
+					CA2B00302FE9B00000000030 = {
+						CreatedOnToolsVersion = 15.0;
+						DevelopmentTeam = LYRAC6MJY2;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -133,6 +234,7 @@
 			projectRoot = "";
 			targets = (
 				504EC3031FED79650016851F /* App */,
+				CA2B00302FE9B00000000030 /* CalyxoWidgetsExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -151,6 +253,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CA2B00342FE9B00000000034 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -160,10 +269,35 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
+				CA2B00012FE9B00000000001 /* CalyxoActivityAttributes.swift in Sources */,
+				CA1A00012FE9A00000000001 /* CalyxoLiveActivityBridge.swift in Sources */,
+				CA1A00042FE9A00000000004 /* CalyxoHealthKitPlugin.swift in Sources */,
+				CA3C00012FE9C00000000001 /* CalyxoLiveActivityPlugin.swift in Sources */,
+				CA3C00032FE9C00000000003 /* CalyxoWidgetPlugin.swift in Sources */,
+				CA4D00012FE9D00000000001 /* CalyxoNotificationPlugin.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA2B00312FE9B00000000031 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA2B00022FE9B00000000002 /* CalyxoActivityAttributes.swift in Sources */,
+				CA2B00112FE9B00000000011 /* CalyxoWidgetBundle.swift in Sources */,
+				CA2B00132FE9B00000000013 /* CalyxoHomeWidgets.swift in Sources */,
+				CA2B00152FE9B00000000015 /* CalyxoLiveActivity.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CA2B00522FE9B00000000052 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CA2B00302FE9B00000000030 /* CalyxoWidgetsExtension */;
+			targetProxy = CA2B00512FE9B00000000051 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		504EC30B1FED79650016851F /* Main.storyboard */ = {
@@ -298,8 +432,10 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = LYRAC6MJY2;
@@ -322,8 +458,10 @@
 		504EC3181FED79650016851F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = LYRAC6MJY2;
@@ -337,6 +475,58 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.supreethkiran.calyxo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		CA2B00812FE9B00000000081 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = CalyxoWidgets/CalyxoWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LYRAC6MJY2;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CalyxoWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.supreethkiran.calyxo.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CA2B00822FE9B00000000082 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = CalyxoWidgets/CalyxoWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LYRAC6MJY2;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CalyxoWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.supreethkiran.calyxo.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -359,6 +549,15 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CA2B00802FE9B00000000080 /* Build configuration list for PBXNativeTarget "CalyxoWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA2B00812FE9B00000000081 /* Debug */,
+				CA2B00822FE9B00000000082 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

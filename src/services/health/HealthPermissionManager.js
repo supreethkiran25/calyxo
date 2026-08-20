@@ -72,15 +72,30 @@ export class HealthPermissionManager {
 
     try {
       if (platform === 'ios_apple_health') {
-        // Native Apple HealthKit Web Bridge / Capacitor / Web API fallback
-        if (window.webkit?.messageHandlers?.requestHealthKitPermissions) {
-          const res = await window.webkit.messageHandlers.requestHealthKitPermissions.postMessage(requestPayload);
-          grantedResults = { ...grantedResults, ...res };
-        } else {
-          // Web / PWA Sensor API simulation with full permission state support
-          [...REQUIRED_PERMISSIONS, ...requestPayload.optional].forEach(perm => {
-            grantedResults[perm] = true;
-          });
+        // Call the REAL native CalyxoHealthKit Capacitor plugin
+        try {
+          const { Capacitor } = await import('@capacitor/core');
+          if (Capacitor.isNativePlatform()) {
+            const { CalyxoHealthKit } = Capacitor.Plugins;
+            if (CalyxoHealthKit) {
+              const result = await CalyxoHealthKit.requestAuthorization();
+              console.log('[HealthKit] Native authorization result:', result);
+              if (result && result.authorized !== false) {
+                [...REQUIRED_PERMISSIONS, ...requestPayload.optional].forEach(perm => {
+                  grantedResults[perm] = true;
+                });
+                localStorage.setItem('calyxo_health_connected_platform', platform);
+                localStorage.setItem('calyxo_health_connected_at', String(Date.now()));
+              }
+            } else {
+              console.warn('[HealthKit] CalyxoHealthKit plugin not registered. HealthKit will not work.');
+            }
+          } else {
+            // Web fallback — no real HealthKit available
+            console.log('[HealthKit] Running on web, using PWA sensor fallback only.');
+          }
+        } catch (nativeErr) {
+          console.error('[HealthKit] Native authorization failed:', nativeErr);
         }
       } else if (platform === 'android_health_connect') {
         // Android Health Connect Web Intent Bridge
@@ -88,21 +103,14 @@ export class HealthPermissionManager {
           const res = await window.AndroidHealthConnect.requestPermissions(JSON.stringify(requestPayload));
           grantedResults = { ...grantedResults, ...(typeof res === 'string' ? JSON.parse(res) : res) };
         } else {
-          // Web / PWA Sensor API simulation
-          [...REQUIRED_PERMISSIONS, ...requestPayload.optional].forEach(perm => {
-            grantedResults[perm] = true;
-          });
+          console.log('[HealthConnect] AndroidHealthConnect bridge not available.');
         }
       } else {
-        // Web Health API fallback
-        [...REQUIRED_PERMISSIONS, ...requestPayload.optional].forEach(perm => {
-          grantedResults[perm] = true;
-        });
+        // Web Health API — PWA sensor tracking only, no fake permissions
+        console.log('[Health] Web platform, using PWA pedometer only.');
       }
     } catch (err) {
-      console.warn("Health permission request partial failure, continuing with available scopes:", err);
-      // Graceful non-blocking fallback
-      REQUIRED_PERMISSIONS.forEach(p => { grantedResults[p] = true; });
+      console.warn("Health permission request failure:", err);
     }
 
     // Save granted state locally
@@ -134,7 +142,7 @@ export class HealthPermissionManager {
     if (typeof window === 'undefined') return null;
     const connectedAt = localStorage.getItem('calyxo_health_connected_at');
     const lastSync = localStorage.getItem('calyxo_health_last_sync') || connectedAt;
-    const recordsCount = localStorage.getItem('calyxo_health_records_count') || '1,247';
+    const recordsCount = localStorage.getItem('calyxo_health_records_count') || '0';
     if (!connectedAt) return null;
 
     return {

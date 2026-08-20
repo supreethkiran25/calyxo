@@ -1,11 +1,65 @@
-// Calyxo W3C Web Push & PWA Notification Engine
+// Calyxo Universal Notification Engine (iOS Native + W3C Web Push & PWA)
+import { Capacitor } from '@capacitor/core';
 import { VAPID_PUBLIC_KEY, urlBase64ToUint8Array } from '../utils/vapidKeys';
 import { supabase } from '../lib/supabaseClient';
 
 let swRegistration = null;
 
+export async function getNotificationStatus() {
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+    try {
+      const { CalyxoNotification } = Capacitor.Plugins;
+      if (CalyxoNotification) {
+        const res = await CalyxoNotification.getPermissionStatus();
+        return res; // { status: "authorized" | "denied" | "notDetermined", isRegistered: boolean }
+      }
+    } catch (e) {
+      console.warn('[CALYXO-PUSH] Error reading native status:', e);
+    }
+  }
+  
+  if (typeof window !== 'undefined' && 'Notification' in window) {
+    return {
+      status: Notification.permission === 'granted' ? 'authorized' : Notification.permission === 'denied' ? 'denied' : 'notDetermined',
+      isRegistered: false
+    };
+  }
+
+  return { status: 'unsupported', isRegistered: false };
+}
+
+export async function requestNotificationPermission() {
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+    try {
+      const { CalyxoNotification } = Capacitor.Plugins;
+      if (CalyxoNotification) {
+        const res = await CalyxoNotification.requestPermissions();
+        console.log('[CALYXO-PUSH] Native permission requested:', res);
+        return res?.granted ? 'granted' : 'denied';
+      }
+    } catch (e) {
+      console.error('[CALYXO-PUSH] Error requesting native permission:', e);
+      return 'denied';
+    }
+  }
+
+  if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported';
+
+  if (Notification.permission === 'granted') {
+    return 'granted';
+  }
+
+  try {
+    const permission = await Notification.requestPermission();
+    return permission;
+  } catch (e) {
+    console.warn('[NotificationService] Request permission error:', e);
+    return 'denied';
+  }
+}
+
 export async function registerServiceWorker() {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return null;
+  if (Capacitor.isNativePlatform() || typeof window === 'undefined' || !('serviceWorker' in navigator)) return null;
 
   try {
     const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
@@ -20,6 +74,23 @@ export async function registerServiceWorker() {
 }
 
 export async function triggerOSNotification(title, body, url = '/user/dashboard', tag = null) {
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+    try {
+      const { CalyxoNotification } = Capacitor.Plugins;
+      if (CalyxoNotification) {
+        await CalyxoNotification.scheduleLocalNotification({
+          title,
+          body,
+          delaySeconds: 1,
+          id: tag || `notif-${Date.now()}`
+        });
+        return;
+      }
+    } catch (e) {
+      console.warn('[CALYXO-PUSH] Native trigger notification error:', e);
+    }
+  }
+
   if (typeof window === 'undefined' || !('Notification' in window)) return;
 
   if (Notification.permission === 'granted') {
@@ -51,23 +122,109 @@ export async function triggerOSNotification(title, body, url = '/user/dashboard'
   }
 }
 
-export async function requestNotificationPermission() {
-  if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported';
+export function scheduleExactNotification({ id, title, body, delayMs, tag, type, workoutId, exerciseName, setNumber }) {
+  const delaySecs = Math.max(1, Math.round((delayMs || 1000) / 1000));
 
-  if (Notification.permission === 'granted') {
-    return 'granted';
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+    try {
+      const { CalyxoNotification } = Capacitor.Plugins;
+      if (CalyxoNotification) {
+        CalyxoNotification.scheduleLocalNotification({
+          title,
+          body,
+          delaySeconds: delaySecs,
+          id: id || tag || `notif-${Date.now()}`,
+          // Deep-link metadata attached to notification userInfo
+          ...(type && { type }),
+          ...(workoutId && { workoutId }),
+          ...(exerciseName && { exerciseName }),
+          ...(setNumber !== undefined && { setNumber })
+        });
+        console.log(`[CALYXO-PUSH] Scheduled native iOS notification id=${id} in ${delaySecs}s: "${title}"`);
+        return;
+      }
+    } catch (e) {
+      console.warn('[CALYXO-PUSH] Native schedule notification error:', e);
+    }
   }
 
-  try {
-    const permission = await Notification.requestPermission();
-    return permission;
-  } catch (e) {
-    console.warn('[NotificationService] Request permission error:', e);
-    return 'denied';
+  if (typeof window === 'undefined' || !('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+
+  const msg = {
+    type: 'SCHEDULE_NOTIFICATION',
+    id: id || `notif-${Date.now()}`,
+    title,
+    body,
+    delayMs: Math.max(100, delayMs || 0),
+    tag
+  };
+
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage(msg);
+  } else if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(reg => {
+      if (reg && reg.active) reg.active.postMessage(msg);
+    }).catch(() => {});
   }
 }
 
+/**
+ * Cancel a pending notification by ID.
+ * On iOS: calls UNUserNotificationCenter.removePendingNotificationRequests.
+ * On web: posts CANCEL_NOTIFICATION to service worker.
+ */
+export async function cancelNotification(id) {
+  if (!id) return;
+
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+    try {
+      const { CalyxoNotification } = Capacitor.Plugins;
+      if (CalyxoNotification) {
+        await CalyxoNotification.cancelLocalNotification({ id });
+        console.log(`[CALYXO-PUSH] Cancelled notification id=${id}`);
+      }
+    } catch (e) {
+      console.warn('[CALYXO-PUSH] Native cancel notification error:', e);
+    }
+    return;
+  }
+
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({ type: 'CANCEL_NOTIFICATION', id });
+  }
+}
+
+export function scheduleDailyReminders() {
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+    // Schedule water and workout reminders natively
+    scheduleExactNotification({
+      id: 'reminder-water',
+      title: 'Hydration Check 💧',
+      body: 'Time to drink water! Target: 250-500ml to stay at peak performance.',
+      delayMs: 2 * 60 * 60 * 1000,
+      tag: 'water-reminder'
+    });
+    return;
+  }
+
+  if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
+
+  scheduleExactNotification({
+    id: 'reminder-water',
+    title: 'Hydration Check 💧',
+    body: 'Time to drink water! Target: 250-500ml to stay at peak performance.',
+    delayMs: 2 * 60 * 60 * 1000,
+    tag: 'water-reminder'
+  });
+}
+
 export async function subscribeToPushNotifications(userId) {
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+    const perm = await requestNotificationPermission();
+    return { success: perm === 'granted' };
+  }
+
   if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
     return { success: false, error: 'Push notifications are not supported by this browser.' };
   }
@@ -96,7 +253,6 @@ export async function subscribeToPushNotifications(userId) {
     const subJson = subscription.toJSON();
     const endpoint = subscription.endpoint;
 
-    // Save subscription to Supabase database
     if (userId) {
       try {
         await supabase.from('push_subscriptions').upsert({
@@ -111,27 +267,7 @@ export async function subscribeToPushNotifications(userId) {
       } catch (dbErr) {
         console.warn('[NotificationService] Supabase db save warning:', dbErr);
       }
-
-      // Also call serverless endpoint
-      try {
-        const { getAuthTokenSync } = await import('../lib/dbService');
-        const token = getAuthTokenSync();
-        await fetch('/api/push/subscribe', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-          },
-          body: JSON.stringify({
-            userId,
-            subscription: subJson,
-            platform: navigator.platform || 'web'
-          })
-        });
-      } catch (apiErr) {}
     }
-
-    scheduleDailyReminders();
 
     return { success: true, subscription };
   } catch (err) {
@@ -153,16 +289,6 @@ export async function unsubscribeFromPushNotifications(userId) {
 
         if (userId) {
           await supabase.from('push_subscriptions').delete().eq('user_id', userId).eq('endpoint', endpoint);
-          const { getAuthTokenSync } = await import('../lib/dbService');
-          const token = getAuthTokenSync();
-          fetch('/api/push/subscribe', {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-            },
-            body: JSON.stringify({ userId, endpoint })
-          }).catch(() => {});
         }
       }
     }
@@ -171,102 +297,7 @@ export async function unsubscribeFromPushNotifications(userId) {
   }
 }
 
-
-export function sendImmediateNotification(title, body) {
-  if (typeof window === 'undefined' || !('Notification' in window)) return;
-
-  if (Notification.permission === 'granted') {
-    const msg = {
-      type: 'SHOW_IMMEDIATE_NOTIFICATION',
-      title,
-      body
-    };
-
-    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage(msg);
-    } else if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(reg => {
-        if (reg && reg.active) reg.active.postMessage(msg);
-      }).catch(() => {});
-    }
-
-    try {
-      new Notification(title, {
-        body,
-        icon: '/icon-192x192.png',
-        badge: '/icon-192x192.png'
-      });
-    } catch (e) {}
-  }
-}
-
-export function scheduleExactNotification({ id, title, body, delayMs, tag }) {
-  if (typeof window === 'undefined' || !('Notification' in window)) return;
-  if (Notification.permission !== 'granted') return;
-
-  const msg = {
-    type: 'SCHEDULE_NOTIFICATION',
-    id: id || `notif-${Date.now()}`,
-    title,
-    body,
-    delayMs: Math.max(100, delayMs || 0),
-    tag
-  };
-
-  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage(msg);
-  } else if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.ready.then(reg => {
-      if (reg && reg.active) reg.active.postMessage(msg);
-    }).catch(() => {});
-  }
-}
-
-export function scheduleDailyReminders() {
-  if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
-
-  const now = new Date();
-
-  // Water Intake Reminder (2 hours)
-  scheduleExactNotification({
-    id: 'reminder-water',
-    title: 'Hydration Check 💧',
-    body: 'Time to drink water! Target: 250-500ml to stay at peak performance.',
-    delayMs: 2 * 60 * 60 * 1000,
-    tag: 'water-reminder'
-  });
-
-  // Evening Workout Reminder (6:00 PM)
-  const eveningWorkout = new Date();
-  eveningWorkout.setHours(18, 0, 0, 0);
-  if (eveningWorkout < now) eveningWorkout.setDate(eveningWorkout.getDate() + 1);
-
-  scheduleExactNotification({
-    id: 'reminder-workout',
-    title: 'Workout Time 🏋️‍♂️',
-    body: 'Crush today’s training session! Log your workout in Calyxo to maintain your streak.',
-    delayMs: eveningWorkout.getTime() - now.getTime(),
-    tag: 'workout-reminder'
-  });
-
-  // Night Nutrition Summary (9:00 PM)
-  const nightMeal = new Date();
-  nightMeal.setHours(21, 0, 0, 0);
-  if (nightMeal < now) nightMeal.setDate(nightMeal.getDate() + 1);
-
-  scheduleExactNotification({
-    id: 'reminder-nutrition',
-    title: 'Daily Macro Check-In 🥗',
-    body: 'Did you hit your daily protein and calorie targets today? Log your final meal before bed!',
-    delayMs: nightMeal.getTime() - now.getTime(),
-    tag: 'nutrition-reminder'
-  });
-}
-
-/* ==========================================================================
-   IN-APP USER NOTIFICATIONS API (SUPABASE PERSISTENT & REALTIME)
-   ========================================================================== */
-
+/* In-App Notifications API */
 export async function getUserNotifications(userId) {
   if (!userId) return [];
   try {
@@ -322,10 +353,8 @@ export async function deleteNotification(notifId) {
 export function subscribeToInAppNotifications(userId, callback) {
   if (!userId || typeof window === 'undefined') return () => {};
 
-  // Fetch initial notifications
   getUserNotifications(userId).then(n => callback(n));
 
-  // Subscribe to Supabase Realtime channel for user_notifications
   const channel = supabase
     .channel(`user_notifications_${userId}`)
     .on(
@@ -346,4 +375,3 @@ export function subscribeToInAppNotifications(userId, callback) {
     supabase.removeChannel(channel);
   };
 }
-

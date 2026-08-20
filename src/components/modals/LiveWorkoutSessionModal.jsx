@@ -8,7 +8,7 @@ import { useStore } from '../../store/useStore';
 import { getExerciseImage, getDistinctFallback } from '../../utils/exerciseSearch';
 import { addWorkoutLog } from '../../lib/dbService';
 import { calculateWorkoutCaloriesBurned } from '../../utils/workoutUtils';
-import { scheduleExactNotification } from '../../services/notificationService';
+import { scheduleExactNotification, cancelNotification } from '../../services/notificationService';
 
 export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNotification }) {
   const user = useStore(state => state.user);
@@ -24,6 +24,8 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
   const [completedLogs, setCompletedLogs] = useState([]);
   const [waterLoggedThisBreak, setWaterLoggedThisBreak] = useState(false);
   const [sessionStartTime, setSessionStartTime] = useState(null);
+  // Track active notification ID so we can cancel before scheduling a replacement
+  const activeRestNotifIdRef = useRef(null);
 
   const exercises = routine?.workout?.exercises || [];
   const currentEx = exercises[exIndex] || null;
@@ -213,12 +215,21 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
       restEndTimeRef.current = Date.now() + 60 * 1000;
       setSessionState('REST_SET');
 
+      // Cancel old notification before scheduling a new one
+      if (activeRestNotifIdRef.current) {
+        cancelNotification(activeRestNotifIdRef.current);
+      }
+      const notifId = `live-session-ex${exIndex}-set${nextSetIndex}-${Date.now()}`;
+      activeRestNotifIdRef.current = notifId;
       scheduleExactNotification({
-        id: `rest-set-${Date.now()}`,
+        id: notifId,
         title: "Rest Time Finished! 💪",
         body: `Set rest complete! Time to start Set ${nextSetIndex} of ${currentEx?.name || 'Exercise'}`,
         delayMs: 60 * 1000,
-        tag: 'live-workout-rest'
+        tag: 'live-workout-rest',
+        type: 'rest_completed',
+        exerciseName: currentEx?.name || '',
+        setNumber: nextSetIndex
       });
     } else {
       // All sets for this exercise finished
@@ -230,15 +241,28 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
         setWaterLoggedThisBreak(false);
         setSessionState('REST_EXERCISE');
 
+        // Cancel old notification before scheduling a new one
+        if (activeRestNotifIdRef.current) {
+          cancelNotification(activeRestNotifIdRef.current);
+        }
+        const notifId = `live-session-ex${exIndex + 1}-break-${Date.now()}`;
+        activeRestNotifIdRef.current = notifId;
         scheduleExactNotification({
-          id: `rest-ex-${Date.now()}`,
+          id: notifId,
           title: "Exercise Break Complete! 🏋️‍♂️",
           body: `Break over! Next exercise: ${nextExName}`,
           delayMs: 120 * 1000,
-          tag: 'live-workout-rest'
+          tag: 'live-workout-rest',
+          type: 'rest_completed',
+          exerciseName: nextExName,
+          setNumber: 1
         });
       } else {
         // All exercises in routine completed!
+        if (activeRestNotifIdRef.current) {
+          cancelNotification(activeRestNotifIdRef.current);
+          activeRestNotifIdRef.current = null;
+        }
         setSessionState('COMPLETED');
         playAlertChime(1000);
       }

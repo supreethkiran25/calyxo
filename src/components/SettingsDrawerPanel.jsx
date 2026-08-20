@@ -7,9 +7,7 @@ import {
 import { useStore } from '../store/useStore';
 import ThemeToggle from './ThemeToggle';
 import { saveUserProfile, signOutUser, updateUserPassword, updateUserEmail } from '../lib/dbService';
-import { startRazorpayCheckout } from '../utils/razorpay';
-import { applyAppearanceSettings } from '../utils/appearanceUtils';
-import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '../services/notificationService';
+import { subscribeToPushNotifications, unsubscribeFromPushNotifications, getNotificationStatus } from '../services/notificationService';
 
 import PermissionsConnectionsSection from './PermissionsConnectionsSection';
 
@@ -66,6 +64,18 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
     weeklyReports: true,
     monthlyReports: true
   });
+
+  const [pushStatus, setPushStatus] = useState({ status: 'notDetermined', isRegistered: false });
+
+  React.useEffect(() => {
+    async function loadNotifStatus() {
+      const s = await getNotificationStatus();
+      setPushStatus(s || { status: 'notDetermined', isRegistered: false });
+    }
+    if (isOpen) {
+      loadNotifStatus();
+    }
+  }, [isOpen]);
 
   // Privacy States
   const [aiDataUsage, setAiDataUsage] = useState(userProfile?.privacy?.aiDataUsage ?? true);
@@ -425,15 +435,22 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
                 </div>
                 <input
                   type="checkbox"
-                  checked={typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted'}
+                  checked={pushStatus.status === 'authorized' || pushStatus.status === 'granted'}
                   onChange={async (e) => {
                     const userId = user?.id;
                     if (e.target.checked) {
                       const res = await subscribeToPushNotifications(userId);
-                      if (res?.success) setSaveStatus('Push notifications enabled!');
-                      else setSaveStatus(res?.error || 'Failed to enable notifications.');
+                      const updatedStatus = await getNotificationStatus();
+                      setPushStatus(updatedStatus || { status: 'notDetermined', isRegistered: false });
+                      if (res?.success || updatedStatus?.status === 'authorized' || updatedStatus?.status === 'granted') {
+                        setSaveStatus('Push notifications enabled!');
+                      } else {
+                        setSaveStatus(res?.error || 'Please allow notifications in iOS Settings.');
+                      }
                     } else {
                       await unsubscribeFromPushNotifications(userId);
+                      const updatedStatus = await getNotificationStatus();
+                      setPushStatus(updatedStatus || { status: 'notDetermined', isRegistered: false });
                       setSaveStatus('Push notifications disabled.');
                     }
                     setTimeout(() => setSaveStatus(''), 3000);
@@ -515,7 +532,7 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
               <div className="grid grid-cols-2 gap-2 text-[10px]">
                 <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
                   <Check className="w-3.5 h-3.5 shrink-0" />
-                  <span>Push: {typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' ? 'Enabled' : 'Disabled'}</span>
+                  <span>Push: {pushStatus.status === 'authorized' || pushStatus.status === 'granted' ? 'Enabled' : 'Disabled'}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
                   <Check className="w-3.5 h-3.5 shrink-0" />

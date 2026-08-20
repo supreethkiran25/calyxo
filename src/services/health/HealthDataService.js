@@ -1,8 +1,10 @@
 /**
  * Calyxo Universal Health Data Integration - Data Service
  * Reads and normalizes activity from Apple Health / Android Health Connect
+ * NO FAKE/RANDOM DATA. Real metrics or 0/"No data available".
  */
 
+import { Capacitor } from '@capacitor/core';
 import { HealthPermissionManager } from './HealthPermissionManager';
 import { HealthCache } from './HealthCache';
 import { PWAPedometerService } from './PWAPedometerService';
@@ -10,121 +12,102 @@ import { syncWidgetData } from '../widgetDataService';
 
 export class HealthDataService {
   /**
-   * Fetch today's current health metrics snapshot
+   * Fetch today's current health metrics snapshot from native OS or PWA sensor
    */
   static async fetchTodayMetrics() {
     const isConn = HealthPermissionManager.isConnected();
-    const cached = HealthCache.getMetrics();
+    const platform = HealthPermissionManager.getPlatform();
     const pwaSteps = PWAPedometerService.getTodaySteps();
 
-    const realSteps = pwaSteps > 0 ? pwaSteps : (cached?.steps || 7420);
-    const realDist = Number((realSteps * 0.00075).toFixed(2));
-    const realCals = Math.round(realSteps * 0.042);
-
-    // Default metric state
+    // Default clean initial metric state (0s when no data, never fake randoms)
     let metrics = {
-      steps: realSteps,
+      steps: pwaSteps || 0,
       stepGoal: 10000,
-      distanceKm: realDist,
-      activeCalories: realCals || 310,
+      distanceKm: pwaSteps > 0 ? Number((pwaSteps * 0.00075).toFixed(2)) : 0.0,
+      activeCalories: pwaSteps > 0 ? Math.round(pwaSteps * 0.042) : 0,
       calorieGoal: 500,
-      activeMinutes: Math.min(180, Math.round(realSteps / 110)),
+      activeMinutes: pwaSteps > 0 ? Math.round(pwaSteps / 110) : 0,
       activeMinutesGoal: 60,
-      heartRateBpm: 72,
-      restingHeartRateBpm: 62,
-      sleepHours: 7.4,
-      sleepQualityPct: 88,
-      weightKg: 72.5,
-      bodyFatPct: 16.2,
-      vo2Max: 44.5,
-      recoveryScore: 84,
+      heartRateBpm: 0,
+      restingHeartRateBpm: 0,
+      sleepHours: 0.0,
+      sleepQualityPct: 0,
+      weightKg: 0.0,
+      bodyFatPct: 0.0,
+      vo2Max: 0.0,
+      recoveryScore: 0,
       lastSyncTimestamp: Date.now()
     };
 
-    if (cached) {
-      metrics = { ...metrics, ...cached, steps: realSteps, distanceKm: realDist, activeCalories: realCals || 310 };
-    }
-
-    const platform = HealthPermissionManager.getPlatform();
-
     try {
-      if (platform === 'ios_apple_health' && window.webkit?.messageHandlers?.getAppleHealthData) {
-        const res = await window.webkit.messageHandlers.getAppleHealthData.postMessage({ type: 'today_summary' });
-        metrics = { ...metrics, ...res, lastSyncTimestamp: Date.now() };
+      if (platform === 'ios_apple_health' && Capacitor.isNativePlatform()) {
+        const { CalyxoHealthKit } = Capacitor.Plugins;
+        if (CalyxoHealthKit) {
+          const hkData = await CalyxoHealthKit.queryTodayMetrics();
+          console.log('[CALYXO-HEALTH] Native HealthKit data received:', hkData);
+          if (hkData) {
+            metrics.steps = hkData.steps || metrics.steps;
+            metrics.distanceKm = hkData.distanceKm || (metrics.steps > 0 ? Number((metrics.steps * 0.00075).toFixed(2)) : 0.0);
+            metrics.activeCalories = hkData.activeCalories || (metrics.steps > 0 ? Math.round(metrics.steps * 0.042) : 0);
+            metrics.heartRateBpm = hkData.heartRateBpm || 0;
+            metrics.restingHeartRateBpm = hkData.restingHeartRateBpm || 0;
+            metrics.weightKg = hkData.weightKg || 0.0;
+            metrics.bodyFatPct = hkData.bodyFatPct || 0.0;
+            metrics.vo2Max = hkData.vo2Max || 0.0;
+            metrics.lastSyncTimestamp = Date.now();
+          }
+        }
       } else if (platform === 'android_health_connect' && window.AndroidHealthConnect?.getTodaySummary) {
         const res = await window.AndroidHealthConnect.getTodaySummary();
         const parsed = typeof res === 'string' ? JSON.parse(res) : res;
-        metrics = { ...metrics, ...parsed, lastSyncTimestamp: Date.now() };
-      } else {
-        // Device motion / sensors & daily step accumulation sync
-        metrics.steps = realSteps;
-        metrics.distanceKm = realDist;
-        metrics.activeCalories = realCals || 310;
-        metrics.lastSyncTimestamp = Date.now();
+        if (parsed) {
+          metrics = { ...metrics, ...parsed, lastSyncTimestamp: Date.now() };
+        }
       }
 
       HealthCache.saveMetrics(metrics);
-      
-      // Auto-sync widget storage for iOS & Android Widgets
-      syncWidgetData({
+
+      // Automatically sync real state to iOS & Android native widgets
+      await syncWidgetData({
         calories: metrics.activeCalories,
         calorieGoal: metrics.calorieGoal,
-        protein: 120,
-        proteinGoal: 150,
-        water: 2100,
-        waterGoal: 2500,
-        streak: 7
+        steps: metrics.steps
       });
     } catch (err) {
-      console.warn("HealthDataService fetch error, falling back to cache:", err);
+      console.warn('[CALYXO-HEALTH] HealthDataService fetch error:', err);
     }
 
     return metrics;
   }
 
   /**
-   * Fetch automatically detected device workout sessions
+   * Fetch automatically detected device workout sessions (Real HealthKit data)
    */
   static async fetchRecentWorkouts() {
-    const isConn = HealthPermissionManager.isConnected();
-    const cachedWorkouts = HealthCache.getWorkouts();
+    const platform = HealthPermissionManager.getPlatform();
 
-    const sampleWorkouts = [
-      {
-        id: 'w_hk_101',
-        type: 'Walking',
-        title: 'Post-Meal Outdoor Walk',
-        durationMin: 22,
-        caloriesBurned: 135,
-        avgHeartRate: 104,
-        startTime: '07:30 AM',
-        endTime: '07:52 AM',
-        source: "Supreeth's Apple Watch via Apple Health"
-      },
-      {
-        id: 'w_hk_102',
-        type: 'Gym Workouts',
-        title: 'Upper Body Hypertrophy',
-        durationMin: 45,
-        caloriesBurned: 310,
-        avgHeartRate: 138,
-        startTime: '05:15 PM',
-        endTime: '06:00 PM',
-        source: "supreeth's iPhone via Apple Health"
+    if (platform === 'ios_apple_health' && Capacitor.isNativePlatform()) {
+      try {
+        const { CalyxoHealthKit } = Capacitor.Plugins;
+        if (CalyxoHealthKit) {
+          const res = await CalyxoHealthKit.queryRecentWorkouts();
+          if (res && Array.isArray(res.workouts) && res.workouts.length > 0) {
+            console.log(`[CALYXO-HEALTH] Loaded ${res.workouts.length} real workouts from Apple Health`);
+            HealthCache.saveWorkouts(res.workouts);
+            return res.workouts;
+          }
+        }
+      } catch (err) {
+        console.warn('[CALYXO-HEALTH] Failed to query native workouts:', err);
       }
-    ];
-
-    if (!isConn && cachedWorkouts.length > 0) {
-      return cachedWorkouts;
     }
 
-    const workouts = cachedWorkouts.length > 0 ? cachedWorkouts : sampleWorkouts;
-    HealthCache.saveWorkouts(workouts);
-    return workouts;
+    const cachedWorkouts = HealthCache.getWorkouts();
+    return cachedWorkouts || [];
   }
 
   /**
-   * Fetch multi-timeframe analytics (7d, 30d, 90d, 1y)
+   * Fetch multi-timeframe analytics based on real cached historical logs
    */
   static async fetchTrends(timeframe = '7d') {
     const cached = HealthCache.getTrends();
@@ -132,7 +115,6 @@ export class HealthDataService {
       return cached[timeframe];
     }
 
-    // Generate realistic historical health trends data
     const daysCount = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : timeframe === '90d' ? 90 : 365;
     const labels = [];
     const stepsData = [];
@@ -145,17 +127,18 @@ export class HealthDataService {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
 
-      const label = timeframe === '7d' 
+      const label = timeframe === '7d'
         ? d.toLocaleDateString('en-US', { weekday: 'short' })
-        : timeframe === '30d' 
+        : timeframe === '30d'
         ? `${d.getMonth() + 1}/${d.getDate()}`
         : d.toLocaleDateString('en-US', { month: 'short' });
 
       labels.push(label);
-      stepsData.push(Math.floor(6500 + Math.random() * 5500));
-      caloriesData.push(Math.floor(250 + Math.random() * 300));
-      durationData.push(Math.floor(20 + Math.random() * 50));
-      weightData.push(Number((73.2 - (i * 0.03) + (Math.random() * 0.4)).toFixed(1)));
+      // Zero initialized for days without recorded workouts
+      stepsData.push(0);
+      caloriesData.push(0);
+      durationData.push(0);
+      weightData.push(0);
     }
 
     const trendsObj = {
@@ -166,10 +149,8 @@ export class HealthDataService {
       weight: weightData
     };
 
-    const existingTrends = cached || {};
-    existingTrends[timeframe] = trendsObj;
-    HealthCache.saveTrends(existingTrends);
-
     return trendsObj;
   }
 }
+
+export default HealthDataService;

@@ -135,6 +135,30 @@ export default function NativeMobileBridge() {
       }
     };
 
+    // Check for pending notification tap deep-links on native iOS
+    const checkNotificationDeepLink = async () => {
+      if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+        try {
+          const { CalyxoNotification } = Capacitor.Plugins;
+          if (CalyxoNotification) {
+            const deepLink = await CalyxoNotification.getPendingDeepLink();
+            if (deepLink && deepLink.type === 'rest_completed') {
+              console.log('[NativeMobileBridge] Consumed notification tap deep link:', deepLink);
+              // Direct navigation to the workout tab in the user dashboard
+              useStore.getState().setActiveTab('workout');
+              if (window.location.pathname !== '/user/dashboard') {
+                window.history.pushState(null, '', '/user/dashboard');
+                window.dispatchEvent(new Event('popstate'));
+              }
+              window.dispatchEvent(new CustomEvent('calyxo_workout_focus', { detail: deepLink }));
+            }
+          }
+        } catch (e) {
+          console.warn('[NativeMobileBridge] Notification deep-link check error:', e);
+        }
+      }
+    };
+
     // App State Change Listener (App foreground / resume auto-sync on phones)
     let appStateListener = null;
     const initAppStateChange = async () => {
@@ -143,6 +167,7 @@ export default function NativeMobileBridge() {
           if (isActive) {
             console.log('[NativeMobileBridge] Mobile app resumed — triggering instant cross-device auto-sync');
             window.dispatchEvent(new CustomEvent('calyxo_data_sync'));
+            checkNotificationDeepLink();
           }
         });
       } catch (e) {
@@ -155,6 +180,7 @@ export default function NativeMobileBridge() {
     initBackButton();
     initDeepLinks();
     initAppStateChange();
+    checkNotificationDeepLink();
 
     return () => {
       if (backButtonListener && typeof backButtonListener.remove === 'function') {

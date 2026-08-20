@@ -27,7 +27,9 @@ import {
 const globalImageCache = new Map();
 const activeFetches = new Set();
 import { motion, AnimatePresence } from 'framer-motion';
-import { scheduleExactNotification } from '../services/notificationService';
+import { scheduleExactNotification, cancelNotification } from '../services/notificationService';
+import LiveActivityManager from '../services/LiveActivityManager';
+import { saveActiveRest, loadActiveRest, clearActiveRest } from '../services/restTimerPersistence';
 
 import { searchAndRankExercises, loadExercisesData, getCachedExercises, getExerciseImage, getDistinctFallback } from '../utils/exerciseSearch';
 import { getTodayDateString, formatDateToLocalString, getLocalDayOfWeekIndex, isSameLocalDate } from '../utils/dateUtils';
@@ -576,7 +578,11 @@ export default function WorkoutLogger({ onNotification }) {
     }
     sendBrowserNotification("Rest Time Finished! 💪", "Rest period complete! Time to start your next set.");
     if (onNotification) onNotification("Rest time complete! Set starts now.");
+    // Clear persisted rest state now that it has completed
+    clearActiveRest();
+    LiveActivityManager.endRestTimer();
   };
+
 
   useEffect(() => {
     let interval = null;
@@ -624,21 +630,67 @@ export default function WorkoutLogger({ onNotification }) {
     }
   }, [restSecondsLeft, onNotification]);
 
-  const handleStartRestTimer = (secs = restDuration) => {
+  const handleStartRestTimer = async (secs = restDuration, { workoutId = 'workout', exerciseName = '', setNumber = 1 } = {}) => {
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
+
+    // Cancel previous rest notification before scheduling a new one
+    const prevRest = await loadActiveRest();
+    if (prevRest?.notificationId) {
+      await cancelNotification(prevRest.notificationId);
+    }
+
+    // Unique deterministic notification ID — prevents collisions across consecutive rests
+    const safeName = (exerciseName || 'exercise').toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 20);
+    const notifId = `calyxo.rest.${workoutId}.${safeName}.${setNumber}.${Date.now()}`;
+
     restEndTimeRef.current = Date.now() + secs * 1000;
     setRestSecondsLeft(secs);
 
-    scheduleExactNotification({
-      id: 'workout-rest-timer',
-      title: 'Rest Time Finished! 💪',
-      body: 'Rest period complete! Time to start your next set.',
-      delayMs: secs * 1000,
-      tag: 'workout-rest-timer'
+    // Persist rest state with ISO timestamps so it survives force-kill
+    await saveActiveRest({
+      workoutId,
+      exerciseName,
+      setNumber,
+      durationSeconds: secs,
+      notificationId: notifId
     });
+
+    scheduleExactNotification({
+      id: notifId,
+      title: 'Rest Time Finished! 💪',
+      body: exerciseName ? `Rest complete! ${exerciseName} — Set ${setNumber + 1} starts now.` : 'Rest period complete! Time to start your next set.',
+      delayMs: secs * 1000,
+      tag: 'workout-rest-timer',
+      // Deep-link metadata so notification tap opens the workout screen
+      type: 'rest_completed',
+      workoutId,
+      exerciseName,
+      setNumber
+    });
+
+    LiveActivityManager.startRestTimer(secs);
   };
+
+  // Restore persisted rest timer on mount (survives force-kill)
+  useEffect(() => {
+    const restoreRestTimer = async () => {
+      const restState = await loadActiveRest();
+
+      // Reconcile Live Activity regardless (updates stale activity or clears expired rest)
+      LiveActivityManager.reconcileAfterLaunch(restState);
+
+      if (!restState) return;
+
+      // Resume in-app timer from the persisted end timestamp
+      const endMs = new Date(restState.restEndDate).getTime();
+      restEndTimeRef.current = endMs;
+      setRestSecondsLeft(restState.remainingSeconds);
+      console.log(`[CALYXO-REST] Resumed rest timer: ${restState.remainingSeconds}s remaining for ${restState.exerciseName}`);
+    };
+    restoreRestTimer();
+  }, []); // once on mount
 
   // Hydrate Initial Workout state & Trainer Assignments
   useEffect(() => {
@@ -789,7 +841,7 @@ export default function WorkoutLogger({ onNotification }) {
       setExWeight('');
       setExDuration('');
       if (onNotification) onNotification(`Logged exercise: ${workoutItem.name}`);
-      handleStartRestTimer();
+      handleStartRestTimer(restDuration, { workoutId: workoutItem.id, exerciseName: workoutItem.name, setNumber: 1 });
       setLoading(false);
     }
   };
@@ -895,7 +947,21 @@ export default function WorkoutLogger({ onNotification }) {
       addWorkoutLogStore(workoutItem);
     } finally {
       if (onNotification) onNotification(`Logged ${ex.name} to ${formatDisplayDate(selectedDate)}!`);
-      handleStartRestTimer();
+      
+      // Start/Update Dynamic Island Live Activity
+      await LiveActivityManager.startLiveActivity({
+        title: 'Calyxo Workout',
+        workoutName: splits[activeDay]?.workout?.type || 'Workout Session',
+        exerciseName: ex.name.trim(),
+        currentSet: 1,
+        totalSets: parsed.sets || 3,
+        currentReps: parsed.reps || 10,
+        isResting: true,
+        restDurationSeconds: restDuration,
+        caloriesBurned: workoutItem.caloriesBurned || 0
+      });
+
+      handleStartRestTimer(restDuration, { workoutId: workoutItem.id, exerciseName: ex.name.trim(), setNumber: 1 });
     }
   };
 
@@ -938,7 +1004,7 @@ export default function WorkoutLogger({ onNotification }) {
       itemsToLog.forEach(item => addWorkoutLogStore(item));
     } finally {
       if (onNotification) onNotification(`Logged ${splits[activeDay].dayName}'s ${currentSplit.type} session!`);
-      handleStartRestTimer();
+      handleStartRestTimer(restDuration, { workoutId: `split_${activeDay}_${Date.now()}`, exerciseName: splits[activeDay]?.workout?.type || 'Split', setNumber: 1 });
       setLoading(false);
     }
   };
