@@ -112,35 +112,38 @@ export default function LandingPage() {
         }`}
       >
         <div className="max-w-7xl mx-auto w-full flex justify-between items-center gap-2">
-          <div className="flex items-center gap-2.5 shrink-0">
-            <Logo className="w-7 h-7 sm:w-8 sm:h-8 text-[#00F0FF]" glow={true} />
-            <span className="brand-name text-base sm:text-lg text-white tracking-wider leading-none">CALYXO</span>
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            <Logo className="w-6 h-6 sm:w-8 sm:h-8 text-[#00F0FF]" glow={true} />
+            <span className="brand-name text-sm sm:text-lg text-white tracking-wider leading-none font-black">CALYXO</span>
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-            {user && (
+          <div className="flex items-center gap-2 shrink-0">
+            {user ? (
               <button 
                 onClick={goToDashboard}
                 aria-label="Go to Dashboard"
-                className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer border border-white/10 flex items-center gap-1 whitespace-nowrap shrink-0"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-400 text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer border border-emerald-500/40 flex items-center gap-1.5 whitespace-nowrap shadow-[0_4px_16px_rgba(16,185,129,0.25)]"
               >
                 <span>Dashboard</span>
-                <ArrowRight className="w-3 h-3" />
+                <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
+            ) : (
+              <>
+                <button 
+                  onClick={() => openAuth('login')}
+                  aria-label="Login to Calyxo"
+                  className="hidden sm:inline-flex text-xs font-black uppercase tracking-wider text-white/80 hover:text-white transition-all cursor-pointer px-4 py-2 rounded-xl bg-white/5 hover:bg-white/15 backdrop-blur-md border border-white/10 hover:border-white/25 shadow-sm whitespace-nowrap"
+                >
+                  Login
+                </button>
+                <button 
+                  onClick={() => openAuth('signup')}
+                  aria-label="Get Started with Calyxo"
+                  className="px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-xl bg-[#10B981]/25 hover:bg-[#10B981]/40 backdrop-blur-xl border border-[#10B981]/50 hover:border-[#10B981] text-white text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-[0_4px_20px_rgba(16,185,129,0.3)] active:scale-95 transition-all duration-300 cursor-pointer whitespace-nowrap"
+                >
+                  Get Started
+                </button>
+              </>
             )}
-            <button 
-              onClick={() => openAuth('login')}
-              aria-label="Login to Calyxo"
-              className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-white/80 hover:text-white transition-all cursor-pointer px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-white/5 hover:bg-white/15 backdrop-blur-md border border-white/10 hover:border-white/25 shadow-sm whitespace-nowrap shrink-0"
-            >
-              Login
-            </button>
-            <button 
-              onClick={() => openAuth('signup')}
-              aria-label="Get Started with Calyxo"
-              className="px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-xl bg-[#10B981]/20 hover:bg-[#10B981]/35 backdrop-blur-xl border border-[#10B981]/40 hover:border-[#10B981] text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider shadow-[0_4px_20px_rgba(16,185,129,0.25)] hover:shadow-[0_6px_28px_rgba(16,185,129,0.45)] active:scale-95 transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0"
-            >
-              Get Started
-            </button>
           </div>
         </div>
       </header>

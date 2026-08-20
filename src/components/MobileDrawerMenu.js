@@ -8,11 +8,32 @@ export default function MobileDrawerMenu({ isOpen, onClose }) {
   const navigate = useNavigate();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  const handleShareApp = async () => {
+    const shareData = {
+      title: 'Calyxo Health Operating System',
+      text: 'Train with Calyxo — the next-generation health, workout & nutrition OS with Apple Health and Dynamic Island sync!',
+      url: window.location.origin
+    };
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (e) {}
+    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(window.location.origin);
+      alert('Calyxo invite link copied to clipboard!');
+    }
+  };
+
   const menuItems = [
     { label: 'Health Hub', ariaLabel: 'View Universal Health Data', link: '/user/health' },
     { label: 'Progress', ariaLabel: 'View Analytics & Progress', link: '/user/progress' },
     { label: 'AI Coach', ariaLabel: 'Open AI Assistant', link: '/user/ai' },
     { label: 'Profile', ariaLabel: 'User Profile', link: '/user/profile' },
+    { 
+      label: 'Share App', 
+      ariaLabel: 'Share App Invite Link',
+      onClick: handleShareApp
+    },
     { 
       label: 'Settings', 
       ariaLabel: 'Open App Settings & Preferences',
@@ -23,6 +44,7 @@ export default function MobileDrawerMenu({ isOpen, onClose }) {
   ];
 
   const socialItems = [
+    { label: 'Share Invite', onClick: handleShareApp },
     { label: 'Privacy Policy', link: '/user/privacy' },
     { label: 'Terms of Service', link: '/user/terms' },
     { label: 'Support', link: '/user/support' },
