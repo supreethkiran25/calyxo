@@ -17,21 +17,23 @@ struct CalyxoLiveActivityWidget: Widget {
             DynamicIsland {
                 // Expanded Dynamic Island View (on long press)
                 DynamicIslandExpandedRegion(.leading) {
-                    HStack(spacing: 6) {
-                        Image(systemName: context.state.isResting ? "hourglass" : "dumbbell.fill")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(context.state.isResting ? .cyan : Self.brandGreen)
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(context.state.isResting ? Self.brandCyan : Self.brandGreen)
+                            .frame(width: 8, height: 8)
+                            .shadow(color: (context.state.isResting ? Self.brandCyan : Self.brandGreen).opacity(0.8), radius: 4)
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text(context.state.exerciseName.isEmpty ? context.state.workoutName : context.state.exerciseName)
-                                .font(.system(size: 13, weight: .bold))
+                                .font(.system(size: 14, weight: .black, design: .rounded))
                                 .foregroundColor(.white)
                                 .lineLimit(1)
                             Text("Set \(context.state.currentSet) of \(context.state.totalSets) • \(context.state.currentReps) reps")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(.gray)
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(Color(white: 0.65))
                         }
                     }
-                    .padding(.leading, 4)
+                    .padding(.leading, 6)
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
@@ -39,87 +41,109 @@ struct CalyxoLiveActivityWidget: Widget {
                         if context.state.isResting, let restEnd = context.state.restEndDate {
                             Text("REST TIMER")
                                 .font(.system(size: 9, weight: .black))
-                                .foregroundColor(.cyan)
+                                .foregroundColor(Self.brandCyan)
                             Text(timerInterval: Date()...max(Date(), restEnd), countsDown: true)
                                 .monospacedDigit()
-                                .font(.system(size: 15, weight: .black))
-                                .foregroundColor(.cyan)
+                                .font(.system(size: 16, weight: .black, design: .rounded))
+                                .foregroundColor(Self.brandCyan)
                         } else {
-                            Text("WORKOUT")
+                            Text("ACTIVE TIME")
                                 .font(.system(size: 9, weight: .black))
                                 .foregroundColor(Self.brandGreen)
                             Text(timerInterval: context.state.workoutStartDate...Date.distantFuture, countsDown: false)
                                 .monospacedDigit()
-                                .font(.system(size: 15, weight: .black))
+                                .font(.system(size: 16, weight: .black, design: .rounded))
                                 .foregroundColor(Self.brandGreen)
                         }
                     }
-                    .padding(.trailing, 4)
+                    .padding(.trailing, 6)
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
-                    HStack(alignment: .center) {
-                        if context.state.caloriesBurned > 0 {
-                            Label("\(context.state.caloriesBurned) kcal", systemImage: "flame.fill")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.orange)
+                    VStack(spacing: 8) {
+                        // Running animated progress beam line across the bottom of the Island
+                        if context.state.isResting, let restEnd = context.state.restEndDate {
+                            ProgressView(timerInterval: Date()...max(Date(), restEnd), countsDown: true)
+                                .tint(Self.brandCyan)
+                                .scaleEffect(x: 1, y: 0.8, anchor: .center)
                         } else {
-                            Label("Active Session", systemImage: "bolt.fill")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(Self.brandGreen)
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Self.brandGreen.opacity(0.3), Self.brandCyan, Self.brandGreen],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(height: 2)
                         }
 
-                        Spacer()
+                        HStack(alignment: .center) {
+                            if context.state.caloriesBurned > 0 {
+                                Label("\(context.state.caloriesBurned) kcal", systemImage: "flame.fill")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(.orange)
+                            } else {
+                                Label("Paced Set", systemImage: "bolt.fill")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(Self.brandGreen)
+                            }
 
-                        if context.state.heartRate > 0 {
-                            Label("\(context.state.heartRate) bpm", systemImage: "heart.fill")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.red)
+                            Spacer()
+
+                            if context.state.heartRate > 0 {
+                                Label("\(context.state.heartRate) bpm", systemImage: "heart.fill")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(.red)
+                            }
+
+                            Spacer()
+
+                            Text(context.state.isPaused ? "PAUSED" : context.state.isResting ? "RESTING" : "ACTIVE")
+                                .font(.system(size: 9, weight: .black))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(
+                                    (context.state.isPaused ? Color.orange : context.state.isResting ? Self.brandCyan : Self.brandGreen).opacity(0.2)
+                                )
+                                .foregroundColor(
+                                    context.state.isPaused ? .orange : context.state.isResting ? Self.brandCyan : Self.brandGreen
+                                )
+                                .cornerRadius(6)
                         }
-
-                        Spacer()
-
-                        Text(context.state.isPaused ? "PAUSED" : context.state.isResting ? "RESTING" : "ACTIVE")
-                            .font(.system(size: 9, weight: .black))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(
-                                context.state.isPaused
-                                    ? Color.orange.opacity(0.2)
-                                    : context.state.isResting
-                                    ? Color.cyan.opacity(0.2)
-                                    : Self.brandGreen.opacity(0.2)
-                            )
-                            .foregroundColor(
-                                context.state.isPaused
-                                    ? .orange
-                                    : context.state.isResting
-                                    ? .cyan
-                                    : Self.brandGreen
-                            )
-                            .cornerRadius(4)
                     }
                     .padding(.top, 4)
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, 6)
                 }
             } compactLeading: {
-                Image(systemName: context.state.isResting ? "hourglass" : "dumbbell.fill")
-                    .foregroundColor(context.state.isResting ? .cyan : Self.brandGreen)
+                // Sleek pulsing dot instead of hourglass
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(context.state.isResting ? Self.brandCyan : Self.brandGreen)
+                        .frame(width: 7, height: 7)
+                        .shadow(color: (context.state.isResting ? Self.brandCyan : Self.brandGreen).opacity(0.8), radius: 3)
+                    Image(systemName: context.state.isResting ? "waveform.path" : "dumbbell.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(context.state.isResting ? Self.brandCyan : Self.brandGreen)
+                }
+                .padding(.leading, 2)
             } compactTrailing: {
                 if context.state.isResting, let restEnd = context.state.restEndDate {
                     Text(timerInterval: Date()...max(Date(), restEnd), countsDown: true)
                         .monospacedDigit()
-                        .font(.system(size: 11, weight: .black))
-                        .foregroundColor(.cyan)
+                        .font(.system(size: 12, weight: .black, design: .rounded))
+                        .foregroundColor(Self.brandCyan)
                 } else {
                     Text(timerInterval: context.state.workoutStartDate...Date.distantFuture, countsDown: false)
                         .monospacedDigit()
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.system(size: 12, weight: .black, design: .rounded))
                         .foregroundColor(Self.brandGreen)
                 }
             } minimal: {
-                Image(systemName: context.state.isResting ? "hourglass" : "flame.fill")
-                    .foregroundColor(context.state.isResting ? .cyan : Self.brandGreen)
+                Circle()
+                    .fill(context.state.isResting ? Self.brandCyan : Self.brandGreen)
+                    .frame(width: 8, height: 8)
+                    .shadow(color: (context.state.isResting ? Self.brandCyan : Self.brandGreen).opacity(0.9), radius: 4)
             }
         }
     }
@@ -131,11 +155,14 @@ struct CalyxoLiveActivityWidget: Widget {
             // Header Row
             HStack {
                 HStack(spacing: 6) {
-                    Image(systemName: "flame.fill")
-                        .foregroundColor(Self.brandGreen)
-                    Text("CALYXO WORKOUT")
-                        .font(.system(size: 11, weight: .black))
-                        .foregroundColor(Self.brandGreen)
+                    Circle()
+                        .fill(context.state.isResting ? Self.brandCyan : Self.brandGreen)
+                        .frame(width: 8, height: 8)
+                        .shadow(color: (context.state.isResting ? Self.brandCyan : Self.brandGreen).opacity(0.8), radius: 3)
+
+                    Text("CALYXO ACTIVE")
+                        .font(.system(size: 11, weight: .black, design: .rounded))
+                        .foregroundColor(context.state.isResting ? Self.brandCyan : Self.brandGreen)
                 }
                 Spacer()
                 Text(context.state.isPaused ? "PAUSED" : context.state.isResting ? "RESTING" : "ACTIVE")
@@ -143,18 +170,10 @@ struct CalyxoLiveActivityWidget: Widget {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(
-                        context.state.isPaused
-                            ? Color.orange.opacity(0.2)
-                            : context.state.isResting
-                            ? Color.cyan.opacity(0.2)
-                            : Self.brandGreen.opacity(0.2)
+                        (context.state.isPaused ? Color.orange : context.state.isResting ? Self.brandCyan : Self.brandGreen).opacity(0.2)
                     )
                     .foregroundColor(
-                        context.state.isPaused
-                            ? .orange
-                            : context.state.isResting
-                            ? .cyan
-                            : Self.brandGreen
+                        context.state.isPaused ? .orange : context.state.isResting ? Self.brandCyan : Self.brandGreen
                     )
                     .cornerRadius(6)
             }
@@ -163,26 +182,26 @@ struct CalyxoLiveActivityWidget: Widget {
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(context.state.exerciseName.isEmpty ? context.state.workoutName : context.state.exerciseName)
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 17, weight: .black, design: .rounded))
                         .foregroundColor(.white)
                     Text("Set \(context.state.currentSet) of \(context.state.totalSets) • \(context.state.currentReps) reps")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.gray)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(Color(white: 0.65))
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     if context.state.isResting, let restEnd = context.state.restEndDate {
                         Text("REST")
                             .font(.system(size: 10, weight: .black))
-                            .foregroundColor(.cyan)
+                            .foregroundColor(Self.brandCyan)
                         Text(timerInterval: Date()...max(Date(), restEnd), countsDown: true)
                             .monospacedDigit()
-                            .font(.system(size: 22, weight: .black))
-                            .foregroundColor(.cyan)
+                            .font(.system(size: 24, weight: .black, design: .rounded))
+                            .foregroundColor(Self.brandCyan)
                     } else {
                         Text(timerInterval: context.state.workoutStartDate...Date.distantFuture, countsDown: false)
                             .monospacedDigit()
-                            .font(.system(size: 22, weight: .black))
+                            .font(.system(size: 24, weight: .black, design: .rounded))
                             .foregroundColor(.white)
                     }
                     if context.state.caloriesBurned > 0 {
@@ -192,10 +211,28 @@ struct CalyxoLiveActivityWidget: Widget {
                     }
                 }
             }
+
+            // Continuous Running Progress Line
+            if context.state.isResting, let restEnd = context.state.restEndDate {
+                ProgressView(timerInterval: Date()...max(Date(), restEnd), countsDown: true)
+                    .tint(Self.brandCyan)
+                    .scaleEffect(x: 1, y: 0.8, anchor: .center)
+            } else {
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [Self.brandGreen.opacity(0.3), Self.brandCyan, Self.brandGreen],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(height: 2)
+            }
         }
         .padding(14)
         .background(Color(red: 10/255, green: 10/255, blue: 12/255))
     }
 
     private static let brandGreen = Color(red: 16/255, green: 185/255, blue: 129/255)
+    private static let brandCyan = Color(red: 0/255, green: 240/255, blue: 255/255)
 }
