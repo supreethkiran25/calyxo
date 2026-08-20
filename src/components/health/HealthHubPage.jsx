@@ -223,39 +223,7 @@ export default function HealthHubPage({ onNotification }) {
           </h1>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setIsWearableModalOpen(true)}
-            className="px-3.5 py-2 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 text-[10px] font-black uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all shadow-md shadow-emerald-500/10"
-            title="Open Watch OS Companion Studio"
-          >
-            <Watch className="w-3.5 h-3.5" />
-            <span>Watch Studio</span>
-          </button>
-
-          <button
-            onClick={async () => {
-              await LiveActivityManager.startLiveActivity({ title: 'Calyxo Track', workoutName: 'Dev Health Test' });
-            }}
-            className="px-3 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-black uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all"
-            title="Test iOS Dynamic Island Live Activity"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Dynamic Island</span>
-          </button>
-
-          <button
-            onClick={async () => {
-              await syncWidgetData({ calories: metrics?.activeCalories || 380, calorieGoal: 500, protein: 125, water: 2200, streak: 7 });
-              alert('📱 Synced metrics to native iOS & Android Widget storage!');
-            }}
-            className="px-3 py-2 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 text-[10px] font-black uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all"
-            title="Test Widget Storage Sync"
-          >
-            <Smartphone className="w-3.5 h-3.5" />
-            <span>Widget Sync</span>
-          </button>
-
+        <div className="flex items-center gap-2">
           <button
             onClick={handleRefreshData}
             disabled={isSyncing}
@@ -273,32 +241,6 @@ export default function HealthHubPage({ onNotification }) {
             <Settings className="w-4 h-4" />
           </button>
         </div>
-      </div>
-
-      {/* ── 2.5 WEARABLE COMPANION OS STUDIO BANNER ────────────────────── */}
-      <div className="bg-surface border border-emerald-500/30 rounded-3xl p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden bg-gradient-to-r from-emerald-950/20 via-transparent to-transparent">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl shrink-0 border border-emerald-500/40">
-            <Watch className="w-6 h-6 animate-pulse" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-black uppercase text-foreground">Calyxo Wearable OS Companion</h3>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-black text-emerald-400 uppercase">Auto-Installed</span>
-            </div>
-            <p className="text-xs text-muted mt-0.5">
-              Interactive Apple Watch (49mm Ultra) & Wear OS companion app. Bi-directional workout tracking, live BPM, and 3-ring macro dial.
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => setIsWearableModalOpen(true)}
-          className="px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 shrink-0 border-none transition-all"
-        >
-          <Watch className="w-4 h-4" />
-          <span>Open Watch Studio</span>
-        </button>
       </div>
 
       {/* ── 3. 4 LARGE EMERALD PROGRESS RINGS ───────────────────────────── */}

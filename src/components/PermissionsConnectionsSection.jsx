@@ -165,20 +165,22 @@ export default function PermissionsConnectionsSection({ onNotification }) {
               </span>
             </div>
             <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-black uppercase tracking-wider">
-              AUTO-INSTALLED
+              OPTIONAL
             </span>
           </div>
 
           <p className="text-[11px] text-muted leading-relaxed">
-            Companion watch app automatically installs on Apple Watch and Galaxy/Pixel watches when Calyxo is on your phone.
+            Automatic companion sync for Apple Watch (watchOS 8.0+) and Galaxy/Pixel Watch. If you don't have a watch, Calyxo tracks steps and workouts directly from your phone.
           </p>
 
           <button
-            onClick={() => setIsWearableModalOpen(true)}
-            className="w-full py-2.5 rounded-xl bg-emerald-500 text-black font-black text-xs uppercase tracking-wider cursor-pointer border-none shadow-md hover:brightness-110 flex items-center justify-center gap-1.5"
+            onClick={() => {
+              if (onNotification) onNotification("Watch sync active. If watch is paired, open Calyxo on your watch to stream live workouts.");
+            }}
+            className="w-full py-2.5 rounded-xl bg-surface hover:bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-black text-xs uppercase tracking-wider cursor-pointer transition-all flex items-center justify-center gap-1.5"
           >
-            <Watch className="w-3.5 h-3.5" />
-            Open Wearable Studio
+            <RefreshCw className="w-3.5 h-3.5" />
+            Sync Watch Telemetry
           </button>
         </div>
 
