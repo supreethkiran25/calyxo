@@ -1,6 +1,7 @@
 import Capacitor
 import WidgetKit
 import AVFoundation
+import MediaPlayer
 
 /// Capacitor Plugin bridging JavaScript state to shared App Group UserDefaults & WidgetKit timelines.
 /// JS calls: Capacitor.Plugins.CalyxoWidget.syncWidgetData(...)
@@ -12,7 +13,9 @@ public class CalyxoWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "syncWidgetData", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearWidgetData", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "reloadWidgets", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "isMusicPlaying", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "isMusicPlaying", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getNowPlayingMedia", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "sendMediaCommand", returnType: CAPPluginReturnPromise)
     ]
 
     @objc func syncWidgetData(_ call: CAPPluginCall) {
@@ -99,5 +102,53 @@ public class CalyxoWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func isMusicPlaying(_ call: CAPPluginCall) {
         let isPlaying = AVAudioSession.sharedInstance().isOtherAudioPlaying
         call.resolve(["isPlaying": isPlaying])
+    }
+
+    @objc func getNowPlayingMedia(_ call: CAPPluginCall) {
+        var isPlaying = AVAudioSession.sharedInstance().isOtherAudioPlaying
+        var title = ""
+        var artist = ""
+        var album = ""
+        var appName = "Apple Music"
+
+        if let systemItem = MPMusicPlayerController.systemMusicPlayer.nowPlayingItem {
+            title = systemItem.title ?? ""
+            artist = systemItem.artist ?? ""
+            album = systemItem.albumTitle ?? ""
+            if MPMusicPlayerController.systemMusicPlayer.playbackState == .playing {
+                isPlaying = true
+            }
+        }
+
+        call.resolve([
+            "isPlaying": isPlaying,
+            "title": title,
+            "artist": artist,
+            "album": album,
+            "app": appName
+        ])
+    }
+
+    @objc func sendMediaCommand(_ call: CAPPluginCall) {
+        let action = call.getString("action") ?? "toggle"
+        let player = MPMusicPlayerController.systemMusicPlayer
+
+        if action == "play" {
+            player.play()
+        } else if action == "pause" {
+            player.pause()
+        } else if action == "next" {
+            player.skipToNextItem()
+        } else if action == "prev" || action == "previous" {
+            player.skipToPreviousItem()
+        } else {
+            if player.playbackState == .playing {
+                player.pause()
+            } else {
+                player.play()
+            }
+        }
+
+        call.resolve(["success": true, "dispatched": action])
     }
 }
