@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Heart, Activity, Smartphone, Flame, Clock, Dumbbell, ShieldCheck,
   RefreshCw, Settings, Sparkles, TrendingUp, CheckCircle2, ChevronRight,
-  Footprints, Zap, Moon, Scale, Award, ArrowUpRight
+  Footprints, Zap, Moon, Scale, Award, ArrowUpRight, Watch
 } from 'lucide-react';
 import { HealthPermissionManager } from '../../services/health/HealthPermissionManager';
 import { HealthDataService } from '../../services/health/HealthDataService';

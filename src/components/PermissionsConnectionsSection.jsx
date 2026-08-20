@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Bell, Smartphone, ShieldCheck, Wifi, RefreshCw, CheckCircle2, 
-  AlertCircle, Lock, Download, Activity, Zap, Info, LayoutGrid
+  AlertCircle, Lock, Download, Activity, Zap, Info, LayoutGrid, Watch
 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { pwaManager } from '../services/pwaManager';
