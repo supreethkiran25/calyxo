@@ -113,8 +113,8 @@ export const syncWidgetData = async (customData = {}) => {
       value: JSON.stringify(payload)
     });
 
-    // On iOS Native, bridge directly to App Group UserDefaults & WidgetKit
-    if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+    // Bridge directly to Native App Group UserDefaults / SharedPreferences & Widgets
+    if (Capacitor.isNativePlatform()) {
       const { CalyxoWidget } = Capacitor.Plugins;
       if (CalyxoWidget) {
         await CalyxoWidget.syncWidgetData({
@@ -130,10 +130,8 @@ export const syncWidgetData = async (customData = {}) => {
           streak: payload.streak,
           activeWorkoutName: payload.activeWorkoutName
         });
-        console.log('[WidgetDataService] Synced with iOS App Group & WidgetKit:', payload);
+        console.log('[WidgetDataService] Synced with Native Widgets (iOS & Android):', payload);
       }
-    } else if (Capacitor.isNativePlatform()) {
-      console.log('[WidgetDataService] Native Widget Data Synced:', payload);
     }
   } catch (err) {
     console.error('[WidgetDataService] Failed to sync widget data:', err);
@@ -144,7 +142,7 @@ export const clearWidgetData = async () => {
   try {
     await Preferences.remove({ key: WIDGET_DATA_KEY });
 
-    if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+    if (Capacitor.isNativePlatform()) {
       const { CalyxoWidget } = Capacitor.Plugins;
       if (CalyxoWidget && CalyxoWidget.clearWidgetData) {
         await CalyxoWidget.clearWidgetData();
@@ -163,7 +161,7 @@ export const clearWidgetData = async () => {
           activeWorkoutName: ''
         });
       }
-      console.log('[WidgetDataService] Widget data cleared on signout.');
+      console.log('[WidgetDataService] Widget data cleared on signout (iOS & Android).');
     }
   } catch (err) {
     console.warn('[WidgetDataService] Failed to clear widget data:', err);
