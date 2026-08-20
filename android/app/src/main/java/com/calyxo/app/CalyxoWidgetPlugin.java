@@ -115,6 +115,13 @@ public class CalyxoWidgetPlugin extends Plugin {
             intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
             context.sendBroadcast(intent);
+
+            try {
+                Intent miuiIntent = new Intent("com.miui.home.action.APPWIDGET_UPDATE");
+                miuiIntent.setComponent(thisWidget);
+                miuiIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
+                context.sendBroadcast(miuiIntent);
+            } catch (Exception ignored) {}
         }
     }
 }
