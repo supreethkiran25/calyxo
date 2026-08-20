@@ -57,6 +57,19 @@ export class HealthDataService {
             metrics.lastSyncTimestamp = Date.now();
           }
         }
+      } else if (platform === 'android_health_connect' && Capacitor.isNativePlatform()) {
+        const { CalyxoHealthPlugin } = Capacitor.Plugins;
+        if (CalyxoHealthPlugin) {
+          const androidData = await CalyxoHealthPlugin.queryTodayMetrics();
+          console.log('[CALYXO-HEALTH] Native Android sensor data received:', androidData);
+          if (androidData) {
+            metrics.steps = androidData.steps || 0;
+            metrics.distanceKm = androidData.distanceKm || 0.0;
+            metrics.activeCalories = androidData.activeCalories || 0;
+            metrics.activeMinutes = androidData.activeMinutes || 0;
+            metrics.lastSyncTimestamp = Date.now();
+          }
+        }
       } else if (platform === 'android_health_connect' && window.AndroidHealthConnect?.getTodaySummary) {
         const res = await window.AndroidHealthConnect.getTodaySummary();
         const parsed = typeof res === 'string' ? JSON.parse(res) : res;

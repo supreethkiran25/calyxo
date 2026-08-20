@@ -98,12 +98,27 @@ export class HealthPermissionManager {
           console.error('[HealthKit] Native authorization failed:', nativeErr);
         }
       } else if (platform === 'android_health_connect') {
-        // Android Health Connect Web Intent Bridge
-        if (window.AndroidHealthConnect?.requestPermissions) {
-          const res = await window.AndroidHealthConnect.requestPermissions(JSON.stringify(requestPayload));
-          grantedResults = { ...grantedResults, ...(typeof res === 'string' ? JSON.parse(res) : res) };
-        } else {
-          console.log('[HealthConnect] AndroidHealthConnect bridge not available.');
+        try {
+          const { Capacitor } = await import('@capacitor/core');
+          if (Capacitor.isNativePlatform()) {
+            const { CalyxoHealthPlugin } = Capacitor.Plugins;
+            if (CalyxoHealthPlugin) {
+              const result = await CalyxoHealthPlugin.requestPermissions();
+              console.log('[AndroidHealth] Native sensor authorization result:', result);
+              if (result && result.granted) {
+                [...REQUIRED_PERMISSIONS, ...requestPayload.optional].forEach(perm => {
+                  grantedResults[perm] = true;
+                });
+                localStorage.setItem('calyxo_health_connected_platform', platform);
+                localStorage.setItem('calyxo_health_connected_at', String(Date.now()));
+              }
+            }
+          } else if (window.AndroidHealthConnect?.requestPermissions) {
+            const res = await window.AndroidHealthConnect.requestPermissions(JSON.stringify(requestPayload));
+            grantedResults = { ...grantedResults, ...(typeof res === 'string' ? JSON.parse(res) : res) };
+          }
+        } catch (androidErr) {
+          console.warn('[AndroidHealth] Android authorization exception:', androidErr);
         }
       } else {
         // Web Health API — PWA sensor tracking only, no fake permissions

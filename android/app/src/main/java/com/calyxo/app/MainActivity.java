@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(CalyxoNotificationPlugin.class);
         registerPlugin(CalyxoWidgetPlugin.class);
+        registerPlugin(CalyxoHealthPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }
