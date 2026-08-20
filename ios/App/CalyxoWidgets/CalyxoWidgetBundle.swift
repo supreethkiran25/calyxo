@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct CalyxoWidgetBundle: WidgetBundle {
     var body: some Widget {
+        RingsWidget()
         HydrationWidget()
         NutritionWidget()
         ActivityWidget()

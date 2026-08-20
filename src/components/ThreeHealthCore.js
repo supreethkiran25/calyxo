@@ -5,6 +5,7 @@ import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { Flame, Droplets, Dumbbell } from 'lucide-react';
 import { isToday, getTodayDateString, isSameLocalDate } from '../utils/dateUtils';
+import { syncWidgetData } from '../services/widgetDataService';
 
 export default function ThreeHealthCore() {
   const [mounted, setMounted] = useState(false);
@@ -25,11 +26,28 @@ export default function ThreeHealthCore() {
   const todaysFoodLogs = (foodLogs || []).filter(x => isSameLocalDate(x.timestamp, todayStr) || isToday(x.timestamp));
   const totalCal = todaysFoodLogs.reduce((s, x) => s + (Number(x.calories) || 0), 0);
   const totalProt = todaysFoodLogs.reduce((s, x) => s + (Number(x.protein) || 0), 0);
+  const totalCarbs = todaysFoodLogs.reduce((s, x) => s + (Number(x.carbs) || 0), 0);
+  const totalFat = todaysFoodLogs.reduce((s, x) => s + (Number(x.fat) || 0), 0);
 
   // Standardized Target Fallbacks across all devices & profiles
   const calTarget = Number(userProfile?.calorieGoal || userProfile?.dailyCalories || userProfile?.calTarget || 2000);
   const protTarget = Number(userProfile?.proteinGoal || userProfile?.proteinTarget || userProfile?.protein || userProfile?.protTarget || 120);
   const waterTarget = Number(userProfile?.waterGoal || userProfile?.waterTarget || 3000);
+
+  // Sync real rings state to Home Screen widgets
+  useEffect(() => {
+    syncWidgetData({
+      calories: Math.round(totalCal),
+      calorieGoal: Math.round(calTarget),
+      protein: Math.round(totalProt),
+      proteinGoal: Math.round(protTarget),
+      carbs: Math.round(totalCarbs),
+      fat: Math.round(totalFat),
+      water: Math.round(waterIntake),
+      waterGoal: Math.round(waterTarget),
+      streak: userProfile?.streak || 0
+    });
+  }, [totalCal, calTarget, totalProt, protTarget, totalCarbs, totalFat, waterIntake, waterTarget, userProfile?.streak]);
 
   const calPct = calTarget > 0 ? Math.min(100, Math.round((totalCal / calTarget) * 100)) : 0;
   const waterPct = waterTarget > 0 ? Math.min(100, Math.round((waterIntake / waterTarget) * 100)) : 0;

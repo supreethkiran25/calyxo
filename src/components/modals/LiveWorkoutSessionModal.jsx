@@ -9,6 +9,8 @@ import { getExerciseImage, getDistinctFallback } from '../../utils/exerciseSearc
 import { addWorkoutLog } from '../../lib/dbService';
 import { calculateWorkoutCaloriesBurned } from '../../utils/workoutUtils';
 import { scheduleExactNotification, cancelNotification } from '../../services/notificationService';
+import LiveActivityManager from '../../services/LiveActivityManager';
+import { saveActiveRest, clearActiveRest } from '../../services/restTimerPersistence';
 
 export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNotification }) {
   const user = useStore(state => state.user);
@@ -177,12 +179,26 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
   if (!isOpen || !routine) return null;
 
   // Handlers
-  const handleStartSession = () => {
+  const handleStartSession = async () => {
     setSessionStartTime(Date.now());
     setExIndex(0);
     setSetIndex(1);
     setCompletedLogs([]);
     setSessionState('EXERCISING');
+    
+    // Start native iOS Dynamic Island & Lock Screen Live Activity
+    await LiveActivityManager.startLiveActivity({
+      title: 'Calyxo Workout',
+      workoutName: routine?.workout?.type || 'Guided Workout',
+      exerciseName: currentEx?.name || 'Exercise',
+      currentSet: 1,
+      totalSets: parsedStats.totalSets,
+      currentReps: parsedStats.targetReps,
+      isResting: false,
+      restDurationSeconds: 0,
+      caloriesBurned: 0
+    });
+
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
@@ -231,6 +247,25 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
         exerciseName: currentEx?.name || '',
         setNumber: nextSetIndex
       });
+
+      // Update Dynamic Island & Lock Screen with rest countdown timer
+      const totalCals = completedLogs.reduce((s, l) => s + (l.caloriesBurned || 0), 0) + logEntry.caloriesBurned;
+      LiveActivityManager.updateLiveActivity({
+        exerciseName: currentEx?.name || 'Exercise',
+        currentSet: nextSetIndex,
+        totalSets: parsedStats.totalSets,
+        currentReps: parsedStats.targetReps,
+        isResting: true,
+        restDurationSeconds: 60,
+        caloriesBurned: totalCals
+      });
+      saveActiveRest({
+        durationSeconds: 60,
+        workoutId: routine?.workout?.id || 'live_session',
+        exerciseName: currentEx?.name || 'Exercise',
+        setNumber: nextSetIndex,
+        notificationId: notifId
+      });
     } else {
       // All sets for this exercise finished
       if (exIndex < exercises.length - 1) {
@@ -257,12 +292,33 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
           exerciseName: nextExName,
           setNumber: 1
         });
+
+        // Update Dynamic Island & Lock Screen with exercise break countdown
+        const totalCals = completedLogs.reduce((s, l) => s + (l.caloriesBurned || 0), 0) + logEntry.caloriesBurned;
+        LiveActivityManager.updateLiveActivity({
+          exerciseName: nextExName,
+          currentSet: 1,
+          totalSets: 4,
+          currentReps: 10,
+          isResting: true,
+          restDurationSeconds: 120,
+          caloriesBurned: totalCals
+        });
+        saveActiveRest({
+          durationSeconds: 120,
+          workoutId: routine?.workout?.id || 'live_session',
+          exerciseName: nextExName,
+          setNumber: 1,
+          notificationId: notifId
+        });
       } else {
         // All exercises in routine completed!
         if (activeRestNotifIdRef.current) {
           cancelNotification(activeRestNotifIdRef.current);
           activeRestNotifIdRef.current = null;
         }
+        clearActiveRest();
+        LiveActivityManager.endLiveActivity();
         setSessionState('COMPLETED');
         playAlertChime(1000);
       }
@@ -326,7 +382,11 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
               </h2>
             </div>
             <button 
-              onClick={onClose}
+              onClick={() => {
+                clearActiveRest();
+                LiveActivityManager.endLiveActivity();
+                onClose();
+              }}
               className="p-2 rounded-xl bg-card-bg border border-card-border text-muted hover:text-foreground cursor-pointer transition-colors"
             >
               <X className="w-5 h-5" />
@@ -451,13 +511,23 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
 
               <div className="flex items-center justify-center gap-3 pt-2">
                 <button
-                  onClick={() => setTimerSeconds(prev => prev + 30)}
+                  onClick={() => {
+                    const newSecs = timerSeconds + 30;
+                    setTimerSeconds(newSecs);
+                    restEndTimeRef.current = Date.now() + newSecs * 1000;
+                    LiveActivityManager.updateLiveActivity({ isResting: true, restDurationSeconds: newSecs });
+                  }}
                   className="px-4 py-2.5 rounded-xl bg-surface border border-card-border hover:border-foreground text-xs font-bold uppercase tracking-wider cursor-pointer"
                 >
                   +30s Rest
                 </button>
                 <button
-                  onClick={() => { setTimerSeconds(0); setSessionState('EXERCISING'); }}
+                  onClick={() => {
+                    setTimerSeconds(0);
+                    clearActiveRest();
+                    LiveActivityManager.updateLiveActivity({ isResting: false, restDurationSeconds: 0, currentSet: setIndex, exerciseName: currentEx?.name || 'Exercise' });
+                    setSessionState('EXERCISING');
+                  }}
                   className="px-6 py-2.5 rounded-xl bg-acid-green text-black font-black uppercase tracking-wider text-xs cursor-pointer shadow-md shadow-acid-green/20 border-none hover:brightness-110"
                 >
                   Skip Rest & Start Set {setIndex} →
@@ -508,9 +578,13 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
               <div className="pt-2">
                 <button
                   onClick={() => {
+                    const nextExIdx = exIndex + 1;
+                    setExIndex(nextExIdx);
+                    setSetIndex(1);
                     setTimerSeconds(0);
-                    setExIndex(idx => idx + 1);
                     setWaterLoggedThisBreak(false);
+                    clearActiveRest();
+                    LiveActivityManager.updateLiveActivity({ isResting: false, restDurationSeconds: 0, currentSet: 1, exerciseName: exercises[nextExIdx]?.name || 'Exercise' });
                     setSessionState('EXERCISING');
                   }}
                   className="w-full py-3.5 rounded-2xl bg-acid-green text-black font-black uppercase tracking-wider text-xs cursor-pointer shadow-lg shadow-acid-green/20 border-none hover:brightness-110 flex items-center justify-center gap-2"
