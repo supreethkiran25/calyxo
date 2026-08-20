@@ -161,7 +161,7 @@ export default function PermissionsConnectionsSection({ onNotification }) {
             <div className="flex items-center gap-2">
               <Watch className="w-4 h-4 text-emerald-400" />
               <span className="text-xs font-black uppercase tracking-wide">
-                Apple Watch & Wear OS
+                Wearable Ecosystem Sync
               </span>
             </div>
             <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-black uppercase tracking-wider">
@@ -170,17 +170,17 @@ export default function PermissionsConnectionsSection({ onNotification }) {
           </div>
 
           <p className="text-[11px] text-muted leading-relaxed">
-            Automatic companion sync for Apple Watch (watchOS 8.0+) and Galaxy/Pixel Watch. If you don't have a watch, Calyxo tracks steps and workouts directly from your phone.
+            Supports Apple Watch (Series 3 through Ultra 2), Galaxy Watch, and Garmin (Forerunner 245) / Whoop / Oura via Apple Health & Health Connect. If you have no wearable, your phone tracks everything automatically.
           </p>
 
           <button
             onClick={() => {
-              if (onNotification) onNotification("Watch sync active. If watch is paired, open Calyxo on your watch to stream live workouts.");
+              if (onNotification) onNotification("Wearable sync active. Live workouts and metrics stream automatically from your paired watch or Garmin.");
             }}
             className="w-full py-2.5 rounded-xl bg-surface hover:bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-black text-xs uppercase tracking-wider cursor-pointer transition-all flex items-center justify-center gap-1.5"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            Sync Watch Telemetry
+            Sync Wearable Telemetry
           </button>
         </div>
 

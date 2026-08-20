@@ -219,14 +219,29 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
             </div>
           </div>
 
+          {/* Third-Party Wearables Telemetry (Garmin, Whoop, Oura, Polar, Fitbit) */}
+          <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 space-y-2 text-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-emerald-400 font-bold uppercase">
+                <ShieldCheck className="w-4 h-4" /> Universal Wearable Sync
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase">
+                Garmin • Whoop • Oura • Polar • Fitbit
+              </span>
+            </div>
+            <p className="text-[11px] text-muted leading-relaxed">
+              If you use a <strong>Garmin Forerunner 245</strong>, Whoop band, Oura ring, or Polar watch, their companion apps (e.g. Garmin Connect) sync your GPS workouts, steps, heart rate, and calories directly into <strong>{platformName}</strong>, which Calyxo automatically imports in real time.
+            </p>
+          </div>
+
           {/* Connection Troubleshooting */}
           <div className="p-4 rounded-2xl bg-surface border border-card-border space-y-2 text-xs">
             <div className="flex items-center gap-1.5 text-foreground font-bold uppercase">
               <Info className="w-4 h-4 text-emerald-400" /> Troubleshooting Guidance
             </div>
             <ul className="text-[11px] text-muted space-y-1 pl-4 list-disc leading-relaxed">
-              <li><strong>iOS:</strong> Open iPhone Settings → Health → Data Access & Devices → Calyxo to re-enable permissions.</li>
-              <li><strong>Android:</strong> Open Health Connect Settings → App Permissions → Calyxo → Allow All.</li>
+              <li><strong>iOS (Apple Health / Garmin):</strong> Open iPhone Settings → Health → Data Access & Devices → Ensure Garmin Connect & Calyxo have read/write access.</li>
+              <li><strong>Android (Health Connect / Garmin):</strong> Open Garmin Connect → Settings → Connected Apps → Enable Health Connect → Open Calyxo to sync.</li>
             </ul>
           </div>
 
