@@ -26,7 +26,7 @@ export default function LaunchScreen({ isLoading }) {
   useEffect(() => {
     if (!isLoading) {
       setProgress(100);
-      const timer = setTimeout(() => setVisible(false), 400);
+      const timer = setTimeout(() => setVisible(false), 150);
       return () => clearTimeout(timer);
     }
   }, [isLoading]);

@@ -111,18 +111,6 @@ export async function triggerOSNotification(title, body, url = '/user/dashboard'
           return;
         }
       }
-      // Only instantiate if constructor is supported and not in iOS WKWebView
-      if (!Capacitor.isNativePlatform() && typeof window.Notification === 'function') {
-        try {
-          new Notification(title, {
-            body: body,
-            icon: '/icon-192x192.png',
-            tag: notifTag
-          });
-        } catch (e) {
-          // Ignored on platforms forbidding direct constructor
-        }
-      }
     } catch (e) {
       console.warn('[NotificationService] OS notification trigger exception:', e);
     }

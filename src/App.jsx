@@ -25,10 +25,10 @@ const UserAIPage = lazyWithRetry(() => import('./pages/user/AIPage'));
 const UserProfilePage = lazyWithRetry(() => import('./pages/user/ProfilePage'));
 
 // Static Pages
-const AboutPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(m => ({ default: m.AboutPage })));
-const SupportPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(m => ({ default: m.SupportPage })));
-const PrivacyPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(m => ({ default: m.PrivacyPage })));
-const TermsPage = lazyWithRetry(() => import('./pages/user/StaticPages').then(m => ({ default: m.TermsPage })));
+const AboutPage = lazyWithRetry(() => import('./pages/user/AboutPage'));
+const SupportPage = lazyWithRetry(() => import('./pages/user/SupportPage'));
+const PrivacyPage = lazyWithRetry(() => import('./pages/user/PrivacyPage'));
+const TermsPage = lazyWithRetry(() => import('./pages/user/TermsPage'));
 
 // Admin Pages — lazy loaded for code splitting
 const AdminLoginPage = lazyWithRetry(() => import('./pages/admin/AdminLoginPage'));
