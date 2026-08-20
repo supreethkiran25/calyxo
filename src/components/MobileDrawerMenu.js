@@ -30,11 +30,6 @@ export default function MobileDrawerMenu({ isOpen, onClose }) {
     { label: 'AI Coach', ariaLabel: 'Open AI Assistant', link: '/user/ai' },
     { label: 'Profile', ariaLabel: 'User Profile', link: '/user/profile' },
     { 
-      label: 'Share App', 
-      ariaLabel: 'Share App Invite Link',
-      onClick: handleShareApp
-    },
-    { 
       label: 'Settings', 
       ariaLabel: 'Open App Settings & Preferences',
       onClick: () => {
@@ -44,7 +39,7 @@ export default function MobileDrawerMenu({ isOpen, onClose }) {
   ];
 
   const socialItems = [
-    { label: 'Share Invite', onClick: handleShareApp },
+    { label: 'Invite', onClick: handleShareApp },
     { label: 'Privacy Policy', link: '/user/privacy' },
     { label: 'Terms of Service', link: '/user/terms' },
     { label: 'Support', link: '/user/support' },
