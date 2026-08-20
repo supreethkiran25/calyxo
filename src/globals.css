@@ -226,28 +226,37 @@ h1, h2, h3, h4, h5, h6 {
   color: #0f172a !important;
 }
 
-[data-theme='light'] .text-white,
-[data-theme='light'] .text-neutral-100,
-[data-theme='light'] .text-neutral-200,
-[data-theme='light'] .text-neutral-300 {
+[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .text-white:not(.force-white),
+[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .text-neutral-100:not(.force-white),
+[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .text-neutral-200:not(.force-white),
+[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .text-neutral-300:not(.force-white) {
   color: #0f172a !important;
 }
 
-[data-theme='light'] .text-neutral-400,
-[data-theme='light'] .text-neutral-500 {
+.force-white,
+.force-white * {
+  color: #ffffff !important;
+}
+
+.dark-immersion {
+  color-scheme: dark !important;
+}
+
+[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .text-neutral-400,
+[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .text-neutral-500 {
   color: #64748b !important;
 }
 
-[data-theme='light'] .border-neutral-800,
-[data-theme='light'] .border-neutral-800\/80,
-[data-theme='light'] .border-neutral-800\/60,
-[data-theme='light'] .border-neutral-800\/50,
-[data-theme='light'] .border-neutral-700 {
+[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .border-neutral-800,
+[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .border-neutral-800\/80,
+[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .border-neutral-800\/60,
+[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .border-neutral-800\/50,
+[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .border-neutral-700 {
   border-color: #e2e8f0 !important;
 }
 
-[data-theme='light'] aside,
-[data-theme='light'] header {
+[data-theme='light'] aside:not(.dark-immersion-header):not(.dark-immersion *),
+[data-theme='light'] header:not(.dark-immersion-header):not(.dark-immersion *) {
   background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
 }

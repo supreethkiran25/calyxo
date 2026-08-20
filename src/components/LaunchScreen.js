@@ -80,15 +80,17 @@ export default function LaunchScreen({ isLoading }) {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              className="text-2xl sm:text-3xl font-black tracking-[0.25em] text-white uppercase leading-none text-center"
+              style={{ color: '#ffffff' }}
+              className="text-2xl sm:text-3xl font-black tracking-[0.25em] text-white force-white uppercase leading-none text-center"
             >
               CALYXO
             </motion.h1>
 
             <motion.p
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.6 }}
+              animate={{ opacity: 0.7 }}
               transition={{ delay: 0.3, duration: 0.6 }}
+              style={{ color: '#9ca3af' }}
               className="text-[10px] sm:text-[11px] font-bold tracking-[0.35em] text-[#9CA3AF] uppercase mt-3 text-center"
             >
               TRACK TODAY &bull; TRANSFORM TOMORROW

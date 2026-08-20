@@ -73,7 +73,11 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030303] text-[#f3f4f6] relative overflow-x-hidden w-full max-w-full selection:bg-[#10B981] selection:text-white font-sans pt-[calc(4rem+env(safe-area-inset-top,0px))]">
+    <div 
+      data-theme="dark"
+      style={{ backgroundColor: '#030303', colorScheme: 'dark' }}
+      className="min-h-screen bg-[#030303] text-[#f3f4f6] dark-immersion relative overflow-x-hidden w-full max-w-full selection:bg-[#10B981] selection:text-white font-sans pt-[calc(4.5rem+env(safe-area-inset-top,0px))]"
+    >
       
       {/* ── Scroll Progress Indicator Bar (Scroll Sync) ── */}
       <div 
@@ -105,40 +109,52 @@ export default function LandingPage() {
 
       {/* Fixed Transparent to Glass Navbar on Scroll with Safe Area Status Bar Support */}
       <header 
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-3.5 sm:px-6 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] ${
+        style={{
+          backgroundColor: isScrolled ? 'rgba(3, 3, 3, 0.95)' : 'rgba(3, 3, 3, 0.65)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          color: '#ffffff'
+        }}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-4 sm:px-6 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] dark-immersion-header ${
           isScrolled 
-            ? 'bg-[#030303]/90 backdrop-blur-md border-b border-white/10 shadow-2xl pb-2.5 sm:pb-3' 
-            : 'bg-transparent border-b border-transparent pb-3 sm:pb-5'
+            ? 'border-b border-white/10 shadow-2xl pb-2.5 sm:pb-3' 
+            : 'border-b border-white/5 pb-3 sm:pb-4'
         }`}
       >
         <div className="max-w-7xl mx-auto w-full flex justify-between items-center gap-2">
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             <Logo className="w-6 h-6 sm:w-8 sm:h-8 text-[#00F0FF]" glow={true} />
-            <span className="brand-name text-sm sm:text-lg text-white tracking-wider leading-none font-black">CALYXO</span>
+            <span 
+              style={{ color: '#ffffff' }}
+              className="brand-name text-sm sm:text-lg text-white force-white tracking-wider leading-none font-black"
+            >
+              CALYXO
+            </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {user ? (
               <button 
                 onClick={goToDashboard}
                 aria-label="Go to Dashboard"
-                className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-400 text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer border border-emerald-500/40 flex items-center gap-1.5 whitespace-nowrap shadow-[0_4px_16px_rgba(16,185,129,0.25)]"
+                className="px-3.5 sm:px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer border-none flex items-center gap-1.5 whitespace-nowrap shadow-[0_4px_16px_rgba(16,185,129,0.4)]"
               >
-                <span>Dashboard</span>
-                <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span className="font-black text-black">Dashboard</span>
+                <ArrowRight className="w-3.5 h-3.5 text-black" />
               </button>
             ) : (
               <>
                 <button 
                   onClick={() => openAuth('login')}
                   aria-label="Login to Calyxo"
-                  className="hidden sm:inline-flex text-xs font-black uppercase tracking-wider text-white/80 hover:text-white transition-all cursor-pointer px-4 py-2 rounded-xl bg-white/5 hover:bg-white/15 backdrop-blur-md border border-white/10 hover:border-white/25 shadow-sm whitespace-nowrap"
+                  style={{ color: '#ffffff' }}
+                  className="hidden sm:inline-flex text-xs font-black uppercase tracking-wider text-white force-white hover:text-white transition-all cursor-pointer px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 hover:border-white/30 shadow-sm whitespace-nowrap"
                 >
                   Login
                 </button>
                 <button 
                   onClick={() => openAuth('signup')}
                   aria-label="Get Started with Calyxo"
-                  className="px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-xl bg-[#10B981]/25 hover:bg-[#10B981]/40 backdrop-blur-xl border border-[#10B981]/50 hover:border-[#10B981] text-white text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-[0_4px_20px_rgba(16,185,129,0.3)] active:scale-95 transition-all duration-300 cursor-pointer whitespace-nowrap"
+                  className="px-4 sm:px-6 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black uppercase tracking-wider shadow-[0_4px_20px_rgba(16,185,129,0.5)] active:scale-95 transition-all duration-300 cursor-pointer whitespace-nowrap border-none"
                 >
                   Get Started
                 </button>
@@ -163,9 +179,10 @@ export default function LandingPage() {
           >
             <motion.h1 
               variants={itemVariants}
-              className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight text-white leading-[1.05] drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]"
+              style={{ color: '#ffffff' }}
+              className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight text-white force-white leading-[1.05] drop-shadow-[0_10px_30px_rgba(0,0,0,0.9)]"
             >
-              ENGINEERED FOR <br />
+              <span className="text-white force-white" style={{ color: '#ffffff' }}>ENGINEERED FOR</span> <br />
               <span className="bg-gradient-to-r from-[#00F0FF] via-[#34D399] to-[#10B981] bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(0,240,255,0.4)]">
                 MAX PERFORMANCE
               </span>
@@ -173,6 +190,7 @@ export default function LandingPage() {
 
             <motion.p 
               variants={itemVariants}
+              style={{ color: '#d1d5db' }}
               className="text-xs sm:text-base lg:text-lg text-[#D1D5DB] max-w-xl font-medium leading-relaxed drop-shadow-md"
             >
               Calyxo is an immersive health operating system merging automated biometrics, real-time nutrition calculations, structured workouts, and proactive AI coaching.
@@ -182,25 +200,25 @@ export default function LandingPage() {
               variants={itemVariants}
               className="flex flex-col sm:flex-row justify-start items-center gap-3.5 sm:gap-5 pt-3 w-full"
             >
-              {/* Glassmorphic Primary CTA Button */}
+              {/* Vibrant Primary CTA Button */}
               <button 
                 onClick={() => openAuth('signup')}
                 aria-label="Start Free Trial"
-                className="w-full sm:w-auto px-7 sm:px-9 py-3.5 sm:py-4 rounded-2xl bg-[#10B981]/25 hover:bg-[#10B981]/40 active:scale-[0.98] backdrop-blur-2xl text-white text-xs font-black uppercase tracking-widest border border-[#10B981]/60 hover:border-[#10B981] shadow-[0_8px_32px_rgba(16,185,129,0.35)] hover:shadow-[0_12px_44px_rgba(16,185,129,0.6)] flex items-center justify-center gap-2.5 group cursor-pointer transition-all duration-300 relative overflow-hidden"
+                className="w-full sm:w-auto px-7 sm:px-9 py-3.5 sm:py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-black text-xs font-black uppercase tracking-widest border-none shadow-[0_8px_32px_rgba(16,185,129,0.5)] hover:shadow-[0_12px_44px_rgba(16,185,129,0.7)] flex items-center justify-center gap-2.5 group cursor-pointer transition-all duration-300 relative overflow-hidden"
               >
-                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none"></span>
-                <span>Start Free Trial</span>
-                <ArrowRight className="w-4 h-4 text-[#00F0FF] group-hover:translate-x-1 transition-transform" />
+                <span className="font-black text-black">Start Free Trial</span>
+                <ArrowRight className="w-4 h-4 text-black group-hover:translate-x-1 transition-transform" />
               </button>
 
               {/* Glassmorphic Secondary Button */}
               <button 
                 onClick={() => setShowDemoModal(true)}
                 aria-label="Watch Demo"
-                className="w-full sm:w-auto px-7 sm:px-9 py-3.5 sm:py-4 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-[0.98] backdrop-blur-2xl text-white text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2.5 cursor-pointer transition-all duration-300 border border-white/25 hover:border-white/50 shadow-[0_8px_32px_rgba(255,255,255,0.08)] hover:shadow-[0_12px_36px_rgba(255,255,255,0.18)] relative overflow-hidden group"
+                style={{ color: '#ffffff' }}
+                className="w-full sm:w-auto px-7 sm:px-9 py-3.5 sm:py-4 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-[0.98] backdrop-blur-2xl text-white force-white text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2.5 cursor-pointer transition-all duration-300 border border-white/25 hover:border-white/50 shadow-[0_8px_32px_rgba(255,255,255,0.08)] hover:shadow-[0_12px_36px_rgba(255,255,255,0.18)] relative overflow-hidden group"
               >
-                <Play className="w-4 h-4 text-white/90 fill-white/30 group-hover:scale-110 transition-transform" />
-                <span>Watch Demo</span>
+                <Play className="w-4 h-4 text-white fill-white/30 group-hover:scale-110 transition-transform" />
+                <span className="font-black text-white force-white" style={{ color: '#ffffff' }}>Watch Demo</span>
               </button>
             </motion.div>
           </motion.div>
@@ -215,39 +233,42 @@ export default function LandingPage() {
             {/* Card 1: AI Coach Status */}
             <motion.div 
               whileHover={{ scale: 1.02, y: -2 }}
-              className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-black/60 border border-white/15 backdrop-blur-xl shadow-2xl flex items-center justify-between"
+              style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)', borderColor: 'rgba(255, 255, 255, 0.2)' }}
+              className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-black/75 border border-white/20 backdrop-blur-xl shadow-2xl flex items-center justify-between"
             >
               <div>
-                <span className="text-[8px] sm:text-[9px] text-gray-300 font-bold uppercase tracking-wider block">AI Coach Status</span>
-                <span className="text-xs sm:text-sm font-black text-white flex items-center gap-1.5 sm:gap-2">
+                <span className="text-[8px] sm:text-[9px] text-gray-400 font-bold uppercase tracking-wider block" style={{ color: '#9ca3af' }}>AI Coach Status</span>
+                <span className="text-xs sm:text-sm font-black text-white force-white flex items-center gap-1.5 sm:gap-2" style={{ color: '#ffffff' }}>
                   ACTIVE BRIEFING <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#10B981] animate-pulse"></span>
                 </span>
               </div>
-              <span className="text-[9px] sm:text-xs font-bold text-[#00F0FF] bg-[#00F0FF]/10 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-[#00F0FF]/20 shrink-0">98% SYNC</span>
+              <span className="text-[9px] sm:text-xs font-bold text-[#00F0FF] bg-[#00F0FF]/15 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-[#00F0FF]/30 shrink-0">98% SYNC</span>
             </motion.div>
 
             {/* Card 2: Biometric Performance Core */}
             <motion.div 
               whileHover={{ scale: 1.02, y: -2 }}
-              className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-black/60 border border-white/15 backdrop-blur-xl shadow-2xl flex items-center justify-between"
+              style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)', borderColor: 'rgba(255, 255, 255, 0.2)' }}
+              className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-black/75 border border-white/20 backdrop-blur-xl shadow-2xl flex items-center justify-between"
             >
               <div>
-                <span className="text-[8px] sm:text-[9px] text-gray-300 font-bold uppercase tracking-wider block">Readiness Score</span>
-                <span className="text-xs sm:text-sm font-black text-white">94% OPTIMAL RECOVERY</span>
+                <span className="text-[8px] sm:text-[9px] text-gray-400 font-bold uppercase tracking-wider block" style={{ color: '#9ca3af' }}>Readiness Score</span>
+                <span className="text-xs sm:text-sm font-black text-white force-white" style={{ color: '#ffffff' }}>94% OPTIMAL RECOVERY</span>
               </div>
-              <span className="text-[9px] sm:text-xs font-bold text-[#10B981] bg-[#10B981]/10 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-[#10B981]/20 shrink-0">PEAK STATE</span>
+              <span className="text-[9px] sm:text-xs font-bold text-[#10B981] bg-[#10B981]/15 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-[#10B981]/30 shrink-0">PEAK STATE</span>
             </motion.div>
 
             {/* Card 3: Gamified Compliance */}
             <motion.div 
               whileHover={{ scale: 1.02, y: -2 }}
-              className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-black/60 border border-white/15 backdrop-blur-xl shadow-2xl flex items-center justify-between"
+              style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)', borderColor: 'rgba(255, 255, 255, 0.2)' }}
+              className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-black/75 border border-white/20 backdrop-blur-xl shadow-2xl flex items-center justify-between"
             >
               <div>
-                <span className="text-[8px] sm:text-[9px] text-gray-300 font-bold uppercase tracking-wider block">Compliance Streak</span>
-                <span className="text-xs sm:text-sm font-black text-white">12 DAYS ACTIVE</span>
+                <span className="text-[8px] sm:text-[9px] text-gray-400 font-bold uppercase tracking-wider block" style={{ color: '#9ca3af' }}>Compliance Streak</span>
+                <span className="text-xs sm:text-sm font-black text-white force-white" style={{ color: '#ffffff' }}>12 DAYS ACTIVE</span>
               </div>
-              <span className="text-[9px] sm:text-xs font-bold text-purple-300 bg-purple-500/10 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-purple-500/20 shrink-0">+1,450 XP</span>
+              <span className="text-[9px] sm:text-xs font-bold text-purple-300 bg-purple-500/15 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-purple-500/30 shrink-0">+1,450 XP</span>
             </motion.div>
           </motion.div>
 
