@@ -11,8 +11,7 @@ import { calculateMacroTargets, formatNutritionValue } from '../utils/macroCalcu
 import { isToday } from '../utils/dateUtils';
 import { calculateWorkoutCaloriesBurned } from '../utils/workoutUtils';
 
-import { Flame, Droplets, Activity, Dumbbell, Utensils, Star, Sparkles, ChevronRight, Award, Zap, Brain, Moon, BookOpen, Bot, TrendingUp, PieChart, Music } from 'lucide-react';
-import WorkoutMusicPlayerHUD from './music/WorkoutMusicPlayerHUD';
+import { Flame, Droplets, Activity, Dumbbell, Utensils, Star, Sparkles, ChevronRight, Award, Zap, Brain, Moon, BookOpen, Bot, TrendingUp, PieChart } from 'lucide-react';
 
 const ThreeHealthCore = lazy(() => import('./ThreeHealthCore'));
 
@@ -835,9 +834,6 @@ export default function Dashboard({ onNotification }) {
         </div>
 
       </div>
-
-      {/* Floating Spotify-Style Now-Playing Capsule */}
-      <WorkoutMusicPlayerHUD onNotification={onNotification} />
     </div>
   );
 }

@@ -1,16 +1,10 @@
 package com.calyxo.app;
 
 import android.appwidget.AppWidgetManager;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.media.AudioManager;
-import android.os.Build;
-import android.os.SystemClock;
-import android.view.KeyEvent;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -23,132 +17,6 @@ public class CalyxoWidgetPlugin extends Plugin {
 
     private static final String PREFS_NAME = "CapacitorStorage";
     private static final String WIDGET_KEY = "calyxo_widget_data";
-
-    private static String lastTrackTitle = "";
-    private static String lastArtistName = "";
-    private static String lastAlbumName = "";
-    private static String lastMusicApp = "Media Player";
-    private static boolean isPlayingState = false;
-
-    private BroadcastReceiver mediaReceiver;
-
-    @Override
-    public void load() {
-        super.load();
-        registerMediaReceiver();
-    }
-
-    private void registerMediaReceiver() {
-        if (mediaReceiver != null) return;
-        mediaReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                String action = intent.getAction();
-                if (action == null) return;
-
-                if (action.contains("spotify")) {
-                    lastMusicApp = "Spotify";
-                } else if (action.contains("apple")) {
-                    lastMusicApp = "Apple Music";
-                } else {
-                    lastMusicApp = "Music Player";
-                }
-
-                String track = intent.getStringExtra("track");
-                if (track == null) track = intent.getStringExtra("track_name");
-                if (track == null) track = intent.getStringExtra("title");
-                if (track != null && !track.trim().isEmpty()) {
-                    lastTrackTitle = track.trim();
-                }
-
-                String artist = intent.getStringExtra("artist");
-                if (artist == null) artist = intent.getStringExtra("artist_name");
-                if (artist != null && !artist.trim().isEmpty()) {
-                    lastArtistName = artist.trim();
-                }
-
-                String album = intent.getStringExtra("album");
-                if (album == null) album = intent.getStringExtra("album_name");
-                if (album != null && !album.trim().isEmpty()) {
-                    lastAlbumName = album.trim();
-                }
-
-                if (intent.hasExtra("playing")) {
-                    isPlayingState = intent.getBooleanExtra("playing", false);
-                }
-            }
-        };
-
-        IntentFilter filter = new IntentFilter();
-        filter.addAction("com.spotify.music.metadatachanged");
-        filter.addAction("com.spotify.music.playbackstatechanged");
-        filter.addAction("com.android.music.metachanged");
-        filter.addAction("com.android.music.playstatechanged");
-        filter.addAction("com.apple.android.music.metachanged");
-        filter.addAction("com.htc.music.metachanged");
-        filter.addAction("com.amazon.mp3.metachanged");
-
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                getContext().registerReceiver(mediaReceiver, filter, Context.RECEIVER_EXPORTED);
-            } else {
-                getContext().registerReceiver(mediaReceiver, filter);
-            }
-        } catch (Exception ignored) {}
-    }
-
-    @PluginMethod
-    public void getNowPlayingMedia(PluginCall call) {
-        AudioManager audioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
-        boolean isMusicActive = audioManager != null && audioManager.isMusicActive();
-
-        JSObject ret = new JSObject();
-        ret.put("isPlaying", isMusicActive || isPlayingState);
-        ret.put("title", lastTrackTitle);
-        ret.put("artist", lastArtistName);
-        ret.put("album", lastAlbumName);
-        ret.put("app", lastMusicApp);
-        call.resolve(ret);
-    }
-
-    @PluginMethod
-    public void sendMediaCommand(PluginCall call) {
-        String action = call.getString("action", "toggle");
-        AudioManager audioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
-        if (audioManager == null) {
-            call.reject("Audio manager unavailable");
-            return;
-        }
-
-        int keycode = KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE;
-        if ("next".equalsIgnoreCase(action)) {
-            keycode = KeyEvent.KEYCODE_MEDIA_NEXT;
-        } else if ("prev".equalsIgnoreCase(action) || "previous".equalsIgnoreCase(action)) {
-            keycode = KeyEvent.KEYCODE_MEDIA_PREVIOUS;
-        } else if ("play".equalsIgnoreCase(action)) {
-            keycode = KeyEvent.KEYCODE_MEDIA_PLAY;
-        } else if ("pause".equalsIgnoreCase(action)) {
-            keycode = KeyEvent.KEYCODE_MEDIA_PAUSE;
-        }
-
-        long eventtime = SystemClock.uptimeMillis();
-        audioManager.dispatchMediaKeyEvent(new KeyEvent(eventtime, eventtime, KeyEvent.ACTION_DOWN, keycode, 0));
-        audioManager.dispatchMediaKeyEvent(new KeyEvent(eventtime, eventtime, KeyEvent.ACTION_UP, keycode, 0));
-
-        JSObject ret = new JSObject();
-        ret.put("success", true);
-        ret.put("dispatched", action);
-        call.resolve(ret);
-    }
-
-    @PluginMethod
-    public void isMusicPlaying(PluginCall call) {
-        AudioManager audioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
-        boolean isPlaying = audioManager != null && audioManager.isMusicActive();
-        JSObject ret = new JSObject();
-        ret.put("isPlaying", isPlaying);
-        call.resolve(ret);
-    }
 
     @PluginMethod
     public void syncWidgetData(PluginCall call) {
@@ -171,6 +39,8 @@ public class CalyxoWidgetPlugin extends Plugin {
             json.put("updatedAt", System.currentTimeMillis());
 
             prefs.edit().putString(WIDGET_KEY, json.toString()).apply();
+
+            // Trigger immediate reload of all active Android widgets
             reloadAllWidgets(context);
 
             JSObject ret = new JSObject();
@@ -187,6 +57,7 @@ public class CalyxoWidgetPlugin extends Plugin {
         try {
             SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             prefs.edit().remove(WIDGET_KEY).apply();
+
             reloadAllWidgets(context);
 
             JSObject ret = new JSObject();
@@ -208,7 +79,7 @@ public class CalyxoWidgetPlugin extends Plugin {
     @PluginMethod
     public void pinWidget(PluginCall call) {
         Context context = getContext();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
             ComponentName myProvider = new ComponentName(context, CalyxoAppWidgetProvider.class);
 
