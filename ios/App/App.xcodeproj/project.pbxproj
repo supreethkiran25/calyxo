@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 60;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -16,6 +16,7 @@
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
+		9AC1FC403036A4F700C61769 /* CalyxoWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 9AC1FC203036A4F500C61769 /* CalyxoWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		CA1A00012FE9A00000000001 /* CalyxoLiveActivityBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1A00002FE9A00000000001 /* CalyxoLiveActivityBridge.swift */; };
 		CA1A00042FE9A00000000004 /* CalyxoHealthKitPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1A00052FE9A00000000005 /* CalyxoHealthKitPlugin.swift */; };
 		CA2B00012FE9B00000000001 /* CalyxoActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA2B00002FE9B00000000000 /* CalyxoActivityAttributes.swift */; };
@@ -30,6 +31,27 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		9AC1FC2D3036A4F700C61769 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9AC1FC1F3036A4F500C61769;
+			remoteInfo = "CalyxoWatch Watch App";
+		};
+		9AC1FC373036A4F700C61769 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9AC1FC1F3036A4F500C61769;
+			remoteInfo = "CalyxoWatch Watch App";
+		};
+		9AC1FC3E3036A4F700C61769 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9AC1FC1F3036A4F500C61769;
+			remoteInfo = "CalyxoWatch Watch App";
+		};
 		CA2B00512FE9B00000000051 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
@@ -40,6 +62,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		9AC1FC413036A4F700C61769 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				9AC1FC403036A4F700C61769 /* CalyxoWatch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CA2B00602FE9B00000000060 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -65,6 +98,9 @@
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		9AC1FC203036A4F500C61769 /* CalyxoWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "CalyxoWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9AC1FC2C3036A4F700C61769 /* CalyxoWatch Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "CalyxoWatch Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9AC1FC363036A4F700C61769 /* CalyxoWatch Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "CalyxoWatch Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA1A00002FE9A00000000001 /* CalyxoLiveActivityBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalyxoLiveActivityBridge.swift; sourceTree = "<group>"; };
 		CA1A00032FE9A00000000003 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		CA1A00052FE9A00000000005 /* CalyxoHealthKitPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalyxoHealthKitPlugin.swift; sourceTree = "<group>"; };
@@ -80,12 +116,39 @@
 		CA4D00002FE9D00000000000 /* CalyxoNotificationPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalyxoNotificationPlugin.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		9AC1FC213036A4F500C61769 /* CalyxoWatch Watch App */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "CalyxoWatch Watch App"; sourceTree = "<group>"; };
+		9AC1FC2F3036A4F700C61769 /* CalyxoWatch Watch AppTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "CalyxoWatch Watch AppTests"; sourceTree = "<group>"; };
+		9AC1FC393036A4F700C61769 /* CalyxoWatch Watch AppUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "CalyxoWatch Watch AppUITests"; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
 		504EC3011FED79650016851F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9AC1FC1D3036A4F500C61769 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9AC1FC293036A4F700C61769 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9AC1FC333036A4F700C61769 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -105,6 +168,9 @@
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
 				CA2B00702FE9B00000000070 /* CalyxoWidgets */,
+				9AC1FC213036A4F500C61769 /* CalyxoWatch Watch App */,
+				9AC1FC2F3036A4F700C61769 /* CalyxoWatch Watch AppTests */,
+				9AC1FC393036A4F700C61769 /* CalyxoWatch Watch AppUITests */,
 				504EC3051FED79650016851F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -114,6 +180,9 @@
 			children = (
 				504EC3041FED79650016851F /* App.app */,
 				CA2B00402FE9B00000000040 /* CalyxoWidgetsExtension.appex */,
+				9AC1FC203036A4F500C61769 /* CalyxoWatch Watch App.app */,
+				9AC1FC2C3036A4F700C61769 /* CalyxoWatch Watch AppTests.xctest */,
+				9AC1FC363036A4F700C61769 /* CalyxoWatch Watch AppUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -164,11 +233,13 @@
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
 				CA2B00602FE9B00000000060 /* Embed Foundation Extensions */,
+				9AC1FC413036A4F700C61769 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				CA2B00522FE9B00000000052 /* PBXTargetDependency */,
+				9AC1FC3F3036A4F700C61769 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -177,6 +248,74 @@
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
+		};
+		9AC1FC1F3036A4F500C61769 /* CalyxoWatch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9AC1FC483036A4F700C61769 /* Build configuration list for PBXNativeTarget "CalyxoWatch Watch App" */;
+			buildPhases = (
+				9AC1FC1C3036A4F500C61769 /* Sources */,
+				9AC1FC1D3036A4F500C61769 /* Frameworks */,
+				9AC1FC1E3036A4F500C61769 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				9AC1FC213036A4F500C61769 /* CalyxoWatch Watch App */,
+			);
+			name = "CalyxoWatch Watch App";
+			packageProductDependencies = (
+			);
+			productName = "CalyxoWatch Watch App";
+			productReference = 9AC1FC203036A4F500C61769 /* CalyxoWatch Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9AC1FC2B3036A4F700C61769 /* CalyxoWatch Watch AppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9AC1FC493036A4F700C61769 /* Build configuration list for PBXNativeTarget "CalyxoWatch Watch AppTests" */;
+			buildPhases = (
+				9AC1FC283036A4F700C61769 /* Sources */,
+				9AC1FC293036A4F700C61769 /* Frameworks */,
+				9AC1FC2A3036A4F700C61769 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9AC1FC2E3036A4F700C61769 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				9AC1FC2F3036A4F700C61769 /* CalyxoWatch Watch AppTests */,
+			);
+			name = "CalyxoWatch Watch AppTests";
+			packageProductDependencies = (
+			);
+			productName = "CalyxoWatch Watch AppTests";
+			productReference = 9AC1FC2C3036A4F700C61769 /* CalyxoWatch Watch AppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		9AC1FC353036A4F700C61769 /* CalyxoWatch Watch AppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9AC1FC4A3036A4F700C61769 /* Build configuration list for PBXNativeTarget "CalyxoWatch Watch AppUITests" */;
+			buildPhases = (
+				9AC1FC323036A4F700C61769 /* Sources */,
+				9AC1FC333036A4F700C61769 /* Frameworks */,
+				9AC1FC343036A4F700C61769 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9AC1FC383036A4F700C61769 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				9AC1FC393036A4F700C61769 /* CalyxoWatch Watch AppUITests */,
+			);
+			name = "CalyxoWatch Watch AppUITests";
+			packageProductDependencies = (
+			);
+			productName = "CalyxoWatch Watch AppUITests";
+			productReference = 9AC1FC363036A4F700C61769 /* CalyxoWatch Watch AppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		CA2B00302FE9B00000000030 /* CalyxoWidgetsExtension */ = {
 			isa = PBXNativeTarget;
@@ -201,7 +340,7 @@
 		504EC2FC1FED79650016851F /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastSwiftUpdateCheck = 0920;
+				LastSwiftUpdateCheck = 2660;
 				LastUpgradeCheck = 0920;
 				TargetAttributes = {
 					504EC3031FED79650016851F = {
@@ -209,6 +348,17 @@
 						DevelopmentTeam = LYRAC6MJY2;
 						LastSwiftMigration = 1100;
 						ProvisioningStyle = Automatic;
+					};
+					9AC1FC1F3036A4F500C61769 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					9AC1FC2B3036A4F700C61769 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = 9AC1FC1F3036A4F500C61769;
+					};
+					9AC1FC353036A4F700C61769 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = 9AC1FC1F3036A4F500C61769;
 					};
 					CA2B00302FE9B00000000030 = {
 						CreatedOnToolsVersion = 15.0;
@@ -235,6 +385,9 @@
 			targets = (
 				504EC3031FED79650016851F /* App */,
 				CA2B00302FE9B00000000030 /* CalyxoWidgetsExtension */,
+				9AC1FC1F3036A4F500C61769 /* CalyxoWatch Watch App */,
+				9AC1FC2B3036A4F700C61769 /* CalyxoWatch Watch AppTests */,
+				9AC1FC353036A4F700C61769 /* CalyxoWatch Watch AppUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -250,6 +403,27 @@
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9AC1FC1E3036A4F500C61769 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9AC1FC2A3036A4F700C61769 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9AC1FC343036A4F700C61769 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -278,6 +452,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9AC1FC1C3036A4F500C61769 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9AC1FC283036A4F700C61769 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9AC1FC323036A4F700C61769 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CA2B00312FE9B00000000031 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -292,6 +487,21 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		9AC1FC2E3036A4F700C61769 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9AC1FC1F3036A4F500C61769 /* CalyxoWatch Watch App */;
+			targetProxy = 9AC1FC2D3036A4F700C61769 /* PBXContainerItemProxy */;
+		};
+		9AC1FC383036A4F700C61769 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9AC1FC1F3036A4F500C61769 /* CalyxoWatch Watch App */;
+			targetProxy = 9AC1FC373036A4F700C61769 /* PBXContainerItemProxy */;
+		};
+		9AC1FC3F3036A4F700C61769 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9AC1FC1F3036A4F500C61769 /* CalyxoWatch Watch App */;
+			targetProxy = 9AC1FC3E3036A4F700C61769 /* PBXContainerItemProxy */;
+		};
 		CA2B00522FE9B00000000052 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = CA2B00302FE9B00000000030 /* CalyxoWidgetsExtension */;
@@ -480,6 +690,228 @@
 			};
 			name = Release;
 		};
+		9AC1FC423036A4F700C61769 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LYRAC6MJY2;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = CalyxoWatch;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.supreethkiran.calyxo;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.supreethkiran.calyxo.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Debug;
+		};
+		9AC1FC433036A4F700C61769 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LYRAC6MJY2;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = CalyxoWatch;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.supreethkiran.calyxo;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.supreethkiran.calyxo.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Release;
+		};
+		9AC1FC443036A4F700C61769 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LYRAC6MJY2;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "my.CalyxoWatch-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CalyxoWatch Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CalyxoWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Debug;
+		};
+		9AC1FC453036A4F700C61769 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LYRAC6MJY2;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "my.CalyxoWatch-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CalyxoWatch Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CalyxoWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Release;
+		};
+		9AC1FC463036A4F700C61769 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LYRAC6MJY2;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "my.CalyxoWatch-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "CalyxoWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Debug;
+		};
+		9AC1FC473036A4F700C61769 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LYRAC6MJY2;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "my.CalyxoWatch-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "CalyxoWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Release;
+		};
 		CA2B00812FE9B00000000081 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -549,6 +981,33 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9AC1FC483036A4F700C61769 /* Build configuration list for PBXNativeTarget "CalyxoWatch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9AC1FC423036A4F700C61769 /* Debug */,
+				9AC1FC433036A4F700C61769 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9AC1FC493036A4F700C61769 /* Build configuration list for PBXNativeTarget "CalyxoWatch Watch AppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9AC1FC443036A4F700C61769 /* Debug */,
+				9AC1FC453036A4F700C61769 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9AC1FC4A3036A4F700C61769 /* Build configuration list for PBXNativeTarget "CalyxoWatch Watch AppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9AC1FC463036A4F700C61769 /* Debug */,
+				9AC1FC473036A4F700C61769 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
