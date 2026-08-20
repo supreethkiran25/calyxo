@@ -371,10 +371,10 @@ export default function WearableCompanionModal({ isOpen, onClose, onNotification
                 </div>
                 <div>
                   <h4 className="text-xs font-black text-white uppercase tracking-wider">
-                    Automatic Watch Installation Active
+                    Automatic Watch Installation Active (watchOS 8.0+)
                   </h4>
                   <p className="text-[11px] text-gray-400">
-                    When Calyxo is installed on your phone, watchOS and Wear OS companion apps install automatically on paired wearables.
+                    When Calyxo is installed on your phone, watchOS 8.0+ and Wear OS 3.0+ companion apps install automatically on paired wearables.
                   </p>
                 </div>
               </div>
@@ -383,11 +383,11 @@ export default function WearableCompanionModal({ isOpen, onClose, onNotification
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-white/10 text-xs text-gray-300">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Apple Watch (Series 4–9, Ultra 1/2)</span>
+                <span>watchOS 8.0+ (Series 4–9, SE 1/2, Ultra 1/2)</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Galaxy Watch (4/5/6/7) & Pixel Watch</span>
+                <span>Wear OS 3.0+ (Galaxy Watch 4–7, Pixel Watch)</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
