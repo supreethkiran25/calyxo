@@ -107,18 +107,18 @@ export default function LandingPage() {
         </React.Suspense>
       </div>
 
-      {/* Fixed Transparent to Glass Navbar on Scroll with Safe Area Status Bar Support */}
+      {/* Seamless Floating Navbar with Zero-Border Blend & Safe Area Status Bar Support */}
       <header 
         style={{
-          backgroundColor: isScrolled ? 'rgba(3, 3, 3, 0.95)' : 'rgba(3, 3, 3, 0.65)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
+          backgroundColor: isScrolled ? 'rgba(3, 3, 3, 0.92)' : 'transparent',
+          backdropFilter: isScrolled ? 'blur(20px)' : 'none',
+          WebkitBackdropFilter: isScrolled ? 'blur(20px)' : 'none',
           color: '#ffffff'
         }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-4 sm:px-6 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] dark-immersion-header ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 px-4 sm:px-6 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] dark-immersion-header ${
           isScrolled 
             ? 'border-b border-white/10 shadow-2xl pb-2.5 sm:pb-3' 
-            : 'border-b border-white/5 pb-3 sm:pb-4'
+            : 'border-b-0 border-transparent pb-3 sm:pb-4 bg-gradient-to-b from-black/40 via-transparent to-transparent'
         }`}
       >
         <div className="max-w-7xl mx-auto w-full flex justify-between items-center gap-2">
@@ -136,10 +136,10 @@ export default function LandingPage() {
               <button 
                 onClick={goToDashboard}
                 aria-label="Go to Dashboard"
-                className="px-3.5 sm:px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer border-none flex items-center gap-1.5 whitespace-nowrap shadow-[0_4px_16px_rgba(16,185,129,0.4)]"
+                className="px-3.5 sm:px-5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-400 text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer border border-emerald-500/40 hover:border-emerald-400/70 backdrop-blur-xl flex items-center gap-1.5 whitespace-nowrap shadow-[0_4px_20px_rgba(16,185,129,0.25)] hover:shadow-[0_4px_24px_rgba(16,185,129,0.4)] active:scale-95"
               >
-                <span className="font-black text-black">Dashboard</span>
-                <ArrowRight className="w-3.5 h-3.5 text-black" />
+                <span className="font-black text-emerald-400">Dashboard</span>
+                <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
               </button>
             ) : (
               <>
@@ -154,7 +154,7 @@ export default function LandingPage() {
                 <button 
                   onClick={() => openAuth('signup')}
                   aria-label="Get Started with Calyxo"
-                  className="px-4 sm:px-6 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black uppercase tracking-wider shadow-[0_4px_20px_rgba(16,185,129,0.5)] active:scale-95 transition-all duration-300 cursor-pointer whitespace-nowrap border-none"
+                  className="px-4 sm:px-6 py-2 rounded-xl bg-emerald-500/25 hover:bg-emerald-500/40 text-emerald-300 hover:text-white text-xs font-black uppercase tracking-wider shadow-[0_4px_20px_rgba(16,185,129,0.3)] active:scale-95 transition-all duration-300 cursor-pointer whitespace-nowrap border border-emerald-500/50 backdrop-blur-xl"
                 >
                   Get Started
                 </button>
