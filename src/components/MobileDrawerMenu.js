@@ -9,18 +9,26 @@ export default function MobileDrawerMenu({ isOpen, onClose }) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleShareApp = async () => {
+    const isLocalOrCapacitor = typeof window !== 'undefined' && (
+      window.location.origin.includes('localhost') || 
+      window.location.origin.includes('capacitor://') ||
+      window.location.origin.includes('http://127.0.0.1')
+    );
+    const downloadUrl = isLocalOrCapacitor ? 'https://calyxo.vercel.app' : window.location.origin;
+
     const shareData = {
-      title: 'Calyxo Health Operating System',
-      text: 'Train with Calyxo — the next-generation health, workout & nutrition OS with Apple Health and Dynamic Island sync!',
-      url: window.location.origin
+      title: 'Calyxo — Health, Workout & Nutrition OS',
+      text: `Join me on Calyxo! Track nutrition with 11,000+ Indian dishes, stream workout sets to Dynamic Island, and sync Apple Health & Google Health Connect. Download & install here: ${downloadUrl}`,
+      url: downloadUrl
     };
+
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share(shareData);
       } catch (e) {}
     } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      await navigator.clipboard.writeText(window.location.origin);
-      alert('Calyxo invite link copied to clipboard!');
+      await navigator.clipboard.writeText(shareData.text);
+      alert(`Calyxo invite link copied to clipboard!\n\n${downloadUrl}`);
     }
   };
 
