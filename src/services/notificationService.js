@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabaseClient';
 let swRegistration = null;
 
 export async function getNotificationStatus() {
-  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+  if (Capacitor.isNativePlatform()) {
     try {
       const { CalyxoNotification } = Capacitor.Plugins;
       if (CalyxoNotification) {
@@ -29,7 +29,7 @@ export async function getNotificationStatus() {
 }
 
 export async function requestNotificationPermission() {
-  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+  if (Capacitor.isNativePlatform()) {
     try {
       const { CalyxoNotification } = Capacitor.Plugins;
       if (CalyxoNotification) {
@@ -74,7 +74,7 @@ export async function registerServiceWorker() {
 }
 
 export async function triggerOSNotification(title, body, url = '/user/dashboard', tag = null) {
-  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+  if (Capacitor.isNativePlatform()) {
     try {
       const { CalyxoNotification } = Capacitor.Plugins;
       if (CalyxoNotification) {
@@ -117,10 +117,10 @@ export async function triggerOSNotification(title, body, url = '/user/dashboard'
   }
 }
 
-export function scheduleExactNotification({ id, title, body, delayMs, tag, type, workoutId, exerciseName, setNumber }) {
+export function scheduleExactNotification({ id, title, body, delayMs, tag, type, workoutId, exerciseName, setNumber, isOngoing = false }) {
   const delaySecs = Math.max(1, Math.round((delayMs || 1000) / 1000));
 
-  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+  if (Capacitor.isNativePlatform()) {
     try {
       const { CalyxoNotification } = Capacitor.Plugins;
       if (CalyxoNotification) {
@@ -129,13 +129,14 @@ export function scheduleExactNotification({ id, title, body, delayMs, tag, type,
           body,
           delaySeconds: delaySecs,
           id: id || tag || `notif-${Date.now()}`,
+          isOngoing: Boolean(isOngoing || (id && id.includes('live')) || (tag && tag.includes('workout'))),
           // Deep-link metadata attached to notification userInfo
           ...(type && { type }),
           ...(workoutId && { workoutId }),
           ...(exerciseName && { exerciseName }),
           ...(setNumber !== undefined && { setNumber })
         });
-        console.log(`[CALYXO-PUSH] Scheduled native iOS notification id=${id} in ${delaySecs}s: "${title}"`);
+        console.log(`[CALYXO-PUSH] Scheduled native notification id=${id} in ${delaySecs}s: "${title}"`);
         return;
       }
     } catch (e) {
@@ -166,13 +167,11 @@ export function scheduleExactNotification({ id, title, body, delayMs, tag, type,
 
 /**
  * Cancel a pending notification by ID.
- * On iOS: calls UNUserNotificationCenter.removePendingNotificationRequests.
- * On web: posts CANCEL_NOTIFICATION to service worker.
  */
 export async function cancelNotification(id) {
   if (!id) return;
 
-  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+  if (Capacitor.isNativePlatform()) {
     try {
       const { CalyxoNotification } = Capacitor.Plugins;
       if (CalyxoNotification) {
