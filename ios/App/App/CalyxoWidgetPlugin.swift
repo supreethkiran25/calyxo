@@ -9,6 +9,7 @@ public class CalyxoWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
     public let jsName = "CalyxoWidget"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "syncWidgetData", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearWidgetData", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "reloadWidgets", returnType: CAPPluginReturnPromise)
     ]
 
@@ -54,6 +55,30 @@ public class CalyxoWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
         }
 
         defaults.synchronize()
+
+        if #available(iOS 14.0, *) {
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+
+        call.resolve(["success": true])
+    }
+
+    @objc func clearWidgetData(_ call: CAPPluginCall) {
+        let suiteName = "group.com.supreethkiran.calyxo"
+        if let defaults = UserDefaults(suiteName: suiteName) {
+            defaults.removeObject(forKey: "widget_calories")
+            defaults.removeObject(forKey: "widget_calorie_goal")
+            defaults.removeObject(forKey: "widget_water")
+            defaults.removeObject(forKey: "widget_water_goal")
+            defaults.removeObject(forKey: "widget_protein")
+            defaults.removeObject(forKey: "widget_protein_goal")
+            defaults.removeObject(forKey: "widget_carbs")
+            defaults.removeObject(forKey: "widget_fat")
+            defaults.removeObject(forKey: "widget_steps")
+            defaults.removeObject(forKey: "widget_streak")
+            defaults.removeObject(forKey: "widget_active_workout")
+            defaults.synchronize()
+        }
 
         if #available(iOS 14.0, *) {
             WidgetCenter.shared.reloadAllTimelines()

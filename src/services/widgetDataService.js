@@ -140,6 +140,36 @@ export const syncWidgetData = async (customData = {}) => {
   }
 };
 
+export const clearWidgetData = async () => {
+  try {
+    await Preferences.remove({ key: WIDGET_DATA_KEY });
+
+    if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+      const { CalyxoWidget } = Capacitor.Plugins;
+      if (CalyxoWidget && CalyxoWidget.clearWidgetData) {
+        await CalyxoWidget.clearWidgetData();
+      } else if (CalyxoWidget && CalyxoWidget.syncWidgetData) {
+        await CalyxoWidget.syncWidgetData({
+          calories: 0,
+          calorieGoal: 2000,
+          protein: 0,
+          proteinGoal: 150,
+          carbs: 0,
+          fat: 0,
+          steps: 0,
+          water: 0,
+          waterGoal: 2500,
+          streak: 0,
+          activeWorkoutName: ''
+        });
+      }
+      console.log('[WidgetDataService] Widget data cleared on signout.');
+    }
+  } catch (err) {
+    console.warn('[WidgetDataService] Failed to clear widget data:', err);
+  }
+};
+
 export const getWidgetData = async () => {
   try {
     const { value } = await Preferences.get({ key: WIDGET_DATA_KEY });

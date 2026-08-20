@@ -437,18 +437,47 @@ export const signOutUser = async () => {
     }
   } catch (e) {}
 
+  // 1. Automatically wipe widget data & refresh Lock/Home Screen widgets
+  try {
+    const { clearWidgetData } = await import('../services/widgetDataService');
+    await clearWidgetData();
+  } catch (e) {
+    console.warn('[dbService] Widget clear error on signout:', e);
+  }
+
+  // 2. Automatically revoke Apple Health & Android Health Connect sync permissions
+  try {
+    const { HealthPermissionManager } = await import('../services/health/HealthPermissionManager');
+    HealthPermissionManager.disconnect();
+  } catch (e) {
+    console.warn('[dbService] Health disconnect error on signout:', e);
+  }
+
+  // 3. Clear local storage, session storage, and health keys
   if (typeof window !== 'undefined') {
     localStorage.removeItem("calyxo_mock_user");
     localStorage.removeItem("calyxo_user");
     localStorage.removeItem("calyxo_user_profile");
+    localStorage.removeItem("calyxo_health_permissions");
+    localStorage.removeItem("calyxo_health_connected_platform");
+    localStorage.removeItem("calyxo_health_connected_at");
+    localStorage.removeItem("calyxo_health_last_sync");
+    localStorage.removeItem("calyxo_health_records_count");
     sessionStorage.clear();
   }
 
+  // 4. Reset in-memory application & ecosystem stores
   try {
     const { useStore } = await import('../store/useStore');
     useStore.getState().resetStore();
   } catch (e) {}
 
+  try {
+    const { useEcosystemStore } = await import('../store/useEcosystemStore');
+    useEcosystemStore.getState().resetEcosystemStore();
+  } catch (e) {}
+
+  // 5. Sign out of Supabase auth
   if (!isMockMode) {
     try {
       await supabase.auth.signOut();
