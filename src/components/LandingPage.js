@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import Logo from './Logo';
 import AuthFlow from './AuthFlow';
 import BorderGlow from './BorderGlow';
+import AppDemoVideoModal from './modals/AppDemoVideoModal';
 import { useStore } from '../store/useStore';
 const ColorBends = React.lazy(() => import('./ColorBends'));
 
@@ -16,6 +17,7 @@ export default function LandingPage() {
   const userProfile = useStore(state => state.userProfile);
 
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showDemoModal, setShowDemoModal] = useState(false);
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
   
   // Scroll Sync states
@@ -190,7 +192,7 @@ export default function LandingPage() {
 
               {/* Glassmorphic Secondary Button */}
               <button 
-                onClick={() => openAuth('login')}
+                onClick={() => setShowDemoModal(true)}
                 aria-label="Watch Demo"
                 className="w-full sm:w-auto px-7 sm:px-9 py-3.5 sm:py-4 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-[0.98] backdrop-blur-2xl text-white text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2.5 cursor-pointer transition-all duration-300 border border-white/25 hover:border-white/50 shadow-[0_8px_32px_rgba(255,255,255,0.08)] hover:shadow-[0_12px_36px_rgba(255,255,255,0.18)] relative overflow-hidden group"
               >
@@ -396,6 +398,13 @@ export default function LandingPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* App Demo Video Walkthrough Modal */}
+      <AppDemoVideoModal 
+        isOpen={showDemoModal} 
+        onClose={() => setShowDemoModal(false)} 
+        onStartTrial={() => openAuth('signup')} 
+      />
 
     </div>
   );

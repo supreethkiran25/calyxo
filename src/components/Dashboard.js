@@ -259,6 +259,89 @@ export default function Dashboard({ onNotification }) {
   const waterGoal = 3000;
   const waterPct = Math.min((waterIntake / waterGoal) * 100, 100);
 
+  // Dynamic Live Health Twin (Calculates score & actionable insights in real-time from actual logged data)
+  const dynamicHealthTwin = useMemo(() => {
+    const userAge = Number(userProfile?.age || age) || 25;
+    const targetCal = Math.max(1, (userProfile?.dailyCalories || userProfile?.calorieGoal || metrics.calorieGoal || 2000));
+    const targetProt = Math.max(1, (userProfile?.proteinGoal || metrics.macros?.protein || 130));
+    const targetWater = 3000;
+
+    // Daily metric adherence ratios (0 to 100)
+    const calRatio = Math.min(100, Math.round((totalCal / targetCal) * 100));
+    const protRatio = Math.min(100, Math.round((totalProt / targetProt) * 100));
+    const waterRatio = Math.min(100, Math.round((waterIntake / targetWater) * 100));
+    const hasWorkout = todaysWorkoutLogs.length > 0;
+    const workoutBonus = hasWorkout ? 25 : 0;
+
+    // Deterministic Live Health Score (weighted calculation: calories, hydration, protein, workout)
+    let score = 70;
+    if (totalCal > 0 || waterIntake > 0 || hasWorkout) {
+      const calComponent = (calRatio <= 110 ? calRatio : Math.max(0, 100 - (calRatio - 110))) * 0.35;
+      const protComponent = protRatio * 0.25;
+      const waterComponent = waterRatio * 0.25;
+      const workoutComponent = workoutBonus * 0.60;
+      score = Math.min(99, Math.max(45, Math.round(calComponent + protComponent + waterComponent + workoutComponent)));
+    }
+
+    // Dynamic recovery calculation
+    let recovery = 75;
+    if (hasWorkout) {
+      recovery = waterRatio >= 70 ? 88 : 74;
+    } else if (waterRatio >= 80 && protRatio >= 70) {
+      recovery = 93;
+    } else if (waterRatio < 40) {
+      recovery = 68;
+    }
+
+    // Fitness Age dynamic modifier based on athletic execution
+    const fitnessAge = score >= 85 ? Math.max(18, userAge - 2) : score >= 70 ? Math.max(18, userAge - 1) : userAge;
+
+    // Sleep Debt
+    const sleepDebt = ecoStore.healthTwin?.sleepDebt ?? (score > 80 ? 0 : 1);
+
+    // Dynamic AI Insights & actionable recommendations tailored to real gaps
+    const recommendations = [];
+    if (waterIntake < targetWater) {
+      const remainingWater = targetWater - waterIntake;
+      recommendations.push(`Drink ${remainingWater}ml more water to reach your daily 3.0L hydration goal.`);
+    } else {
+      recommendations.push('Hydration optimal. Cellular recovery sustained.');
+    }
+
+    if (totalProt < targetProt) {
+      const remainingProt = Math.round(targetProt - totalProt);
+      recommendations.push(`Log ${remainingProt}g more protein to hit daily muscle synthesis target.`);
+    } else {
+      recommendations.push(`Protein goal met (${Math.round(totalProt)}g logged).`);
+    }
+
+    if (!hasWorkout) {
+      recommendations.push('No workout logged yet today. Complete your routine to elevate readiness.');
+    } else {
+      recommendations.push(`Training completed. ${Math.round(totalBurned)} active kcal burned.`);
+    }
+
+    let forecast = ecoStore.healthTwin?.weeklyHealthForecast;
+    if (!forecast || forecast.includes("Gathering")) {
+      if (score >= 85) {
+        forecast = "Metabolic efficiency is peaking. On track for accelerated body composition progress.";
+      } else if (score >= 70) {
+        forecast = "Steady athletic adaptation. Consistent hydration and protein will optimize recovery.";
+      } else {
+        forecast = "Early daily tracking phase. Log meals and hydration to calibrate your adaptive model.";
+      }
+    }
+
+    return {
+      dailyHealthScore: ecoStore.healthTwin?.dailyHealthScore || score,
+      fitnessAge: ecoStore.healthTwin?.fitnessAge || fitnessAge,
+      recoveryScore: ecoStore.healthTwin?.recoveryScore || recovery,
+      sleepDebt,
+      weeklyHealthForecast: forecast,
+      personalizedRecommendations: recommendations.slice(0, 3)
+    };
+  }, [totalCal, totalProt, waterIntake, todaysWorkoutLogs, totalBurned, userProfile, age, metrics, ecoStore.healthTwin]);
+
   const getSetupChecklist = () => {
     return [
       { key: 'display_name', label: 'Display Name', done: !!(userProfile.firstName || userProfile.nickname || user?.displayName) },
@@ -442,13 +525,13 @@ export default function Dashboard({ onNotification }) {
                     cx="50" cy="50" r="40" fill="none" 
                     stroke="var(--accent)" strokeWidth="8" 
                     strokeDasharray={2 * Math.PI * 40}
-                    strokeDashoffset={2 * Math.PI * 40 - ((ecoStore.healthTwin?.dailyHealthScore || ecoStore.fitnessScore.dailyScore) / 100) * (2 * Math.PI * 40)}
+                    strokeDashoffset={2 * Math.PI * 40 - (dynamicHealthTwin.dailyHealthScore / 100) * (2 * Math.PI * 40)}
                     strokeLinecap="round"
                     style={{ transition: 'stroke-dashoffset 1s ease-out' }}
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-xl font-black text-foreground">{ecoStore.healthTwin?.dailyHealthScore || ecoStore.fitnessScore.dailyScore}</span>
+                  <span className="text-xl font-black text-foreground">{dynamicHealthTwin.dailyHealthScore}</span>
                   <span className="text-[7px] text-muted font-bold uppercase tracking-widest">Health Score</span>
                 </div>
               </div>
@@ -456,15 +539,15 @@ export default function Dashboard({ onNotification }) {
               <div className="grid grid-cols-2 gap-y-3 gap-x-4 flex-1 w-full text-center sm:text-left">
                 <div>
                   <div className="flex items-center justify-center sm:justify-start gap-1 text-[9px] text-muted font-bold uppercase tracking-wider"><Activity className="w-3 h-3 text-acid-green"/> Fitness Age</div>
-                  <div className="text-sm font-black text-foreground">{ecoStore.healthTwin?.fitnessAge || userProfile?.age || 25} yrs</div>
+                  <div className="text-sm font-black text-foreground">{dynamicHealthTwin.fitnessAge} yrs</div>
                 </div>
                 <div>
                   <div className="flex items-center justify-center sm:justify-start gap-1 text-[9px] text-muted font-bold uppercase tracking-wider"><Zap className="w-3 h-3 text-orange"/> Recovery</div>
-                  <div className="text-sm font-black text-foreground">{ecoStore.healthTwin?.recoveryScore || 85}%</div>
+                  <div className="text-sm font-black text-foreground">{dynamicHealthTwin.recoveryScore}%</div>
                 </div>
                 <div className="col-span-2">
                   <div className="flex items-center justify-center sm:justify-start gap-1 text-[9px] text-muted font-bold uppercase tracking-wider"><Moon className="w-3 h-3 text-blue-400"/> Sleep Debt</div>
-                  <div className="text-sm font-black text-foreground">{ecoStore.healthTwin?.sleepDebt || 0} hrs</div>
+                  <div className="text-sm font-black text-foreground">{dynamicHealthTwin.sleepDebt} hrs</div>
                 </div>
               </div>
             </div>
@@ -474,9 +557,9 @@ export default function Dashboard({ onNotification }) {
               <div className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
                 <div className="flex gap-2 items-start text-xs font-semibold text-foreground">
                   <span className="text-acid-green font-bold"><Brain className="w-3 h-3 mt-0.5" /></span>
-                  <span className="text-muted">{ecoStore.healthTwin?.weeklyHealthForecast || "Gathering data for your weekly forecast..."}</span>
+                  <span className="text-muted">{dynamicHealthTwin.weeklyHealthForecast}</span>
                 </div>
-                {(ecoStore.healthTwin?.personalizedRecommendations || ecoStore.fitnessScore.recommendations)?.map((rec, i) => (
+                {dynamicHealthTwin.personalizedRecommendations?.map((rec, i) => (
                   <div key={i} className="flex gap-2 items-start text-xs font-semibold text-foreground">
                     <span className="text-acid-green font-bold">•</span>
                     <span>{rec}</span>
