@@ -18,6 +18,7 @@ import LiveActivityManager from '../../services/LiveActivityManager';
 import { syncWidgetData } from '../../services/widgetDataService';
 import PremiumGate from '../PremiumGate';
 import { useStore } from '../../store/useStore';
+import WearableCompanionModal from '../modals/WearableCompanionModal';
 
 export default function HealthHubPage({ onNotification }) {
   const user = useStore(state => state.user);
@@ -40,6 +41,7 @@ export default function HealthHubPage({ onNotification }) {
   const [selectedTrendMetric, setSelectedTrendMetric] = useState('steps');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isWearableModalOpen, setIsWearableModalOpen] = useState(false);
 
   const platform = HealthPermissionManager.getPlatform();
   const platformLabel = platform === 'ios_apple_health' ? 'Apple Health' : platform === 'android_health_connect' ? 'Android Health Connect' : 'Health Platform';
@@ -89,7 +91,7 @@ export default function HealthHubPage({ onNotification }) {
       });
     });
 
-    // Start auto-sync interval
+    // Subscribe to live sync events
     const unsubscribeSync = HealthSyncEngine.subscribe((syncData) => {
       if (syncData.metrics) setMetrics(syncData.metrics);
       if (syncData.workouts) setWorkouts(syncData.workouts);
@@ -98,8 +100,8 @@ export default function HealthHubPage({ onNotification }) {
     const cleanupAuto = HealthSyncEngine.startAutoSync(30000);
 
     return () => {
-      unsubscribeSync();
       unsubscribePedometer();
+      unsubscribeSync();
       if (cleanupAuto) cleanupAuto();
     };
   }, []);
@@ -113,21 +115,18 @@ export default function HealthHubPage({ onNotification }) {
     updateTrends();
   }, [selectedTimeframe]);
 
-  // Handle Onboarding Connect
-  const handleConnectHealth = async () => {
-    const res = await HealthPermissionManager.requestPermissions({ includeOptional: true });
-    setIsConnected(true);
-    setShowOnboarding(false);
-    await handleRefreshData();
-    if (onNotification) onNotification(`Connected to ${platformLabel}! Syncing health metrics.`);
-  };
-
   // Refresh Data Action
   const handleRefreshData = async () => {
     setIsSyncing(true);
     await HealthSyncEngine.triggerSync();
+    const updated = await HealthDataService.fetchTodayMetrics();
+    const recentWorkouts = await HealthDataService.fetchRecentWorkouts();
+    const updatedTrends = await HealthDataService.fetchTrends(selectedTimeframe);
+    setMetrics(updated);
+    setWorkouts(recentWorkouts);
+    setTrends(updatedTrends);
     setIsSyncing(false);
-    if (onNotification) onNotification("Health metrics updated from device.");
+    if (onNotification) onNotification("Health metrics updated from device!");
   };
 
   // AI Coaching Insights
@@ -135,12 +134,6 @@ export default function HealthHubPage({ onNotification }) {
     return AIHealthInsightService.generateInsights(metrics || {});
   }, [metrics]);
 
-  // Calculated Progress
-  const progressStats = useMemo(() => {
-    return HealthGoalManager.calculateProgress(metrics || {});
-  }, [metrics]);
-
-  const isConn = HealthPermissionManager.isConnected();
   const stepCount = metrics?.steps || 0;
   const stepGoal = metrics?.stepGoal || 10000;
   const stepPct = stepGoal > 0 ? Math.min(100, Math.round((stepCount / stepGoal) * 100)) : 0;
@@ -157,6 +150,11 @@ export default function HealthHubPage({ onNotification }) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-24 text-foreground">
+      <WearableCompanionModal
+        isOpen={isWearableModalOpen}
+        onClose={() => setIsWearableModalOpen(false)}
+        onNotification={onNotification}
+      />
 
       {/* ── 1. ONBOARDING CARD (FIRST TIME USERS) ───────────────────────── */}
       <AnimatePresence>
@@ -179,17 +177,17 @@ export default function HealthHubPage({ onNotification }) {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowOnboarding(false)}
-                className="text-xs font-bold text-muted hover:text-foreground cursor-pointer bg-none border-none"
-              >
-                Dismiss
-              </button>
             </div>
 
             <div className="flex items-center gap-3 pt-2">
               <button
-                onClick={handleConnectHealth}
+                onClick={async () => {
+                  const res = await HealthPermissionManager.requestPermissions({ includeOptional: true });
+                  setIsConnected(HealthPermissionManager.isConnected());
+                  setShowOnboarding(false);
+                  await handleRefreshData();
+                  if (onNotification) onNotification(`Connected to ${platformLabel}! Syncing health metrics.`);
+                }}
                 className="px-6 py-3.5 rounded-2xl bg-emerald-500 text-black font-black text-xs uppercase tracking-wider cursor-pointer border-none shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-[0.98] transition-all flex items-center gap-2"
               >
                 <ShieldCheck className="w-4 h-4" />
@@ -226,6 +224,15 @@ export default function HealthHubPage({ onNotification }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setIsWearableModalOpen(true)}
+            className="px-3.5 py-2 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 text-[10px] font-black uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all shadow-md shadow-emerald-500/10"
+            title="Open Watch OS Companion Studio"
+          >
+            <Watch className="w-3.5 h-3.5" />
+            <span>Watch Studio</span>
+          </button>
+
           <button
             onClick={async () => {
               await LiveActivityManager.startLiveActivity({ title: 'Calyxo Track', workoutName: 'Dev Health Test' });
@@ -266,6 +273,32 @@ export default function HealthHubPage({ onNotification }) {
             <Settings className="w-4 h-4" />
           </button>
         </div>
+      </div>
+
+      {/* ── 2.5 WEARABLE COMPANION OS STUDIO BANNER ────────────────────── */}
+      <div className="bg-surface border border-emerald-500/30 rounded-3xl p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden bg-gradient-to-r from-emerald-950/20 via-transparent to-transparent">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl shrink-0 border border-emerald-500/40">
+            <Watch className="w-6 h-6 animate-pulse" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-black uppercase text-foreground">Calyxo Wearable OS Companion</h3>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-black text-emerald-400 uppercase">Auto-Installed</span>
+            </div>
+            <p className="text-xs text-muted mt-0.5">
+              Interactive Apple Watch (49mm Ultra) & Wear OS companion app. Bi-directional workout tracking, live BPM, and 3-ring macro dial.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setIsWearableModalOpen(true)}
+          className="px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 shrink-0 border-none transition-all"
+        >
+          <Watch className="w-4 h-4" />
+          <span>Open Watch Studio</span>
+        </button>
       </div>
 
       {/* ── 3. 4 LARGE EMERALD PROGRESS RINGS ───────────────────────────── */}
