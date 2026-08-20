@@ -70,15 +70,8 @@ export default function LaunchScreen({ isLoading }) {
               />
 
               {/* Glassmorphic Logo Shield */}
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white/[0.04] backdrop-blur-2xl border border-white/15 flex items-center justify-center shadow-[0_16px_40px_rgba(0,0,0,0.8)] relative p-3">
-                {/* Light Sweep Effect */}
-                <motion.div 
-                  animate={{ x: ['-100%', '200%'] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.5 }}
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 pointer-events-none rounded-3xl"
-                />
-
-                <Logo className="w-12 h-12 sm:w-14 sm:h-14 text-[#10B981]" glow={true} />
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white/[0.04] backdrop-blur-2xl border border-white/15 flex items-center justify-center shadow-[0_16px_40px_rgba(0,0,0,0.8)] relative p-3 overflow-hidden">
+                <Logo className="w-12 h-12 sm:w-14 sm:h-14 text-[#10B981]" />
               </div>
             </motion.div>
 

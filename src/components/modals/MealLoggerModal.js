@@ -211,7 +211,13 @@ export default function MealLoggerModal() {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-safe">
+      <div 
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+        style={{
+          paddingBottom: 'max(env(safe-area-inset-bottom, 0px), var(--keyboard-height, 0px))',
+          transition: 'padding-bottom 0.2s ease-out'
+        }}
+      >
         <motion.div 
           initial={{ opacity: 0 }} 
           animate={{ opacity: 1 }} 
@@ -224,7 +230,10 @@ export default function MealLoggerModal() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          className="relative w-full max-w-lg bg-surface border border-card-border rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden"
+          className="relative w-full max-w-lg bg-surface border border-card-border rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col overflow-hidden"
+          style={{
+            maxHeight: 'min(92dvh, calc(100dvh - var(--keyboard-height, 0px) - 16px))'
+          }}
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
@@ -254,6 +263,7 @@ export default function MealLoggerModal() {
                   placeholder="Type any food name (e.g. Rice, Biryani, Roti, Eggs, Oats)..." 
                   value={mealName}
                   onChange={(e) => handleNameChange(e.target.value)}
+                  onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150)}
                   className="w-full bg-[var(--input)] text-foreground border border-card-border pl-10 pr-9 py-2.5 rounded-xl focus:outline-none focus:border-green-500 text-sm shadow-inner font-bold placeholder:text-muted/60"
                 />
                 {mealName && (
@@ -355,6 +365,7 @@ export default function MealLoggerModal() {
                     placeholder="1"
                     value={quantity}
                     onChange={(e) => handleQuantityChange(e.target.value)}
+                    onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150)}
                     className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl text-sm font-black focus:outline-none focus:border-green-500"
                   />
                 </div>

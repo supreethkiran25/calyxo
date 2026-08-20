@@ -65,6 +65,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 :root {
+  --keyboard-height: 0px;
   /* Calyxo Signature Brand Variables (Default Obsidian Theme) */
   --background: #0A0A0F;
   --foreground: #f3f4f6;

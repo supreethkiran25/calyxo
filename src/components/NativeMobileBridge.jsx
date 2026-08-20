@@ -4,6 +4,7 @@ import { App as CapApp } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { Browser } from '@capacitor/browser';
+import { Keyboard } from '@capacitor/keyboard';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
 import { loadUserData, migratePreAuthLocalState } from '../lib/dbService';
@@ -175,14 +176,53 @@ export default function NativeMobileBridge() {
       }
     };
 
+    // Keyboard viewport handling on mobile
+    let keyboardShowListener = null;
+    let keyboardHideListener = null;
+    const initKeyboardHandling = async () => {
+      try {
+        keyboardShowListener = await Keyboard.addListener('keyboardWillShow', (info) => {
+          const height = info.keyboardHeight || 0;
+          document.documentElement.style.setProperty('--keyboard-height', `${height}px`);
+          document.body.classList.add('keyboard-open');
+          
+          const activeEl = document.activeElement;
+          if (activeEl && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName)) {
+            setTimeout(() => {
+              activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+          }
+        });
+
+        keyboardHideListener = await Keyboard.addListener('keyboardWillHide', () => {
+          document.documentElement.style.setProperty('--keyboard-height', '0px');
+          document.body.classList.remove('keyboard-open');
+        });
+      } catch (e) {
+        console.warn('[NativeMobileBridge] Keyboard listener error:', e);
+      }
+    };
+
+    // Auto-scroll input into view on focus across all devices
+    const handleFocusIn = (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+        setTimeout(() => {
+          e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 200);
+      }
+    };
+    window.addEventListener('focusin', handleFocusIn);
+
     initStatusBar();
     hideSplash();
     initBackButton();
     initDeepLinks();
     initAppStateChange();
+    initKeyboardHandling();
     checkNotificationDeepLink();
 
     return () => {
+      window.removeEventListener('focusin', handleFocusIn);
       if (backButtonListener && typeof backButtonListener.remove === 'function') {
         backButtonListener.remove();
       }
@@ -191,6 +231,12 @@ export default function NativeMobileBridge() {
       }
       if (appStateListener && typeof appStateListener.remove === 'function') {
         appStateListener.remove();
+      }
+      if (keyboardShowListener && typeof keyboardShowListener.remove === 'function') {
+        keyboardShowListener.remove();
+      }
+      if (keyboardHideListener && typeof keyboardHideListener.remove === 'function') {
+        keyboardHideListener.remove();
       }
     };
   }, []);
