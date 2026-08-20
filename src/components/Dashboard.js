@@ -315,6 +315,10 @@ export default function Dashboard({ onNotification }) {
     const fitnessAge = Math.max(16, Math.round((userAge - experienceBenefit - adherenceBenefit) * 10) / 10);
     const fitnessAgeDelta = Math.round((userAge - fitnessAge) * 10) / 10;
 
+    // Real Sleep Debt calculation based on tracked sleep vs 8h target
+    const currentSleepHours = Number(metrics?.sleepHours) > 0 ? Number(metrics.sleepHours) : 7.5;
+    const sleepDebt = Math.max(0, Math.round((8.0 - currentSleepHours) * 10) / 10);
+
     // Dynamic AI Insights & actionable recommendations tailored to real gaps
     const recommendations = [];
     if (waterIntake < targetWater) {
