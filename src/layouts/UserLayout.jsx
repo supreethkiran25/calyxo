@@ -40,7 +40,7 @@ const DESKTOP_NAV = [
       { id: 'workout', href: '/user/workout', label: 'Workout', icon: BarChart2 },
       { id: 'health', href: '/user/health', label: 'Recovery', icon: Heart },
       { id: 'progress', href: '/user/progress', label: 'Challenges', icon: TrendingUp },
-      { id: 'ai', href: '/user/ai', label: 'AI', icon: Bot },
+      { id: 'ai', href: '/user/ai', label: 'AI', icon: Bot, isPremium: true },
     ]
   },
   {
