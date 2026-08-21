@@ -62,8 +62,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Static Assets (Images/Fonts) -> Stale-While-Revalidate
-  if (req.destination === 'image' || req.destination === 'font') {
+  // 3. Static Assets (Scripts, Styles, Images, Fonts) -> Stale-While-Revalidate
+  if (
+    req.destination === 'image' || 
+    req.destination === 'font' || 
+    req.destination === 'script' || 
+    req.destination === 'style' ||
+    url.pathname.startsWith('/assets/') ||
+    url.pathname.startsWith('/data/')
+  ) {
     event.respondWith(
       caches.match(req).then((cached) => {
         const fetchPromise = fetch(req).then((networkRes) => {

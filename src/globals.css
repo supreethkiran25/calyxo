@@ -1303,4 +1303,62 @@ textarea:focus {
   min-height: 100vh;
   min-height: 100dvh;
 }
+
+/* ==========================================================================
+   CALYXO 60/120FPS HIGH-PERFORMANCE RENDERING ENGINE
+   ========================================================================== */
+
+/* Font smoothing & rendering fidelity */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Momentum scrolling for iOS & touch surfaces */
+.smooth-scroll,
+main,
+[role="main"],
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* GPU Compositing Layer Helper */
+.gpu-accelerated,
+.gpu-layer {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform, opacity;
+}
+
+/* Content visibility optimization for catalog/history lists */
+.virtual-content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 100px;
+}
+
+/* Instant tap responsiveness on iOS Safari and Android Chrome */
+button,
+a,
+input,
+select,
+textarea,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* Respect user accessibility motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 

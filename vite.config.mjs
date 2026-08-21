@@ -38,20 +38,34 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
+            // Food & Exercise Datasets — isolated so they don't bloat core app execution
+            if (id.includes('calyxo10kFoods.json') || id.includes('calyxoFoodDatabase') || id.includes('calyxoFoodDiscoveryData')) {
+              return 'data-foods';
+            }
+
             if (id.includes('node_modules')) {
               if (id.includes('three') || id.includes('@react-three')) {
                 return 'vendor-three';
               }
-              if (id.includes('framer-motion')) {
-                return 'vendor-framer';
+              if (id.includes('framer-motion') || id.includes('gsap')) {
+                return 'vendor-animation';
               }
               if (id.includes('@supabase')) {
                 return 'vendor-supabase';
               }
-              if (id.includes('recharts') || id.includes('lucide-react')) {
+              if (id.includes('recharts')) {
                 return 'vendor-charts';
               }
-              return 'vendor';
+              if (id.includes('lucide-react')) {
+                return 'vendor-icons';
+              }
+              if (id.includes('@google/generative-ai') || id.includes('react-markdown')) {
+                return 'vendor-ai';
+              }
+              if (id.includes('papaparse')) {
+                return 'vendor-parser';
+              }
+              return 'vendor-core';
             }
           }
         }
