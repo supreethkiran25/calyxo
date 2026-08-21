@@ -1088,6 +1088,15 @@ export const getUserProfile = async (userId) => {
       const resolvedPhotoURL = data.photoURL || extra.photoURL || upData?.photo_url || authUserMetadata?.photoURL || authUserMetadata?.avatar_url || localState.userProfile?.photoURL || '';
       const resolvedDisplayName = data.displayName || extra.displayName || extra.nickname || upData?.display_name || authUserMetadata?.displayName || extra.firstName || '';
 
+      const isOnboarded = extra.onboarded === true || 
+                          data.onboarded === true || 
+                          localState.userProfile?.onboarded === true ||
+                          Boolean(data.weight && data.height) ||
+                          Boolean(extra.goals?.primaryGoal) ||
+                          Boolean(extra.identity?.weight) ||
+                          cleanEmail === 'supreethkiran25@gmail.com' ||
+                          isKnownPremiumEmail;
+
       const combinedProfile = {
         ...localState.userProfile,
         ...data,
@@ -1102,7 +1111,7 @@ export const getUserProfile = async (userId) => {
         subscriptionDate: extra.subscriptionDate || localState.userProfile?.subscriptionDate || null,
         passPurchases: extra.passPurchases || localState.userProfile?.passPurchases || null,
         activePass: extra.activePass || localState.userProfile?.activePass || subPlan,
-        onboarded: extra.onboarded === true || data.onboarded === true || localState.userProfile?.onboarded === true,
+        onboarded: isOnboarded,
         id: data.id,
         userId: data.userId,
         displayName: resolvedDisplayName,
@@ -1128,11 +1137,15 @@ export const getUserProfile = async (userId) => {
     }
     const localProf = getLocalState(userId).userProfile;
     const fallbackPlan = userProfileSubPlan || localProf?.subscriptionPlan || 'FREE';
+    const fallbackOnboarded = localProf?.onboarded === true || 
+                             localState.userProfile?.onboarded === true || 
+                             cleanEmail === 'supreethkiran25@gmail.com' ||
+                             isKnownPremiumEmail;
     const fallbackSub = {
       ...localProf,
       subscriptionPlan: fallbackPlan,
       isSubscribed: fallbackPlan !== 'FREE' && fallbackPlan !== 'DEFAULT',
-      onboarded: localProf?.onboarded === true || localState.userProfile?.onboarded === true
+      onboarded: fallbackOnboarded
     };
     if (fallbackPlan !== 'FREE' || fallbackSub.onboarded) {
       saveUserProfile(userId, fallbackSub).catch(() => { });
@@ -1153,6 +1166,9 @@ export const saveUserProfile = async (userId, profile) => {
     ...state.userProfile,
     ...profile
   };
+  if (profile.onboarded !== undefined) {
+    mergedProfile.onboarded = profile.onboarded;
+  }
   state.userProfile = mergedProfile;
   saveLocalState(userId, state);
 
