@@ -211,12 +211,9 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
         dietPreferences: [profile.nutrition.diet]
       });
 
-      // 1. Mark persistent localStorage keys to guarantee user is never re-prompted
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('calyxo_onboarded', 'true');
-        if (userId) {
-          localStorage.setItem(`calyxo_onboarded_${userId}`, 'true');
-        }
+      // 1. Mark persistent localStorage keys to guarantee this specific athlete is not re-prompted
+      if (typeof window !== 'undefined' && userId) {
+        localStorage.setItem(`calyxo_onboarded_${userId}`, 'true');
       }
 
       // 2. Update Zustand store synchronously so UserLayout immediately renders the dashboard

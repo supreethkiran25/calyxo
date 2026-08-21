@@ -1106,10 +1106,7 @@ export const getUserProfile = async (userId) => {
                    extra.onboardingCompleted === true || 
                    data.onboarded === true || 
                    localState.userProfile?.onboarded === true || 
-                   (typeof window !== 'undefined' && (
-                     localStorage.getItem(`calyxo_onboarded_${userId}`) === 'true' || 
-                     localStorage.getItem('calyxo_onboarded') === 'true'
-                   )),
+                   (typeof window !== 'undefined' && userId && localStorage.getItem(`calyxo_onboarded_${userId}`) === 'true'),
         id: data.id,
         userId: data.userId,
         displayName: resolvedDisplayName,
@@ -1141,10 +1138,7 @@ export const getUserProfile = async (userId) => {
       isSubscribed: fallbackPlan !== 'FREE' && fallbackPlan !== 'DEFAULT',
       onboarded: localProf?.onboarded === true || 
                  localState.userProfile?.onboarded === true || 
-                 (typeof window !== 'undefined' && (
-                   localStorage.getItem(`calyxo_onboarded_${userId}`) === 'true' || 
-                   localStorage.getItem('calyxo_onboarded') === 'true'
-                 ))
+                 (typeof window !== 'undefined' && userId && localStorage.getItem(`calyxo_onboarded_${userId}`) === 'true')
     };
     if (fallbackPlan !== 'FREE' || fallbackSub.onboarded) {
       saveUserProfile(userId, fallbackSub).catch(() => { });
@@ -1155,10 +1149,7 @@ export const getUserProfile = async (userId) => {
     return {
       ...localProf,
       onboarded: localProf?.onboarded === true || 
-                 (typeof window !== 'undefined' && (
-                   localStorage.getItem(`calyxo_onboarded_${userId}`) === 'true' || 
-                   localStorage.getItem('calyxo_onboarded') === 'true'
-                 ))
+                 (typeof window !== 'undefined' && userId && localStorage.getItem(`calyxo_onboarded_${userId}`) === 'true')
     };
   }
 };

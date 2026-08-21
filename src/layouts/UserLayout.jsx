@@ -335,23 +335,20 @@ export default function UserLayout() {
   }
 
   const uid = user?.uid || user?.id;
-  const isOnboarded = userProfile?.onboarded === true || 
-                      userProfile?.onboardingCompleted === true || 
-                      (typeof window !== 'undefined' && (
-                        localStorage.getItem(`calyxo_onboarded_${uid}`) === 'true' || 
-                        localStorage.getItem('calyxo_onboarded') === 'true'
-                      ));
+  // Strictly per-user onboarding verification (never use shared un-scoped key)
+  const isOnboarded = Boolean(
+    userProfile?.onboarded === true || 
+    userProfile?.onboardingCompleted === true || 
+    (uid && typeof window !== 'undefined' && localStorage.getItem(`calyxo_onboarded_${uid}`) === 'true')
+  );
 
   // If user is authenticated but has not completed onboarding, trigger OnboardingFlow
   if (user && !isOnboarded) {
     return (
-      <Suspense fallback={null}>
+      <Suspense fallback={<LaunchScreen isLoading={true} />}>
         <OnboardingFlow onComplete={(completedProfile) => {
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('calyxo_onboarded', 'true');
-            if (uid) {
-              localStorage.setItem(`calyxo_onboarded_${uid}`, 'true');
-            }
+          if (typeof window !== 'undefined' && uid) {
+            localStorage.setItem(`calyxo_onboarded_${uid}`, 'true');
           }
           const updated = { ...(userProfile || {}), ...completedProfile, onboarded: true, onboardingCompleted: true };
           useStore.getState().setUserProfile(updated);
