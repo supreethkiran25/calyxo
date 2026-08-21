@@ -9,10 +9,8 @@ export const SUPER_ADMIN_EMAILS = [
   'admin@calyxo.com'
 ];
 
-export const DEFAULT_ADMIN_CREDENTIALS = {
-  email: 'supreethkiran25@gmail.com',
-  password: 'Admin@12345'
-};
+
+
 
 // Plan Pricing Specification — Single High Plan (INR - ₹)
 export const CALYXO_PRIMARY_PLAN = {

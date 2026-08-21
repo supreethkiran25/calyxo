@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     shasum.update(bodyStr);
     const digest = shasum.digest('hex');
 
-    if (digest !== signature) {
+    if (!crypto.timingSafeEqual(Buffer.from(digest, 'hex'), Buffer.from(signature, 'hex'))) {
       return res.status(400).json({ error: 'Invalid webhook signature' });
     }
 

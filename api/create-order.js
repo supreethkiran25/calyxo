@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import Razorpay from 'razorpay';
 import { setCorsHeaders, verifyAuthUser } from './lib/auth.js';
 
@@ -42,10 +43,14 @@ export default async function handler(req, res) {
       key_secret
     });
 
+    const safeReceipt = receipt && /^[a-zA-Z0-9_-]{1,40}$/.test(receipt)
+      ? receipt
+      : `rcpt_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`;
+
     const orderOptions = {
       amount: Math.round(numAmount),
       currency: currency.toUpperCase(),
-      receipt: receipt || `rcpt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+      receipt: safeReceipt
     };
 
     const order = await razorpay.orders.create(orderOptions);
