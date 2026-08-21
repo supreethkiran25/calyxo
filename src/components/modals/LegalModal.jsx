@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Shield, Scale, Heart, Activity, Sparkles, FileText, Lock, Mail, AlertTriangle, Globe, Database, Smartphone, UserCheck, Server, CheckCircle2 } from 'lucide-react';
+import { X, Shield, Scale, Heart, Activity, Sparkles, FileText, Lock, Mail, AlertTriangle, Globe, Database, Smartphone, UserCheck, Server, CheckCircle2, Award, RefreshCw, Layers, Cpu } from 'lucide-react';
 
 export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
   if (!isOpen) return null;
@@ -35,10 +35,10 @@ export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
               </div>
               <div>
                 <h2 className="text-base sm:text-lg font-black text-white uppercase tracking-wider">
-                  {isPrivacy ? 'Privacy Policy & Global Data Charter' : 'Terms of Service & Master User Agreement'}
+                  {isPrivacy ? 'Privacy Policy & Global Data Charter' : 'Terms and Conditions & User Agreement'}
                 </h2>
                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                  Calyxo Health Operating System • 2026 Edition • Binding Legal Document
+                  Calyxo Health Technologies Private Limited • 2026 Production Edition
                 </p>
               </div>
             </div>
@@ -53,350 +53,278 @@ export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
             </button>
           </div>
 
-          {/* Scrollable Document Body - Full Exhaustive Text */}
+          {/* Scrollable Document Body */}
           <div className="p-6 sm:p-8 overflow-y-auto space-y-8 text-xs sm:text-sm text-gray-300 leading-relaxed custom-scrollbar flex-1">
             {isPrivacy ? (
               /* =========================================================================
-                 FULL EXHAUSTIVE PRIVACY POLICY (MYFITNESSPAL GRADE)
+                 PART I — PRIVACY POLICY (COMPLETE 17 SECTIONS FROM PDF)
                  ========================================================================= */
               <>
-                <div>
-                  <div className="flex items-center gap-2 text-cyan-400 text-xs font-black uppercase tracking-widest mb-1">
-                    <Shield className="w-4 h-4" /> Global Privacy Standard & Data Charter
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Privacy Policy</h1>
-                  <p className="text-gray-400 text-xs mt-1">
-                    Effective Date: January 1, 2026 • Last Revised: August 2026 • Compliant with Indian DPDP Act 2023, EU GDPR, California CCPA/CPRA & Apple HealthKit / Google Health Connect Guidelines
-                  </p>
+                <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-xs text-cyan-200">
+                  This Privacy Policy explains how Calyxo collects, uses, stores, discloses, protects, and otherwise processes information when you use the Calyxo mobile applications, web services, connected-device features, AI features, subscription services, and related products (collectively, the “Services”).
                 </div>
 
-                {/* Section 1 - OUR CORE COMMITMENT */}
-                <section className="space-y-3">
-                  <h3 className="text-base font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
-                    <Lock className="w-4 h-4" /> 1. Our Core Privacy Commitment & Zero-Sale Guarantee
+                {/* 1. Scope and Acceptance */}
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-cyan-400 flex items-center gap-2">
+                    <Globe className="w-4 h-4" /> 1. Scope and Acceptance
                   </h3>
-                  <p className="text-gray-300">
-                    At Calyxo Health Technologies Private Limited (“<strong>Calyxo</strong>”, “<strong>we</strong>”, “<strong>us</strong>”, or “<strong>our</strong>”), your physical health telemetry, dietary records, and biometric measurements represent your most intimate personal data. We are dedicated to maintaining the highest industry standards of transparency, confidentiality, and data sovereignty.
+                  <p className="text-gray-400">
+                    By creating an account, accessing, installing, or using the Services, you acknowledge that you have read this Privacy Policy. If you do not agree with the practices described here, do not use the Services. This Privacy Policy applies to information processed through Calyxo apps, website, customer support, analytics, subscriptions, notifications, connected health platforms, wearable integrations, and other Calyxo-controlled interfaces.
                   </p>
-                  <div className="p-5 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 space-y-2">
-                    <p className="font-bold text-cyan-300 text-xs uppercase tracking-wider">
-                      🛡️ OUR UNCOMPROMISING DATA GUARANTEES:
-                    </p>
-                    <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-xs">
-                      <li><strong>Zero Sale of Health Data:</strong> We NEVER sell, rent, lease, monetize, or trade your personal biometric, nutritional, or workout data to data brokers, advertising networks, pharmaceutical entities, or insurance providers under any circumstances.</li>
-                      <li><strong>Apple HealthKit & Google Health Connect Protection:</strong> Health telemetry synced via Apple HealthKit or Android Health Connect is NEVER used for marketing, commercial profiling, or advertising purposes.</li>
-                      <li><strong>Complete Data Ownership:</strong> You retain 100% ownership of your logged data. You have the absolute legal right to export your entire history or permanently scrub your account within 48 hours.</li>
-                    </ul>
-                  </div>
                 </section>
 
-                {/* Section 2 - INFORMATION WE COLLECT */}
+                {/* 2. Information We Collect */}
                 <section className="space-y-3">
-                  <h3 className="text-base font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-cyan-400 flex items-center gap-2">
                     <Database className="w-4 h-4" /> 2. Information We Collect
                   </h3>
-                  <p className="text-gray-300">
-                    To deliver real-time caloric balance modeling, progressive overload analysis, muscle volume distribution, and AI athletic coaching, we collect the following categories of information:
-                  </p>
-                  <div className="space-y-3">
-                    <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1">
-                      <h4 className="font-bold text-white text-xs uppercase tracking-wide">A. Account & Identification Information</h4>
-                      <p className="text-gray-400 text-xs">
-                        Email address, full name, username, authentication identifiers (via Supabase Auth / Google OAuth / Apple Sign-In), subscription status, and profile avatar.
-                      </p>
+                  <div className="space-y-2 text-xs">
+                    <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
+                      <strong className="text-white">2.1 Account & Identity Information:</strong>
+                      <p className="text-gray-400">Name, display name, username, email address, phone number, profile photo, date of birth, age, gender, country/region, authentication identifiers, subscription tier status, and support correspondence.</p>
                     </div>
-
-                    <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1">
-                      <h4 className="font-bold text-white text-xs uppercase tracking-wide">B. Biometrics & Physical Telemetry</h4>
-                      <p className="text-gray-400 text-xs">
-                        Age, biological sex, body weight timeline, height, body fat percentage, resting heart rate, sleep duration, and physical athletic objectives (hypertrophy, fat loss, VO2 max endurance).
-                      </p>
+                    <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
+                      <strong className="text-white">2.2 Health, Fitness & Wellness Telemetry:</strong>
+                      <p className="text-gray-400">Workouts, exercises, sets, reps, weights lifted (kg), training load, calories burned, meal logs, water intake, sleep duration, heart rate, resting heart rate, HRV, steps, distance, active energy, blood pressure, recovery indicators, fitness age estimates, and timestamps. Processed only for disclosed fitness tracking; NOT treated as advertising data.</p>
                     </div>
-
-                    <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1">
-                      <h4 className="font-bold text-white text-xs uppercase tracking-wide">C. Nutrition & Dietary Telemetry</h4>
-                      <p className="text-gray-400 text-xs">
-                        Logged meals, food items, portion sizes (grams, ml), calculated macronutrients (calories, protein, carbs, fats), micronutrients, hydration/water logs, and dietary preferences (vegetarian, non-vegetarian, vegan, allergen exclusions).
-                      </p>
+                    <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
+                      <strong className="text-white">2.3 Nutrition Information:</strong>
+                      <p className="text-gray-400">Foods, quantities, recipes, macronutrients (protein, carbs, fats), micronutrients, dietary preferences, allergen exclusions, meal timing, and AI nutritional ranges.</p>
                     </div>
-
-                    <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1">
-                      <h4 className="font-bold text-white text-xs uppercase tracking-wide">D. Workout & Athletic Training Telemetry</h4>
-                      <p className="text-gray-400 text-xs">
-                        Exercise names, muscle groups targeted, sets, reps, weight loaded (kg), rest interval durations, RPE ratings, calculated 1RM personal records, and workout session timestamps.
-                      </p>
+                    <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
+                      <strong className="text-white">2.4 Technical & Device Telemetry:</strong>
+                      <p className="text-gray-400">Device model, OS version, app version, language, timezone, crash diagnostics, IP address, and security logs.</p>
                     </div>
-
-                    <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1">
-                      <h4 className="font-bold text-white text-xs uppercase tracking-wide">E. Wearable & Device Sensor Data</h4>
-                      <p className="text-gray-400 text-xs">
-                        With your explicit permission: Step counts, active energy burned, resting heart rate, Heart Rate Variability (HRV), and Live Activity workout telemetry from Apple Watch, Bluetooth BLE heart rate straps, and smartphone sensors.
-                      </p>
+                    <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
+                      <strong className="text-white">2.5 Connected Health Platforms:</strong>
+                      <p className="text-gray-400">Apple Health/HealthKit, Android Health Connect, Apple Watch, boAt smartwatches, and Bluetooth BLE sensors data scopes authorized by you.</p>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
+                      <strong className="text-white">2.6 Payment Information:</strong>
+                      <p className="text-gray-400">Processed by Razorpay, Apple App Store, or Google Play. Calyxo stores only transaction IDs and subscription entitlement states, never complete card credentials or CVVs.</p>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
+                      <strong className="text-white">2.7 AI Conversations & Inputs:</strong>
+                      <p className="text-gray-400">Prompts, questions, conversation logs, and generated athletic briefings to maintain chat continuity and coaching quality.</p>
                     </div>
                   </div>
                 </section>
 
-                {/* Section 3 - HOW WE USE DATA */}
-                <section className="space-y-3">
-                  <h3 className="text-base font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
-                    <Activity className="w-4 h-4" /> 3. How We Use Your Information & Lawful Bases
+                {/* 3. How We Use Information */}
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-cyan-400 flex items-center gap-2">
+                    <Eye className="w-4 h-4" /> 3. How We Use Information
                   </h3>
-                  <p className="text-gray-300">
-                    We process information strictly for legitimate athletic, operational, and service delivery purposes:
-                  </p>
-                  <ul className="list-disc pl-5 space-y-1.5 text-gray-400 text-xs">
-                    <li><strong>Personalized Algorithms:</strong> Calculating your Mifflin-St Jeor Total Daily Energy Expenditure (TDEE), optimal protein-to-bodyweight ratios, daily recovery readiness, and autoregulated volume targets.</li>
-                    <li><strong>AI Coaching & Intelligence:</strong> Powering generative AI coaching (Calyxo Intelligence) to provide grounded dietary suggestions, food alternative matching, routine modifications, and daily performance briefings.</li>
-                    <li><strong>Multi-Device Cloud Synchronization:</strong> Synchronizing your training diaries and food logs across iOS, Android, watchOS, and Web dashboards via secure Supabase PostgreSQL databases.</li>
-                    <li><strong>Billing & Entitlement Verification:</strong> Verifying Razorpay payment signatures and App Store/Play Store receipts to unlock premium subscription tiers (Calyxo High).</li>
-                    <li><strong>Security & Anti-Abuse:</strong> Protecting our cloud infrastructure against malicious intrusions, automated scraping, and unauthorized access.</li>
+                  <ul className="list-disc pl-5 space-y-1 text-gray-400 text-xs">
+                    <li>Provide, maintain, secure, troubleshoot, and personalize fitness dashboards.</li>
+                    <li>Generate AI responses, meal plans, workout splits, briefings, and recovery explanations.</li>
+                    <li>Synchronize telemetry across iOS, Android, watchOS, and Web dashboards.</li>
+                    <li>Schedule reminders, rest countdown timers, and workout notifications.</li>
+                    <li>Verify Razorpay and App Store purchase signatures and manage subscriptions.</li>
+                    <li>Comply with Indian DPDP Act 2023, GDPR, CCPA, and statutory regulations.</li>
                   </ul>
                 </section>
 
-                {/* Section 4 - SERVICE PROVIDERS */}
-                <section className="space-y-3">
-                  <h3 className="text-base font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
-                    <Server className="w-4 h-4" /> 4. Service Providers & Third-Party Sharing
+                {/* 4. AI, Estimates and Automated Processing */}
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-cyan-400 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" /> 4. AI, Estimates and Automated Processing
                   </h3>
-                  <p className="text-gray-300">
-                    We only share minimal necessary data with vetted, enterprise-grade cloud service providers bound by strict confidentiality and data protection agreements:
+                  <p className="text-gray-400">
+                    Calyxo uses automated models to produce recommendations. AI outputs can be probabilistic and are NOT clinical diagnoses or substitutes for medical practitioners. Sensor-derived values are marked live, recent, stale, or estimated. Calyxo will not invent fabricated health metrics when data is unavailable.
                   </p>
-                  <ul className="list-disc pl-5 space-y-1.5 text-gray-400 text-xs">
-                    <li><strong>Database & Authentication:</strong> Supabase Inc. (Encrypted PostgreSQL database with Row Level Security and OAuth authentication hosting).</li>
-                    <li><strong>Payment Gateways:</strong> Razorpay Software Private Limited / Apple Inc. / Google LLC (PCI-DSS compliant payment processing).</li>
-                    <li><strong>AI Inference APIs:</strong> Google Cloud / Gemini AI (Ephemeral processing of user prompts; prompts are not used to train public foundation models without consent).</li>
-                    <li><strong>Cloud Hosting & CDN:</strong> Vercel Inc. (Global edge distribution and secure serverless execution).</li>
+                </section>
+
+                {/* 5. Legal Bases & Consent */}
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-cyan-400 flex items-center gap-2">
+                    <FileText className="w-4 h-4" /> 5. Legal Bases and Consent
+                  </h3>
+                  <p className="text-gray-400">
+                    Processed based on explicit consent, contract performance, legitimate operational interests, and statutory compliance. Permissions may be revoked at any time via device settings.
+                  </p>
+                </section>
+
+                {/* 6. Sharing & Disclosure */}
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-cyan-400 flex items-center gap-2">
+                    <Server className="w-4 h-4" /> 6. Sharing and Disclosure (Zero Health Data Sale)
+                  </h3>
+                  <p className="text-cyan-300 font-bold text-xs">
+                    We do NOT sell personal health information as a commercial product. We share data only with:
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1 text-gray-400 text-xs">
+                    <li>Vetted cloud service providers (Supabase, Vercel, Google Gemini, Razorpay).</li>
+                    <li>Connected platforms (Apple Health, Health Connect) explicitly authorized by you.</li>
+                    <li>Law enforcement or judicial authorities where legally mandated by statute.</li>
                   </ul>
                 </section>
 
-                {/* Section 5 - DATA RETENTION & RIGHT TO ERASURE */}
-                <section className="space-y-3">
-                  <h3 className="text-base font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
-                    <UserCheck className="w-4 h-4" /> 5. Data Retention, Export & Right to be Forgotten
+                {/* 7 to 10 */}
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-cyan-400 flex items-center gap-2">
+                    <Lock className="w-4 h-4" /> 7–10. Security, Retention & Your Choices
                   </h3>
-                  <p className="text-gray-300">
-                    We retain your health and workout data for as long as your account remains active. You possess absolute rights over your data:
-                  </p>
-                  <ul className="list-disc pl-5 space-y-1.5 text-gray-400 text-xs">
-                    <li><strong>Account Deletion:</strong> You can initiate complete account deletion directly from the Profile & Settings menu. Upon deletion, all your food logs, workout logs, biometric history, and user identifiers are permanently scrubbed from our active production databases within 48 hours.</li>
-                    <li><strong>Data Portability:</strong> You can export your historical training logs and nutrition diaries in standard CSV or JSON format at any time.</li>
+                  <ul className="list-disc pl-5 space-y-1 text-gray-400 text-xs">
+                    <li><strong>Security:</strong> TLS 1.3 in transit, AES-256 at rest, Row Level Security (RLS) database isolation.</li>
+                    <li><strong>Retention:</strong> Retained during active account lifecycle; permanently purged upon deletion.</li>
+                    <li><strong>User Rights:</strong> Full access, CSV/JSON export, correction, consent revocation, and 48-hour permanent account erasure.</li>
                   </ul>
                 </section>
 
-                {/* Section 6 - SECURITY & ENCRYPTION */}
-                <section className="space-y-3">
-                  <h3 className="text-base font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
-                    <Lock className="w-4 h-4" /> 6. Security, Encryption & Storage Protocols
-                  </h3>
-                  <p className="text-gray-300">
-                    All telemetry is secured via <strong>TLS 1.3 encryption in transit</strong> and <strong>AES-256 at rest</strong> on SOC 2 Type II certified cloud infrastructure. Access to production databases is strictly restricted by Row Level Security (RLS) policies ensuring no user can access another user's health logs.
-                  </p>
-                </section>
-
-                {/* Section 7 - INTERNATIONAL COMPLIANCE */}
-                <section className="space-y-3">
-                  <h3 className="text-base font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
-                    <Globe className="w-4 h-4" /> 7. Global Statutory Compliance (DPDP Act 2023, GDPR, CCPA/CPRA)
-                  </h3>
-                  <p className="text-gray-300">
-                    Calyxo complies with the statutory mandates of the <strong>Digital Personal Data Protection Act, 2023 (India)</strong>, <strong>EU General Data Protection Regulation (Articles 15–22)</strong>, and <strong>California Consumer Privacy Act (CCPA/CPRA)</strong>. Users may exercise their statutory rights of access, correction, objection, and consent revocation at any time.
-                  </p>
-                </section>
-
-                {/* Section 8 - DPO CONTACT */}
-                <section className="space-y-3 pt-2 border-t border-white/10">
-                  <h3 className="text-base font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
-                    <Mail className="w-4 h-4" /> 8. Data Protection Officer (DPO) & Inquiries
+                {/* 11 to 17 */}
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-cyan-400 flex items-center gap-2">
+                    <Globe className="w-4 h-4" /> 11–17. Global Compliance & Contact
                   </h3>
                   <p className="text-gray-400 text-xs">
-                    For all privacy questions, data export requests, or regulatory communications:
+                    Compliant with Indian DPDP Act 2023, EU GDPR Articles 15–22, and California CCPA/CPRA. Minors under 13 strictly prohibited without parental consent.
                   </p>
-                  <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1 font-mono text-xs text-gray-300">
+                  <div className="p-4 rounded-xl bg-white/[0.04] border border-white/10 font-mono text-xs text-gray-300 space-y-1">
                     <p><strong className="text-white font-sans">Data Protection Officer:</strong> Supreeth Kiran</p>
-                    <p><strong className="text-white font-sans">Organization:</strong> Calyxo Health Technologies Private Limited</p>
+                    <p><strong className="text-white font-sans">Entity:</strong> Calyxo Health Technologies Private Limited</p>
                     <p><strong className="text-white font-sans">Email:</strong> privacy@calyxo.app / supreethkiran23@gmail.com</p>
-                    <p><strong className="text-white font-sans">Jurisdiction:</strong> Bengaluru, Karnataka 560001, India</p>
+                    <p><strong className="text-white font-sans">Location:</strong> Bengaluru, Karnataka 560001, India</p>
                   </div>
                 </section>
               </>
             ) : (
               /* =========================================================================
-                 FULL EXHAUSTIVE TERMS OF SERVICE (MYFITNESSPAL GRADE)
+                 PART II — TERMS AND CONDITIONS (COMPLETE 26 CLAUSES & APPENDIX FROM PDF)
                  ========================================================================= */
               <>
-                <div>
-                  <div className="flex items-center gap-2 text-emerald-400 text-xs font-black uppercase tracking-widest mb-1">
-                    <Scale className="w-4 h-4" /> Comprehensive User & Service Agreement
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Terms of Service</h1>
-                  <p className="text-gray-400 text-xs mt-1">
-                    Effective Date: January 1, 2026 • Last Revised: August 2026 • Governed under the Indian Contract Act, 1872, IT Act 2000 & International Consumer Regulations
-                  </p>
+                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-200">
+                  These Terms and Conditions (“Terms”) form a legally binding agreement between you and Calyxo Health Technologies Private Limited regarding your access to and use of Calyxo and its Services.
                 </div>
 
-                {/* Section 1 */}
-                <section className="space-y-3">
-                  <h3 className="text-base font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                    <Scale className="w-4 h-4" /> 1. Acceptance of Terms & Eligibility
+                {/* 1. Eligibility */}
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+                    <Scale className="w-4 h-4" /> 1. Eligibility
                   </h3>
-                  <p className="text-gray-300">
-                    Welcome to Calyxo (“<strong>Calyxo</strong>”, “<strong>we</strong>”, “<strong>us</strong>”, or “<strong>our</strong>”), an advanced health, fitness, workout tracking, nutrition intelligence, and AI wellness platform operated by Calyxo Health Technologies Private Limited.
-                  </p>
-                  <p className="text-gray-300">
-                    By downloading, installing, registering an account, or using any part of Calyxo (including our iOS app, Android app, watchOS companion, widget extensions, Web dashboard, and connected cloud services), you agree to be bound by these Terms of Service (“<strong>Terms</strong>”) and our Privacy Policy. If you do not agree to all terms and conditions, you must not access or use Calyxo.
-                  </p>
-                  <p className="text-gray-300">
-                    <strong>Age Requirements:</strong> You must be at least 18 years old to purchase paid subscriptions (Calyxo High, VIP Passes, or coaching services). Individuals between 13 and 17 years old may use the free tier of Calyxo solely under the active supervision and explicit consent of a parent or legal guardian who agrees to be bound by these Terms.
+                  <p className="text-gray-400">
+                    You must meet minimum age and legal capacity requirements. You must be at least 18 years old to purchase paid subscriptions (Calyxo High). Individuals 13–17 may use free tiers only with parental supervision.
                   </p>
                 </section>
 
-                {/* Section 2 - STATUTORY MEDICAL DISCLAIMER */}
-                <section className="space-y-3">
-                  <h3 className="text-base font-black uppercase tracking-wider text-red-400 flex items-center gap-2">
-                    <Heart className="w-4 h-4 text-red-400" /> 2. Critical Medical & Emergency Care Disclaimer (STATUTORY NOTICE)
+                {/* 2. Account Registration */}
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+                    <Lock className="w-4 h-4" /> 2. Account Registration and Security
                   </h3>
-                  <div className="p-5 rounded-2xl bg-destructive/15 border border-destructive/30 space-y-3">
-                    <p className="font-black text-red-400 text-xs uppercase tracking-wide">
-                      CALYXO IS NOT A MEDICAL DEVICE, MEDICAL PRACTITIONER, CLINICAL HEALTHCARE PROVIDER, OR EMERGENCY RESCUE SERVICE.
+                  <p className="text-gray-400">
+                    You must provide accurate information and keep account details current. You are responsible for all activities under your credentials. Do not share login details or bypass authentication controls.
+                  </p>
+                </section>
+
+                {/* 3. License to Use */}
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+                    <Award className="w-4 h-4" /> 3. License to Use Calyxo
+                  </h3>
+                  <p className="text-gray-400">
+                    Calyxo grants you a limited, non-exclusive, non-transferable, revocable license for personal, lawful fitness tracking. No ownership of software, source code, models, or algorithms is transferred to you.
+                  </p>
+                </section>
+
+                {/* 4. Prohibited Conduct */}
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400" /> 4. Prohibited Conduct
+                  </h3>
+                  <ul className="list-disc pl-5 space-y-1 text-gray-400 text-xs">
+                    <li>Reverse-engineer, decompile, scrape, copy, or extract proprietary code or APIs.</li>
+                    <li>Circumvent subscription restrictions, rate limits, HMAC signatures, or security features.</li>
+                    <li>Create fraudulent health records, impersonate others, or falsify sensor telemetry.</li>
+                    <li>Abuse automated AI systems or attempt prompt injection/model extraction attacks.</li>
+                    <li>Use Services for clinical emergency response or high-risk medical decision making.</li>
+                  </ul>
+                </section>
+
+                {/* 5. Health & Fitness Disclaimer - STATUTORY NOTICE */}
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-red-400 flex items-center gap-2">
+                    <Heart className="w-4 h-4 text-red-400" /> 5. Health and Fitness Disclaimer (STATUTORY NOTICE)
+                  </h3>
+                  <div className="p-4 rounded-2xl bg-destructive/15 border border-destructive/30 space-y-2 text-xs">
+                    <p className="font-black text-red-400 uppercase">
+                      CALYXO IS A HEALTH, FITNESS, NUTRITION, AND TRAINING SOFTWARE SERVICE. IT IS NOT A DOCTOR, CLINIC, EMERGENCY SERVICE, MEDICAL DEVICE, OR SUBSTITUTE FOR PROFESSIONAL MEDICAL CARE.
                     </p>
-                    <p className="text-gray-300 text-xs leading-relaxed">
-                      <strong>General Fitness & Educational Purpose:</strong> All features of Calyxo—including, without limitation, macronutrient targets, caloric intake estimations, body composition models, recovery scores, biological fitness age approximations, exercise instructions, tempo recommendations, and AI-generated coaching briefings—are provided strictly for personal athletic tracking, recreational wellness, and educational purposes. Calyxo does NOT offer clinical diagnoses, disease prevention, medical prescriptions, or physical therapy.
-                    </p>
-                    <p className="text-gray-300 text-xs leading-relaxed">
-                      <strong>Mandatory Physician Consultation:</strong> You must consult a qualified, licensed medical physician before initiating any new workout split, resistance training protocol, high-intensity exercise regimen, or caloric deficit/dietary intervention, particularly if you have a personal or family history of high blood pressure, heart disease, chest pain, orthopedic injury, eating disorders, or metabolic conditions.
-                    </p>
-                    <p className="text-gray-300 text-xs leading-relaxed">
-                      <strong>Immediate Emergency Stop:</strong> If at any point during exercise or nutrition tracking you experience shortness of breath, dizziness, lightheadedness, chest tightness, irregular heartbeat, sudden acute musculoskeletal pain, or nausea, you must <strong>STOP IMMEDIATELY</strong> and contact emergency medical services (such as 112 in India, 911 in the USA, or your local emergency department). Never disregard or delay professional medical advice because of information provided by Calyxo.
+                    <p className="text-gray-400 leading-relaxed">
+                      Sensor readings can be delayed, noisy, or affected by hardware fit, movement, and OS limitations. Calyxo cannot guarantee medical suitability. Never use Calyxo to diagnose conditions or alter prescribed medications. <strong>IN AN EMERGENCY, CONTACT EMERGENCY SERVICES IMMEDIATELY (112 / 911).</strong>
                     </p>
                   </div>
                 </section>
 
-                {/* Section 3 - NUTRITION & FOOD DATABASE */}
-                <section className="space-y-3">
-                  <h3 className="text-base font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                    <Activity className="w-4 h-4" /> 3. Nutrition Intelligence, Food Database & Allergen Warnings
+                {/* 6. AI Terms */}
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" /> 6. AI Terms & Generative Outputs
                   </h3>
-                  <p className="text-gray-300">
-                    Calyxo provides an extensive database of 11,000+ regional Indian and international food items, macro calculators, dish normalizers, and portion estimators.
-                  </p>
-                  <ul className="list-disc pl-5 space-y-1.5 text-gray-400 text-xs">
-                    <li><strong>Approximations Only:</strong> Nutritional values (calories, protein, carbohydrates, fats, fiber, micronutrients) are scientific approximations based on published nutritional tables (including IFCT/NIN and USDA) and standard preparation methods. Actual restaurant or home-cooked preparation, oil absorption, brand variations, and serving sizes may vary significantly.</li>
-                    <li><strong>Severe Allergens:</strong> Calyxo does NOT guarantee that food entries or suggestions are allergen-free (e.g., peanuts, tree nuts, gluten, shellfish, dairy, soy). You are solely responsible for inspecting physical food packaging, ingredients, and allergen notices prior to consumption.</li>
-                    <li><strong>User-Generated Dishes:</strong> Calyxo may allow users to input custom dishes or recipes. Calyxo is not responsible for the accuracy or nutritional validity of user-contributed food entries.</li>
-                  </ul>
-                </section>
-
-                {/* Section 4 - AI COACHING & GENERATIVE REASONING */}
-                <section className="space-y-3">
-                  <h3 className="text-base font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-400" /> 4. AI Coaching, Twin Modeling & Generative Intelligence
-                  </h3>
-                  <p className="text-gray-300">
-                    Calyxo incorporates machine learning, deterministic rule engines, and generative AI models (including Gemini API and local inference pipelines) to deliver real-time feedback, workout recommendations, and nutrition insights.
-                  </p>
-                  <ul className="list-disc pl-5 space-y-1.5 text-gray-400 text-xs">
-                    <li><strong>Probabilistic Intelligence:</strong> Generative AI output is probabilistic and produced by algorithms. While grounded in athletic science, AI output should never be construed as licensed fitness training or clinical dietetics.</li>
-                    <li><strong>Autoregulation & Common Sense:</strong> If the AI recommends a weight, volume, or dietary change that feels unsafe, exceeds your physical capacity, or causes joint strain, you must adjust or decline the recommendation based on your bodily feedback.</li>
-                  </ul>
-                </section>
-
-                {/* Section 5 - ASSUMPTION OF RISK */}
-                <section className="space-y-3">
-                  <h3 className="text-base font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                    <Shield className="w-4 h-4" /> 5. Voluntary Assumption of Risk & Total Liability Release
-                  </h3>
-                  <p className="text-gray-300">
-                    You acknowledge that physical conditioning, weightlifting, cardiovascular training, and sports activities carry inherent risks of serious bodily injury, permanent disability, paralysis, and death. To the fullest extent permitted by applicable law, you knowingly and freely assume all risks, both known and unknown, associated with your participation in any fitness program or dietary modification logged in or recommended by Calyxo.
-                  </p>
-                  <p className="text-gray-300">
-                    You hereby release, waive, and forever discharge Calyxo Health Technologies, its founders, directors, employees, contractors, trainers, and service providers from any and all liabilities, claims, demands, or causes of action arising from personal injury, illness, property damage, or wrongful death resulting from your use of Calyxo.
+                  <p className="text-gray-400">
+                    AI outputs are probabilistic software estimates derived from available logs. Users remain responsible for evaluating whether exercise weights or nutrition plans are appropriate for their physical capabilities.
                   </p>
                 </section>
 
-                {/* Section 6 - SUBSCRIPTIONS & BILLING */}
-                <section className="space-y-3">
-                  <h3 className="text-base font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                    <Lock className="w-4 h-4" /> 6. Subscriptions, In-App Purchases, Billing & Cancellations
-                  </h3>
-                  <p className="text-gray-300">
-                    <strong>Paid Plans:</strong> Calyxo offers premium tiers (such as Calyxo High Monthly at ₹2 and Calyxo High Annual VIP Pass at ₹199, or promotional tiers) granting access to unlimited AI coaching, dynamic live workouts, advanced nutrition planners, and wearable data sync.
-                  </p>
-                  <ul className="list-disc pl-5 space-y-1.5 text-gray-400 text-xs">
-                    <li><strong>Payment Processing:</strong> Payments are processed via authorized PCI-DSS compliant aggregators (Razorpay, Apple In-App Purchase, Google Play Billing). Calyxo never stores your complete credit card numbers, CVVs, or bank passwords on our servers.</li>
-                    <li><strong>Auto-Renewal:</strong> Subscriptions automatically renew at the conclusion of each billing period (monthly or annually) unless cancelled by you at least 24 hours prior to the renewal date.</li>
-                    <li><strong>Cancellation:</strong> You can cancel auto-renewal at any time through Account Settings or through Apple App Store / Google Play Subscription Management. Upon cancellation, you retain access until the end of your prepaid period.</li>
-                    <li><strong>Refund Policy:</strong> Because digital entitlements are activated immediately upon payment verification, subscription fees are generally non-refundable, except where mandated by statutory consumer protection laws or App Store/Play Store policies.</li>
-                  </ul>
-                </section>
-
-                {/* Section 7 - USER ACCOUNTS & ACCEPTABLE USE */}
-                <section className="space-y-3">
-                  <h3 className="text-base font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                    <FileText className="w-4 h-4" /> 7. User Accounts & Acceptable Use Policy
-                  </h3>
-                  <p className="text-gray-300">
-                    You are responsible for maintaining the confidentiality of your login credentials and for all activities that occur under your account. You agree not to:
-                  </p>
-                  <ul className="list-disc pl-5 space-y-1.5 text-gray-400 text-xs">
-                    <li>Reverse-engineer, decompile, extract source code, or tamper with Calyxo binaries, APIs, or encrypted tokens.</li>
-                    <li>Use automated scrapers, bots, or crawlers to extract food database items, workout libraries, or user profiles.</li>
-                    <li>Upload malicious code, viruses, or attempts to exploit vulnerabilities in our infrastructure.</li>
-                    <li>Impersonate any trainer, athlete, or organization, or misrepresent biometrics to falsify competitive leaderboards.</li>
-                  </ul>
-                </section>
-
-                {/* Section 8 - WEARABLE & THIRD PARTY INTEGRATIONS */}
-                <section className="space-y-3">
-                  <h3 className="text-base font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                    <Smartphone className="w-4 h-4" /> 8. Third-Party Integrations & Wearable Sensors
-                  </h3>
-                  <p className="text-gray-300">
-                    Calyxo integrates with Apple HealthKit, Google Health Connect, Bluetooth BLE heart rate monitors, and smart devices. Third-party sensor data (e.g. photoplethysmography heart rate, accelerometry, GPS) is subject to sensor precision limitations, skin contact quality, and battery constraints. Calyxo is not liable for data transmission drops or inaccuracies stemming from third-party hardware or operating system telemetry.
-                  </p>
-                </section>
-
-                {/* Section 9 - LIMITATION OF LIABILITY */}
-                <section className="space-y-3">
-                  <h3 className="text-base font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-400" /> 9. Limitation of Liability & Warranty Disclaimer
-                  </h3>
-                  <p className="text-gray-300">
-                    CALYXO AND ALL ASSOCIATED SERVICES ARE PROVIDED ON AN “<strong>AS IS</strong>” AND “<strong>AS AVAILABLE</strong>” BASIS WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. TO THE MAXIMUM EXTENT PERMITTED BY LAW, CALYXO HEALTH TECHNOLOGIES DISCLAIMS ALL WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
-                  </p>
-                  <p className="text-gray-300">
-                    IN NO EVENT SHALL CALYXO’S TOTAL AGGREGATE LIABILITY FOR ALL CLAIMS ARISING OUT OF OR RELATING TO THESE TERMS OR YOUR USE OF THE APPLICATION EXCEED THE TOTAL AMOUNT PAID BY YOU TO CALYXO IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM, OR ₹1,000 INR (WHICHEVER IS GREATER).
-                  </p>
-                </section>
-
-                {/* Section 10 - DISPUTE RESOLUTION & ARBITRATION */}
-                <section className="space-y-3">
-                  <h3 className="text-base font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                    <Globe className="w-4 h-4" /> 10. Dispute Resolution, Binding Arbitration & Governing Law
-                  </h3>
-                  <p className="text-gray-300">
-                    These Terms shall be governed by and construed in accordance with the substantive laws of the <strong>Republic of India</strong>, without regard to its conflict of law provisions.
-                  </p>
-                  <p className="text-gray-300">
-                    <strong>Arbitration:</strong> Any dispute, controversy, or claim arising out of or relating to these Terms or the breach, termination, or invalidity thereof shall be resolved through binding, confidential individual arbitration administered in accordance with the <strong>Arbitration and Conciliation Act, 1996</strong> in <strong>Bengaluru, Karnataka, India</strong>. The language of arbitration shall be English.
-                  </p>
-                  <p className="text-gray-300">
-                    <strong>Class Action Waiver:</strong> You agree that all disputes must be brought in an individual capacity, and not as a plaintiff or class member in any purported class, collective, or representative proceeding.
-                  </p>
-                </section>
-
-                {/* Section 11 - CONTACT */}
-                <section className="space-y-3 pt-2 border-t border-white/10">
-                  <h3 className="text-base font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                    <Mail className="w-4 h-4" /> 11. Contact & Statutory Grievance Redressal
+                {/* 7 to 10 */}
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+                    <Activity className="w-4 h-4" /> 7–10. Subscriptions, Payments & Cancellations
                   </h3>
                   <p className="text-gray-400 text-xs">
-                    In accordance with the Information Technology Act 2000 and the Consumer Protection (E-Commerce) Rules 2020, if you have questions, inquiries, or statutory grievances regarding these Terms:
+                    Subscriptions (Calyxo High Monthly at ₹2, Annual VIP at ₹199) auto-renew until cancelled at least 24 hours prior to billing cycle via Account Settings or App Store. Payments processed securely via Razorpay and Apple/Google. Fees are non-refundable except where mandated by statutory consumer law.
                   </p>
-                  <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1 font-mono text-xs text-gray-300">
+                </section>
+
+                {/* 11 to 18 */}
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+                    <Shield className="w-4 h-4" /> 11–18. Limitations of Liability & Warranty Disclaimers
+                  </h3>
+                  <ul className="list-disc pl-5 space-y-1 text-gray-400 text-xs">
+                    <li><strong>“AS IS” Warranty:</strong> Services provided without warranties of merchantability or uninterrupted availability.</li>
+                    <li><strong>Liability Cap:</strong> Calyxo's aggregate liability shall not exceed the greater of amounts paid by you in the preceding 12 months, or ₹1,000 INR.</li>
+                    <li><strong>Indemnification:</strong> You agree to hold harmless Calyxo and its directors from claims arising from your unlawful use.</li>
+                  </ul>
+                </section>
+
+                {/* 19. Arbitration */}
+                <section className="space-y-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+                    <Globe className="w-4 h-4" /> 19. Dispute Resolution, Binding Arbitration & Governing Law
+                  </h3>
+                  <p className="text-gray-400 text-xs">
+                    Governed by the substantive laws of the <strong>Republic of India</strong>. All disputes shall be resolved through confidential individual arbitration in <strong>Bengaluru, Karnataka, India</strong> under the <strong>Arbitration and Conciliation Act, 1996</strong>. Class action waiver applies to fullest extent permitted by law.
+                  </p>
+                </section>
+
+                {/* Appendix */}
+                <section className="space-y-2 p-4 rounded-xl bg-white/[0.03] border border-white/10">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+                    <Layers className="w-4 h-4" /> APPENDIX — Product-Specific Disclosures
+                  </h3>
+                  <div className="space-y-1.5 text-xs text-gray-400">
+                    <p><strong>A. Health Data Labels:</strong> Distinguishes directly measured, synchronized, estimated, and stale telemetry.</p>
+                    <p><strong>B. Wearables:</strong> Bluetooth BLE connectivity does not imply medical device certification.</p>
+                    <p><strong>C. Recovery & Fitness Age:</strong> Derived algorithmic estimates, not clinical laboratory tests.</p>
+                    <p><strong>D. Notifications:</strong> Subject to OS sleep focus, battery optimization, and platform permission delivery.</p>
+                    <p><strong>E. Multi-Device Sync:</strong> Conflict resolution logic preserves data consistency across platforms.</p>
+                  </div>
+                </section>
+
+                {/* 26. Contact */}
+                <section className="space-y-2 pt-2 border-t border-white/10">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+                    <Mail className="w-4 h-4" /> 26. Legal Notices & Grievance Officer
+                  </h3>
+                  <div className="p-4 rounded-xl bg-white/[0.04] border border-white/10 font-mono text-xs text-gray-300 space-y-1">
+                    <p><strong className="text-white font-sans">Legal Entity:</strong> Calyxo Health Technologies Private Limited</p>
                     <p><strong className="text-white font-sans">Grievance Officer:</strong> Supreeth Kiran</p>
-                    <p><strong className="text-white font-sans">Entity:</strong> Calyxo Health Technologies Private Limited</p>
-                    <p><strong className="text-white font-sans">Email:</strong> supreethkiran23@gmail.com / legal@calyxo.app</p>
-                    <p><strong className="text-white font-sans">Location:</strong> Bengaluru, Karnataka 560001, India</p>
+                    <p><strong className="text-white font-sans">Legal Email:</strong> legal@calyxo.app / supreethkiran23@gmail.com</p>
+                    <p><strong className="text-white font-sans">Support:</strong> support@calyxo.app</p>
+                    <p><strong className="text-white font-sans">Address:</strong> Bengaluru, Karnataka 560001, India</p>
+                    <p><strong className="text-white font-sans">Website:</strong> https://calyxo.vercel.app</p>
                   </div>
                 </section>
               </>
@@ -406,7 +334,7 @@ export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
           {/* Footer Action */}
           <div className="p-4 border-t border-white/10 bg-[#111116] flex items-center justify-between">
             <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">
-              {isPrivacy ? '🔒 Calyxo DPDP & GDPR Protection' : '⚖️ Calyxo Master Terms 2026'}
+              {isPrivacy ? '🔒 Calyxo DPDP & GDPR Protection' : '⚖️ Calyxo Production Terms 2026'}
             </span>
             <button
               type="button"
