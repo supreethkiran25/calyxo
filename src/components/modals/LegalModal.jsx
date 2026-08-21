@@ -4,15 +4,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Shield, Scale, Heart, Activity, Sparkles, FileText, Lock, Mail, AlertTriangle, Globe, Database, Smartphone, UserCheck, Server, CheckCircle2, Award, RefreshCw, Layers, Cpu, Eye } from 'lucide-react';
 
 export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
-  const [currentType, setCurrentType] = useState(type || 'terms');
-
-  useEffect(() => {
-    if (type) setCurrentType(type);
-  }, [type]);
+  const [selectedTab, setSelectedTab] = useState(null);
 
   if (!isOpen) return null;
 
-  const isPrivacy = currentType === 'privacy';
+  // Direct synchronous derivation of active tab:
+  const activeTab = selectedTab || type || 'terms';
+  const isPrivacy = activeTab === 'privacy' || activeTab === 'privacy_policy';
+
+  const handleClose = () => {
+    setSelectedTab(null);
+    onClose?.();
+  };
 
   const modalContent = (
     <AnimatePresence>
@@ -23,7 +26,7 @@ export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
           animate={{ opacity: 1 }} 
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/90 backdrop-blur-xl z-0"
-          onClick={onClose}
+          onClick={handleClose}
         />
 
         {/* Modal Dialog Card */}
@@ -37,7 +40,7 @@ export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
           <div className="p-4 sm:p-5 border-b border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#111116]/95 backdrop-blur-md sticky top-0 z-20">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-[var(--color-acid-green)]/15 border border-[var(--color-acid-green)]/30 flex items-center justify-center text-[var(--color-acid-green)] shrink-0">
-                {isPrivacy ? <Shield className="w-5 h-5" /> : <Scale className="w-5 h-5" />}
+                {isPrivacy ? <Shield className="w-5 h-5 text-cyan-400" /> : <Scale className="w-5 h-5 text-[var(--color-acid-green)]" />}
               </div>
               <div>
                 <h2 className="text-sm sm:text-base font-black text-white uppercase tracking-wider">
@@ -53,7 +56,7 @@ export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
               <div className="flex items-center bg-white/5 p-1 rounded-2xl border border-white/10">
                 <button
                   type="button"
-                  onClick={() => setCurrentType('privacy')}
+                  onClick={() => setSelectedTab('privacy')}
                   className={`py-1 px-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all cursor-pointer ${
                     isPrivacy 
                       ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm' 
@@ -64,7 +67,7 @@ export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCurrentType('terms')}
+                  onClick={() => setSelectedTab('terms')}
                   className={`py-1 px-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all cursor-pointer ${
                     !isPrivacy 
                       ? 'bg-[var(--color-acid-green)]/20 text-[var(--color-acid-green)] border border-[var(--color-acid-green)]/40 shadow-sm' 
@@ -77,7 +80,7 @@ export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
 
               <button 
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white flex items-center justify-center transition-all cursor-pointer border-none shrink-0"
                 aria-label="Close Legal Document"
               >
