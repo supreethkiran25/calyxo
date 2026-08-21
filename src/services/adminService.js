@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
-import { isMockMode, getCurrentUserIdSync, getAuthTokenSync } from '../lib/dbService';
+import { isMockMode, getCurrentUserIdSync, getAuthTokenSync, toValidUuid } from '../lib/dbService';
 import { loadExercisesData, getCachedExercises } from '../utils/exerciseSearch';
 
 
