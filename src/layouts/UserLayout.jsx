@@ -338,7 +338,10 @@ export default function UserLayout() {
   if (user && (!userProfile || userProfile.onboarded !== true)) {
     return (
       <Suspense fallback={null}>
-        <OnboardingFlow />
+        <OnboardingFlow onComplete={(completedProfile) => {
+          const updated = { ...(userProfile || {}), ...completedProfile, onboarded: true };
+          useStore.getState().setUserProfile(updated);
+        }} />
       </Suspense>
     );
   }
