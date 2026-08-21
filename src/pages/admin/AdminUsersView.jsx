@@ -13,11 +13,13 @@ import {
   Filter,
   CheckSquare,
   Shield,
-  UserCheck
+  UserCheck,
+  Bell
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminUsers, updateUserStatus, deleteUserAdmin, updateUserSubscription } from '../../services/adminService';
 import GrantPremiumModal from '../../components/admin/GrantPremiumModal';
+import NotificationComposerModal from '../../components/admin/NotificationComposerModal';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import useDebounce from '../../hooks/useDebounce';
 import { useAdminRealtime } from '../../hooks/useAdminRealtime';
@@ -39,6 +41,11 @@ const AdminUsersView = () => {
   // Bulk action state
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [confirmDialog, setConfirmDialog] = useState(null);
+
+  // Notification modal state
+  const [notifyModalOpen, setNotifyModalOpen] = useState(false);
+  const [notifyTargetUser, setNotifyTargetUser] = useState(null);
+  const [notifyTargetUserIds, setNotifyTargetUserIds] = useState([]);
 
   // Modals state
   const [grantModalUser, setGrantModalUser] = useState(null);
@@ -179,6 +186,17 @@ const AdminUsersView = () => {
 
         <div className="flex items-center gap-2">
           <button
+            onClick={() => {
+              setNotifyTargetUser(null);
+              setNotifyTargetUserIds([]);
+              setNotifyModalOpen(true);
+            }}
+            className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-600/20"
+          >
+            <Bell className="w-3.5 h-3.5" />
+            <span>Broadcast Notification</span>
+          </button>
+          <button
             onClick={exportCSV}
             className="px-3 py-1.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white text-xs font-semibold border border-neutral-800 transition-colors flex items-center gap-1.5 cursor-pointer"
           >
@@ -234,11 +252,22 @@ const AdminUsersView = () => {
           </span>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => {
+                setNotifyTargetUser(null);
+                setNotifyTargetUserIds(Array.from(selectedIds));
+                setNotifyModalOpen(true);
+              }}
+              className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              <span>Notify Selected ({selectedIds.size})</span>
+            </button>
+            <button
               onClick={handleBulkGrantHigh}
               className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1"
             >
               <Crown className="w-3.5 h-3.5" />
-              Grant High plan
+              <span>Grant High plan</span>
             </button>
           </div>
         </div>
@@ -331,6 +360,17 @@ const AdminUsersView = () => {
                       <td className="p-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
+                            onClick={() => {
+                              setNotifyTargetUser(u);
+                              setNotifyTargetUserIds([]);
+                              setNotifyModalOpen(true);
+                            }}
+                            className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-500/10 transition-colors cursor-pointer"
+                            title={`Send Notification to ${u.full_name || 'User'}`}
+                          >
+                            <Bell className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => setGrantModalUser(u)}
                             className="p-1.5 rounded-lg text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
                             title="Grant High Plan"
@@ -392,6 +432,21 @@ const AdminUsersView = () => {
           setGrantModalUser(null);
           fetchUsers();
         }}
+      />
+
+      {/* Notification Composer Modal */}
+      <NotificationComposerModal
+        isOpen={notifyModalOpen}
+        onClose={() => {
+          setNotifyModalOpen(false);
+          setNotifyTargetUser(null);
+          setNotifyTargetUserIds([]);
+        }}
+        onSuccess={() => {
+          fetchUsers();
+        }}
+        initialTargetUser={notifyTargetUser}
+        initialTargetUserIds={notifyTargetUserIds}
       />
 
       {/* Confirmation Dialog */}

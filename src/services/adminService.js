@@ -1386,11 +1386,21 @@ export const getAdminNotifications = async () => {
 export const sendAdminNotification = async (payload) => {
   const nowStr = new Date().toISOString();
   const notifId = `bc_${Date.now()}`;
+  
+  let audienceLabel = payload.audience || 'Everyone';
+  if (payload.targetUserName) {
+    audienceLabel = `Individual: ${payload.targetUserName}`;
+  } else if (payload.userId) {
+    audienceLabel = 'Individual Athlete';
+  } else if (Array.isArray(payload.userIds) && payload.userIds.length > 0) {
+    audienceLabel = `Selected (${payload.userIds.length} Athletes)`;
+  }
+
   const entry = {
     id: notifId,
     title: payload.title || 'Calyxo Announcement',
     body: payload.body || '',
-    audience: payload.audience || 'Everyone',
+    audience: audienceLabel,
     cta_label: payload.cta_label || 'View Feature',
     cta_link: payload.cta_link || '/user/dashboard',
     sent_at: nowStr,
@@ -1410,13 +1420,15 @@ export const sendAdminNotification = async (payload) => {
     // 2. Fetch target user profiles to populate in-app user_notifications table
     let targetUsers = [];
     try {
-      let query = supabase.from('user_profiles').select('id, subscription_plan');
-      if (payload.audience === 'Premium Users') {
+      let query = supabase.from('user_profiles').select('id, full_name, email, subscription_plan');
+      if (payload.userId) {
+        query = query.eq('id', payload.userId);
+      } else if (Array.isArray(payload.userIds) && payload.userIds.length > 0) {
+        query = query.in('id', payload.userIds);
+      } else if (payload.audience === 'Premium Users') {
         query = query.eq('subscription_plan', 'HIGH');
       } else if (payload.audience === 'Free Users') {
         query = query.eq('subscription_plan', 'FREE');
-      } else if (payload.userId) {
-        query = query.eq('id', payload.userId);
       }
 
       const { data: fetchedUsers, error: fetchErr } = await query;
@@ -1444,9 +1456,35 @@ export const sendAdminNotification = async (payload) => {
       console.warn('[adminService] Exception preparing in-app notifications:', inAppEx);
     }
 
-    // 3. Trigger Web Push notifications ONLY to targeted users (not all subscriptions)
+    const targetUserIds = targetUsers ? targetUsers.map(u => u.id) : [];
+
+    // 3. Supabase Realtime System Broadcast (Instant live pop-up for active iOS, Android, and Web sessions)
     try {
-      const targetUserIds = targetUsers ? targetUsers.map(u => u.id) : [];
+      const realtimeChannel = supabase.channel('calyxo_alerts_broadcast');
+      realtimeChannel.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await realtimeChannel.send({
+            type: 'broadcast',
+            event: 'ADMIN_ALERT',
+            payload: {
+              id: notifId,
+              title: entry.title,
+              body: entry.body,
+              cta_label: entry.cta_label,
+              cta_link: entry.cta_link,
+              audience: entry.audience,
+              targetUserIds,
+              created_at: nowStr
+            }
+          });
+        }
+      });
+    } catch (realtimeEx) {
+      console.warn('[adminService] Realtime alert broadcast exception:', realtimeEx);
+    }
+
+    // 4. Trigger Web Push notifications to targeted devices
+    try {
       if (targetUserIds.length > 0) {
         const { data: pushTokens } = await supabase
           .from('push_subscriptions')
@@ -1457,7 +1495,6 @@ export const sendAdminNotification = async (payload) => {
           const uniqueUserIds = [...new Set(pushTokens.map(pt => pt.user_id))];
           const token = getAuthTokenSync();
           await Promise.allSettled(
-
             uniqueUserIds.map(uid => 
               fetch('/api/push/send', {
                 method: 'POST',
@@ -1476,7 +1513,6 @@ export const sendAdminNotification = async (payload) => {
             )
           );
         }
-
       }
     } catch (pushEx) {
       console.warn('[adminService] Web push broadcast warning:', pushEx);

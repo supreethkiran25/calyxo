@@ -349,7 +349,8 @@ export function subscribeToInAppNotifications(userId, callback) {
 
   getUserNotifications(userId).then(n => callback(n));
 
-  const channel = supabase
+  // 1. Postgres changes on user_notifications table
+  const postgresChannel = supabase
     .channel(`user_notifications_${userId}`)
     .on(
       'postgres_changes',
@@ -359,13 +360,42 @@ export function subscribeToInAppNotifications(userId, callback) {
         table: 'user_notifications',
         filter: `user_id=eq.${userId}`
       },
-      () => {
-        getUserNotifications(userId).then(n => callback(n));
+      (payload) => {
+        if (payload.eventType === 'INSERT' && payload.new) {
+          triggerOSNotification(
+            payload.new.title || 'Calyxo Notification',
+            payload.new.body || '',
+            payload.new.cta_link || '/user/dashboard',
+            payload.new.notification_id || payload.new.id
+          );
+        }
+        getUserNotifications(userId).then(n => callback(n, payload.new));
       }
     )
     .subscribe();
 
+  // 2. Realtime broadcast channel for instant live delivery across active iOS, Android, and Web apps
+  const broadcastChannel = supabase
+    .channel('calyxo_alerts_broadcast')
+    .on('broadcast', { event: 'ADMIN_ALERT' }, (event) => {
+      const alert = event.payload;
+      if (!alert) return;
+      const targetUserIds = alert.targetUserIds || [];
+      // Deliver if targeted to everyone (empty targetUserIds) or explicitly targeted to this user
+      if (targetUserIds.length === 0 || targetUserIds.includes(userId)) {
+        triggerOSNotification(
+          alert.title || 'Calyxo Announcement',
+          alert.body || '',
+          alert.cta_link || '/user/dashboard',
+          alert.id
+        );
+        getUserNotifications(userId).then(n => callback(n, alert));
+      }
+    })
+    .subscribe();
+
   return () => {
-    supabase.removeChannel(channel);
+    supabase.removeChannel(postgresChannel);
+    supabase.removeChannel(broadcastChannel);
   };
 }

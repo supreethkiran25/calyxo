@@ -260,8 +260,17 @@ export default function UserLayout() {
     });
 
     // 1. In-app notifications realtime subscription
-    const unsubNotifs = subscribeToInAppNotifications(uid, (notifsList) => {
+    const unsubNotifs = subscribeToInAppNotifications(uid, (notifsList, incomingItem) => {
       setNotifications(notifsList || []);
+      if (incomingItem && incomingItem.title) {
+        toast(incomingItem.title, {
+          description: incomingItem.body,
+          action: incomingItem.cta_link ? {
+            label: incomingItem.cta_label || 'View',
+            onClick: () => navigate(incomingItem.cta_link)
+          } : undefined
+        });
+      }
     });
 
     // 2. Full cross-device realtime subscription (Food, Workout, Weight, Profile, Ecosystem/Streak)
