@@ -1408,7 +1408,13 @@ export const sendAdminNotification = async (payload) => {
     clicks: 0
   };
 
-  let recipientCount = 0;
+  let targetUserIds = [];
+
+  if (payload.userId) {
+    targetUserIds = [payload.userId];
+  } else if (Array.isArray(payload.userIds) && payload.userIds.length > 0) {
+    targetUserIds = [...payload.userIds];
+  }
 
   if (!isMockMode) {
     // 1. Insert into system_notifications table
@@ -1417,27 +1423,35 @@ export const sendAdminNotification = async (payload) => {
       if (error) console.warn('[adminService] system_notifications insert warning:', error.message);
     } catch (e) {}
 
-    // 2. Fetch target user profiles to populate in-app user_notifications table
-    let targetUsers = [];
+    // 2. Resolve all target user IDs
     try {
-      let query = supabase.from('user_profiles').select('id, full_name, email, subscription_plan');
-      if (payload.userId) {
-        query = query.eq('id', payload.userId);
-      } else if (Array.isArray(payload.userIds) && payload.userIds.length > 0) {
-        query = query.in('id', payload.userIds);
-      } else if (payload.audience === 'Premium Users') {
-        query = query.eq('subscription_plan', 'HIGH');
-      } else if (payload.audience === 'Free Users') {
-        query = query.eq('subscription_plan', 'FREE');
+      if (targetUserIds.length === 0) {
+        // If everyone or tier-filtered
+        let query = supabase.from('user_profiles').select('id, subscription_plan');
+        if (payload.audience === 'Premium Users') {
+          query = query.eq('subscription_plan', 'HIGH');
+        } else if (payload.audience === 'Free Users') {
+          query = query.eq('subscription_plan', 'FREE');
+        }
+        const { data: dbUsers } = await query;
+        const dbIds = dbUsers ? dbUsers.map(u => u.id).filter(Boolean) : [];
+        
+        // Also include master directory IDs for complete coverage
+        const masterIds = MASTER_SUPABASE_AUTH_ACCOUNTS
+          .filter(u => {
+            if (payload.audience === 'Premium Users') return u.subscription_plan === 'HIGH';
+            if (payload.audience === 'Free Users') return u.subscription_plan !== 'HIGH';
+            return true;
+          })
+          .map(u => u.id);
+
+        targetUserIds = [...new Set([...dbIds, ...masterIds])];
       }
 
-      const { data: fetchedUsers, error: fetchErr } = await query;
-
-      if (!fetchErr && fetchedUsers && fetchedUsers.length > 0) {
-        targetUsers = fetchedUsers;
-        recipientCount = targetUsers.length;
-        const userNotifEntries = targetUsers.map(u => ({
-          user_id: u.id,
+      // Batch insert into user_notifications
+      if (targetUserIds.length > 0) {
+        const userNotifEntries = targetUserIds.map(uid => ({
+          user_id: uid,
           notification_id: notifId,
           title: entry.title,
           body: entry.body,
@@ -1456,7 +1470,7 @@ export const sendAdminNotification = async (payload) => {
       console.warn('[adminService] Exception preparing in-app notifications:', inAppEx);
     }
 
-    const targetUserIds = targetUsers ? targetUsers.map(u => u.id) : [];
+    const recipientCount = targetUserIds.length;
 
     // 3. Supabase Realtime System Broadcast (Instant live pop-up for active iOS, Android, and Web sessions)
     try {
@@ -1528,7 +1542,7 @@ export const sendAdminNotification = async (payload) => {
   await logAdminAction('NOTIFICATION_SENT', entry.id, {
     title: entry.title,
     audience: entry.audience,
-    recipients: recipientCount,
+    recipients: targetUserIds.length,
     timestamp: nowStr
   });
 

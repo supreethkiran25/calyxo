@@ -214,8 +214,24 @@ export function scheduleDailyReminders() {
 }
 
 export async function subscribeToPushNotifications(userId) {
-  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+  if (Capacitor.isNativePlatform()) {
     const perm = await requestNotificationPermission();
+    if (userId) {
+      try {
+        const platform = Capacitor.getPlatform();
+        await supabase.from('push_subscriptions').upsert({
+          user_id: userId,
+          subscription: { native: true, platform },
+          endpoint: `native-${platform}-${userId}`,
+          platform,
+          browser: 'Calyxo Native App',
+          updated_at: new Date().toISOString(),
+          last_used_at: new Date().toISOString()
+        }, { onConflict: 'endpoint' });
+      } catch (dbErr) {
+        console.warn('[NotificationService] Supabase native device registration warning:', dbErr);
+      }
+    }
     return { success: perm === 'granted' };
   }
 

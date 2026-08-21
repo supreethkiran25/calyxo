@@ -10,6 +10,7 @@ import { useStore } from '../store/useStore';
 import { loadUserData, migratePreAuthLocalState, saveWaterIntake } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import useQuickActionsStore from '../store/useQuickActionsStore';
+import { requestNotificationPermission } from '../services/notificationService';
 import { toast } from 'sonner';
 
 export default function NativeMobileBridge() {
@@ -17,6 +18,9 @@ export default function NativeMobileBridge() {
     if (!Capacitor.isNativePlatform()) {
       return;
     }
+
+    // Initialize Native Push / Local Notification Authorization
+    requestNotificationPermission().catch(() => {});
 
     // Configure Status Bar
     const initStatusBar = async () => {
