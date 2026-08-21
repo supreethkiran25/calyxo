@@ -99,6 +99,31 @@ self.addEventListener('push', (event) => {
 
   // Brand the title — always show "Calyxo" as the notification source
   const brandedTitle = data.title || 'Calyxo';
+  const isHydration = (data.title || '').includes('Hydration') || (data.tag || '').includes('water') || (data.id || '').includes('water');
+  const isMeal = (data.title || '').includes('Meal') || (data.tag || '').includes('nutrition') || (data.id || '').includes('meal');
+  const isWorkout = (data.title || '').includes('Workout') || (data.tag || '').includes('workout') || (data.id || '').includes('workout');
+
+  let defaultUrl = data.url || '/user/dashboard';
+  let actions = [];
+
+  if (isHydration) {
+    defaultUrl = '/user/dashboard?action=log_water';
+    actions = [
+      { action: 'log_water_250', title: '💧 +250ml' },
+      { action: 'log_water_500', title: '🥛 +500ml' },
+      { action: 'open_hydration', title: '⚡ Log Water' }
+    ];
+  } else if (isMeal) {
+    defaultUrl = '/user/nutrition?action=log_meal';
+    actions = [
+      { action: 'log_meal', title: '🥗 Log Meal' }
+    ];
+  } else if (isWorkout) {
+    defaultUrl = '/user/workout?action=log_workout';
+    actions = [
+      { action: 'start_workout', title: '🏋️ Start Workout' }
+    ];
+  }
 
   const options = {
     body: data.body,
@@ -109,16 +134,30 @@ self.addEventListener('push', (event) => {
     renotify: false,
     requireInteraction: false,
     silent: false,
-    data: { url: data.url || '/user/dashboard' }
+    data: { url: defaultUrl },
+    actions: actions
   };
 
   event.waitUntil(self.registration.showNotification(brandedTitle, options));
 });
 
-// Handle Notification Click
+// Handle Notification Click & Interactive Action Taps
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || '/user/dashboard';
+  let targetUrl = (event.notification.data && event.notification.data.url) || '/user/dashboard';
+
+  // Handle specific action button taps
+  if (event.action === 'log_water_250' || event.action === 'log-250') {
+    targetUrl = '/user/dashboard?action=log_water_250';
+  } else if (event.action === 'log_water_500' || event.action === 'log-500') {
+    targetUrl = '/user/dashboard?action=log_water_500';
+  } else if (event.action === 'open_hydration' || event.action === 'open-logger') {
+    targetUrl = '/user/dashboard?action=log_water';
+  } else if (event.action === 'log_meal') {
+    targetUrl = '/user/nutrition?action=log_meal';
+  } else if (event.action === 'start_workout') {
+    targetUrl = '/user/workout?action=log_workout';
+  }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
@@ -150,23 +189,49 @@ self.addEventListener('sync', (event) => {
   }
 });
 
-// Message Event Listener
+// Message Event Listener (Scheduled Local Notifications)
 self.addEventListener('message', (event) => {
   const data = event.data;
   if (!data || !data.type) return;
 
   if (data.type === 'SCHEDULE_NOTIFICATION') {
+    const isHydration = (data.title || '').includes('Hydration') || (data.tag || '').includes('water') || (data.id || '').includes('water');
+    const isMeal = (data.title || '').includes('Meal') || (data.tag || '').includes('nutrition') || (data.id || '').includes('meal');
+    const isWorkout = (data.title || '').includes('Workout') || (data.tag || '').includes('workout') || (data.id || '').includes('workout');
+
+    let defaultUrl = '/user/dashboard';
+    let actions = [];
+
+    if (isHydration) {
+      defaultUrl = '/user/dashboard?action=log_water';
+      actions = [
+        { action: 'log_water_250', title: '💧 +250ml' },
+        { action: 'log_water_500', title: '🥛 +500ml' },
+        { action: 'open_hydration', title: '⚡ Log Water' }
+      ];
+    } else if (isMeal) {
+      defaultUrl = '/user/nutrition?action=log_meal';
+      actions = [
+        { action: 'log_meal', title: '🥗 Log Meal' }
+      ];
+    } else if (isWorkout) {
+      defaultUrl = '/user/workout?action=log_workout';
+      actions = [
+        { action: 'start_workout', title: '🏋️ Start Workout' }
+      ];
+    }
+
     const options = {
       body: data.body,
       icon: '/icon-192x192.png',
       badge: '/icon-192x192.png',
       tag: data.tag || data.id,
       vibrate: [300, 100, 300],
-      data: { url: '/user/dashboard' }
+      data: { url: defaultUrl },
+      actions: actions
     };
     setTimeout(() => {
       self.registration.showNotification(data.title, options);
     }, Math.max(100, data.delayMs || 0));
   }
-
 });

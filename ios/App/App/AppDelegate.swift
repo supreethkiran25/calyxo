@@ -18,9 +18,63 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Register as UNUserNotificationCenterDelegate so notification taps
-        // are captured for deep-linking into the workout screen.
+        // and interactive actions are captured for deep-linking
         UNUserNotificationCenter.current().delegate = self
+        registerNotificationCategories()
         return true
+    }
+
+    private func registerNotificationCategories() {
+        // Hydration Category Actions
+        let log250Action = UNNotificationAction(
+            identifier: "LOG_WATER_250",
+            title: "💧 +250ml",
+            options: [.foreground]
+        )
+        let log500Action = UNNotificationAction(
+            identifier: "LOG_WATER_500",
+            title: "🥛 +500ml",
+            options: [.foreground]
+        )
+        let openWaterAction = UNNotificationAction(
+            identifier: "OPEN_HYDRATION",
+            title: "⚡ Log Water",
+            options: [.foreground]
+        )
+        let hydrationCategory = UNNotificationCategory(
+            identifier: "CALYXO_HYDRATION_CATEGORY",
+            actions: [log250Action, log500Action, openWaterAction],
+            intentIdentifiers: [],
+            options: []
+        )
+
+        // Meal Category Actions
+        let logMealAction = UNNotificationAction(
+            identifier: "LOG_MEAL",
+            title: "🥗 Log Meal",
+            options: [.foreground]
+        )
+        let mealCategory = UNNotificationCategory(
+            identifier: "CALYXO_MEAL_CATEGORY",
+            actions: [logMealAction],
+            intentIdentifiers: [],
+            options: []
+        )
+
+        // Workout Category Actions
+        let startWorkoutAction = UNNotificationAction(
+            identifier: "START_WORKOUT",
+            title: "🏋️ Start Workout",
+            options: [.foreground]
+        )
+        let workoutCategory = UNNotificationCategory(
+            identifier: "CALYXO_WORKOUT_CATEGORY",
+            actions: [startWorkoutAction],
+            intentIdentifiers: [],
+            options: []
+        )
+
+        UNUserNotificationCenter.current().setNotificationCategories([hydrationCategory, mealCategory, workoutCategory])
     }
 
     func applicationWillResignActive(_ application: UIApplication) {}
@@ -116,16 +170,16 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         print("[CALYXO-PUSH] Notification tapped. userInfo keys: \(userInfo.keys.map { $0 })")
 
         var deepLink: [String: Any] = [:]
+        deepLink["action"] = response.actionIdentifier
         if let type_ = userInfo["type"] as? String       { deepLink["type"] = type_ }
         if let workoutId = userInfo["workoutId"] as? String { deepLink["workoutId"] = workoutId }
         if let exName = userInfo["exerciseName"] as? String { deepLink["exerciseName"] = exName }
         if let setNum = userInfo["setNumber"] as? Int       { deepLink["setNumber"] = setNum }
         if let notifId = userInfo["notificationId"] as? String { deepLink["notificationId"] = notifId }
+        if let tag = userInfo["tag"] as? String { deepLink["tag"] = tag }
 
-        if !deepLink.isEmpty {
-            AppDelegate.pendingNotificationDeepLink = deepLink
-            print("[CALYXO-PUSH] Deep-link queued for JS: \(deepLink)")
-        }
+        AppDelegate.pendingNotificationDeepLink = deepLink
+        print("[CALYXO-PUSH] Deep-link action queued for JS: \(deepLink)")
 
         completionHandler()
     }

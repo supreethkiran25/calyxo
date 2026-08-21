@@ -89,11 +89,25 @@ public class CalyxoNotificationPlugin: CAPPlugin, CAPBridgedPlugin {
 
         // Attach deep-link metadata so notification taps can route correctly
         var userInfo: [AnyHashable: Any] = ["notificationId": identifier]
-        if let type_ = call.getString("type") { userInfo["type"] = type_ }
+        let type_ = call.getString("type") ?? ""
+        let tag_ = call.getString("tag") ?? ""
+        if !type_.isEmpty { userInfo["type"] = type_ }
+        if !tag_.isEmpty { userInfo["tag"] = tag_ }
         if let workoutId = call.getString("workoutId") { userInfo["workoutId"] = workoutId }
         if let exerciseName = call.getString("exerciseName") { userInfo["exerciseName"] = exerciseName }
         if let setNumber = call.getInt("setNumber") { userInfo["setNumber"] = setNumber }
         content.userInfo = userInfo
+
+        // Automatically assign interactive notification category
+        let lowerTitle = title.lowercased()
+        let lowerId = identifier.lowercased()
+        if lowerTitle.contains("hydration") || lowerTitle.contains("water") || lowerId.contains("water") || tag_.contains("water") || type_ == "hydration" {
+            content.categoryIdentifier = "CALYXO_HYDRATION_CATEGORY"
+        } else if lowerTitle.contains("meal") || lowerTitle.contains("nutrition") || lowerId.contains("meal") || tag_.contains("nutrition") || type_ == "meal" {
+            content.categoryIdentifier = "CALYXO_MEAL_CATEGORY"
+        } else if lowerTitle.contains("workout") || lowerId.contains("workout") || tag_.contains("workout") || type_ == "workout" {
+            content.categoryIdentifier = "CALYXO_WORKOUT_CATEGORY"
+        }
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(delaySeconds), repeats: false)
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)

@@ -7,8 +7,10 @@ import { Browser } from '@capacitor/browser';
 import { Keyboard } from '@capacitor/keyboard';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../store/useStore';
-import { loadUserData, migratePreAuthLocalState } from '../lib/dbService';
+import { loadUserData, migratePreAuthLocalState, saveWaterIntake } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
+import useQuickActionsStore from '../store/useQuickActionsStore';
+import { toast } from 'sonner';
 
 export default function NativeMobileBridge() {
   useEffect(() => {
@@ -143,15 +145,41 @@ export default function NativeMobileBridge() {
           const { CalyxoNotification } = Capacitor.Plugins;
           if (CalyxoNotification) {
             const deepLink = await CalyxoNotification.getPendingDeepLink();
-            if (deepLink && deepLink.type === 'rest_completed') {
+            if (deepLink) {
               console.log('[NativeMobileBridge] Consumed notification tap deep link:', deepLink);
-              // Direct navigation to the workout tab in the user dashboard
-              useStore.getState().setActiveTab('workout');
-              if (window.location.pathname !== '/user/dashboard') {
-                window.history.pushState(null, '', '/user/dashboard');
-                window.dispatchEvent(new Event('popstate'));
+              const action = deepLink.action || '';
+              const type = deepLink.type || '';
+              const tag = deepLink.tag || deepLink.notificationId || '';
+
+              if (action === 'LOG_WATER_250' || action === 'log_water_250') {
+                useStore.getState().addWaterIntake(250);
+                const user = useStore.getState().user;
+                if (user?.uid || user?.id) {
+                  saveWaterIntake(user.uid || user.id, useStore.getState().waterIntake);
+                }
+                toast.success('💧 Quick Log: +250ml water recorded!');
+              } else if (action === 'LOG_WATER_500' || action === 'log_water_500') {
+                useStore.getState().addWaterIntake(500);
+                const user = useStore.getState().user;
+                if (user?.uid || user?.id) {
+                  saveWaterIntake(user.uid || user.id, useStore.getState().waterIntake);
+                }
+                toast.success('🥛 Quick Log: +500ml water recorded!');
+              } else if (action === 'OPEN_HYDRATION' || action === 'open_hydration' || type === 'hydration' || tag.includes('water')) {
+                useQuickActionsStore.getState().setActiveWorkflow('log_water');
+              } else if (action === 'LOG_MEAL' || action === 'log_meal' || type === 'meal' || tag.includes('nutrition') || tag.includes('meal')) {
+                useQuickActionsStore.getState().setActiveWorkflow('log_meal');
+              } else if (action === 'START_WORKOUT' || action === 'start_workout' || type === 'workout' || tag.includes('workout')) {
+                useQuickActionsStore.getState().setActiveWorkflow('log_workout');
+              } else if (type === 'rest_completed') {
+                // Direct navigation to the workout tab in the user dashboard
+                useStore.getState().setActiveTab('workout');
+                if (window.location.pathname !== '/user/dashboard') {
+                  window.history.pushState(null, '', '/user/dashboard');
+                  window.dispatchEvent(new Event('popstate'));
+                }
+                window.dispatchEvent(new CustomEvent('calyxo_workout_focus', { detail: deepLink }));
               }
-              window.dispatchEvent(new CustomEvent('calyxo_workout_focus', { detail: deepLink }));
             }
           }
         } catch (e) {

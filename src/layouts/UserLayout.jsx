@@ -111,6 +111,39 @@ export default function UserLayout() {
   const activeWorkflow = useQuickActionsStore(state => state.activeWorkflow);
 
   useEffect(() => {
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const action = searchParams.get('action');
+      if (action) {
+        if (action === 'log_water_250') {
+          useStore.getState().addWaterIntake(250);
+          const user = useStore.getState().user;
+          if (user?.uid || user?.id) {
+            import('../lib/dbService').then(m => m.saveWaterIntake(user.uid || user.id, useStore.getState().waterIntake));
+          }
+          import('sonner').then(m => m.toast.success('💧 Quick Log: +250ml water recorded!'));
+        } else if (action === 'log_water_500') {
+          useStore.getState().addWaterIntake(500);
+          const user = useStore.getState().user;
+          if (user?.uid || user?.id) {
+            import('../lib/dbService').then(m => m.saveWaterIntake(user.uid || user.id, useStore.getState().waterIntake));
+          }
+          import('sonner').then(m => m.toast.success('🥛 Quick Log: +500ml water recorded!'));
+        } else if (action === 'log_water') {
+          useQuickActionsStore.getState().setActiveWorkflow('log_water');
+        } else if (action === 'log_meal') {
+          useQuickActionsStore.getState().setActiveWorkflow('log_meal');
+        } else if (action === 'log_workout') {
+          useQuickActionsStore.getState().setActiveWorkflow('log_workout');
+        }
+        // Clean URL parameter without triggering full reload
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    } catch (e) {}
+  }, [location.search]);
+
+  useEffect(() => {
     if (activeWorkflow === 'start_live_session' && pathname !== '/user/workout') {
       navigate('/user/workout');
     }
