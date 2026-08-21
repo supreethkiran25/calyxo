@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Shield, Scale, Heart, Activity, Sparkles, FileText, Lock, Mail, AlertTriangle, Globe, Database, Smartphone, UserCheck, Server, CheckCircle2, Award, RefreshCw, Layers, Cpu } from 'lucide-react';
+import { X, Shield, Scale, Heart, Activity, Sparkles, FileText, Lock, Mail, AlertTriangle, Globe, Database, Smartphone, UserCheck, Server, CheckCircle2, Award, RefreshCw, Layers, Cpu, Eye } from 'lucide-react';
 
 export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
   if (!isOpen) return null;
