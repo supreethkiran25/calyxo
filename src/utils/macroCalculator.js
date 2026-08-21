@@ -44,14 +44,18 @@ export function calculateMacroTargets(params = {}) {
   const tdee = Math.round(bmr * numActivity);
 
   let calorieGoal = tdee;
-  if (goal === 'lose') calorieGoal = tdee - 500;
-  else if (goal === 'gains') calorieGoal = tdee + 350;
+  const isLoss = goal === 'lose' || goal === 'lose_body_fat' || goal === 'fat_loss';
+  const isGain = goal === 'gains' || goal === 'build_muscle' || goal === 'muscle_gain' || goal === 'get_stronger';
+
+  if (isLoss) calorieGoal = tdee - 500;
+  else if (isGain) calorieGoal = tdee + 350;
 
   const minCals = gender === 'male' ? 1500 : 1200;
   calorieGoal = Math.max(calorieGoal, minCals);
 
-  // Protein: 2.0g per kg of body weight (60g - 250g)
-  const protein = Math.min(Math.max(Math.round(wkg * 2.0), 60), 250);
+  // Protein multiplier: 2.2g/kg if high_protein or gain, else 2.0g/kg
+  const proteinMultiplier = (params.nutritionPriority === 'high_protein' || isGain) ? 2.2 : 2.0;
+  const protein = Math.min(Math.max(Math.round(wkg * proteinMultiplier), 60), 260);
   // Fat: 25% of calories divided by 9 cal/g (30g - 150g)
   const fat = Math.min(Math.max(Math.round((calorieGoal * 0.25) / 9), 30), 150);
   // Carbs: Remaining calories / 4 cal/g (minimum 50g)

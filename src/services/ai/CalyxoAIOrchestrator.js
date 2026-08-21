@@ -15,6 +15,7 @@ import { AIToolRegistry } from './AIToolRegistry.js';
 import { ExplainableAICoachService } from './ExplainableAICoachService.js';
 import { UnsupervisedAIAdaptiveEngine } from './UnsupervisedAIAdaptiveEngine.js';
 import { SubscriptionManager, AI_CAPABILITIES } from '../subscription/SubscriptionManager.js';
+import { UserIntelligenceProfile } from '../onboarding/UserIntelligenceProfile.js';
 
 export const AI_INTENTS = {
   GREETING_OR_CONVERSATIONAL: 'GREETING_OR_CONVERSATIONAL',
