@@ -407,23 +407,30 @@ export const signInWithApple = async (remember = true) => {
     return mockUser;
   }
   const isNative = typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform();
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'apple',
-    options: {
-      redirectTo: getAuthRedirectUrl(),
-      skipBrowserRedirect: isNative
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo: getAuthRedirectUrl(),
+        skipBrowserRedirect: isNative
+      }
+    });
+    if (error) {
+      if (error.message?.includes('missing OAuth secret') || error.message?.includes('provider is not enabled') || error.status === 400) {
+        throw new Error("Apple Sign-In is pending Apple Developer OAuth Secret setup in Supabase Dashboard (Authentication > Providers > Apple). Please use Google or Email in the meantime.");
+      }
+      throw error;
     }
-  });
-  if (error) {
-    if (error.message?.includes('provider is not enabled') || error.status === 400) {
-      throw new Error("Apple Sign-In is not enabled in your Supabase Auth Providers settings. Please enable Apple provider in Supabase Dashboard.");
+    if (isNative && data?.url) {
+      await Browser.open({ url: data.url, windowName: '_self' });
     }
-    throw error;
+    return data;
+  } catch (err) {
+    if (err.message?.includes('missing OAuth secret') || err.message?.includes('validation_failed')) {
+      throw new Error("Apple Sign-In is pending Apple Developer OAuth Secret setup in Supabase Dashboard (Authentication > Providers > Apple). Please use Google or Email in the meantime.");
+    }
+    throw err;
   }
-  if (isNative && data?.url) {
-    await Browser.open({ url: data.url, windowName: '_self' });
-  }
-  return data;
 };
 
 export const signOutUser = async () => {
