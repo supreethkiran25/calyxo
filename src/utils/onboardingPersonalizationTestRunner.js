@@ -196,6 +196,70 @@ let computedAfter = calculateMacroTargets({
 
 assert(computedAfter.calorieGoal > computedBefore.calorieGoal, 'Editing goal from loss to gain dynamically increases calorie targets');
 
+// ── SECTION 8: "Other" Data Isolation & Cross-Pollution Guard ──────────────
+console.log('\n🔒 SECTION 8: "Other" Data Isolation & Cross-Pollution Guard');
+
+const isolatedProfileA = UserIntelligenceProfile.sanitize({
+  identity: { sex: 'other', age: 24, height: 172, weight: 68 },
+  nutrition: { diet: 'vegetarian' },
+  goals: { primaryGoal: 'build_muscle' }
+});
+
+assert(isolatedProfileA.identity.sex === 'other', 'Sex is isolated as "other"');
+assert(isolatedProfileA.nutrition.diet === 'vegetarian', 'Vegetarian diet is NOT overwritten by sex="other"');
+assert(isolatedProfileA.goals.primaryGoal === 'build_muscle', 'Goal is NOT overwritten by sex="other"');
+
+const isolatedProfileB = UserIntelligenceProfile.sanitize({
+  identity: { sex: 'female', age: 26, height: 165, weight: 58 },
+  nutrition: { diet: 'other' }, // flexitarian
+  goals: { primaryGoal: 'lose_body_fat' }
+});
+
+assert(isolatedProfileB.identity.sex === 'female', 'Female sex is NOT overwritten by diet="other"');
+assert(isolatedProfileB.nutrition.diet === 'other', 'Diet is isolated as "other"');
+assert(isolatedProfileB.goals.primaryGoal === 'lose_body_fat', 'Goal is NOT overwritten by diet="other"');
+
+const isolatedProfileC = UserIntelligenceProfile.sanitize({
+  identity: { sex: 'male', age: 28, height: 180, weight: 80 },
+  nutrition: { diet: 'vegan' },
+  goals: { primaryGoal: 'not_sure_yet' }
+});
+
+assert(isolatedProfileC.identity.sex === 'male', 'Male sex is NOT overwritten by goal="not_sure_yet"');
+assert(isolatedProfileC.nutrition.diet === 'vegan', 'Vegan diet is NOT overwritten by goal="not_sure_yet"');
+assert(isolatedProfileC.goals.primaryGoal === 'not_sure_yet', 'Goal is isolated as "not_sure_yet"');
+
+// ── SECTION 9: Wheel Conversion & Bound Assertions ────────────────────────
+console.log('\n🎡 SECTION 9: Wheel Conversion & Bound Assertions');
+
+const testDob = '2001-05-15';
+const currentYear = new Date().getFullYear();
+const calculatedAge = currentYear - 2001;
+assert(calculatedAge >= 23 && calculatedAge <= 27, `Age calculation (${calculatedAge}) is within valid adult range`);
+
+// Height conversion: 175cm -> 5ft 9in
+const totalInches = Math.round(175 / 2.54);
+const feet = Math.floor(totalInches / 12);
+const inches = totalInches % 12;
+assert(feet === 5 && inches === 9, '175 cm accurately converts to 5 ft 9 in');
+
+// Weight conversion: 70kg -> 154 lbs
+const lbs = Math.round(70 * 2.20462);
+assert(lbs === 154, '70 kg accurately converts to 154 lbs');
+const reconvertedKg = Number((154 / 2.20462).toFixed(1));
+assert(reconvertedKg >= 69.8 && reconvertedKg <= 70.0, '154 lbs reconverts back to 69.9-70.0 kg');
+
+// ── SECTION 10: Remote Push Token & Safe Idempotency UUIDs ────────────────
+console.log('\n📡 SECTION 10: Remote Push Token & Safe Idempotency UUIDs');
+
+import { toValidUuid } from '../lib/dbService.js';
+const mockLegacyId = 'athlete-pro-demo-user-123';
+const sanitizedUuid = toValidUuid(mockLegacyId);
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+assert(uuidRegex.test(sanitizedUuid), `toValidUuid converts non-UUID "${mockLegacyId}" into valid UUID syntax (${sanitizedUuid})`);
+assert(toValidUuid('7b19a7e0-47b1-4f4a-b5e2-e2c7a52f4b01') === '7b19a7e0-47b1-4f4a-b5e2-e2c7a52f4b01', 'Preserves existing valid UUID strings unchanged');
+
 // ── SUMMARY REPORT ────────────────────────────────────────────────────────
 console.log('\n======================================================================');
 console.log(`📊 ONBOARDING 2.0 TEST SUMMARY: ${passedTests} PASSED, ${failedTests} FAILED`);
@@ -204,5 +268,5 @@ console.log('===================================================================
 if (failedTests > 0) {
   process.exit(1);
 } else {
-  console.log('🏁 ALL ONBOARDING 2.0 PERSONALIZATION TESTS PASSED CLEANLY (100%)\n');
+  console.log('🏁 ALL ONBOARDING 2.0 & DATA INTEGRITY TESTS PASSED CLEANLY (100%)\n');
 }

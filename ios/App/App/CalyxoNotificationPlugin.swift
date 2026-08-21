@@ -13,10 +13,19 @@ public class CalyxoNotificationPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "getPermissionStatus", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "requestPermissions", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "registerForPush", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getApnsToken", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "scheduleLocalNotification", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "cancelLocalNotification", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getPendingDeepLink", returnType: CAPPluginReturnPromise)
     ]
+
+    @objc public func getApnsToken(_ call: CAPPluginCall) {
+        if let token = AppDelegate.apnsDeviceToken {
+            call.resolve(["token": token])
+        } else {
+            call.resolve(["token": NSNull()])
+        }
+    }
 
     @objc public func getPermissionStatus(_ call: CAPPluginCall) {
         UNUserNotificationCenter.current().getNotificationSettings { settings in

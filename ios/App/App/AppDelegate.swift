@@ -102,10 +102,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     // MARK: - APNs Remote Notifications
 
+    static var apnsDeviceToken: String? = nil
+
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
         let token = tokenParts.joined()
-        // NOTE: Do not log full token in production builds.
+        AppDelegate.apnsDeviceToken = token
         print("[CALYXO-PUSH] APNs registration SUCCEEDED. Token length: \(token.count) chars")
     }
 

@@ -213,18 +213,30 @@ export function scheduleDailyReminders() {
   });
 }
 
+import { toValidUuid } from '../lib/dbService.js';
+
 export async function subscribeToPushNotifications(userId) {
   if (Capacitor.isNativePlatform()) {
     const perm = await requestNotificationPermission();
     if (userId) {
       try {
         const platform = Capacitor.getPlatform();
+        let pushToken = null;
+        if (platform === 'ios') {
+          try {
+            const { CalyxoNotification } = Capacitor.Plugins;
+            if (CalyxoNotification && CalyxoNotification.getApnsToken) {
+              const res = await CalyxoNotification.getApnsToken();
+              pushToken = res?.token || null;
+            }
+          } catch (e) {}
+        }
         await supabase.from('push_subscriptions').upsert({
-          user_id: userId,
-          subscription: { native: true, platform },
+          user_id: toValidUuid(userId),
+          subscription: { native: true, platform, pushToken, permissionStatus: perm },
           endpoint: `native-${platform}-${userId}`,
           platform,
-          browser: 'Calyxo Native App',
+          browser: `Calyxo Native ${platform.toUpperCase()}`,
           updated_at: new Date().toISOString(),
           last_used_at: new Date().toISOString()
         }, { onConflict: 'endpoint' });
