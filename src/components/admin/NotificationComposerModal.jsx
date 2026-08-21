@@ -59,15 +59,28 @@ const NotificationComposerModal = ({
     }
   }, [isOpen, initialTargetUser, initialTargetUserIds]);
 
+  // Initial load of athletes when modal opens or Individual tab is selected
+  useEffect(() => {
+    if (isOpen) {
+      setIsSearchingUsers(true);
+      getAdminUsers({ search: '', limit: 10 })
+        .then(res => {
+          setUserSearchResults(res.users || []);
+        })
+        .catch(err => {
+          console.warn('[NotificationComposerModal] Preloading athletes notice:', err);
+        })
+        .finally(() => {
+          setIsSearchingUsers(false);
+        });
+    }
+  }, [isOpen]);
+
   // Live athlete search for individual targeting
   const searchUsers = useCallback(async (query) => {
-    if (!query || query.trim().length < 2) {
-      setUserSearchResults([]);
-      return;
-    }
     setIsSearchingUsers(true);
     try {
-      const res = await getAdminUsers({ search: query.trim(), limit: 6 });
+      const res = await getAdminUsers({ search: (query || '').trim(), limit: 12 });
       setUserSearchResults(res.users || []);
     } catch (e) {
       console.warn('Error searching users for notification:', e);
@@ -103,7 +116,7 @@ const NotificationComposerModal = ({
           : (audience === 'Selected' ? `Selected (${selectedUserIds.length} Athletes)` : audience),
         cta_label: formData.cta_label.trim() || 'View',
         cta_link: formData.cta_link.trim() || '/user/dashboard',
-        userId: audience === 'Individual' ? targetUser?.id : undefined,
+        userId: audience === 'Individual' ? (targetUser?.id || targetUser?.userId) : undefined,
         userIds: audience === 'Selected' ? Array.from(selectedUserIds) : undefined,
         targetUserName: targetUser?.full_name
       };
@@ -112,7 +125,7 @@ const NotificationComposerModal = ({
       toast.success(
         audience === 'Individual'
           ? `Notification dispatched to ${targetUser?.full_name || 'Athlete'}!`
-          : `Broadcast notification successfully sent!`
+          : `Broadcast notification successfully sent to ${audience}!`
       );
       if (typeof onSuccess === 'function') onSuccess();
       onClose();
@@ -179,9 +192,19 @@ const NotificationComposerModal = ({
                   {aud === 'Individual' && <User className="w-3 h-3" />}
                   {aud === 'Selected' && <CheckCircle2 className="w-3 h-3 text-acid-green" />}
                   {aud === 'Premium Users' && <Crown className="w-3 h-3 text-amber-400" />}
+                  {aud === 'Free Users' && <User className="w-3 h-3 text-slate-400" />}
                   <span>{aud === 'Selected' ? `Selected (${selectedUserIds.length})` : aud}</span>
                 </button>
               ))}
+            </div>
+
+            {/* Audience Context Info Banner */}
+            <div className="mt-2 text-[11px] text-neutral-400 bg-neutral-950/60 p-2 rounded-xl border border-neutral-800/80">
+              {audience === 'Everyone' && '🌐 Dispatches to all active athletes across iOS, Android, and Web.'}
+              {audience === 'Individual' && (targetUser ? `🎯 Targeted to: ${targetUser.full_name || targetUser.email}` : '🔍 Select an athlete from the list below.')}
+              {audience === 'Premium Users' && '👑 Dispatches exclusively to all Calyxo High / Pro Tier subscribers.'}
+              {audience === 'Free Users' && '🌱 Dispatches to all Standard / Free tier athletes.'}
+              {audience === 'Selected' && `✅ Dispatches to ${selectedUserIds.length} specifically selected athletes.`}
             </div>
           </div>
 
@@ -189,12 +212,12 @@ const NotificationComposerModal = ({
           {audience === 'Individual' && (
             <div className="p-3 rounded-2xl bg-neutral-950/80 border border-blue-500/30 space-y-2.5">
               {targetUser ? (
-                <div className="flex items-center justify-between p-2 rounded-xl bg-neutral-900 border border-neutral-800">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-900 border border-blue-500/40 shadow-sm">
                   <div className="flex items-center gap-2.5">
                     <img 
                       src={targetUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(targetUser.full_name || 'User')}&background=1a1a2e&color=3B82F6&bold=true`}
                       alt={targetUser.full_name}
-                      className="w-7 h-7 rounded-lg object-cover border border-neutral-700"
+                      className="w-8 h-8 rounded-lg object-cover border border-neutral-700"
                     />
                     <div>
                       <span className="font-bold text-white text-xs block leading-tight">{targetUser.full_name || 'Athlete'}</span>
@@ -207,34 +230,33 @@ const NotificationComposerModal = ({
                       setTargetUser(null);
                       setUserSearch('');
                     }}
-                    className="text-[10px] text-blue-400 hover:text-blue-300 font-mono cursor-pointer underline"
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 font-bold cursor-pointer transition-colors"
                   >
-                    Change Athlete
+                    Change
                   </button>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <label className="text-[11px] font-semibold text-neutral-300 block">Search Athlete Directory</label>
+                  <label className="text-[11px] font-semibold text-neutral-300 block">Select or Search Athlete Directory</label>
                   <div className="relative">
                     <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
                     <input
                       type="text"
                       value={userSearch}
                       onChange={(e) => setUserSearch(e.target.value)}
-                      placeholder="Type name, email, or user ID to search..."
+                      placeholder="Type name, email, or user ID..."
                       className="w-full pl-8 pr-3 py-2 bg-neutral-900 border border-neutral-800 rounded-xl text-white text-xs placeholder-neutral-500 focus:border-blue-500 focus:outline-none"
                     />
                   </div>
 
                   {/* Dropdown Results */}
-                  {userSearchResults.length > 0 && (
-                    <div className="max-h-36 overflow-y-auto space-y-1 p-1 bg-neutral-900 border border-neutral-800 rounded-xl">
-                      {userSearchResults.map(u => (
+                  <div className="max-h-44 overflow-y-auto space-y-1 p-1 bg-neutral-900 border border-neutral-800 rounded-xl">
+                    {userSearchResults.length > 0 ? (
+                      userSearchResults.map(u => (
                         <div
                           key={u.id}
                           onClick={() => {
                             setTargetUser(u);
-                            setUserSearchResults([]);
                             setUserSearch('');
                           }}
                           className="flex items-center justify-between p-2 rounded-lg hover:bg-neutral-800 cursor-pointer transition-colors"
@@ -245,12 +267,13 @@ const NotificationComposerModal = ({
                           </div>
                           <span className="text-[9px] px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300 font-mono">{u.subscription_plan || 'FREE'}</span>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                  {isSearchingUsers && (
-                    <p className="text-[10px] text-neutral-400 font-mono">Searching registered athletes...</p>
-                  )}
+                      ))
+                    ) : (
+                      <div className="p-3 text-center text-neutral-500 text-[11px]">
+                        {isSearchingUsers ? 'Searching athletes...' : 'No athletes found. Type to search.'}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

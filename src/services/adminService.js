@@ -1411,9 +1411,11 @@ export const sendAdminNotification = async (payload) => {
   let targetUserIds = [];
 
   if (payload.userId) {
-    targetUserIds = [payload.userId];
+    const rawId = String(payload.userId);
+    const validUuid = toValidUuid(rawId);
+    targetUserIds = [...new Set([rawId, validUuid])];
   } else if (Array.isArray(payload.userIds) && payload.userIds.length > 0) {
-    targetUserIds = [...payload.userIds];
+    targetUserIds = [...new Set(payload.userIds.flatMap(uid => [String(uid), toValidUuid(String(uid))]))];
   }
 
   if (!isMockMode) {
@@ -1426,11 +1428,15 @@ export const sendAdminNotification = async (payload) => {
     // 2. Resolve all target user IDs
     try {
       if (targetUserIds.length === 0) {
-        // If everyone or tier-filtered, query all user tables
+        const aud = String(payload.audience || audienceLabel || '');
+        const isPremium = aud.toLowerCase().includes('premium');
+        const isFree = aud.toLowerCase().includes('free');
+
+        // Query user_profiles
         let query = supabase.from('user_profiles').select('id, subscription_plan');
-        if (payload.audience === 'Premium Users') {
+        if (isPremium) {
           query = query.eq('subscription_plan', 'HIGH');
-        } else if (payload.audience === 'Free Users') {
+        } else if (isFree) {
           query = query.eq('subscription_plan', 'FREE');
         }
         const { data: dbUsers } = await query;
@@ -1446,8 +1452,8 @@ export const sendAdminNotification = async (payload) => {
         // Also include master directory IDs for complete coverage
         const masterIds = MASTER_SUPABASE_AUTH_ACCOUNTS
           .filter(u => {
-            if (payload.audience === 'Premium Users') return u.subscription_plan === 'HIGH';
-            if (payload.audience === 'Free Users') return u.subscription_plan !== 'HIGH';
+            if (isPremium) return u.subscription_plan === 'HIGH';
+            if (isFree) return u.subscription_plan !== 'HIGH';
             return true;
           })
           .map(u => u.id);

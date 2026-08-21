@@ -411,10 +411,14 @@ export function subscribeToInAppNotifications(userId, callback) {
       
       const targetUserIds = Array.isArray(alert.targetUserIds) ? alert.targetUserIds : [];
       const currentUid = String(userId || '').trim().toLowerCase();
+      const currentValidUuid = toValidUuid(currentUid);
       
       const isMatch = alert.isBroadcast === true || 
                       targetUserIds.length === 0 || 
-                      targetUserIds.some(tid => String(tid).trim().toLowerCase() === currentUid);
+                      targetUserIds.some(tid => {
+                        const strTid = String(tid || '').trim().toLowerCase();
+                        return strTid === currentUid || strTid === currentValidUuid || toValidUuid(strTid) === currentValidUuid;
+                      });
 
       if (isMatch) {
         // Trigger OS notification banner (native iOS/Android or Web Push/PWA)
