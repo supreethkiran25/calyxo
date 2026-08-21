@@ -17,9 +17,10 @@ import { useEcosystemStore } from '../store/useEcosystemStore';
 import useQuickActionsStore from '../store/useQuickActionsStore';
 import LiveWorkoutSessionModal from './modals/LiveWorkoutSessionModal';
 import LiveWorkoutDashboard from './liveWorkout/LiveWorkoutDashboard.jsx';
-import ChallengeModule from './workout/ChallengeModule';
 import AIWorkoutCoachCard from './workout/AIWorkoutCoachCard.jsx';
 import PremiumFeatureModal from './modals/PremiumFeatureModal.jsx';
+import CalendarDatePicker from './common/CalendarDatePicker.jsx';
+import NumberWheelPicker from './common/NumberWheelPicker.jsx';
 import {
   Plus, Dumbbell, Clock, Edit3, X, Check, Search, Trophy, Activity, Move,
   PersonStanding, Target, User, Crosshair, Heart, Share2, ChevronLeft, ChevronRight,
@@ -200,6 +201,7 @@ const FallbackIcon = ({ category, muscleGroup, className }) => {
 
 export default function WorkoutLogger({ onNotification }) {
   const user = useStore(state => state.user);
+  const userProfile = useStore(state => state.userProfile);
   const workoutLogs = useStore(state => state.workoutLogs);
   const setWorkoutLogs = useStore(state => state.setWorkoutLogs);
   const addWorkoutLogStore = useStore(state => state.addWorkoutLog);
@@ -1315,45 +1317,16 @@ export default function WorkoutLogger({ onNotification }) {
               <div className="glass border border-card-border rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-md">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-acid-green" />
-                  <span className="text-xs font-bold text-foreground uppercase tracking-wider">Workout Date History</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handlePrevDate}
-                    className="p-1.5 rounded-lg bg-surface border border-card-border hover:border-acid-green text-muted hover:text-foreground transition-colors cursor-pointer"
-                    title="Previous Day"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-
-                  <div className="relative flex items-center bg-[var(--input)] border border-card-border px-3 py-1.5 rounded-xl">
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                      className="bg-transparent text-xs font-bold text-foreground focus:outline-none cursor-pointer"
-                    />
-                    <span className="ml-2 text-[10px] font-extrabold text-acid-green uppercase">
-                      ({formatDisplayDate(selectedDate)})
-                    </span>
+                  <div>
+                    <span className="text-xs font-bold text-foreground uppercase tracking-wider block">Workout History</span>
+                    <span className="text-[10px] text-muted">{selectedDateWorkoutLogs.length} exercise(s) logged</span>
                   </div>
-
-                  <button
-                    onClick={handleNextDate}
-                    className="p-1.5 rounded-lg bg-surface border border-card-border hover:border-acid-green text-muted hover:text-foreground transition-colors cursor-pointer"
-                    title="Next Day"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    onClick={handleTodayDate}
-                    className="px-2.5 py-1.5 rounded-xl bg-acid-green text-accent-foreground text-[10px] font-black uppercase tracking-wider cursor-pointer border-none"
-                  >
-                    Today
-                  </button>
                 </div>
+
+                <CalendarDatePicker
+                  selectedDate={selectedDate}
+                  onSelectDate={(newDate) => setSelectedDate(newDate)}
+                />
               </div>
 
 

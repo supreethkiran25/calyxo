@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, Calendar, Flame, Sparkles, Filter, X } from 'lucide-react';
+import CalendarDatePicker from '../common/CalendarDatePicker.jsx';
 
 export default function MacroAnalyticsBar({
   selectedDate,
@@ -67,16 +68,19 @@ export default function MacroAnalyticsBar({
   ];
 
   return (
-    <section className="bg-surface border border-card-border rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm space-y-4">
-      {/* Top Header & Minimal Date Switcher */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-card-border pb-3.5">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-acid-green/10 flex items-center justify-center text-acid-green shrink-0">
-            <Flame className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+    <div className="glass border border-card-border rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xl space-y-4 sm:space-y-6 relative overflow-hidden">
+      {/* Top Header Row with Date Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-card-border/60">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-acid-green/15 border border-acid-green/30 flex items-center justify-center text-acid-green shrink-0">
+            <Flame className="w-5 h-5 animate-pulse" />
           </div>
           <div>
-            <h2 className="text-sm sm:text-base font-bold text-foreground tracking-tight">
-              Daily Nutrition
+            <h2 className="text-base sm:text-lg font-black tracking-tight text-foreground flex items-center gap-2">
+              <span>Macro Intelligence OS</span>
+              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-muted">
+                Daily Log
+              </span>
             </h2>
             <p className="text-[11px] font-mono text-muted">
               {formatDisplayDate(selectedDate)}
@@ -85,46 +89,10 @@ export default function MacroAnalyticsBar({
         </div>
 
         {/* Date Selector Segment */}
-        <div className="flex items-center gap-1 bg-[var(--input)] border border-card-border p-1 rounded-xl">
-          <button
-            type="button"
-            onClick={handlePrevDate}
-            className="p-1.5 text-muted hover:text-foreground hover:bg-surface rounded-lg transition-colors cursor-pointer border-none bg-transparent"
-            title="Previous Day"
-            aria-label="Previous Day"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          <div className="flex items-center gap-1.5 px-2">
-            <Calendar className="w-3.5 h-3.5 text-acid-green opacity-80" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent text-xs font-semibold text-foreground focus:outline-none cursor-pointer border-none p-0"
-              aria-label="Select Date"
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={handleNextDate}
-            className="p-1.5 text-muted hover:text-foreground hover:bg-surface rounded-lg transition-colors cursor-pointer border-none bg-transparent"
-            title="Next Day"
-            aria-label="Next Day"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={handleTodayDate}
-            className="px-2.5 py-1 bg-acid-green text-accent-foreground text-[10px] font-bold uppercase tracking-wider rounded-lg cursor-pointer border-none transition-transform active:scale-95 shadow-xs ml-0.5"
-          >
-            Today
-          </button>
-        </div>
+        <CalendarDatePicker
+          selectedDate={selectedDate}
+          onSelectDate={(newDate) => setSelectedDate(newDate)}
+        />
       </div>
 
       {/* Main Calories & Macro Metrics Row */}
@@ -235,6 +203,6 @@ export default function MacroAnalyticsBar({
           </button>
         </div>
       )}
-    </section>
+    </div>
   );
 }

@@ -521,7 +521,94 @@ To maximize muscle hypertrophy and strength while maintaining cardiovascular end
       };
     }
 
-    // ── 13. General Open-Ended Fitness & Nutrition Intelligence ──────────
+    // ── 13. High-Precision Food Alternatives & Nutrient Substitutions ──────────
+    if (
+      qLower.includes('alternative') ||
+      qLower.includes('substitute') ||
+      qLower.includes('replace') ||
+      (qLower.includes('chicken') && (qLower.includes('protein') || qLower.includes('source') || qLower.includes('same') || qLower.includes('veg'))) ||
+      (qLower.includes('protein') && qLower.includes('source'))
+    ) {
+      let text = '';
+      if (qLower.includes('chicken')) {
+        text = `### 🍗 High-Protein Alternatives to Chicken Breast
+
+Chicken breast typically provides **~31g of high-quality protein per 100g** (raw/cooked equivalent ~28–31g) with only ~165 kcal and minimal fat (~3.6g).
+
+Here are the top alternatives matching or exceeding that exact protein density:
+
+#### 🥩 Lean Animal-Based Equivalents (Direct 1:1 Macro Match)
+1. **Turkey Breast:** **~30g protein / 100g** (135 kcal, 1g fat) — The closest direct 1:1 culinary and lean macro equivalent to chicken breast.
+2. **Canned Yellowfin Tuna (in water):** **~29g protein / 100g** (130 kcal, 1g fat) — Extremely lean, ultra-high bioavailability (PDCAAS = 1.0).
+3. **White Fish (Tilapia / Cod / Basa):** **~26–28g protein / 120g** (120 kcal, 2g fat) — Lean, light on digestion, rich in selenium.
+4. **Liquid Egg Whites:** **~28g protein / 250ml (~7–8 whites)** (125 kcal, 0g fat) — Pure albumin protein with zero fat or carbohydrates.
+5. **Shrimp / Prawns:** **~24g protein / 100g** (100 kcal, 1g fat) — Exceptional protein-to-calorie ratio.
+
+#### 🥗 Vegetarian & Plant-Based Equivalents
+1. **Soya Chunks / Meal Maker (Dry):** **~52g protein / 100g** (345 kcal) — **60g dry soya chunks provides ~31g protein**, precisely matching 100g of chicken breast.
+2. **Seitan (Vital Wheat Gluten):** **~25–30g protein / 100g** (150 kcal) — Fibrous meat-like texture with exceptional plant protein density.
+3. **Low-Fat Paneer / Cottage Cheese:** **~28g protein / 150g** (180 kcal, 4g fat) — Rich in slow-digesting micellar casein protein for sustained amino acid release.
+4. **Plain Non-Fat Greek Yogurt:** **~30g protein / 300g** (180 kcal, 0g fat) — Probiotic-dense, excellent for breakfasts, snacks, or post-workout bowls.
+5. **Tempeh / Extra-Firm Tofu:** **~24g protein / 150g** (220 kcal) — Fermented whole soybean cake rich in prebiotic isoflavones.
+
+💡 **Coaching Tip:** For optimal muscle protein synthesis (MPS), aim to hit at least **2.5–3.0g of leucine** per main meal alongside your total daily protein target of **1.8–2.2g per kg of bodyweight** (${Math.round((safeUserProfile.weight || 70) * 2)}g/day for your ${safeUserProfile.weight || 70}kg baseline).`;
+      } else {
+        text = `### 🥗 High-Quality Nutritional & Food Substitutions
+
+To match your target macronutrients with alternative whole food options:
+
+* **High Protein (30g targets):** 100g Turkey Breast, 100g Canned Tuna, 60g Dry Soya Chunks, 150g Low-Fat Paneer, 300g Greek Yogurt, or 1 scoop Whey Isolate.
+* **Complex Carbohydrates:** Swap White Rice with Brown Basmati Rice, Quinoa, Boiled Sweet Potatoes, or Rolled Oats.
+* **Healthy Unsaturated Fats:** Swap Butter/Ghee with Extra Virgin Olive Oil, Avocado, Raw Almonds, or Chia Seeds.`;
+      }
+
+      return {
+        role: 'assistant',
+        text,
+        plan: null,
+        sourceProvenance: 'Clinical Sports Nutrition & Food Composition Database'
+      };
+    }
+
+    // ── 14. Live Generative AI Orchestration (Gemini) with Graceful Grounded Fallback ──
+    try {
+      let liveChatFn = null;
+      try {
+        const mod = await import('../geminiService.js');
+        liveChatFn = mod?.chatWithGemini;
+      } catch (e) {
+        // Node test runners or offline
+      }
+
+      if (typeof liveChatFn === 'function') {
+        const geminiRes = await liveChatFn({
+          query: safeQuery,
+          context: {
+            userProfile: safeUserProfile,
+            foodLogs: safeFoodLogs.slice(0, 5),
+            workoutLogs: safeWorkoutLogs.slice(0, 5),
+            healthLogs: safeHealthLogs,
+            performanceCluster: clusterAnalysis?.cluster?.name
+          },
+          trainingLogs: safeWorkoutLogs.slice(0, 5),
+          personality: safeUserProfile?.personality || 'coach'
+        });
+
+        const replyText = typeof geminiRes === 'string' ? geminiRes : (geminiRes?.response || geminiRes?.text || geminiRes?.message);
+        if (replyText && typeof replyText === 'string' && replyText.trim().length > 15) {
+          return {
+            role: 'assistant',
+            text: replyText.trim(),
+            plan: geminiRes?.plan || null,
+            sourceProvenance: 'Calyxo Generative Health Intelligence'
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('Gemini chat fallback to deterministic engine:', e);
+    }
+
+    // ── 15. General Open-Ended Fitness & Nutrition Grounding Fallback ──────
     const calorieInfo = AIToolRegistry.calculateCalorieAndMacroTargets({
       weightKg: safeUserProfile.weight || 70,
       heightCm: safeUserProfile.height || 175,
