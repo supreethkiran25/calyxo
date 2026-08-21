@@ -16,7 +16,7 @@ export const subscribeToAdminRealtime = ({
   onStatusChange = () => {},
   showToasts = false
 }) => {
-  const channelName = `admin_realtime_${Math.random().toString(36).substring(2, 9)}`;
+  const channelName = `admin_realtime_${(typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2)).substring(0, 8)}`;
   let channel = supabase.channel(channelName);
 
   tables.forEach(tableName => {

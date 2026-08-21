@@ -35,7 +35,7 @@ export function createSyncEvent({
   source = 'calyxo_client'
 }) {
   const timestamp = Date.now();
-  const eventId = `evt_${entityType}_${entityId}_${timestamp}_${Math.random().toString(36).substring(2, 7)}`;
+  const eventId = `evt_${entityType}_${entityId}_${timestamp}_${(typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2)).substring(0, 8)}`;
   const dedupeKey = `${entityType}_${entityId}_${operation}_${payload?.date || Math.floor(timestamp / 1000)}`;
 
   return {

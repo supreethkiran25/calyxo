@@ -15,6 +15,14 @@ export default async function handler(req, res) {
 
   const authUser = await verifyAuthUser(req);
 
+  // Authentication required — payment grants must always be scoped to the verified identity
+  if (!authUser) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Unauthorized. A valid bearer token is required to verify a payment.' }
+    });
+  }
+
   const key_secret = process.env.RAZORPAY_KEY_SECRET;
 
   if (!key_secret) {
@@ -23,9 +31,9 @@ export default async function handler(req, res) {
     });
   }
 
-  const { razorpay_payment_id, razorpay_order_id, razorpay_signature, userId: bodyUserId } = req.body || {};
-  const targetUserId = authUser?.id || bodyUserId;
-
+  const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body || {};
+  // SECURITY: targetUserId is always resolved from the verified JWT — never from client body
+  const targetUserId = authUser.id;
 
   if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
     return res.status(400).json({

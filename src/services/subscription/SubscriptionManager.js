@@ -94,7 +94,8 @@ export class SubscriptionManager {
    */
   static getSubscriptionStatus(userProfile = {}, user = {}) {
     const email = (user?.email || userProfile?.email || '').toLowerCase().trim();
-    const isAdmin = email === 'supreethkiran25@gmail.com' || email === 'admin@calyxo.com' || userProfile?.role === 'admin';
+    // Admin and trainer status must come from the database-synced role field — never from hardcoded emails
+    const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'super_admin' || user?.role === 'super_admin' || user?.isAdminSession === true;
     const isTrainer = userProfile?.role === 'trainer';
 
     if (isAdmin) {

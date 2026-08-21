@@ -1,4 +1,4 @@
-import { sendOSNotification } from '../notificationService';
+import { triggerOSNotification } from '../notificationService';
 
 export class HealthNotificationManager {
   /**
@@ -25,7 +25,7 @@ export class HealthNotificationManager {
       onNotifyCallback(`${title}: ${body}`);
     }
 
-    sendOSNotification(title, body, '/user/dashboard');
+    triggerOSNotification(title, body, '/user/dashboard');
   }
 
   /**

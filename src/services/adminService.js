@@ -38,94 +38,11 @@ export const PLAN_PRICES_INR = {
 };
 
 /**
- * Verified Real Razorpay Payments Ledger (from live Razorpay Dashboard)
+ * Razorpay transaction history is fetched live from the subscriptions table in Supabase.
+ * This array is intentionally empty — never hardcode payment IDs, customer emails,
+ * or financial data in the client bundle.
  */
-export const LIVE_RAZORPAY_TRANSACTIONS = [
-  {
-    id: 'pay_TlTzVIroGqTFNq',
-    order_id: 'order_TlTzM91k8aB',
-    subscription_id: 'sub_HIGH_001',
-    customer_name: 'Harshith Malipatil',
-    customer_email: 'malipatilharshith@gmail.com',
-    amount: 1.00,
-    currency: 'INR',
-    status: 'Captured',
-    payment_method: 'UPI (779357943886)',
-    purchase_date: '2026-07-27 15:17',
-    expiry_date: '2027-07-27',
-    plan: 'High'
-  },
-  {
-    id: 'pay_TlEl9QNm2AuW7I',
-    order_id: 'order_TlEl719zA81',
-    subscription_id: 'sub_HIGH_002',
-    customer_name: 'Supreeth Kiran',
-    customer_email: 'supreethkiran25@gmail.com',
-    amount: 2.00,
-    currency: 'INR',
-    status: 'Captured',
-    payment_method: 'UPI (822979462086)',
-    purchase_date: '2026-07-27 00:23',
-    expiry_date: '2027-07-27',
-    plan: 'High'
-  },
-  {
-    id: 'pay_THqKqdFTrnVmT6',
-    order_id: 'order_THqKp18vB92',
-    subscription_id: 'sub_HIGH_003',
-    customer_name: 'Test User',
-    customer_email: 'test@gmail.com',
-    amount: 2.00,
-    currency: 'INR',
-    status: 'Captured',
-    payment_method: 'UPI (591095202076)',
-    purchase_date: '2026-07-26 00:29',
-    expiry_date: '2027-07-26',
-    plan: 'High'
-  },
-  {
-    id: 'pay_THoTcVGH4oDjyu',
-    order_id: 'order_THoTc19aC03',
-    subscription_id: 'sub_HIGH_004',
-    customer_name: 'Test User 2',
-    customer_email: 'test2@gmail.com',
-    amount: 2.00,
-    currency: 'INR',
-    status: 'Captured',
-    payment_method: 'UPI (574110432066)',
-    purchase_date: '2026-07-25 22:40',
-    expiry_date: '2027-07-25',
-    plan: 'High'
-  },
-  {
-    id: 'pay_THolL3zftprT3Z',
-    order_id: 'order_THolL17xD04',
-    subscription_id: 'sub_HIGH_005',
-    customer_name: 'Test User 2',
-    customer_email: 'test2@gmail.com',
-    amount: 2.00,
-    currency: 'INR',
-    status: 'Captured',
-    payment_method: 'UPI (572361162066)',
-    purchase_date: '2026-07-25 22:30',
-    expiry_date: '2027-07-25',
-    plan: 'High'
-  },
-  {
-    id: 'pay_THoCPw7cpNNKVV',
-    order_id: 'order_THoCP16yE05',
-    subscription_id: 'sub_HIGH_006',
-    customer_name: 'Test User 2',
-    customer_email: 'test2@gmail.com',
-    amount: 1.00,
-    currency: 'INR',
-    status: 'Captured',
-    payment_method: 'UPI (571441142066)',
-    purchase_date: '2026-07-25 22:24',
-    expiry_date: '2027-07-25',
-    plan: 'High'
-  }
-];
+export const LIVE_RAZORPAY_TRANSACTIONS = [];
 
 export const isSuperAdmin = (user) => {
   if (!user || typeof user !== 'object') return false;
@@ -230,38 +147,35 @@ export const loginSuperAdmin = async (email, password) => {
   }
 
   if (!isMockMode) {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
-      if (!error && data?.user) {
-        data.user.role = 'super_admin';
-        data.user.isAdminSession = true;
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('calyxo_admin_session', JSON.stringify(data.user));
-        }
-        return data.user;
-      }
-    } catch (e) {
-      if (e.message?.includes('403')) throw e;
+    const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+    if (error || !data?.user) {
+      throw new Error('Invalid Super Admin credentials. Authentication failed.');
     }
-  }
-
-  if (password === DEFAULT_ADMIN_CREDENTIALS.password || password === 'admin123' || password === 'Admin@12345') {
-    const adminUser = {
-      id: 'super-admin-root',
-      uid: 'super-admin-root',
-      email: cleanEmail,
-      displayName: 'Super Admin',
-      role: 'super_admin',
-      isAdminSession: true,
-      subscription_plan: 'HIGH'
-    };
+    data.user.role = 'super_admin';
+    data.user.isAdminSession = true;
     if (typeof window !== 'undefined') {
-      localStorage.setItem('calyxo_admin_session', JSON.stringify(adminUser));
+      localStorage.setItem('calyxo_admin_session', JSON.stringify(data.user));
     }
-    return adminUser;
+    return data.user;
   }
 
-  throw new Error('Invalid Super Admin credentials');
+  // Mock mode: only permit in non-production environments
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Admin login unavailable in production mock mode.');
+  }
+  const adminUser = {
+    id: 'super-admin-root',
+    uid: 'super-admin-root',
+    email: cleanEmail,
+    displayName: 'Super Admin',
+    role: 'super_admin',
+    isAdminSession: true,
+    subscription_plan: 'HIGH'
+  };
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('calyxo_admin_session', JSON.stringify(adminUser));
+  }
+  return adminUser;
 };
 
 
@@ -271,7 +185,7 @@ export const loginSuperAdmin = async (email, password) => {
 export const logAdminAction = async (action, targetId = null, details = {}) => {
   const currentAdmin = getCurrentUserIdSync() || 'supreethkiran25@gmail.com';
   const entry = {
-    id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    id: `log_${Date.now()}_${(typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2)).substring(0, 8)}`,
     admin_id: currentAdmin,
     action,
     target_id: targetId,
@@ -333,83 +247,9 @@ export const getAuditLogs = async (searchQuery = '', actionFilter = '') => {
   return deduplicatedLogs;
 };
 
-/* Master Directory of Registered Supabase Auth Accounts (7 Exact Users) */
-export const MASTER_SUPABASE_AUTH_ACCOUNTS = [
-  {
-    id: 'efbcc0fc-2ee8-45bc-919d-d36184023cc1',
-    email: 'bhyravgowda@gmail.com',
-    full_name: 'Bhyrav Gowda',
-    signup_date: '2026-07-20',
-    subscription_plan: 'FREE',
-    age: 25,
-    gender: 'Male',
-    country: 'India'
-  },
-  {
-    id: '8b48fcd0-b738-4f0f-97f3-c80716fce250',
-    email: 'kirankpmys@gmail.com',
-    full_name: 'Kiran Kumar',
-    signup_date: '2026-07-22',
-    subscription_plan: 'FREE',
-    age: 51,
-    gender: 'Male',
-    country: 'India'
-  },
-  {
-    id: '0532e129-7349-4ec5-39eb2d7f50c',
-    email: 'malipatilharshith@gmail.com',
-    full_name: 'Harshith Malipatil',
-    signup_date: '2026-07-27',
-    subscription_plan: 'HIGH',
-    subscription_expiry: '2027-07-27',
-    days_remaining: '359',
-    age: 25,
-    gender: 'Male',
-    country: 'India'
-  },
-  {
-    id: '7f7d632b-b6ce-4ee6-a8fa-b9e307895d4c',
-    email: 'sampreeth3456@gmail.com',
-    full_name: 'Sampreeth M K',
-    signup_date: '2026-07-25',
-    subscription_plan: 'FREE',
-    age: 17,
-    gender: 'Male',
-    country: 'India'
-  },
-  {
-    id: '4ca8ca07-0739-4f12-998e-58f301e23fb5',
-    email: 'supreethkiran25@gmail.com',
-    full_name: 'Supreeth Kiran',
-    signup_date: '2026-07-25',
-    subscription_plan: 'HIGH',
-    subscription_expiry: '2027-07-25',
-    days_remaining: '357',
-    age: 23,
-    gender: 'Male',
-    country: 'India'
-  },
-  {
-    id: '31994065-cc73-46ce-aeb1-c6b764502576',
-    email: 'tejasvijois@gmail.com',
-    full_name: 'Tejasvi Jois',
-    signup_date: '2026-07-28',
-    subscription_plan: 'FREE',
-    age: 26,
-    gender: 'Male',
-    country: 'India'
-  },
-  {
-    id: '16a59ff1-94cb-4b56-a36c-4b84eda3d93d',
-    email: 'tejasvijois057@gmail.com',
-    full_name: 'Tejasvi Jois (057)',
-    signup_date: '2026-07-28',
-    subscription_plan: 'FREE',
-    age: 26,
-    gender: 'Male',
-    country: 'India'
-  }
-];
+/* Master directory is intentionally empty — all user data is fetched live from Supabase at runtime.
+   Never hardcode real user UUIDs, emails, or PII into the client bundle. */
+export const MASTER_SUPABASE_AUTH_ACCOUNTS = [];
 
 /* Helper to resolve the user's exact custom display name set in the app */
 const resolveInAppName = (email, profileName, metricsName, bioExtra = {}) => {
@@ -430,15 +270,7 @@ const resolveInAppName = (email, profileName, metricsName, bioExtra = {}) => {
     return profileName.trim();
   }
   if (email) {
-    const clean = email.toLowerCase().trim();
-    if (clean === 'supreethkiran25@gmail.com') return 'Supreeth Kiran';
-    if (clean === 'malipatilharshith@gmail.com') return 'Harshith Malipatil';
-    if (clean === 'bhyravgowda@gmail.com') return 'Bhyrav Gowda';
-    if (clean === 'kirankpmys@gmail.com') return 'Kiran Kumar';
-    if (clean === 'sampreeth3456@gmail.com') return 'Sampreeth M K';
-    if (clean === 'tejasvijois@gmail.com') return 'Tejasvi Jois';
-    if (clean === 'tejasvijois057@gmail.com') return 'Tejasvi Jois (057)';
-    const prefix = clean.split('@')[0];
+    const prefix = email.toLowerCase().trim().split('@')[0];
     return prefix.charAt(0).toUpperCase() + prefix.slice(1);
   }
   return 'Calyxo Athlete';
@@ -1230,7 +1062,7 @@ export const getAdminExercises = async ({ search = '', bodyPart = '', category =
 export const saveAdminExercise = async (exerciseData) => {
   let isEdit = Boolean(exerciseData.id);
   if (!isEdit) {
-    exerciseData.id = `ex_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    exerciseData.id = `ex_${(typeof crypto !== 'undefined' ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`).substring(0, 16)}`;
   }
   if (!isMockMode) {
     try {
@@ -1312,7 +1144,7 @@ export const getAdminFoods = async ({ search = '', category = '' } = {}) => {
 export const saveAdminFood = async (foodData) => {
   let isEdit = Boolean(foodData.id);
   if (!isEdit) {
-    foodData.id = `fd_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    foodData.id = `fd_${(typeof crypto !== 'undefined' ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`).substring(0, 16)}`;
   }
   if (!isMockMode) {
     try {

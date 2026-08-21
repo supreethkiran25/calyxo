@@ -19,12 +19,17 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     const { userId: bodyUserId, subscription, platform = 'web', browser = 'browser' } = req.body || {};
+    // Use authenticated user ID if available; fall back to body only when no auth (legacy web sub flows)
     const userId = authUser?.id || bodyUserId;
 
     if (!userId || !subscription || !subscription.endpoint) {
       return res.status(400).json({ error: 'userId and subscription object are required' });
     }
 
+    // Security: if authenticated, only allow registering for own user ID
+    if (authUser && authUser.id !== userId) {
+      return res.status(403).json({ error: 'Forbidden: cannot register push subscription for another user.' });
+    }
 
     try {
       const { data, error } = await supabase
@@ -57,6 +62,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'userId is required' });
     }
 
+    // Security: if authenticated, only allow deleting own subscriptions
+    if (authUser && authUser.id !== userId) {
+      return res.status(403).json({ error: 'Forbidden: cannot remove push subscription for another user.' });
+    }
 
     try {
       let query = supabase.from('push_subscriptions').delete().eq('user_id', userId);

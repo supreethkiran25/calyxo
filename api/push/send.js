@@ -2,14 +2,16 @@ import webpush from 'web-push';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders, verifyAuthUser } from '../lib/auth.js';
 
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY || 'BJEqrp7IotPHK2FR8qvgATPii4lV3KY3jirYWe1b6X9vRdY6rwbsnyCQiOR2J4VUHuP-eWLfX4cHAmhFqnWSBWs';
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '3AASSWF8bDu3EJG5_GHSbBozW_OvI--jfYlJoJyUByg';
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:support@calyxo.app';
 
-try {
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-} catch (e) {
-  console.warn('webpush setVapidDetails error:', e);
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  } catch (e) {
+    console.warn('webpush setVapidDetails error:', e);
+  }
 }
 
 export default async function handler(req, res) {
@@ -18,11 +20,9 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const authHeader = req.headers.authorization || req.headers.Authorization || '';
   const authUser = await verifyAuthUser(req);
-  const isAdminRequest = authHeader.includes('admin') || authUser?.role === 'super_admin' || authUser?.role === 'admin';
 
-  if (!authUser && !isAdminRequest && process.env.NODE_ENV === 'production') {
+  if (!authUser) {
     return res.status(401).json({ error: 'Unauthorized access. Valid JWT bearer token required.' });
   }
 

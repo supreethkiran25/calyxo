@@ -51,7 +51,7 @@ export class ChatSessionManager {
    */
   createSession({ title = 'New Conversation', role = 'USER', initialMessage = null } = {}) {
     const newSession = {
-      id: `chat_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      id: `chat_${Date.now()}_${(typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2)).substring(0, 8)}`,
       title,
       role,
       isSystemBriefing: false,
@@ -107,7 +107,7 @@ export class ChatSessionManager {
     if (!session) return null;
 
     const enrichedMsg = {
-      id: message.id || `msg_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
+      id: message.id || `msg_${Date.now()}_${(typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2)).substring(0, 8)}`,
       role: message.role || 'user',
       text: message.text || '',
       plan: message.plan || null,
