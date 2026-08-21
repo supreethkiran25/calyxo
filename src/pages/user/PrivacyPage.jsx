@@ -23,7 +23,38 @@ export default function PrivacyPage() {
       animate="visible"
       className="space-y-8 max-w-4xl pb-20 mx-auto"
     >
-      {/* Header */}
+      {/* Top Header & Navigation Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-[var(--surface)] border border-[var(--card-border)] mb-6">
+        <div className="flex items-center gap-3">
+          <a href="/" className="font-black text-lg tracking-wider text-[var(--foreground)] flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <span className="text-cyan-400">⚡</span> CALYXO
+          </a>
+          <span className="text-[var(--card-border)]">|</span>
+          <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest">Privacy Charter</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <a 
+            href="/terms" 
+            className="px-3 py-1.5 rounded-lg text-xs font-bold text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-hover)] transition-all"
+          >
+            Terms of Service
+          </a>
+          <a 
+            href="/privacy" 
+            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+          >
+            Privacy Policy
+          </a>
+          <a 
+            href="/" 
+            className="ml-2 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[var(--surface-hover)] text-[var(--foreground)] hover:bg-[var(--card-border)] transition-all"
+          >
+            Back to App
+          </a>
+        </div>
+      </div>
+
+      {/* Title */}
       <div>
         <div className="flex items-center gap-2 text-cyan-400 text-xs font-black uppercase tracking-widest mb-1">
           <Shield className="w-4 h-4" /> Global Privacy Policy & Data Charter

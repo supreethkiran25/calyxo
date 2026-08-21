@@ -6,7 +6,6 @@ import { useNavigate } from 'react-router-dom';
 import { signUpUser, signInWithUsernameOrEmail, signInWithGoogle, signInWithApple, sendPasswordReset, loadUserData } from '../lib/dbService';
 import { useStore } from '../store/useStore';
 import Logo from './Logo';
-import LegalModal from './modals/LegalModal';
 
 export default function AuthFlow({ isInitialSignUp = false }) {
   const navigate = useNavigate();
@@ -20,7 +19,6 @@ export default function AuthFlow({ isInitialSignUp = false }) {
   const [error, setError] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [termsAgreed, setTermsAgreed] = useState(false);
-  const [legalModalType, setLegalModalType] = useState(null);
 
   const [forgotMode, setForgotMode] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -308,21 +306,23 @@ export default function AuthFlow({ isInitialSignUp = false }) {
                   />
                   <span>
                     I agree to Calyxo's{' '}
-                    <button 
-                      type="button" 
-                      onClick={(e) => { e.preventDefault(); setLegalModalType('terms'); }}
-                      className="text-acid-green hover:underline font-bold bg-transparent border-none p-0 cursor-pointer"
+                    <a 
+                      href="/user/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-acid-green hover:underline font-bold"
                     >
                       Terms of Service
-                    </button>
+                    </a>
                     {', '}
-                    <button 
-                      type="button" 
-                      onClick={(e) => { e.preventDefault(); setLegalModalType('privacy'); }}
-                      className="text-acid-green hover:underline font-bold bg-transparent border-none p-0 cursor-pointer"
+                    <a 
+                      href="/user/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-acid-green hover:underline font-bold"
                     >
                       Privacy Policy
-                    </button>
+                    </a>
                     {', and Medical & Exercise Disclaimer.'}
                   </span>
                 </label>
@@ -340,13 +340,6 @@ export default function AuthFlow({ isInitialSignUp = false }) {
           </form>
         </>
       )}
-
-      {/* Embedded Legal Modal Viewer */}
-      <LegalModal 
-        isOpen={Boolean(legalModalType)} 
-        onClose={() => setLegalModalType(null)} 
-        type={legalModalType || 'terms'} 
-      />
 
       {/* Divider */}
       <div className="relative flex py-5 items-center">
