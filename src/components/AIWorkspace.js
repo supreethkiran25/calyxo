@@ -1,12 +1,6 @@
 import React from 'react';
-import AICoach from './AICoach';
+import AIIntelligenceHub from './ai/AIIntelligenceHub.jsx';
 
 export default function AIWorkspace({ onNotification }) {
-  return (
-    <div className="h-full flex flex-col bg-background">
-      <div className="flex-1 overflow-hidden relative">
-        <AICoach onNotification={onNotification} />
-      </div>
-    </div>
-  );
+  return <AIIntelligenceHub onNotification={onNotification} />;
 }

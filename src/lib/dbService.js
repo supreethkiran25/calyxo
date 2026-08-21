@@ -1,4 +1,4 @@
-import { supabase } from "./supabaseClient";
+import { supabase } from "./supabaseClient.js";
 import { Browser } from '@capacitor/browser';
 
 const getEnvVal = (key) => {
@@ -1698,18 +1698,35 @@ export const deleteUserAccount = async (userId) => {
     }
   }
 
-  localStorage.removeItem("calyxo_mock_user");
-  localStorage.removeItem(LOCAL_STATE_KEY);
-  localStorage.removeItem("calyxo_ecosystem_db_state");
-  localStorage.removeItem("calyxo_chat_sessions");
-  localStorage.removeItem("calyxo_training_logs");
-  localStorage.removeItem("calyxo_ecosystem_state");
+  // Comprehensive Local Storage Purge
+  const keysToPurge = [
+    "calyxo_mock_user",
+    LOCAL_STATE_KEY,
+    "calyxo_ecosystem_db_state",
+    "calyxo_chat_sessions",
+    "calyxo_training_logs",
+    "calyxo_ecosystem_state",
+    "calyxo_ai_sessions_v2",
+    "calyxo_ai_active_session_id_v2",
+    "calyxo_user_diet_splits",
+    "calyxo_sync_outbox_v2",
+    "calyxo_health_sync_cache_v2",
+    "calyxo_active_rest_state",
+    "calyxo_active_live_workout_session",
+    "calyxo_user_preferences",
+    "calyxo_smart_reminders_log",
+    "calyxo_xp_awarded_events",
+    "calyxo_ai_usage_ledger",
+    "calyxo_user_session",
+    "calyxo_food_history",
+    "calyxo_pedometer_state"
+  ];
+
+  keysToPurge.forEach(k => {
+    try { localStorage.removeItem(k); } catch (e) {}
+  });
 
   if (!isMockMode) {
-    // Note: deleteUser from client requires the user to be recently signed in
-    // Supabase JS client doesn't expose a client-side delete user function.
-    // Only admin can delete user in Supabase, or use a custom Edge Function.
-    // For now, we sign out.
     await supabase.auth.signOut();
   }
 };

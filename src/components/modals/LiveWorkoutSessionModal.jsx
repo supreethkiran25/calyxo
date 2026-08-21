@@ -8,7 +8,7 @@ import { useStore } from '../../store/useStore';
 import { getExerciseImage, getDistinctFallback } from '../../utils/exerciseSearch';
 import { addWorkoutLog } from '../../lib/dbService';
 import { calculateWorkoutCaloriesBurned } from '../../utils/workoutUtils';
-import { scheduleExactNotification, cancelNotification } from '../../services/notificationService';
+import { scheduleExactNotification, cancelNotification, triggerOSNotification } from '../../services/notificationService';
 import LiveActivityManager from '../../services/LiveActivityManager';
 import { saveActiveRest, clearActiveRest } from '../../services/restTimerPersistence';
 
@@ -17,7 +17,8 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
   const addWorkoutLogStore = useStore(state => state.addWorkoutLog);
   const addWaterIntakeStore = useStore(state => state.addWaterIntake);
 
-  const [sessionState, setSessionState] = useState('PREVIEW'); // PREVIEW | EXERCISING | REST_SET | REST_EXERCISE | COMPLETED
+  const [sessionState, setSessionState] = useState('PREVIEW'); // PREVIEW | EXERCISING | SET_COMPLETED | REST_SET | REST_EXERCISE | COMPLETED
+  const [lastLoggedSet, setLastLoggedSet] = useState(null);
   const [exIndex, setExIndex] = useState(0);
   const [setIndex, setSetIndex] = useState(1);
   const [weightInput, setWeightInput] = useState('');
@@ -84,7 +85,7 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
   const restEndTimeRef = useRef(null);
 
   const sendBrowserNotification = (title, body) => {
-    sendOSNotification(title, body, '/user/dashboard');
+    triggerOSNotification(title, body, '/user/dashboard');
   };
 
   // Background-Resilient Rest Timer Effect with Push Notifications
@@ -193,108 +194,112 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
     logEntry.caloriesBurned = calculateWorkoutCaloriesBurned(logEntry);
 
     setCompletedLogs(prev => [...prev, logEntry]);
+    setLastLoggedSet(logEntry);
+    setSessionState('SET_COMPLETED');
     playAlertChime(600);
 
-    if (setIndex < parsedStats.totalSets) {
-      // Advance to next set with 1-min rest
-      const nextSetIndex = setIndex + 1;
-      setSetIndex(nextSetIndex);
-      setTimerSeconds(60); // 1-minute set rest
-      restEndTimeRef.current = Date.now() + 60 * 1000;
-      setSessionState('REST_SET');
-
-      // Cancel old notification before scheduling a new one
-      if (activeRestNotifIdRef.current) {
-        cancelNotification(activeRestNotifIdRef.current);
-      }
-      const notifId = `live-session-ex${exIndex}-set${nextSetIndex}-${Date.now()}`;
-      activeRestNotifIdRef.current = notifId;
-      scheduleExactNotification({
-        id: notifId,
-        title: "Rest Time Finished! 💪",
-        body: `Set rest complete! Time to start Set ${nextSetIndex} of ${currentEx?.name || 'Exercise'}`,
-        delayMs: 60 * 1000,
-        tag: 'live-workout-rest',
-        type: 'rest_completed',
-        exerciseName: currentEx?.name || '',
-        setNumber: nextSetIndex
-      });
-
-      // Update Dynamic Island & Lock Screen with rest countdown timer
-      const totalCals = completedLogs.reduce((s, l) => s + (l.caloriesBurned || 0), 0) + logEntry.caloriesBurned;
-      LiveActivityManager.updateLiveActivity({
-        exerciseName: currentEx?.name || 'Exercise',
-        currentSet: nextSetIndex,
-        totalSets: parsedStats.totalSets,
-        currentReps: parsedStats.targetReps,
-        isResting: true,
-        restDurationSeconds: 60,
-        caloriesBurned: totalCals
-      });
-      saveActiveRest({
-        durationSeconds: 60,
-        workoutId: routine?.workout?.id || 'live_session',
-        exerciseName: currentEx?.name || 'Exercise',
-        setNumber: nextSetIndex,
-        notificationId: notifId
-      });
-    } else {
-      // All sets for this exercise finished
-      if (exIndex < exercises.length - 1) {
-        // Move to 2-min inter-exercise break & on-screen hydration card
-        const nextExName = exercises[exIndex + 1]?.name || 'Next Exercise';
-        setTimerSeconds(120); // 2-minute exercise break
-        restEndTimeRef.current = Date.now() + 120 * 1000;
-        setWaterLoggedThisBreak(false);
-        setSessionState('REST_EXERCISE');
+    setTimeout(() => {
+      if (setIndex < parsedStats.totalSets) {
+        // Advance to next set with 1-min rest
+        const nextSetIndex = setIndex + 1;
+        setSetIndex(nextSetIndex);
+        setTimerSeconds(60); // 1-minute set rest
+        restEndTimeRef.current = Date.now() + 60 * 1000;
+        setSessionState('REST_SET');
 
         // Cancel old notification before scheduling a new one
         if (activeRestNotifIdRef.current) {
           cancelNotification(activeRestNotifIdRef.current);
         }
-        const notifId = `live-session-ex${exIndex + 1}-break-${Date.now()}`;
+        const notifId = `live-session-ex${exIndex}-set${nextSetIndex}-${Date.now()}`;
         activeRestNotifIdRef.current = notifId;
         scheduleExactNotification({
           id: notifId,
-          title: "Exercise Break Complete! 🏋️‍♂️",
-          body: `Break over! Next exercise: ${nextExName}`,
-          delayMs: 120 * 1000,
+          title: "Rest Time Finished! 💪",
+          body: `Set rest complete! Time to start Set ${nextSetIndex} of ${currentEx?.name || 'Exercise'}`,
+          delayMs: 60 * 1000,
           tag: 'live-workout-rest',
           type: 'rest_completed',
-          exerciseName: nextExName,
-          setNumber: 1
+          exerciseName: currentEx?.name || '',
+          setNumber: nextSetIndex
         });
 
-        // Update Dynamic Island & Lock Screen with exercise break countdown
+        // Update Dynamic Island & Lock Screen with rest countdown timer
         const totalCals = completedLogs.reduce((s, l) => s + (l.caloriesBurned || 0), 0) + logEntry.caloriesBurned;
         LiveActivityManager.updateLiveActivity({
-          exerciseName: nextExName,
-          currentSet: 1,
-          totalSets: 4,
-          currentReps: 10,
+          exerciseName: currentEx?.name || 'Exercise',
+          currentSet: nextSetIndex,
+          totalSets: parsedStats.totalSets,
+          currentReps: parsedStats.targetReps,
           isResting: true,
-          restDurationSeconds: 120,
+          restDurationSeconds: 60,
           caloriesBurned: totalCals
         });
         saveActiveRest({
-          durationSeconds: 120,
+          durationSeconds: 60,
           workoutId: routine?.workout?.id || 'live_session',
-          exerciseName: nextExName,
-          setNumber: 1,
+          exerciseName: currentEx?.name || 'Exercise',
+          setNumber: nextSetIndex,
           notificationId: notifId
         });
       } else {
-        // All exercises in routine completed!
-        if (activeRestNotifIdRef.current) {
-          cancelNotification(activeRestNotifIdRef.current);
-          activeRestNotifIdRef.current = null;
+        // All sets for this exercise finished
+        if (exIndex < exercises.length - 1) {
+          // Move to 2-min inter-exercise break & on-screen hydration card
+          const nextExName = exercises[exIndex + 1]?.name || 'Next Exercise';
+          setTimerSeconds(120); // 2-minute exercise break
+          restEndTimeRef.current = Date.now() + 120 * 1000;
+          setWaterLoggedThisBreak(false);
+          setSessionState('REST_EXERCISE');
+
+          // Cancel old notification before scheduling a new one
+          if (activeRestNotifIdRef.current) {
+            cancelNotification(activeRestNotifIdRef.current);
+          }
+          const notifId = `live-session-ex${exIndex + 1}-break-${Date.now()}`;
+          activeRestNotifIdRef.current = notifId;
+          scheduleExactNotification({
+            id: notifId,
+            title: "Exercise Break Complete! 🏋️‍♂️",
+            body: `Break over! Next exercise: ${nextExName}`,
+            delayMs: 120 * 1000,
+            tag: 'live-workout-rest',
+            type: 'rest_completed',
+            exerciseName: nextExName,
+            setNumber: 1
+          });
+
+          // Update Dynamic Island & Lock Screen with exercise break countdown
+          const totalCals = completedLogs.reduce((s, l) => s + (l.caloriesBurned || 0), 0) + logEntry.caloriesBurned;
+          LiveActivityManager.updateLiveActivity({
+            exerciseName: nextExName,
+            currentSet: 1,
+            totalSets: 4,
+            currentReps: 10,
+            isResting: true,
+            restDurationSeconds: 120,
+            caloriesBurned: totalCals
+          });
+          saveActiveRest({
+            durationSeconds: 120,
+            workoutId: routine?.workout?.id || 'live_session',
+            exerciseName: nextExName,
+            setNumber: 1,
+            notificationId: notifId
+          });
+        } else {
+          // All exercises in routine completed!
+          if (activeRestNotifIdRef.current) {
+            cancelNotification(activeRestNotifIdRef.current);
+            activeRestNotifIdRef.current = null;
+          }
+          clearActiveRest();
+          LiveActivityManager.endLiveActivity();
+          setSessionState('COMPLETED');
+          playAlertChime(1000);
         }
-        clearActiveRest();
-        LiveActivityManager.endLiveActivity();
-        setSessionState('COMPLETED');
-        playAlertChime(1000);
       }
-    }
+    }, 450);
   };
 
   const handleLogWaterInSession = () => {
@@ -462,6 +467,27 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
                     : `Finish Final Exercise`}
               </button>
             </div>
+          )}
+
+          {/* MODE 2.5: SATISFYING SET COMPLETE TRANSITION */}
+          {sessionState === 'SET_COMPLETED' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="py-12 flex flex-col items-center justify-center text-center space-y-4"
+            >
+              <div className="w-16 h-16 rounded-full bg-acid-green/20 border border-acid-green/50 flex items-center justify-center text-acid-green shadow-xl animate-bounce">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-acid-green">Set Logged</span>
+                <h3 className="text-xl font-black text-foreground mt-1">✓ SET COMPLETE</h3>
+                <p className="text-sm font-mono text-muted mt-0.5">
+                  {lastLoggedSet?.weight > 0 ? `${lastLoggedSet.weight} kg × ` : ''}{lastLoggedSet?.reps || 10} reps
+                </p>
+              </div>
+            </motion.div>
           )}
 
           {/* MODE 3: 1-MINUTE SET REST TIMER */}

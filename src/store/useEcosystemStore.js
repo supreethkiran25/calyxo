@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { getSecureItem, setSecureItem, getCurrentUserIdSync, saveEcosystemState } from '../lib/dbService';
-import { calculateConsecutiveDaysStreak, calculateWaterGoalStreak } from '../utils/streakEngine';
+import { getSecureItem, setSecureItem, getCurrentUserIdSync, saveEcosystemState } from '../lib/dbService.js';
+import { calculateConsecutiveDaysStreak, calculateWaterGoalStreak } from '../utils/streakEngine.js';
 
 const LOCAL_ECOSYSTEM_KEY = "calyxo_ecosystem_state";
 

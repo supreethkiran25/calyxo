@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,6 +8,7 @@ import {
 import { HealthPermissionManager, REQUIRED_PERMISSIONS, OPTIONAL_PERMISSIONS } from '../../services/health/HealthPermissionManager';
 import { HealthSyncEngine } from '../../services/health/HealthSyncEngine';
 import { HealthHistoricalImporter } from '../../services/health/HealthHistoricalImporter';
+import { bluetoothHealthService } from '../../services/health/BluetoothHealthService';
 
 export default function HealthConnectionsModal({ isOpen, onClose, onNotification }) {
   const [syncing, setSyncing] = useState(false);
@@ -219,18 +219,50 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
             </div>
           </div>
 
-          {/* Third-Party Wearables Telemetry (Garmin, Whoop, Oura, Polar, Fitbit) */}
+          {/* Bluetooth Heart Rate / BPM Machine Direct Pairing */}
+          <div className="p-4 rounded-2xl bg-card-bg border border-card-border space-y-3">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-black uppercase text-foreground">Bluetooth Heart Rate & BPM Machine</span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase">
+                BLE Direct
+              </span>
+            </div>
+
+            <p className="text-[11px] text-muted leading-relaxed">
+              Connect external Bluetooth Heart Rate monitors (Polar H10, Garmin HRM, Wahoo) or Blood Pressure / BPM machines. Real sensor data streams directly into Calyxo.
+            </p>
+
+            <button
+              onClick={async () => {
+                try {
+                  const data = await bluetoothHealthService.connectDevice();
+                  if (onNotification) onNotification(`Paired with ${data.deviceName}! Streaming live BPM telemetry.`);
+                } catch (err) {
+                  if (onNotification) onNotification(err.message || 'Bluetooth connection cancelled');
+                }
+              }}
+              className="w-full py-2.5 rounded-xl bg-emerald-500 text-black font-black text-xs uppercase tracking-wider cursor-pointer shadow-md hover:brightness-110 flex items-center justify-center gap-2 border-none"
+            >
+              <Download className="w-4 h-4" />
+              <span>Pair Bluetooth Heart Rate / BPM Sensor</span>
+            </button>
+          </div>
+
+          {/* Third-Party Wearables Telemetry (boAt, Garmin, Apple Watch, Galaxy Watch, Whoop, Fitbit) */}
           <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 space-y-2 text-xs">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-emerald-400 font-bold uppercase">
-                <ShieldCheck className="w-4 h-4" /> Universal Wearable Sync
+                <ShieldCheck className="w-4 h-4" /> Wearable Ecosystem Compatibility
               </div>
               <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase">
-                Garmin • Whoop • Oura • Polar • Fitbit
+                boAt • Apple Watch • Galaxy • Garmin • Whoop
               </span>
             </div>
             <p className="text-[11px] text-muted leading-relaxed">
-              If you use a <strong>Garmin Forerunner 245</strong>, Whoop band, Oura ring, or Polar watch, their companion apps (e.g. Garmin Connect) sync your GPS workouts, steps, heart rate, and calories directly into <strong>{platformName}</strong>, which Calyxo automatically imports in real time.
+              <strong>boAt Smartwatches:</strong> boAt watches synchronize daily steps, active heart rate, and workouts via the <em>boAt Crest / boAt Hub</em> companion app into <strong>{platformName}</strong>, which Calyxo imports automatically in real time without fake numbers.
             </p>
           </div>
 
@@ -240,8 +272,9 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
               <Info className="w-4 h-4 text-emerald-400" /> Troubleshooting Guidance
             </div>
             <ul className="text-[11px] text-muted space-y-1 pl-4 list-disc leading-relaxed">
+              <li><strong>boAt & Noise:</strong> Open your boAt app → Settings → Link Apple Health or Health Connect → Allow read/write access.</li>
               <li><strong>iOS (Apple Health / Garmin):</strong> Open iPhone Settings → Health → Data Access & Devices → Ensure Garmin Connect & Calyxo have read/write access.</li>
-              <li><strong>Android (Health Connect / Garmin):</strong> Open Garmin Connect → Settings → Connected Apps → Enable Health Connect → Open Calyxo to sync.</li>
+              <li><strong>Android (Health Connect / Garmin / boAt):</strong> Open boAt/Garmin App → Settings → Connected Apps → Enable Health Connect → Open Calyxo to sync.</li>
             </ul>
           </div>
 

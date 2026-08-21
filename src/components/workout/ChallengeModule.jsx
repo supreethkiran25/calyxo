@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,6 +9,7 @@ import {
 import { useEcosystemStore } from '../../store/useEcosystemStore';
 import { useStore } from '../../store/useStore';
 import { addWorkoutLog } from '../../lib/dbService';
+import LiveActivityManager from '../../services/LiveActivityManager';
 
 // ── CURATED CHALLENGES CATALOG ──────────────────────────────────────────────
 const CURATED_CHALLENGES = [
@@ -152,6 +152,8 @@ export default function ChallengeModule({ onNotification }) {
       }, 1000);
     } else if (restTimerSec === 0) {
       setIsTimerRunning(false);
+      LiveActivityManager.endRestTimer();
+      LiveActivityManager.updateLiveActivity({ isResting: false, restDurationSeconds: 0 });
       if (onNotification) onNotification("🔔 Rest Timer Complete! Start your next set.");
     }
     return () => clearInterval(interval);
@@ -188,7 +190,7 @@ export default function ChallengeModule({ onNotification }) {
     setCurrentView('HOME');
   };
 
-  // Open Today's Active Session
+  // Open Today's Active Session (Triggers Dynamic Island & Lock Screen Live Activity)
   const handleOpenTodayWorkout = () => {
     const targetProgram = currentChallenge || CURATED_CHALLENGES[0];
     const initialChecks = {};
@@ -199,18 +201,38 @@ export default function ChallengeModule({ onNotification }) {
     setRestTimerSec(45);
     setIsTimerRunning(false);
     setCurrentView('WORKOUT');
+
+    // Launch Live Activity on Dynamic Island, Lock Screen & Notification Center
+    LiveActivityManager.startLiveActivity({
+      title: 'Calyxo Challenge',
+      workoutName: `[Challenge] ${targetProgram.title}`,
+      exerciseName: targetProgram.dailyPlan?.[0]?.title || `Day ${(targetProgram.progressDays || 0) + 1}`,
+      currentSet: 1,
+      totalSets: targetProgram.dailyPlan?.length || 4,
+      currentReps: 1,
+      caloriesBurned: targetProgram.estBurnPerSession || 0,
+      isResting: false
+    });
   };
 
   // Toggle Exercise Checklist item
   const toggleExerciseCheck = (exId) => {
-    setCheckedExercises(prev => ({
-      ...prev,
-      [exId]: !prev[exId]
-    }));
+    setCheckedExercises(prev => {
+      const next = { ...prev, [exId]: !prev[exId] };
+      const completedCount = Object.values(next).filter(Boolean).length;
+      const targetProgram = currentChallenge || CURATED_CHALLENGES[0];
+      const currentEx = targetProgram.dailyPlan?.find(e => !next[e.id]) || targetProgram.dailyPlan?.[0];
+      LiveActivityManager.updateLiveActivity({
+        currentSet: Math.min(targetProgram.dailyPlan?.length || 4, completedCount + 1),
+        exerciseName: currentEx?.title || 'Challenge Session'
+      });
+      return next;
+    });
   };
 
   // Complete Today's Workout Session
   const handleFinishTodaySession = async () => {
+    LiveActivityManager.endLiveActivity();
     const targetProgram = currentChallenge || CURATED_CHALLENGES[0];
     const nextDay = (targetProgram.progressDays || 0) + 1;
     const isFinished = nextDay >= targetProgram.targetDays;
@@ -676,7 +698,10 @@ export default function ChallengeModule({ onNotification }) {
             className="space-y-6"
           >
             <button
-              onClick={() => setCurrentView('HOME')}
+              onClick={() => {
+                LiveActivityManager.endLiveActivity();
+                setCurrentView('HOME');
+              }}
               className="flex items-center gap-1.5 text-xs font-bold text-muted hover:text-foreground cursor-pointer bg-none border-none"
             >
               <ArrowLeft className="w-4 h-4" /> Back to Home
@@ -708,7 +733,15 @@ export default function ChallengeModule({ onNotification }) {
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setIsTimerRunning(!isTimerRunning)}
+                    onClick={() => {
+                      const next = !isTimerRunning;
+                      setIsTimerRunning(next);
+                      if (next) {
+                        LiveActivityManager.startRestTimer(restTimerSec);
+                      } else {
+                        LiveActivityManager.pauseLiveActivity();
+                      }
+                    }}
                     className="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-black uppercase tracking-wider cursor-pointer flex items-center gap-1"
                   >
                     {isTimerRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
@@ -716,7 +749,11 @@ export default function ChallengeModule({ onNotification }) {
                   </button>
 
                   <button
-                    onClick={() => { setRestTimerSec(45); setIsTimerRunning(false); }}
+                    onClick={() => {
+                      setRestTimerSec(45);
+                      setIsTimerRunning(false);
+                      LiveActivityManager.endRestTimer();
+                    }}
                     className="p-1.5 rounded-xl bg-surface border border-card-border text-muted hover:text-foreground cursor-pointer"
                     title="Reset to 45s"
                   >

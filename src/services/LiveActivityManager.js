@@ -1,8 +1,9 @@
 import { Capacitor } from '@capacitor/core';
-import { syncWidgetData } from './widgetDataService';
-import { scheduleExactNotification, cancelNotification } from './notificationService';
+import { syncWidgetData } from './widgetDataService.js';
+import { scheduleExactNotification, cancelNotification } from './notificationService.js';
 
 export class LiveActivityManager {
+  static isSessionActive = false;
   static activeActivityId = null;
   static isPaused = false;
   static isResting = false;
@@ -19,6 +20,8 @@ export class LiveActivityManager {
    * Broadcast state to universal in-app Dynamic Island / Notch HUD
    */
   static broadcastUniversalHUD(isEnded = false, restDurationSeconds = 0) {
+    if (!this.isSessionActive && !isEnded) return;
+
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent('calyxo_live_activity_sync', {
@@ -74,6 +77,7 @@ export class LiveActivityManager {
     caloriesBurned = 0,
     heartRate = 0
   } = {}) {
+    this.isSessionActive = true;
     this.workoutName = workoutName;
     this.currentExerciseName = exerciseName;
     this.currentSet = currentSet;
@@ -250,6 +254,7 @@ export class LiveActivityManager {
    * End and dismiss the Live Activity
    */
   static async endLiveActivity() {
+    this.isSessionActive = false;
     const activityId = this.activeActivityId;
     this.activeActivityId = null;
     this.isPaused = false;
@@ -284,6 +289,7 @@ export class LiveActivityManager {
    */
   static async reconcileAfterLaunch(restState = null) {
     if (restState && restState.remainingSeconds > 0) {
+      this.isSessionActive = true;
       this.currentExerciseName = restState.exerciseName || this.currentExerciseName;
       this.currentSet = restState.setNumber || this.currentSet;
       await this.updateLiveActivity({
@@ -294,11 +300,7 @@ export class LiveActivityManager {
         isPaused: false
       });
     } else {
-      await this.updateLiveActivity({
-        isResting: false,
-        restDurationSeconds: 0,
-        isPaused: false
-      });
+      await this.endLiveActivity();
     }
   }
 }

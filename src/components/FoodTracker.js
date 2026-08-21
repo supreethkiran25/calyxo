@@ -1,10 +1,9 @@
-"use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Search, Plus, BookOpen, ShoppingBag, 
   X, Check, Edit2, Trash2, Clock, 
-  History, Target, Award, Layers, Zap, Star, ChevronDown, ChevronUp, Filter, Database
+  History, Sparkles, Star, Utensils, Zap
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
@@ -18,16 +17,9 @@ import {
 } from '../lib/dbService';
 import { 
   ALL_CALYXO_FOODS, 
-  HAND_CURATED_FOODS, 
-  POPULAR_STAPLES, 
   searchCalyxoFoods 
 } from '../lib/indianFoods';
 import { 
-  MEAL_SLOTS, 
-  DIETARY_PREFERENCES, 
-  REGIONAL_REGISTRY, 
-  FITNESS_OBJECTIVES, 
-  PROTEIN_DIRECTORY, 
   EDITORIAL_TRENDING, 
   getMealSlotFromTime 
 } from '../lib/calyxoFoodDiscoveryData';
@@ -38,9 +30,11 @@ import {
 import { getTodayDateString, formatDateToLocalString, isSameLocalDate } from '../utils/dateUtils';
 import MacroAnalyticsBar from './nutrition/MacroAnalyticsBar';
 import NormalizedDishCard from './nutrition/NormalizedDishCard';
-import DatabaseStatsBanner from './nutrition/DatabaseStatsBanner';
 import PrecisionPortionDrawer from './nutrition/PrecisionPortionDrawer';
 import MealTimelineGroup from './nutrition/MealTimelineGroup';
+import AIMealPlannerCard from './nutrition/AIMealPlannerCard';
+import PremiumFeatureModal from './modals/PremiumFeatureModal';
+import smartReminderEngine from '../services/notifications/SmartReminderEngine';
 
 const INITIAL_DIET_PLANNER = [
   {
@@ -63,7 +57,7 @@ const INITIAL_DIET_PLANNER = [
     dayName: "Wednesday",
     diet: [
       { category: "Breakfast", name: "Greek Yogurt Parfait", desc: "Plain non-fat yogurt topped with mixed berries, honey, almonds", calories: 280, protein: 26, carbs: 30, fat: 6 },
-      { category: "Lunch", name: "Tuna Salad Salad", desc: "Canned tuna over mixed greens, cucumbers, tomatoes, lemon dressing", calories: 350, protein: 34, carbs: 12, fat: 16 },
+      { category: "Lunch", name: "Tuna Salad Bowl", desc: "Canned tuna over mixed greens, cucumbers, tomatoes, lemon dressing", calories: 350, protein: 34, carbs: 12, fat: 16 },
       { category: "Dinner", name: "Lentil Soup & Tofu", desc: "Lentils stewed with carrots, served with baked tofu blocks", calories: 390, protein: 28, carbs: 48, fat: 8 }
     ]
   },
@@ -101,6 +95,19 @@ const INITIAL_DIET_PLANNER = [
   }
 ];
 
+const CATEGORY_FILTERS = [
+  { id: 'all', label: 'All Foods', icon: null },
+  { id: 'favorites', label: 'Favorites', icon: Star },
+  { id: 'frequent', label: 'Frequent', icon: Zap },
+  { id: 'high-protein', label: 'High Protein', icon: null },
+  { id: 'veg', label: 'Veg', icon: null },
+  { id: 'nonveg', label: 'Non-Veg', icon: null },
+  { id: 'egg', label: 'Egg', icon: null },
+  { id: 'snacks', label: 'Snacks', icon: null },
+  { id: 'south-indian', label: 'South Indian', icon: null },
+  { id: 'north-indian', label: 'North Indian', icon: null }
+];
+
 export default function FoodTracker({ onNotification }) {
   const user = useStore(state => state.user);
   const foodLogs = useStore(state => state.foodLogs);
@@ -111,7 +118,9 @@ export default function FoodTracker({ onNotification }) {
   const updateUserProfile = useStore(state => state.updateUserProfile);
   const userId = user?.uid || user?.id || getCurrentUserIdSync();
 
-  // Date Calendar History
+  const searchInputRef = useRef(null);
+
+  // Date State
   const [selectedDate, setSelectedDate] = useState(() => getTodayDateString());
 
   useEffect(() => {
@@ -165,19 +174,14 @@ export default function FoodTracker({ onNotification }) {
   const targetCarbs = userProfile?.carbs || userProfile?.targetMacros?.carbs || Math.round((targetCals * 0.5) / 4);
   const targetFat = userProfile?.fat || userProfile?.targetMacros?.fat || Math.round((targetCals * 0.25) / 9);
 
-  // Active Macro Audit Filter
+  // Active Macro Filter
   const [activeMacroAudit, setActiveMacroAudit] = useState(null);
 
-  // Normalization Database Initialization
-  const { stats: normalizationStats } = useMemo(() => buildNormalizedDatabase(), []);
+  // Normalization Database Build
+  useMemo(() => buildNormalizedDatabase(), []);
 
-  // 4-Level Progressive Taxonomy State
-  const [activeDietary, setActiveDietary] = useState('all'); // Level 1
-  const [activeMealSlot, setActiveMealSlot] = useState(null); // Level 2
-  const [activeRegion, setActiveRegion] = useState(null); // Level 3
-  const [activeGoal, setActiveGoal] = useState(null); // Level 4
-
-  // Search state
+  // Filter & Search State
+  const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [recentSearches, setRecentSearches] = useState(() => {
     try {
@@ -193,7 +197,9 @@ export default function FoodTracker({ onNotification }) {
   const [targetSlotForModal, setTargetSlotForModal] = useState('lunch');
   const [editingFoodLog, setEditingFoodLog] = useState(null);
   const [showCustomFood, setShowCustomFood] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState('os'); // 'os' | 'planner' | 'grocery'
+  const [activeSubTab, setActiveSubTab] = useState('os'); // 'os' (Diary) | 'planner' | 'grocery'
+  const [premiumModalOpen, setPremiumModalOpen] = useState(false);
+  const [premiumFeatureName, setPremiumFeatureName] = useState('AI Nutrition Intelligence');
 
   // Custom Food Form State
   const [cfName, setCfName] = useState('');
@@ -204,7 +210,7 @@ export default function FoodTracker({ onNotification }) {
 
   // Weekly Planner State
   const [activeDay, setActiveDay] = useState(0);
-  const [weeklyPlanner, setWeeklyPlanner] = useState(() => {
+  const [weeklyPlanner] = useState(() => {
     try {
       const saved = localStorage.getItem('calyxo_user_diet_splits');
       return saved ? JSON.parse(saved) : INITIAL_DIET_PLANNER;
@@ -212,18 +218,6 @@ export default function FoodTracker({ onNotification }) {
       return INITIAL_DIET_PLANNER;
     }
   });
-
-  // Query Normalized Core Dishes
-  const normalizedDishes = useMemo(() => {
-    return getNormalizedDishes({
-      searchQuery,
-      dietType: activeDietary,
-      mealSlot: activeMealSlot,
-      region: activeRegion,
-      goal: activeGoal,
-      limit: 32
-    });
-  }, [searchQuery, activeDietary, activeMealSlot, activeRegion, activeGoal]);
 
   // Favorites
   const favoriteFoods = useMemo(() => {
@@ -239,7 +233,7 @@ export default function FoodTracker({ onNotification }) {
       counts[nameKey] = (counts[nameKey] || 0) + 1;
     }
 
-    const sortedNames = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 8);
+    const sortedNames = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 10);
     const seen = new Set();
     const result = [];
 
@@ -264,7 +258,42 @@ export default function FoodTracker({ onNotification }) {
     return result;
   }, [foodLogs]);
 
-  // Search query execution & history caching
+  // Query Normalized Dishes with Active Category Filters
+  const normalizedDishes = useMemo(() => {
+    if (activeCategory === 'favorites') {
+      const favNames = new Set(favoriteFoods.map(f => (f.name || '').toLowerCase()));
+      return getNormalizedDishes({
+        searchQuery,
+        limit: 30
+      }).filter(dish => favNames.has(dish.coreName.toLowerCase()));
+    }
+
+    let dietType = 'all';
+    let mealSlot = null;
+    let region = null;
+    let goal = null;
+
+    if (activeCategory === 'veg' || activeCategory === 'nonveg' || activeCategory === 'egg') {
+      dietType = activeCategory;
+    } else if (activeCategory === 'snacks') {
+      mealSlot = 'snacks';
+    } else if (activeCategory === 'high-protein') {
+      goal = 'high-protein';
+    } else if (activeCategory === 'south-indian' || activeCategory === 'north-indian') {
+      region = activeCategory;
+    }
+
+    return getNormalizedDishes({
+      searchQuery,
+      dietType,
+      mealSlot,
+      region,
+      goal,
+      limit: 32
+    });
+  }, [searchQuery, activeCategory, favoriteFoods]);
+
+  // Search trigger & history caching
   const handlePerformSearch = (text) => {
     setSearchQuery(text);
     if (text.trim().length >= 2) {
@@ -308,6 +337,7 @@ export default function FoodTracker({ onNotification }) {
     try {
       const saved = await addFoodLog(userId, logEntry);
       addFoodLogStore(saved);
+      smartReminderEngine.suppressDailyNutritionReminder(userId);
       if (onNotification) onNotification(`Logged ${logEntry.name} (${logEntry.portionWeight}g) to ${targetSlot.toUpperCase()}`);
     } catch (err) {
       console.error("Quick add error", err);
@@ -331,6 +361,7 @@ export default function FoodTracker({ onNotification }) {
     try {
       const saved = await addFoodLog(userId, logEntry);
       addFoodLogStore(saved);
+      smartReminderEngine.suppressDailyNutritionReminder(userId);
       if (onNotification) onNotification(`Logged ${logEntry.name} (${logEntry.portionWeight}g) to ${logEntry.mealSlot.toUpperCase()}`);
     } catch (err) {
       console.error("Log portion error", err);
@@ -420,43 +451,62 @@ export default function FoodTracker({ onNotification }) {
     setCfName(''); setCfCals(''); setCfProt(''); setCfCarb(''); setCfFat('');
   };
 
-  const isFilteringOrSearching = searchQuery.trim().length >= 2 || activeDietary !== 'all' || activeMealSlot !== null || activeRegion !== null || activeGoal !== null;
+  const handleOpenSlotAdd = (slot) => {
+    setTargetSlotForModal(slot);
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+      searchInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="space-y-5 max-w-6xl mx-auto pb-16 px-1 sm:px-0">
       
-      {/* Top Header & Sub-Navigation Segment */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-card-border pb-3.5">
+      {/* Top Header & Minimal View Switcher */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-card-border pb-3.5">
         <div>
-          <span className="text-[10px] font-mono uppercase tracking-widest text-muted block">Nutrition Protocol</span>
+          <span className="text-[10px] font-mono uppercase tracking-widest text-muted block">Nutrition & Fuel</span>
           <h1 className="text-lg sm:text-xl font-extrabold text-foreground tracking-tight">
-            Nutrition Operating System
+            Nutrition Diary
           </h1>
         </div>
 
-        {/* View Switcher Segment */}
-        <div className="flex items-center gap-1 bg-[var(--input)] border border-card-border p-1 rounded-xl self-start sm:self-auto">
-          {[
-            { id: 'os', label: 'Nutrition Center' },
-            { id: 'planner', label: 'Diet Planner' },
-            { id: 'grocery', label: 'Smart Grocery' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveSubTab(tab.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border-none ${
-                activeSubTab === tab.id
-                  ? 'bg-surface text-foreground shadow-sm'
-                  : 'bg-transparent text-muted hover:text-foreground'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* View Switcher & Quick Custom Button */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-[var(--input)] border border-card-border p-1 rounded-xl">
+            {[
+              { id: 'os', label: 'Diary' },
+              { id: 'planner', label: 'Meal Plan' },
+              { id: 'grocery', label: 'Grocery' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveSubTab(tab.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border-none ${
+                  activeSubTab === tab.id
+                    ? 'bg-surface text-foreground shadow-xs'
+                    : 'bg-transparent text-muted hover:text-foreground'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowCustomFood(true)}
+            className="px-3 py-1.5 bg-[var(--input)] hover:bg-acid-green hover:text-accent-foreground text-foreground rounded-xl border border-card-border text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+            title="Create Custom Food"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Custom</span>
+          </button>
         </div>
       </div>
 
-      {/* MACRO ANALYTICS BAR (Always at top of journey) */}
+      {/* DAILY MACRO ENERGY SUMMARY CARD */}
       <MacroAnalyticsBar
         selectedDate={selectedDate}
         setSelectedDate={setSelectedDate}
@@ -476,18 +526,40 @@ export default function FoodTracker({ onNotification }) {
         setActiveMacroAudit={setActiveMacroAudit}
       />
 
-      {/* DATABASE NORMALIZATION ARCHITECTURE BANNER */}
-      <DatabaseStatsBanner stats={normalizationStats} />
-
-      {/* MAIN NUTRITION WORKFLOW TAB */}
+      {/* DIARY VIEW */}
       {activeSubTab === 'os' && (
-        <div className="space-y-8">
+        <div className="space-y-6">
           
-          {/* INTELLIGENT OMNI-SEARCH & RECENT SEARCHES */}
-          <div className="bg-surface border border-card-border rounded-2xl p-4 sm:p-5 space-y-3 shadow-sm">
+          {/* MEAL DIARY (Breakfast, Lunch, Dinner, Snacks) */}
+          <MealTimelineGroup
+            foodLogs={selectedDateFoodLogs}
+            selectedDate={selectedDate}
+            formatDisplayDate={formatDisplayDate}
+            onEditFoodLog={setEditingFoodLog}
+            onDeleteFoodLog={handleDeleteMeal}
+            onOpenSlotAdd={handleOpenSlotAdd}
+            activeMacroAudit={activeMacroAudit}
+          />
+
+          {/* OMNI SEARCH & CATEGORY FILTERS */}
+          <section className="bg-surface border border-card-border rounded-2xl sm:rounded-3xl p-4 sm:p-5 space-y-3.5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-muted block">Food Catalog</span>
+                <h2 className="text-sm sm:text-base font-bold text-foreground">
+                  Quick Food Search & Add
+                </h2>
+              </div>
+              <span className="text-[10px] font-mono text-muted">
+                Logging to <strong className="text-acid-green uppercase">{targetSlotForModal}</strong>
+              </span>
+            </div>
+
+            {/* Omni Search Input */}
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
               <input
+                ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -496,8 +568,8 @@ export default function FoodTracker({ onNotification }) {
                     handlePerformSearch(searchQuery);
                   }
                 }}
-                placeholder="Search core dishes, ingredients, variations (e.g. Fish Curry, Chicken Biryani, Dosa, Paneer)..."
-                className="w-full bg-[var(--input)] text-foreground border border-card-border focus:border-foreground rounded-xl pl-10 pr-9 py-2.5 text-xs sm:text-sm font-semibold focus:outline-none placeholder:text-muted/60"
+                placeholder="Search foods, dishes, ingredients (e.g. Eggs, Dosa, Chicken, Oats)..."
+                className="w-full bg-[var(--input)] text-foreground border border-card-border focus:border-acid-green rounded-xl pl-10 pr-9 py-2.5 text-xs sm:text-sm font-semibold focus:outline-none placeholder:text-muted/60"
               />
               {searchQuery && (
                 <button
@@ -510,10 +582,10 @@ export default function FoodTracker({ onNotification }) {
               )}
             </div>
 
-            {/* Recent Searches Row */}
+            {/* Recent Searches (if no search query) */}
             {recentSearches.length > 0 && !searchQuery && (
               <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pt-0.5">
-                <span className="text-[9px] font-mono uppercase tracking-wider text-muted shrink-0 mr-1 flex items-center gap-1">
+                <span className="text-[9px] font-mono uppercase tracking-wider text-muted shrink-0 flex items-center gap-1">
                   <History className="w-3 h-3" /> Recent:
                 </span>
                 {recentSearches.map((term, i) => (
@@ -521,44 +593,50 @@ export default function FoodTracker({ onNotification }) {
                     key={i}
                     type="button"
                     onClick={() => handlePerformSearch(term)}
-                    className="px-2.5 py-1 rounded-lg bg-[var(--input)] text-[10px] font-mono font-medium text-muted hover:text-foreground border border-card-border/60 transition-colors cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-[var(--input)] text-[10px] font-mono font-medium text-muted hover:text-foreground border border-card-border transition-colors cursor-pointer shrink-0"
                   >
                     {term}
                   </button>
                 ))}
               </div>
             )}
-          </div>
 
-          {/* CHRONOLOGICAL MEAL TIMELINE (Breakfast, Lunch, Dinner, Snacks) */}
-          <MealTimelineGroup
-            foodLogs={selectedDateFoodLogs}
-            selectedDate={selectedDate}
-            formatDisplayDate={formatDisplayDate}
-            onEditFoodLog={setEditingFoodLog}
-            onDeleteFoodLog={handleDeleteMeal}
-            onOpenSlotAdd={(slot) => {
-              setTargetSlotForModal(slot);
-              setActiveMealSlot(slot);
-            }}
-            activeMacroAudit={activeMacroAudit}
-          />
+            {/* Streamlined 1-Row Category Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pt-1">
+              {CATEGORY_FILTERS.map(cat => {
+                const isSelected = activeCategory === cat.id;
+                const CatIcon = cat.icon;
 
-          {/* HIGH-PRIORITY SECTION: FREQUENTLY CONSUMED FOODS */}
-          {frequentlyConsumedFoods.length > 0 && !isFilteringOrSearching && (
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setActiveCategory(cat.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shrink-0 flex items-center gap-1 ${
+                      isSelected
+                        ? 'bg-acid-green text-accent-foreground border-acid-green shadow-xs'
+                        : 'bg-[var(--input)] border-card-border text-muted hover:text-foreground'
+                    }`}
+                  >
+                    {CatIcon && <CatIcon className="w-3 h-3" />}
+                    <span>{cat.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* FREQUENTLY CONSUMED FOODS (When in Frequent tab or default) */}
+          {activeCategory === 'frequent' && frequentlyConsumedFoods.length > 0 && (
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-muted block">High Priority</span>
-                  <h2 className="text-sm sm:text-base font-bold text-foreground">
-                    Frequently Consumed Foods
-                  </h2>
-                </div>
-                <span className="text-[10px] font-mono text-muted">1-Click Quick Add</span>
+                <h3 className="text-sm font-bold text-foreground">
+                  Your Frequent Staples ({frequentlyConsumedFoods.length})
+                </h3>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {frequentlyConsumedFoods.slice(0, 8).map((food, i) => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                {frequentlyConsumedFoods.map((food, i) => (
                   <div
                     key={i}
                     className="p-3 rounded-xl bg-surface border border-card-border flex items-center justify-between gap-2 shadow-xs"
@@ -585,266 +663,49 @@ export default function FoodTracker({ onNotification }) {
             </section>
           )}
 
-          {/* 4-LEVEL PROGRESSIVE TAXONOMY MATRIX */}
-          <section className="bg-surface border border-card-border rounded-2xl p-4 sm:p-5 space-y-4 shadow-sm">
-            <div className="flex items-center justify-between border-b border-card-border pb-3">
-              <div>
-                <span className="text-[10px] font-mono uppercase tracking-widest text-muted block">Progressive Taxonomy</span>
-                <h2 className="text-sm sm:text-base font-bold text-foreground">
-                  Hierarchical Food Classification
-                </h2>
+          {/* MATCHING FOOD CARDS GRID */}
+          {activeCategory !== 'frequent' && (
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs sm:text-sm font-bold text-foreground">
+                  {searchQuery ? `Search Results (${normalizedDishes.length})` : `Popular Dishes & Staples (${normalizedDishes.length})`}
+                </h3>
+                <span className="text-[10px] font-mono text-muted">Tap to customize portion</span>
               </div>
-              {(activeDietary !== 'all' || activeMealSlot || activeRegion || activeGoal) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveDietary('all');
-                    setActiveMealSlot(null);
-                    setActiveRegion(null);
-                    setActiveGoal(null);
-                  }}
-                  className="text-[10px] font-mono font-bold uppercase text-acid-green hover:underline cursor-pointer border-none bg-transparent"
-                >
-                  Reset Taxonomy
-                </button>
+
+              {normalizedDishes.length === 0 ? (
+                <div className="p-8 text-center bg-surface border border-dashed border-card-border rounded-2xl space-y-2">
+                  <Utensils className="w-8 h-8 text-muted mx-auto opacity-40" />
+                  <h4 className="text-xs font-bold text-foreground">No dishes matching your filter</h4>
+                  <p className="text-[11px] text-muted max-w-xs mx-auto">
+                    Try searching for another dish name or create a custom food item.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomFood(true)}
+                    className="mt-2 px-3 py-1.5 bg-acid-green text-accent-foreground text-xs font-bold rounded-lg cursor-pointer border-none inline-flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Create Custom Food
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {normalizedDishes.map(dish => (
+                    <NormalizedDishCard
+                      key={dish.id}
+                      dish={dish}
+                      onQuickAdd={handleQuickAdd}
+                      onOpenPortionDrawer={(food) => {
+                        setSelectedPortionFood(food);
+                      }}
+                      isFavorite={favoriteFoods.some(x => x.name.toLowerCase() === dish.coreName.toLowerCase())}
+                      onToggleFavorite={handleToggleFavorite}
+                      currentMealSlot={targetSlotForModal}
+                    />
+                  ))}
+                </div>
               )}
-            </div>
-
-            {/* Level 1: Dietary Classification */}
-            <div className="space-y-1.5">
-              <span className="text-[9px] font-mono uppercase tracking-wider text-muted block">Level 1 · Food Type</span>
-              <div className="flex flex-wrap gap-1.5">
-                {DIETARY_PREFERENCES.map(diet => (
-                  <button
-                    key={diet.id}
-                    type="button"
-                    onClick={() => setActiveDietary(diet.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer border ${
-                      activeDietary === diet.id
-                        ? 'bg-foreground text-background border-foreground font-extrabold shadow-sm'
-                        : 'bg-[var(--input)] border-card-border text-muted hover:text-foreground'
-                    }`}
-                  >
-                    {diet.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Level 2: Meal Slot Category */}
-            <div className="space-y-1.5 pt-1">
-              <span className="text-[9px] font-mono uppercase tracking-wider text-muted block">Level 2 · Meal Category</span>
-              <div className="flex flex-wrap gap-1.5">
-                {MEAL_SLOTS.map(slot => (
-                  <button
-                    key={slot.id}
-                    type="button"
-                    onClick={() => setActiveMealSlot(activeMealSlot === slot.id ? null : slot.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer border ${
-                      activeMealSlot === slot.id
-                        ? 'bg-acid-green text-accent-foreground border-acid-green font-extrabold shadow-sm'
-                        : 'bg-[var(--input)] border-card-border text-muted hover:text-foreground'
-                    }`}
-                  >
-                    {slot.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Level 3: Regional & International Cuisines */}
-            <div className="space-y-1.5 pt-1">
-              <span className="text-[9px] font-mono uppercase tracking-wider text-muted block">Level 3 · Cuisine & Region</span>
-              <div className="flex flex-wrap gap-1.5">
-                {REGIONAL_REGISTRY.map(reg => (
-                  <button
-                    key={reg.id}
-                    type="button"
-                    onClick={() => setActiveRegion(activeRegion === reg.id ? null : reg.id)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors cursor-pointer border ${
-                      activeRegion === reg.id
-                        ? 'bg-surface text-foreground border-foreground font-bold'
-                        : 'bg-[var(--input)] border-card-border text-muted hover:text-foreground'
-                    }`}
-                  >
-                    {reg.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Level 4: Fitness & Metabolic Objectives */}
-            <div className="space-y-1.5 pt-1">
-              <span className="text-[9px] font-mono uppercase tracking-wider text-muted block">Level 4 · Nutritional Objective</span>
-              <div className="flex flex-wrap gap-1.5">
-                {FITNESS_OBJECTIVES.map(goal => (
-                  <button
-                    key={goal.id}
-                    type="button"
-                    onClick={() => setActiveGoal(activeGoal === goal.id ? null : goal.id)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors cursor-pointer border ${
-                      activeGoal === goal.id
-                        ? 'bg-cyan-500 text-black border-cyan-500 font-bold'
-                        : 'bg-[var(--input)] border-card-border text-muted hover:text-foreground'
-                    }`}
-                  >
-                    {goal.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* NORMALIZED CORE DISHES SHELVES */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between border-b border-card-border pb-2.5">
-              <div>
-                <span className="text-[10px] font-mono uppercase tracking-widest text-muted block">Normalized Core Dishes</span>
-                <h2 className="text-base font-bold text-foreground">
-                  {isFilteringOrSearching ? 'Matching Core Dishes' : 'Canonical Food Library'} ({normalizedDishes.length})
-                </h2>
-              </div>
-              <span className="text-[10px] font-mono text-muted">Expand dish to switch cooking variations</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
-              {normalizedDishes.map(dish => (
-                <NormalizedDishCard
-                  key={dish.id}
-                  dish={dish}
-                  onQuickAdd={handleQuickAdd}
-                  onOpenPortionDrawer={(food) => {
-                    setSelectedPortionFood(food);
-                    setTargetSlotForModal(activeMealSlot || 'lunch');
-                  }}
-                  isFavorite={favoriteFoods.some(x => x.name.toLowerCase() === dish.coreName.toLowerCase())}
-                  onToggleFavorite={handleToggleFavorite}
-                  currentMealSlot={targetSlotForModal}
-                />
-              ))}
-            </div>
-          </section>
-
-          {/* PROTEIN DIRECTORY MATRIX */}
-          {!isFilteringOrSearching && (
-            <section className="p-4 sm:p-5 bg-surface border border-card-border rounded-2xl space-y-3 shadow-sm">
-              <div className="flex items-center justify-between border-b border-card-border pb-2.5">
-                <div>
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-muted block">Targeted Sources</span>
-                  <h3 className="text-sm font-bold text-foreground">
-                    Protein Density Matrix
-                  </h3>
-                </div>
-                <span className="text-[10px] font-mono text-cyan-400 font-bold">Protein per 100g</span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {PROTEIN_DIRECTORY.map(source => (
-                  <div
-                    key={source.id}
-                    onClick={() => handlePerformSearch(source.label.split(' ')[0])}
-                    className="p-3 rounded-xl bg-[var(--input)] border border-card-border hover:border-cyan-500/40 transition-colors cursor-pointer flex flex-col justify-between"
-                  >
-                    <span className="text-xs font-bold text-foreground truncate">{source.label}</span>
-                    <div className="flex items-baseline justify-between mt-2 pt-1.5 border-t border-card-border/50">
-                      <span className="text-[10px] font-mono font-bold text-cyan-400">{source.proteinPer100g}g P</span>
-                      <span className="text-[9px] font-mono text-muted">{source.calsPer100g} kcal</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </section>
-          )}
-
-          {/* Custom Food Creation Trigger */}
-          <div className="flex justify-end pt-2">
-            <button
-              onClick={() => setShowCustomFood(!showCustomFood)}
-              className="text-xs font-bold text-acid-green hover:underline uppercase tracking-wider flex items-center gap-1 cursor-pointer border-none bg-transparent"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              {showCustomFood ? "Cancel Custom Food" : "Create Custom Food Item"}
-            </button>
-          </div>
-
-          {/* Custom Food Creator Form */}
-          {showCustomFood && (
-            <div className="p-5 bg-surface border border-card-border rounded-2xl space-y-4 shadow-sm">
-              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">Custom Food Creator</h3>
-              <form onSubmit={handleCustomFoodSubmit} className="space-y-3.5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[9px] font-mono uppercase text-muted block mb-1">Food Name</label>
-                    <input
-                      type="text"
-                      value={cfName}
-                      onChange={(e) => setCfName(e.target.value)}
-                      placeholder="e.g. Homemade Protein Bowl"
-                      className="w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-acid-green"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[9px] font-mono uppercase text-muted block mb-1">Calories (kcal per 100g)</label>
-                    <input
-                      type="number"
-                      value={cfCals}
-                      onChange={(e) => setCfCals(e.target.value)}
-                      placeholder="250"
-                      className="w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-acid-green"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2.5">
-                  <div>
-                    <label className="text-[9px] font-mono uppercase text-muted block mb-1">Protein (g)</label>
-                    <input
-                      type="number"
-                      value={cfProt}
-                      onChange={(e) => setCfProt(e.target.value)}
-                      placeholder="20"
-                      className="w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-cyan-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[9px] font-mono uppercase text-muted block mb-1">Carbs (g)</label>
-                    <input
-                      type="number"
-                      value={cfCarb}
-                      onChange={(e) => setCfCarb(e.target.value)}
-                      placeholder="25"
-                      className="w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[9px] font-mono uppercase text-muted block mb-1">Fat (g)</label>
-                    <input
-                      type="number"
-                      value={cfFat}
-                      onChange={(e) => setCfFat(e.target.value)}
-                      placeholder="5"
-                      className="w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-rose-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowCustomFood(false)}
-                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-muted bg-[var(--input)] border border-card-border cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-1.5 rounded-lg bg-acid-green text-accent-foreground font-bold text-xs uppercase tracking-wider cursor-pointer border-none shadow-sm"
-                  >
-                    Save & Log
-                  </button>
-                </div>
-              </form>
-            </div>
           )}
 
         </div>
@@ -853,22 +714,31 @@ export default function FoodTracker({ onNotification }) {
       {/* DIET PLANNER TAB */}
       {activeSubTab === 'planner' && (
         <div className="space-y-6">
-          <section className="bg-surface border border-card-border rounded-2xl p-5 space-y-4 shadow-sm">
-            <div className="flex justify-between items-center border-b border-card-border pb-3">
-              <div>
-                <h2 className="text-sm font-bold text-foreground">Weekly Diet Split Configuration</h2>
-                <p className="text-[10px] font-mono text-muted">Baseline daily nutrition splits</p>
-              </div>
+          <AIMealPlannerCard
+            userProfile={userProfile}
+            onOpenUpgradeModal={(feature) => {
+              setPremiumFeatureName(feature);
+              setPremiumModalOpen(true);
+            }}
+            onLogMeal={handleQuickAdd}
+          />
+
+          <section className="bg-surface border border-card-border rounded-2xl sm:rounded-3xl p-4 sm:p-5 space-y-4 shadow-sm">
+            <div className="border-b border-card-border pb-3">
+              <h2 className="text-sm sm:text-base font-bold text-foreground">Weekly Meal Plan</h2>
+              <p className="text-[10px] font-mono text-muted">Pre-planned balanced meal templates</p>
             </div>
 
+            {/* Day Selector Pills */}
             <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
               {weeklyPlanner.map((day, idx) => (
                 <button
                   key={idx}
+                  type="button"
                   onClick={() => setActiveDay(idx)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase cursor-pointer border transition-colors ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase cursor-pointer border transition-colors shrink-0 ${
                     activeDay === idx
-                      ? 'bg-acid-green text-accent-foreground border-acid-green shadow-sm'
+                      ? 'bg-acid-green text-accent-foreground border-acid-green shadow-xs'
                       : 'bg-[var(--input)] border-card-border text-muted hover:text-foreground'
                   }`}
                 >
@@ -877,23 +747,25 @@ export default function FoodTracker({ onNotification }) {
               ))}
             </div>
 
-            <div className="space-y-2.5 pt-2">
+            {/* Day Meals List */}
+            <div className="space-y-2.5 pt-1">
               {weeklyPlanner[activeDay].diet.map((meal, idx) => (
-                <div key={idx} className="p-3.5 rounded-xl bg-[var(--input)] border border-card-border flex justify-between items-center">
-                  <div>
+                <div key={idx} className="p-3.5 rounded-xl bg-[var(--input)] border border-card-border flex justify-between items-center gap-3">
+                  <div className="min-w-0">
                     <span className="text-[9px] font-mono font-bold uppercase text-acid-green block">{meal.category}</span>
-                    <h4 className="text-xs font-bold text-foreground">{meal.name}</h4>
-                    <p className="text-[10px] text-muted mt-0.5">{meal.desc}</p>
+                    <h4 className="text-xs font-bold text-foreground truncate">{meal.name}</h4>
+                    <p className="text-[10px] text-muted mt-0.5 line-clamp-1">{meal.desc}</p>
                     <span className="text-[10px] font-mono text-muted mt-1 block">
                       {meal.calories} kcal · {meal.protein}g P · {meal.carbs}g C · {meal.fat}g F
                     </span>
                   </div>
                   <button
-                    onClick={() => handleQuickAdd(meal, targetSlotForModal)}
-                    className="w-7 h-7 rounded-lg bg-surface hover:bg-acid-green hover:text-accent-foreground text-foreground flex items-center justify-center font-bold text-xs cursor-pointer border border-card-border transition-colors"
+                    type="button"
+                    onClick={() => handleQuickAdd(meal, meal.category?.toLowerCase() || 'lunch')}
+                    className="w-8 h-8 rounded-xl bg-surface hover:bg-acid-green hover:text-accent-foreground text-foreground flex items-center justify-center font-bold text-xs cursor-pointer border border-card-border transition-colors shrink-0 shadow-xs active:scale-95"
                     title="Log to Diary"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <Plus className="w-4 h-4" />
                   </button>
                 </div>
               ))}
@@ -904,19 +776,26 @@ export default function FoodTracker({ onNotification }) {
 
       {/* SMART GROCERY TAB */}
       {activeSubTab === 'grocery' && (
-        <div className="max-w-2xl mx-auto space-y-6">
-          <section className="bg-surface border border-card-border rounded-2xl p-5 space-y-4 shadow-sm">
+        <div className="max-w-xl mx-auto space-y-5">
+          <section className="bg-surface border border-card-border rounded-2xl sm:rounded-3xl p-4 sm:p-5 space-y-4 shadow-sm">
             <div className="border-b border-card-border pb-3">
-              <h2 className="text-sm font-bold text-foreground">Smart Grocery Checklist</h2>
-              <p className="text-[10px] font-mono text-muted">Weekly replenishment items for your meal plan</p>
+              <h2 className="text-sm sm:text-base font-bold text-foreground">Smart Grocery Checklist</h2>
+              <p className="text-[10px] font-mono text-muted">Weekly replenishment items for your nutrition goals</p>
             </div>
 
             <div className="space-y-2">
-              {["Rolled Oats & Chia Seeds", "Chicken Breast & Lean Meat", "Paneer & Greek Yogurt", "Eggs & Soya Chunks", "Brown Rice & Quinoa", "Fresh Spinach & Berries"].map((item, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 bg-[var(--input)] border border-card-border rounded-xl">
+              {[
+                "Rolled Oats & Chia Seeds", 
+                "Chicken Breast & Lean Meat", 
+                "Paneer & Greek Yogurt", 
+                "Eggs & Soya Chunks", 
+                "Brown Rice & Quinoa", 
+                "Fresh Spinach, Avocado & Berries"
+              ].map((item, i) => (
+                <label key={i} className="flex items-center gap-3 p-3 bg-[var(--input)] border border-card-border rounded-xl cursor-pointer hover:border-acid-green/40 transition-colors">
                   <input type="checkbox" className="accent-acid-green cursor-pointer w-4 h-4 rounded" />
                   <span className="text-xs font-semibold text-foreground">{item}</span>
-                </div>
+                </label>
               ))}
             </div>
           </section>
@@ -933,13 +812,106 @@ export default function FoodTracker({ onNotification }) {
         />
       )}
 
+      {/* CUSTOM FOOD CREATOR MODAL */}
+      {showCustomFood && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setShowCustomFood(false)} />
+          <div className="relative bg-surface border border-card-border rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 w-full max-w-md shadow-2xl space-y-4 z-10 pb-safe">
+            <div className="flex justify-between items-center border-b border-card-border pb-3">
+              <h3 className="text-sm font-bold uppercase text-foreground">Create Custom Food</h3>
+              <button onClick={() => setShowCustomFood(false)} className="p-1 text-muted hover:text-foreground cursor-pointer bg-none border-none">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCustomFoodSubmit} className="space-y-3.5">
+              <div>
+                <label className="text-[10px] font-mono uppercase text-muted block mb-1">Food Name</label>
+                <input
+                  type="text"
+                  required
+                  value={cfName}
+                  onChange={(e) => setCfName(e.target.value)}
+                  placeholder="e.g. Homemade Protein Shake"
+                  className="w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-acid-green"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-mono uppercase text-muted block mb-1">Calories (kcal per 100g / serving)</label>
+                <input
+                  type="number"
+                  required
+                  value={cfCals}
+                  onChange={(e) => setCfCals(e.target.value)}
+                  placeholder="250"
+                  className="w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-acid-green"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5">
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-muted block mb-1">Protein (g)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={cfProt}
+                    onChange={(e) => setCfProt(e.target.value)}
+                    placeholder="20"
+                    className="w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-muted block mb-1">Carbs (g)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={cfCarb}
+                    onChange={(e) => setCfCarb(e.target.value)}
+                    placeholder="25"
+                    className="w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-muted block mb-1">Fat (g)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={cfFat}
+                    onChange={(e) => setCfFat(e.target.value)}
+                    placeholder="5"
+                    className="w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-rose-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-card-border">
+                <button
+                  type="button"
+                  onClick={() => setShowCustomFood(false)}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-muted bg-[var(--input)] border border-card-border cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded-xl bg-acid-green text-accent-foreground font-bold text-xs uppercase tracking-wider cursor-pointer border-none shadow-xs active:scale-95"
+                >
+                  Save & Log
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* EDIT FOOD LOG MODAL */}
       {editingFoodLog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setEditingFoodLog(null)} />
-          <div className="relative bg-surface border border-card-border rounded-2xl p-5 sm:p-6 w-full max-w-md shadow-2xl space-y-4 z-10">
+          <div className="relative bg-surface border border-card-border rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 w-full max-w-md shadow-2xl space-y-4 z-10 pb-safe">
             <div className="flex justify-between items-center border-b border-card-border pb-3">
-              <h3 className="text-sm font-bold uppercase text-foreground">Edit Food Log Entry</h3>
+              <h3 className="text-sm font-bold uppercase text-foreground">Edit Logged Item</h3>
               <button onClick={() => setEditingFoodLog(null)} className="p-1 text-muted hover:text-foreground cursor-pointer bg-none border-none">
                 <X className="w-4 h-4" />
               </button>
@@ -947,7 +919,7 @@ export default function FoodTracker({ onNotification }) {
 
             <div className="space-y-3">
               <div>
-                <label className="text-[9px] font-mono uppercase text-muted block mb-1">Food Name</label>
+                <label className="text-[10px] font-mono uppercase text-muted block mb-1">Food Name</label>
                 <input
                   type="text"
                   value={editingFoodLog.name}
@@ -958,7 +930,7 @@ export default function FoodTracker({ onNotification }) {
               
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[9px] font-mono uppercase text-muted block mb-1">Calories (kcal)</label>
+                  <label className="text-[10px] font-mono uppercase text-muted block mb-1">Calories (kcal)</label>
                   <input
                     type="number"
                     value={editingFoodLog.calories}
@@ -967,7 +939,7 @@ export default function FoodTracker({ onNotification }) {
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] font-mono uppercase text-muted block mb-1">Portion (g)</label>
+                  <label className="text-[10px] font-mono uppercase text-muted block mb-1">Portion (g)</label>
                   <input
                     type="number"
                     value={editingFoodLog.portionWeight || 100}
@@ -979,7 +951,7 @@ export default function FoodTracker({ onNotification }) {
 
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="text-[9px] font-mono uppercase text-muted block mb-1">Protein (g)</label>
+                  <label className="text-[10px] font-mono uppercase text-muted block mb-1">Protein (g)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -989,7 +961,7 @@ export default function FoodTracker({ onNotification }) {
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] font-mono uppercase text-muted block mb-1">Carbs (g)</label>
+                  <label className="text-[10px] font-mono uppercase text-muted block mb-1">Carbs (g)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -999,7 +971,7 @@ export default function FoodTracker({ onNotification }) {
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] font-mono uppercase text-muted block mb-1">Fat (g)</label>
+                  <label className="text-[10px] font-mono uppercase text-muted block mb-1">Fat (g)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -1015,13 +987,20 @@ export default function FoodTracker({ onNotification }) {
               <button onClick={() => setEditingFoodLog(null)} className="px-3.5 py-1.5 bg-[var(--input)] border border-card-border rounded-xl text-xs font-semibold text-muted cursor-pointer">
                 Cancel
               </button>
-              <button onClick={handleSaveEditedFoodLog} className="px-4 py-1.5 bg-acid-green text-accent-foreground font-bold text-xs rounded-xl cursor-pointer border-none shadow-sm">
+              <button onClick={handleSaveEditedFoodLog} className="px-4 py-1.5 bg-acid-green text-accent-foreground font-bold text-xs rounded-xl cursor-pointer border-none shadow-xs active:scale-95">
                 Save Changes
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* PREMIUM UPGRADE MODAL */}
+      <PremiumFeatureModal
+        isOpen={premiumModalOpen}
+        onClose={() => setPremiumModalOpen(false)}
+        featureName={premiumFeatureName}
+      />
 
     </div>
   );

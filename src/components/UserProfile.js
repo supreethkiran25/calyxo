@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useState, useEffect, useRef } from 'react';
 import PermissionsConnectionsSection from './PermissionsConnectionsSection';
@@ -6,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { calculateMacroTargets } from '../utils/macroCalculator';
-import { startRazorpayCheckout } from '../utils/razorpay';
+import { startRazorpayCheckout, restoreSubscription, PAYMENT_STATUS } from '../utils/razorpay';
 import { applyAppearanceSettings } from '../utils/appearanceUtils';
 import { 
   saveUserProfile, 
@@ -716,6 +715,18 @@ export default function UserProfile({ onNotification }) {
       onNotification,
       onLoadingChange: setSaving
     });
+  };
+
+  const handleRestoreSubscription = async () => {
+    setSaving(true);
+    if (onNotification) onNotification("Restoring active subscription from server...");
+    await restoreSubscription({
+      user,
+      userProfile,
+      updateUserProfile,
+      onNotification
+    });
+    setSaving(false);
   };
 
   const handleCancelSubscription = async () => {
@@ -1545,6 +1556,14 @@ export default function UserProfile({ onNotification }) {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRestoreSubscription}
+              disabled={saving}
+              className="px-3 py-1 rounded-full bg-surface text-foreground hover:border-acid-green border border-card-border text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer"
+            >
+              Restore
+            </button>
             <span className="px-3 py-1 rounded-full bg-acid-green/20 text-acid-green text-[10px] font-black uppercase tracking-wider border border-acid-green/30">
               {currentPlan === 'FREE' ? 'Free Tier' : 'Active Subscription'}
             </span>
@@ -1751,7 +1770,7 @@ export default function UserProfile({ onNotification }) {
           {[
             { label: 'Offline Sync', status: 'Completed', color: 'text-acid-green bg-acid-green/10 border-acid-green/15' },
             { label: 'Indian Food Expansion', status: 'Completed', color: 'text-acid-green bg-acid-green/10 border-acid-green/15' },
-            { label: 'Wearable Integration', status: 'In Dev', color: 'text-blue-400 bg-blue-500/10 border-blue-500/15' },
+            { label: 'Wearable Integration', status: 'Completed', color: 'text-acid-green bg-acid-green/10 border-acid-green/15' },
             { label: 'AI Posture Video', status: 'Planned', color: 'text-muted bg-surface border-card-border' }
           ].map((mile, i) => (
             <div key={i} className="p-2 bg-surface border border-card-border rounded-lg flex justify-between items-center text-[10px]">

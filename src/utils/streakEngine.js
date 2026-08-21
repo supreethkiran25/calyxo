@@ -6,7 +6,7 @@
  * - Nutrition Streak
  * - Water Streak
  */
-import { getTodayDateString, parseSafeDate } from './dateUtils';
+import { getTodayDateString, parseSafeDate } from './dateUtils.js';
 
 /**
  * Calculates consecutive-day streak from a list of log timestamps or date objects.

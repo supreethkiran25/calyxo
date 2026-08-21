@@ -4,6 +4,7 @@ import { X, Droplets, Plus, Sparkles, RotateCcw } from 'lucide-react';
 import useQuickActionsStore from '../../store/useQuickActionsStore';
 import { useStore } from '../../store/useStore';
 import { saveWaterIntake } from '../../lib/dbService';
+import RealisticWaterVessel from '../common/RealisticWaterVessel';
 
 export default function WaterLoggerModal() {
   const { activeWorkflow, closeWorkflow } = useQuickActionsStore();
@@ -118,60 +119,16 @@ export default function WaterLoggerModal() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
             
-            {/* REALISTIC ANIMATED WATER FILLING CONTAINER */}
+            {/* REALISTIC ANIMATED WATER FILLING VESSEL */}
             <div className="relative flex flex-col items-center justify-center">
-              <div className="relative w-32 h-64 rounded-3xl border-4 border-cyan-400/40 bg-black/40 backdrop-blur-sm overflow-hidden shadow-[0_0_30px_rgba(6,182,212,0.25)] flex flex-col justify-end">
-                
-                {/* Glass reflections */}
-                <div className="absolute top-0 left-2 w-2 h-full bg-gradient-to-b from-white/30 via-white/10 to-transparent rounded-full z-20 pointer-events-none" />
-                <div className="absolute top-3 right-3 w-1.5 h-16 bg-white/20 rounded-full z-20 pointer-events-none" />
-
-                {/* Measurement Ticks */}
-                <div className="absolute left-2 right-2 top-0 bottom-0 flex flex-col justify-between py-4 z-20 pointer-events-none opacity-40">
-                  {[3000, 2250, 1500, 750].map((mark) => (
-                    <div key={mark} className="flex justify-between items-center text-[7px] font-mono text-cyan-200 font-bold border-t border-white/20 pt-0.5">
-                      <span>{mark}ml</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Pouring Stream Animation when adding */}
-                <AnimatePresence>
-                  {pouring && (
-                    <motion.div 
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "100%", opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute top-0 left-1/2 -translate-x-1/2 w-3 bg-cyan-300/80 z-30 shadow-[0_0_15px_#22d3ee] rounded-full pointer-events-none"
-                    />
-                  )}
-                </AnimatePresence>
-
-                {/* DYNAMIC WATER LIQUID FILL */}
-                <motion.div
-                  initial={{ height: "0%" }}
-                  animate={{ height: `${fillPct}%` }}
-                  transition={{ duration: 1.2, ease: [0.34, 1.56, 0.64, 1] }}
-                  className="w-full relative overflow-hidden bg-gradient-to-t from-blue-700 via-cyan-500 to-cyan-400 transition-all shadow-[0_0_20px_rgba(6,182,212,0.5)]"
-                >
-                  {/* Undulating Liquid Surface Waves */}
-                  <div className="absolute -top-3 left-0 w-[200%] h-6 bg-cyan-300/50 rounded-[40%] animate-liquid-wave-1 pointer-events-none" />
-                  <div className="absolute -top-2 left-0 w-[200%] h-6 bg-cyan-200/40 rounded-[35%] animate-liquid-wave-2 pointer-events-none" />
-
-                  {/* Rising Water Bubbles */}
-                  <div className="absolute bottom-2 left-4 w-2 h-2 rounded-full bg-white/60 animate-bubble-1" />
-                  <div className="absolute bottom-1 left-12 w-3 h-3 rounded-full bg-white/70 animate-bubble-2" />
-                  <div className="absolute bottom-4 right-6 w-2 h-2 rounded-full bg-white/60 animate-bubble-3" />
-                </motion.div>
-
-                {/* Inside Percentage Badge */}
-                <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-                  <div className="px-3 py-1 rounded-full bg-black/60 border border-cyan-400/40 text-cyan-300 font-black text-sm backdrop-blur-md shadow-lg">
-                    {fillPct}%
-                  </div>
-                </div>
-
-              </div>
+              <RealisticWaterVessel
+                currentAmount={waterIntake}
+                targetAmount={targetGoal}
+                width={130}
+                height={260}
+                onAddWater={handleLogWater}
+                className="shadow-[0_0_35px_rgba(6,182,212,0.3)]"
+              />
 
               {/* Status Badge */}
               <div className="mt-3 text-center">

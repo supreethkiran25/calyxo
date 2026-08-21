@@ -1,7 +1,7 @@
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
-import { useStore } from '../store/useStore';
-import { isToday, getTodayDateString, isSameLocalDate } from '../utils/dateUtils';
+import { useStore } from '../store/useStore.js';
+import { isToday, getTodayDateString, isSameLocalDate } from '../utils/dateUtils.js';
 
 export const WIDGET_DATA_KEY = 'calyxo_widget_data';
 

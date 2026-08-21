@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Dumbbell, Apple, ScanLine, TrendingUp, MessageSquare, Droplets, Scale, Zap, Lock } from 'lucide-react';
+import { X, Dumbbell, Apple, ScanLine, TrendingUp, MessageSquare, Droplets, Scale, Zap, Lock, Bot } from 'lucide-react';
 import useQuickActionsStore from '../store/useQuickActionsStore';
 import { useStore } from '../store/useStore';
 
@@ -26,7 +26,7 @@ export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
     { id: 'log_water', label: 'Log Water', icon: Droplets, color: 'text-cyan-500', bg: 'bg-cyan-500/10', section: 'Health' },
     { id: 'update_weight', label: 'Update Weight', icon: Scale, color: 'text-amber-500', bg: 'bg-amber-500/10', section: 'Health' },
 
-    { id: 'start_chat', label: 'AI Coach Chat', icon: MessageSquare, color: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]/10', section: 'AI', isPremium: true }
+    { id: 'start_chat', label: 'AI Health Intelligence', icon: Bot, color: 'text-acid-green', bg: 'bg-acid-green/10', section: 'AI', isPremium: false }
   ];
 
   const sections = ['Health', 'AI'];

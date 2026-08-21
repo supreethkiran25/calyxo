@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense, useRef } from 'react';
 import { motion } from 'framer-motion';
@@ -10,8 +9,13 @@ import { syncAIHealthTwin } from '../lib/aiEcosystemService';
 import { calculateMacroTargets, formatNutritionValue } from '../utils/macroCalculator';
 import { isToday } from '../utils/dateUtils';
 import { calculateWorkoutCaloriesBurned } from '../utils/workoutUtils';
+import { calculateDeterministicFitnessAge } from '../services/health/DeterministicFitnessAgeEngine';
+import { calculateDeterministicRecovery } from '../services/health/DeterministicRecoveryEngine';
 
 import { Flame, Droplets, Activity, Dumbbell, Utensils, Star, Sparkles, ChevronRight, Award, Zap, Brain, Moon, BookOpen, Bot, TrendingUp, PieChart } from 'lucide-react';
+import RealisticWaterVessel from './common/RealisticWaterVessel';
+import DailyAIBriefingCard from './ai/DailyAIBriefingCard';
+import PremiumFeatureModal from './modals/PremiumFeatureModal';
 
 const ThreeHealthCore = lazy(() => import('./ThreeHealthCore'));
 
@@ -237,6 +241,9 @@ export default function Dashboard({ onNotification }) {
     }
   };
 
+  const [premiumModalOpen, setPremiumModalOpen] = useState(false);
+  const [premiumFeatureName, setPremiumFeatureName] = useState('Daily AI Briefing');
+
   const todaysFoodLogs = useMemo(() => foodLogs.filter(x => isToday(x.timestamp)), [foodLogs]);
   const todaysWorkoutLogs = useMemo(() => workoutLogs.filter(x => isToday(x.timestamp)), [workoutLogs]);
 
@@ -261,7 +268,9 @@ export default function Dashboard({ onNotification }) {
 
   // Dynamic Live Health Twin (Calculates score & actionable insights in real-time from actual logged data)
   const dynamicHealthTwin = useMemo(() => {
-    const userAge = Number(userProfile?.age || age) || 25;
+    const rawAge = Number(userProfile?.age);
+    const hasProfileAge = Boolean(rawAge && rawAge > 10 && rawAge < 110);
+    const userAge = hasProfileAge ? rawAge : (Number(age) || 24);
     const targetCal = Math.max(1, (userProfile?.dailyCalories || userProfile?.calorieGoal || metrics.calorieGoal || 2000));
     const targetProt = Math.max(1, (userProfile?.proteinGoal || metrics.macros?.protein || 130));
     const targetWater = 3000;
@@ -283,41 +292,39 @@ export default function Dashboard({ onNotification }) {
       score = Math.min(99, Math.max(45, Math.round(calComponent + protComponent + waterComponent + workoutComponent)));
     }
 
-    // Dynamic recovery calculation
-    let recovery = 75;
-    if (hasWorkout) {
-      recovery = waterRatio >= 70 ? 88 : 74;
-    } else if (waterRatio >= 80 && protRatio >= 70) {
-      recovery = 93;
-    } else if (waterRatio < 40) {
-      recovery = 68;
-    }
+    // ── Deterministic Recovery Calculation ──
+    const recoveryRes = calculateDeterministicRecovery({
+      sleepHours: Number(metrics?.sleepHours) || 0,
+      waterMl: waterIntake,
+      waterGoalMl: targetWater,
+      proteinGrams: totalProt,
+      proteinGoalGrams: targetProt,
+      hasLoggedWorkoutToday: hasWorkout,
+      restingHR: Number(metrics?.restingHeartRateBpm) || 0
+    });
+    const recovery = recoveryRes.available ? recoveryRes.score : 75;
 
-    // ── Clinical Fitness Age Calculation based on Real Training Start Date & Metrics ──
+    // ── Deterministic Clinical Fitness Age Calculation ──
     const expYears = Number(userProfile?.workoutExperienceYears) || 
       (userProfile?.workoutStartPeriod === '5_plus_years' ? 6.0 :
        userProfile?.workoutStartPeriod === '3_5_years' ? 4.0 :
        userProfile?.workoutStartPeriod === '1_2_years' ? 1.5 :
        userProfile?.workoutStartPeriod === 'under_6m' ? 0.5 : 0.0);
 
-    // Training experience cellular adaptation benefit (years younger)
-    let experienceBenefit = 0;
-    if (expYears >= 5.0) experienceBenefit = 3.0;
-    else if (expYears >= 3.0) experienceBenefit = 2.0;
-    else if (expYears >= 1.0) experienceBenefit = 1.0;
-    else if (expYears === 0.0 && score < 50) experienceBenefit = -1.0;
+    const fitnessAgeRes = calculateDeterministicFitnessAge({
+      chronologicalAge: userAge,
+      trainingYears: expYears,
+      monthlyWorkouts: todaysWorkoutLogs.length > 0 ? 12 : 4,
+      restingHR: Number(metrics?.restingHeartRateBpm) || 0,
+      vo2Max: Number(metrics?.vo2Max) || 0
+    });
 
-    // Daily athletic execution & metabolic adherence modifier
-    let adherenceBenefit = 0;
-    if (score >= 85) adherenceBenefit = 1.0;
-    else if (score < 45) adherenceBenefit = -1.0;
-
-    const fitnessAge = Math.max(16, Math.round((userAge - experienceBenefit - adherenceBenefit) * 10) / 10);
-    const fitnessAgeDelta = Math.round((userAge - fitnessAge) * 10) / 10;
+    const fitnessAge = fitnessAgeRes.available ? fitnessAgeRes.fitnessAge : userAge;
+    const fitnessAgeDelta = fitnessAgeRes.available ? fitnessAgeRes.delta : 0;
 
     // Real Sleep Debt calculation based on tracked sleep vs 8h target
-    const currentSleepHours = Number(metrics?.sleepHours) > 0 ? Number(metrics.sleepHours) : 7.5;
-    const sleepDebt = Math.max(0, Math.round((8.0 - currentSleepHours) * 10) / 10);
+    const currentSleepHours = Number(metrics?.sleepHours) || 0;
+    const sleepDebt = currentSleepHours > 0 ? Math.max(0, Math.round((8.0 - currentSleepHours) * 10) / 10) : 0;
 
     // Dynamic AI Insights & actionable recommendations tailored to real gaps
     const recommendations = [];
@@ -354,11 +361,12 @@ export default function Dashboard({ onNotification }) {
 
     return {
       dailyHealthScore: ecoStore.healthTwin?.dailyHealthScore || score,
-      fitnessAge,
+      fitnessAge: hasProfileAge ? fitnessAge : `${fitnessAge} (Est.)`,
       fitnessAgeDelta,
       userAge,
+      hasProfileAge,
       expYears,
-      recoveryScore: ecoStore.healthTwin?.recoveryScore || recovery,
+      recoveryScore: recovery,
       sleepDebt,
       weeklyHealthForecast: forecast,
       personalizedRecommendations: recommendations.slice(0, 3)
@@ -530,6 +538,19 @@ export default function Dashboard({ onNotification }) {
         ))}
       </div>
 
+      {/* ── DAILY MORNING AI BRIEFING (PREMIUM) ── */}
+      <DailyAIBriefingCard
+        userProfile={userProfile}
+        foodLogs={todaysFoodLogs}
+        workoutLogs={todaysWorkoutLogs}
+        waterIntake={waterIntake}
+        healthLogs={{ sleep: 7.7, soreness: 3, fatigue: 3, restingHeartRate: 64 }}
+        onOpenUpgradeModal={(feature) => {
+          setPremiumFeatureName(feature);
+          setPremiumModalOpen(true);
+        }}
+      />
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start w-full">
         
         {/* AI Health Twin Widget */}
@@ -568,7 +589,7 @@ export default function Dashboard({ onNotification }) {
                       ? `🔥 ${dynamicHealthTwin.fitnessAgeDelta} yrs younger (Bio: ${dynamicHealthTwin.userAge})` 
                       : dynamicHealthTwin.fitnessAgeDelta < 0 
                       ? `⚠️ +${Math.abs(dynamicHealthTwin.fitnessAgeDelta)} yrs (Bio: ${dynamicHealthTwin.userAge})` 
-                      : `✨ Bio: ${dynamicHealthTwin.userAge} yrs`}
+                      : `🧬 Bio: ${dynamicHealthTwin.userAge} yrs`}
                   </span>
                 </div>
                 <div>
@@ -675,20 +696,14 @@ export default function Dashboard({ onNotification }) {
             </h2>
             
             <div className="flex gap-4 items-center mb-4">
-              <div className="relative w-16 h-36 border-2 border-cyan-400/40 bg-black/40 rounded-2xl overflow-hidden shadow-[0_0_15px_rgba(6,182,212,0.2)] flex flex-col justify-end">
-                <motion.div
-                  initial={{ scaleY: 0 }}
-                  animate={{ scaleY: waterPct / 100 }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
-                  className="w-full h-full relative bg-gradient-to-t from-blue-700 via-cyan-500 to-cyan-400 origin-bottom"
-                >
-                  <div className="absolute -top-2 left-0 w-[200%] h-4 bg-cyan-300/50 rounded-[40%] animate-liquid-wave-1 pointer-events-none" />
-                  <div className="absolute bottom-1 left-3 w-1.5 h-1.5 rounded-full bg-white/60 animate-bubble-1" />
-                </motion.div>
-                <div className="absolute inset-0 flex items-center justify-center text-center font-black text-xs text-white drop-shadow-md select-none z-10">
-                  {Math.round(waterPct)}%
-                </div>
-              </div>
+              <RealisticWaterVessel
+                currentAmount={waterIntake}
+                targetAmount={3000}
+                width={72}
+                height={144}
+                onAddWater={handleAddWater}
+                className="shrink-0"
+              />
 
               <div className="flex-1 space-y-4">
                 <div>
@@ -834,6 +849,13 @@ export default function Dashboard({ onNotification }) {
         </div>
 
       </div>
+
+      {/* Premium Upgrade Modal */}
+      <PremiumFeatureModal
+        isOpen={premiumModalOpen}
+        onClose={() => setPremiumModalOpen(false)}
+        featureName={premiumFeatureName}
+      />
     </div>
   );
 }

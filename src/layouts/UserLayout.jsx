@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home as HomeIcon, BookOpen, BarChart2, User, Users, LogOut, Sparkles, X, TrendingUp, Heart, Search, Menu, Plus, Crown, Lock, Bell, CheckCheck, Trash } from 'lucide-react';
+import { Home as HomeIcon, BookOpen, BarChart2, User, Users, LogOut, Bot, X, TrendingUp, Heart, Search, Menu, Plus, Crown, Lock, Bell, CheckCheck, Trash } from 'lucide-react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
@@ -32,24 +32,14 @@ const WeightLoggerModal = lazy(() => import('../components/modals/WeightLoggerMo
 
 const DESKTOP_NAV = [
   {
-    group: 'HOME',
+    group: 'EXPERIENCES',
     items: [
-      { id: 'dashboard', href: '/user/dashboard', label: 'Dashboard', icon: HomeIcon },
-      { id: 'progress', href: '/user/progress', label: "Today's Progress", icon: TrendingUp },
-    ]
-  },
-  {
-    group: 'HEALTH',
-    items: [
-      { id: 'health', href: '/user/health', label: 'Health Hub', icon: Heart, isPremium: true },
+      { id: 'dashboard', href: '/user/dashboard', label: 'Home', icon: HomeIcon },
       { id: 'nutrition', href: '/user/nutrition', label: 'Nutrition', icon: BookOpen },
-      { id: 'workout', href: '/user/workout', label: 'Workouts', icon: BarChart2 },
-    ]
-  },
-  {
-    group: 'AI',
-    items: [
-      { id: 'ai', href: '/user/ai', label: 'AI Workspace', icon: Sparkles, isPremium: true },
+      { id: 'workout', href: '/user/workout', label: 'Workout', icon: BarChart2 },
+      { id: 'health', href: '/user/health', label: 'Recovery', icon: Heart },
+      { id: 'progress', href: '/user/progress', label: 'Challenges', icon: TrendingUp },
+      { id: 'ai', href: '/user/ai', label: 'AI', icon: Bot },
     ]
   },
   {
@@ -451,8 +441,8 @@ export default function UserLayout() {
         </header>
 
         {/* Dynamic Content */}
-        <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden relative scrollbar-hide pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8">
-          <div className="max-w-7xl mx-auto w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <main ref={mainRef} className={`flex-1 ${pathname === '/user/ai' ? 'overflow-hidden flex flex-col min-h-0 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] lg:pb-0' : 'overflow-y-auto overflow-x-hidden pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8'} relative scrollbar-hide`}>
+          <div className={`max-w-7xl mx-auto w-full ${pathname === '/user/ai' ? 'p-0 sm:p-4 flex-1 flex flex-col min-h-0' : 'px-3 sm:px-6 lg:px-8 py-4 sm:py-8'}`}>
             <Outlet />
           </div>
         </main>
@@ -462,6 +452,13 @@ export default function UserLayout() {
             <Link
               to="/user/dashboard"
               aria-label="Home Dashboard"
+              onClick={() => {
+                setIsQuickActionsOpen(false);
+                setIsMobileDrawerOpen(false);
+                setIsNotifDrawerOpen(false);
+                setIsSearchOpen(false);
+                if (mainRef.current) mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
                 pathname === '/user/dashboard' ? 'text-acid-green font-black' : 'text-muted hover:text-foreground'
               }`}

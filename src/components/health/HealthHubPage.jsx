@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,6 +18,9 @@ import { syncWidgetData } from '../../services/widgetDataService';
 import PremiumGate from '../PremiumGate';
 import { useStore } from '../../store/useStore';
 import WearableCompanionModal from '../modals/WearableCompanionModal';
+import UnifiedHealthModelCard from './UnifiedHealthModelCard';
+import WeeklyHealthReportCard from './WeeklyHealthReportCard';
+import PremiumFeatureModal from '../modals/PremiumFeatureModal';
 
 export default function HealthHubPage({ onNotification }) {
   const user = useStore(state => state.user);
@@ -42,6 +44,8 @@ export default function HealthHubPage({ onNotification }) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isWearableModalOpen, setIsWearableModalOpen] = useState(false);
+  const [premiumModalOpen, setPremiumModalOpen] = useState(false);
+  const [premiumFeatureName, setPremiumFeatureName] = useState('Unified Multi-Device Health Model');
 
   const platform = HealthPermissionManager.getPlatform();
   const platformLabel = platform === 'ios_apple_health' ? 'Apple Health' : platform === 'android_health_connect' ? 'Android Health Connect' : 'Health Platform';
@@ -252,6 +256,28 @@ export default function HealthHubPage({ onNotification }) {
         </div>
       </div>
 
+      {/* ── UNIFIED MULTI-DEVICE HEALTH MODEL & WEEKLY REPORT (PREMIUM) ── */}
+      <div className="space-y-6">
+        <UnifiedHealthModelCard
+          userProfile={userProfile}
+          appleWatchData={{ hr: metrics?.heartRate || 68, hrv: 54, workouts, activeCalories: metrics?.activeCalories || 450 }}
+          boatData={{ sleepMinutes: (metrics?.sleepHours || 7.5) * 60, steps: metrics?.steps || 8420, deepSleepMinutes: 110 }}
+          bpMonitorData={{ systolic: 118, diastolic: 78, pulse: metrics?.heartRate || 64 }}
+          onOpenUpgradeModal={(feature) => {
+            setPremiumFeatureName(feature);
+            setPremiumModalOpen(true);
+          }}
+        />
+
+        <WeeklyHealthReportCard
+          userProfile={userProfile}
+          onOpenUpgradeModal={(feature) => {
+            setPremiumFeatureName(feature);
+            setPremiumModalOpen(true);
+          }}
+        />
+      </div>
+
       {/* ── 3. 4 LARGE EMERALD PROGRESS RINGS ───────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         
@@ -375,52 +401,68 @@ export default function HealthHubPage({ onNotification }) {
             <span className="text-[9px] font-bold uppercase">HEART RATE</span>
           </div>
           <div>
-            <span className="text-2xl font-black text-foreground">{metrics?.heartRateBpm || 72}</span>
+            <span className="text-2xl font-black text-foreground">
+              {metrics?.heartRateBpm && metrics.heartRateBpm > 0 ? metrics.heartRateBpm : '--'}
+            </span>
             <span className="text-xs font-bold text-muted ml-1">BPM</span>
           </div>
-          <span className="text-[10px] font-bold text-muted block">Resting: {metrics?.restingHeartRateBpm || 62} BPM</span>
+          <span className="text-[10px] font-bold text-muted block">
+            {metrics?.restingHeartRateBpm && metrics.restingHeartRateBpm > 0
+              ? `Resting: ${metrics.restingHeartRateBpm} BPM`
+              : (metrics?.heartRateBpm > 0 ? 'Source: Apple Health' : 'No HR data available')}
+          </span>
         </div>
 
         {/* Sleep */}
         <div className="bg-surface border border-card-border rounded-3xl p-5 space-y-2">
           <div className="flex justify-between items-center text-muted">
             <Moon className="w-4 h-4 text-emerald-400" />
-            <span className="text-[9px] font-bold uppercase">SLEEP (PHONE & WATCH)</span>
+            <span className="text-[9px] font-bold uppercase">SLEEP</span>
           </div>
           <div>
-            <span className="text-2xl font-black text-foreground">{metrics?.sleepHours > 0 ? metrics.sleepHours : 0.0}</span>
-            <span className="text-xs font-bold text-muted ml-1">hrs</span>
+            <span className="text-2xl font-black text-foreground">
+              {metrics?.sleepHours && metrics.sleepHours > 0 ? metrics.sleepHours : '--'}
+            </span>
+            <span className="text-xs font-bold text-muted ml-1">{metrics?.sleepHours > 0 ? 'hrs' : ''}</span>
           </div>
-          <span className="text-[10px] font-bold text-emerald-400 block">
+          <span className="text-[10px] font-bold text-emerald-400 block truncate">
             {metrics?.bedTime && metrics?.bedTime !== '--:--' && metrics?.wakeTime && metrics?.wakeTime !== '--:--'
               ? `🌙 ${metrics.bedTime} → ☀️ ${metrics.wakeTime}`
-              : (metrics?.sleepQualityPct > 0 ? `${metrics.sleepQualityPct}% Quality` : 'Tracking Inactivity')}
+              : (metrics?.sleepHours > 0 ? `${metrics?.sleepQualityPct || 85}% Quality` : 'Connect Watch/Health to track')}
           </span>
         </div>
 
-        {/* Weight Trend */}
+        {/* Weight */}
         <div className="bg-surface border border-card-border rounded-3xl p-5 space-y-2">
           <div className="flex justify-between items-center text-muted">
             <Scale className="w-4 h-4 text-[#00f2fe]" />
             <span className="text-[9px] font-bold uppercase">WEIGHT</span>
           </div>
           <div>
-            <span className="text-2xl font-black text-foreground">{metrics?.weightKg || 72.5}</span>
+            <span className="text-2xl font-black text-foreground">
+              {metrics?.weightKg && metrics.weightKg > 0 ? metrics.weightKg : (userProfile?.weight || '--')}
+            </span>
             <span className="text-xs font-bold text-muted ml-1">kg</span>
           </div>
-          <span className="text-[10px] font-bold text-muted block">Body Fat: {metrics?.bodyFatPct || 16.2}%</span>
+          <span className="text-[10px] font-bold text-muted block">
+            {metrics?.bodyFatPct && metrics.bodyFatPct > 0 ? `Body Fat: ${metrics.bodyFatPct}%` : 'Profile Metric'}
+          </span>
         </div>
 
-        {/* Recovery Score */}
+        {/* Recovery / Readiness Score */}
         <div className="bg-surface border border-card-border rounded-3xl p-5 space-y-2">
           <div className="flex justify-between items-center text-muted">
             <Zap className="w-4 h-4 text-[#f59e0b]" />
-            <span className="text-[9px] font-bold uppercase">RECOVERY</span>
+            <span className="text-[9px] font-bold uppercase">READINESS</span>
           </div>
           <div>
-            <span className="text-2xl font-black text-emerald-400">{metrics?.recoveryScore || 84}%</span>
+            <span className="text-2xl font-black text-emerald-400">
+              {metrics?.recoveryScore && metrics.recoveryScore > 0 ? `${metrics.recoveryScore}%` : '--'}
+            </span>
           </div>
-          <span className="text-[10px] font-bold text-muted block">Ready for High Load</span>
+          <span className="text-[10px] font-bold text-muted block">
+            {metrics?.recoveryScore && metrics.recoveryScore > 0 ? 'Calculated from load & sleep' : 'No recovery data'}
+          </span>
         </div>
 
       </div>
@@ -544,6 +586,13 @@ export default function HealthHubPage({ onNotification }) {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         onNotification={onNotification}
+      />
+
+      {/* Premium Upgrade Modal */}
+      <PremiumFeatureModal
+        isOpen={premiumModalOpen}
+        onClose={() => setPremiumModalOpen(false)}
+        featureName={premiumFeatureName}
       />
 
     </div>

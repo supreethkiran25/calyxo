@@ -2,6 +2,7 @@ import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import ErrorBoundary from './components/ErrorBoundary';
+import PageErrorBoundary from './components/PageErrorBoundary';
 import LaunchScreen from './components/LaunchScreen';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 import { useStore } from './store/useStore';
@@ -76,19 +77,19 @@ function App() {
               {/* Admin Login Route */}
               <Route path="/admin/login" element={<AdminLoginPage />} />
 
-              {/* User Routes */}
+              {/* User Routes — PageErrorBoundary per-route so one page crash stays isolated */}
               <Route path="/user" element={<UserGuard><UserLayout /></UserGuard>}>
-                <Route path="dashboard" element={<UserDashboardPage />} />
-                <Route path="nutrition" element={<UserNutritionPage />} />
-                <Route path="workout" element={<UserWorkoutPage />} />
-                <Route path="progress" element={<UserProgressPage />} />
-                <Route path="health" element={<UserHealthPage />} />
-                <Route path="ai" element={<UserAIPage />} />
-                <Route path="profile" element={<UserProfilePage />} />
-                <Route path="about" element={<AboutPage />} />
-                <Route path="support" element={<SupportPage />} />
-                <Route path="privacy" element={<PrivacyPage />} />
-                <Route path="terms" element={<TermsPage />} />
+                <Route path="dashboard" element={<PageErrorBoundary><UserDashboardPage /></PageErrorBoundary>} />
+                <Route path="nutrition" element={<PageErrorBoundary><UserNutritionPage /></PageErrorBoundary>} />
+                <Route path="workout" element={<PageErrorBoundary><UserWorkoutPage /></PageErrorBoundary>} />
+                <Route path="progress" element={<PageErrorBoundary><UserProgressPage /></PageErrorBoundary>} />
+                <Route path="health" element={<PageErrorBoundary><UserHealthPage /></PageErrorBoundary>} />
+                <Route path="ai" element={<PageErrorBoundary><UserAIPage /></PageErrorBoundary>} />
+                <Route path="profile" element={<PageErrorBoundary><UserProfilePage /></PageErrorBoundary>} />
+                <Route path="about" element={<PageErrorBoundary><AboutPage /></PageErrorBoundary>} />
+                <Route path="support" element={<PageErrorBoundary><SupportPage /></PageErrorBoundary>} />
+                <Route path="privacy" element={<PageErrorBoundary><PrivacyPage /></PageErrorBoundary>} />
+                <Route path="terms" element={<PageErrorBoundary><TermsPage /></PageErrorBoundary>} />
               </Route>
 
               {/* Admin Routes */}

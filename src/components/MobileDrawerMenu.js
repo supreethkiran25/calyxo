@@ -33,17 +33,11 @@ export default function MobileDrawerMenu({ isOpen, onClose }) {
   };
 
   const menuItems = [
-    { label: 'Health Hub', ariaLabel: 'View Universal Health Data', link: '/user/health' },
-    { label: 'Progress', ariaLabel: 'View Analytics & Progress', link: '/user/progress' },
-    { label: 'AI Coach', ariaLabel: 'Open AI Assistant', link: '/user/ai' },
-    { label: 'Profile', ariaLabel: 'User Profile', link: '/user/profile' },
-    { 
-      label: 'Settings', 
-      ariaLabel: 'Open App Settings & Preferences',
-      onClick: () => {
-        setIsSettingsOpen(true);
-      }
-    },
+    { label: 'Home', ariaLabel: 'Home Dashboard', link: '/user/dashboard' },
+    { label: 'Nutrition', ariaLabel: 'Nutrition Tracker', link: '/user/nutrition' },
+    { label: 'Workout', ariaLabel: 'Workout Tracking', link: '/user/workout' },
+    { label: 'Challenges', ariaLabel: 'Progress & Challenges', link: '/user/progress' },
+    { label: 'AI', ariaLabel: 'Calyxo AI Intelligence', link: '/user/ai' }
   ];
 
   const socialItems = [

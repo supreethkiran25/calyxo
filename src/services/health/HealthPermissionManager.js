@@ -3,7 +3,7 @@
  * Platform Support: Apple Health (iOS) & Android Health Connect (Android)
  */
 
-import { PWAPedometerService } from './PWAPedometerService';
+import { PWAPedometerService } from './PWAPedometerService.js';
 
 export const REQUIRED_PERMISSIONS = [
   'steps',

@@ -3,8 +3,8 @@
  * Manages periodic sync, app opening sync, and humanized "Last synced X ago"
  */
 
-import { HealthDataService } from './HealthDataService';
-import { HealthPermissionManager } from './HealthPermissionManager';
+import { HealthDataService } from './HealthDataService.js';
+import { HealthPermissionManager } from './HealthPermissionManager.js';
 
 export class HealthSyncEngine {
   static listeners = new Set();

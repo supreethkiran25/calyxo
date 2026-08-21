@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../store/useStore';
@@ -17,17 +16,20 @@ import { supabase } from '../lib/supabaseClient';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import useQuickActionsStore from '../store/useQuickActionsStore';
 import LiveWorkoutSessionModal from './modals/LiveWorkoutSessionModal';
+import LiveWorkoutDashboard from './liveWorkout/LiveWorkoutDashboard.jsx';
 import ChallengeModule from './workout/ChallengeModule';
+import AIWorkoutCoachCard from './workout/AIWorkoutCoachCard.jsx';
+import PremiumFeatureModal from './modals/PremiumFeatureModal.jsx';
 import {
   Plus, Dumbbell, Clock, Edit3, X, Check, Search, Trophy, Activity, Move,
   PersonStanding, Target, User, Crosshair, Heart, Share2, ChevronLeft, ChevronRight,
-  Calendar, Trash2, Edit2, Play, ChevronUp, ChevronDown, Zap, BarChart2, Flame, Award
+  Calendar, Trash2, Edit2, Play, ChevronUp, ChevronDown, Zap, BarChart2, Flame, Award, Sparkles
 } from 'lucide-react';
 
 const globalImageCache = new Map();
 const activeFetches = new Set();
 import { motion, AnimatePresence } from 'framer-motion';
-import { scheduleExactNotification, cancelNotification } from '../services/notificationService';
+import { scheduleExactNotification, cancelNotification, triggerOSNotification } from '../services/notificationService';
 import LiveActivityManager from '../services/LiveActivityManager';
 import { saveActiveRest, loadActiveRest, clearActiveRest } from '../services/restTimerPersistence';
 
@@ -248,6 +250,8 @@ export default function WorkoutLogger({ onNotification }) {
   };
 
   const [activeSubTab, setActiveSubTab] = useState('logger');
+  const [premiumModalOpen, setPremiumModalOpen] = useState(false);
+  const [premiumFeatureName, setPremiumFeatureName] = useState('AI Workout Coach');
   const [challengeInputs, setChallengeInputs] = useState({});
 
   const totalVolumeKg = useMemo(() => {
@@ -417,6 +421,17 @@ export default function WorkoutLogger({ onNotification }) {
     }
   }, [user]);
 
+  // Subscribe to real-time AI workout plan injections
+  useEffect(() => {
+    const handleSplitsUpdate = (e) => {
+      if (e.detail && Array.isArray(e.detail) && e.detail.length === 7) {
+        setSplits(e.detail);
+      }
+    };
+    window.addEventListener('calyxo:workout_splits_updated', handleSplitsUpdate);
+    return () => window.removeEventListener('calyxo:workout_splits_updated', handleSplitsUpdate);
+  }, []);
+
   // Live Guided Workout Session Modal State
   const activeWorkflow = useQuickActionsStore(state => state.activeWorkflow);
   const closeWorkflow = useQuickActionsStore(state => state.closeWorkflow);
@@ -527,7 +542,7 @@ export default function WorkoutLogger({ onNotification }) {
   const restEndTimeRef = useRef(null);
 
   const sendBrowserNotification = (title, body) => {
-    sendOSNotification(title, body, '/user/dashboard');
+    triggerOSNotification(title, body, '/user/dashboard');
   };
 
   const triggerTimerCompletion = () => {
@@ -645,23 +660,28 @@ export default function WorkoutLogger({ onNotification }) {
     LiveActivityManager.startRestTimer(secs);
   };
 
-  // Restore persisted rest timer on mount (survives force-kill)
+  // Ensure Workout section opens strictly in IDLE state on mount
   useEffect(() => {
-    const restoreRestTimer = async () => {
+    const checkRestTimer = async () => {
       const restState = await loadActiveRest();
 
-      // Reconcile Live Activity regardless (updates stale activity or clears expired rest)
-      LiveActivityManager.reconcileAfterLaunch(restState);
+      if (restState && restState.remainingSeconds > 0 && restState.restEndDate) {
+        const endMs = new Date(restState.restEndDate).getTime();
+        const now = Date.now();
+        if (endMs > now) {
+          const remaining = Math.ceil((endMs - now) / 1000);
+          restEndTimeRef.current = endMs;
+          setRestSecondsLeft(remaining);
+          LiveActivityManager.reconcileAfterLaunch({ ...restState, remainingSeconds: remaining });
+          return;
+        }
+      }
 
-      if (!restState) return;
-
-      // Resume in-app timer from the persisted end timestamp
-      const endMs = new Date(restState.restEndDate).getTime();
-      restEndTimeRef.current = endMs;
-      setRestSecondsLeft(restState.remainingSeconds);
-      console.log(`[CALYXO-REST] Resumed rest timer: ${restState.remainingSeconds}s remaining for ${restState.exerciseName}`);
+      // No active ongoing rest — stay completely IDLE
+      clearActiveRest();
+      LiveActivityManager.endLiveActivity();
     };
-    restoreRestTimer();
+    checkRestTimer();
   }, []); // once on mount
 
   // Hydrate Initial Workout state & Trainer Assignments
@@ -787,7 +807,7 @@ export default function WorkoutLogger({ onNotification }) {
     }
 
     const workoutItem = {
-      id: 'w_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      id: 'w_' + (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).substring(2, 7)),
       name: exName.trim(),
       category: exCategory,
       image: exImage,
@@ -899,7 +919,7 @@ export default function WorkoutLogger({ onNotification }) {
     }
 
     const workoutItem = {
-      id: 'w_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      id: 'w_' + (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).substring(2, 7)),
       name: ex.name.trim(),
       category: parsed.category,
       image: ex.image || globalImageCache.get(ex.name) || null,
@@ -951,7 +971,7 @@ export default function WorkoutLogger({ onNotification }) {
     const itemsToLog = currentSplit.exercises.map(ex => {
       const parsed = parseDetailsToStats(ex.details);
       const workoutItem = {
-        id: 'w_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        id: 'w_' + (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).substring(2, 7)),
         name: ex.name.trim(),
         category: parsed.category,
         image: ex.image || globalImageCache.get(ex.name) || null,
@@ -1013,7 +1033,7 @@ export default function WorkoutLogger({ onNotification }) {
     }
 
     const workoutItem = {
-      id: 'w_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      id: 'w_' + (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).substring(2, 7)),
       name: challenge.name.trim(),
       category: nameLower.includes('steps') || nameLower.includes('walk') || nameLower.includes('surya') ? 'Cardio' : 'Strength',
       sets: 1,
@@ -1190,6 +1210,20 @@ export default function WorkoutLogger({ onNotification }) {
   return (
     <div className="space-y-6">
 
+      {/* Flagship Live Activity / Live Workout Experience Card */}
+      <LiveWorkoutDashboard
+        onStartWorkout={() => {
+          setLiveSessionRoutine(splits[activeDay]);
+          setShowLiveSessionModal(true);
+        }}
+        onOpenActiveModal={() => {
+          setLiveSessionRoutine(splits[activeDay]);
+          setShowLiveSessionModal(true);
+        }}
+        splits={splits}
+        activeDay={activeDay}
+      />
+
       {/* Sub tabs nav */}
       <div className="flex flex-col gap-3 border-b border-card-border pb-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1226,6 +1260,7 @@ export default function WorkoutLogger({ onNotification }) {
         <div className="bg-surface border border-card-border p-1 rounded-xl flex gap-0.5 w-full overflow-x-auto scrollbar-none">
           {[
             { id: 'logger', label: 'Logger' },
+            { id: 'ai_coach', label: 'AI Coach' },
             { id: 'library', label: 'Library' },
             { id: 'analytics', label: 'Analytics' },
             { id: 'challenges', label: 'Challenges' }
@@ -1252,6 +1287,25 @@ export default function WorkoutLogger({ onNotification }) {
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.18 }}
         >
+
+          {/* AI WORKOUT COACH TAB VIEW */}
+          {activeSubTab === 'ai_coach' && (
+            <div className="space-y-6">
+              <AIWorkoutCoachCard
+                userProfile={userProfile}
+                historicalWorkoutLogs={workoutLogs}
+                recoveryScore={82}
+                onStartSession={(routine) => {
+                  setLiveSessionRoutine(routine);
+                  setShowLiveSessionModal(true);
+                }}
+                onOpenUpgradeModal={(feature) => {
+                  setPremiumFeatureName(feature);
+                  setPremiumModalOpen(true);
+                }}
+              />
+            </div>
+          )}
 
           {/* LOGGER TAB VIEW */}
           {activeSubTab === 'logger' && (
@@ -2189,6 +2243,13 @@ export default function WorkoutLogger({ onNotification }) {
         onClose={() => setShowLiveSessionModal(false)}
         routine={liveSessionRoutine}
         onNotification={onNotification}
+      />
+
+      {/* PREMIUM UPGRADE MODAL */}
+      <PremiumFeatureModal
+        isOpen={premiumModalOpen}
+        onClose={() => setPremiumModalOpen(false)}
+        featureName={premiumFeatureName}
       />
     </div>
   );

@@ -7,6 +7,7 @@ import { useStore } from '../../store/useStore';
 import { addFoodLog, getCurrentUserId, getCurrentUserIdSync } from '../../lib/dbService';
 import { searchCalyxoFoods, POPULAR_STAPLES } from '../../lib/indianFoods';
 import { formatNutritionValue } from '../../utils/macroCalculator';
+import smartReminderEngine from '../../services/notifications/SmartReminderEngine';
 
 export default function MealLoggerModal() {
   const { activeWorkflow, workflowData, closeWorkflow } = useQuickActionsStore();
@@ -191,6 +192,9 @@ export default function MealLoggerModal() {
 
       const savedItem = await addFoodLog(uid, logEntry);
       addFoodLogStore(savedItem);
+
+      // Suppress pending 1:00 PM nutrition reminder for today
+      smartReminderEngine.suppressDailyNutritionReminder(uid);
 
       // Award XP for meal logging
       addXP(50);

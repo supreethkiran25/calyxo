@@ -78,7 +78,7 @@ const DESKTOP_NAV = [
   {
     group: 'AI',
     items: [
-      { id: 'ai', label: 'AI Workspace', icon: Sparkles },
+      { id: 'ai', label: 'AI Workspace', icon: Bot },
     ]
   },
 

@@ -5,11 +5,11 @@
  */
 
 import { Capacitor } from '@capacitor/core';
-import { HealthPermissionManager } from './HealthPermissionManager';
-import { HealthCache } from './HealthCache';
-import { PWAPedometerService } from './PWAPedometerService';
-import { PhoneSleepTrackerService } from './PhoneSleepTrackerService';
-import { syncWidgetData } from '../widgetDataService';
+import { HealthPermissionManager } from './HealthPermissionManager.js';
+import { HealthCache } from './HealthCache.js';
+import { PWAPedometerService } from './PWAPedometerService.js';
+import { PhoneSleepTrackerService } from './PhoneSleepTrackerService.js';
+import { syncWidgetData } from '../widgetDataService.js';
 
 export class HealthDataService {
   /**

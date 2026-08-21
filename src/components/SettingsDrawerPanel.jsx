@@ -8,6 +8,8 @@ import { useStore } from '../store/useStore';
 import ThemeToggle from './ThemeToggle';
 import { saveUserProfile, signOutUser, updateUserPassword, updateUserEmail } from '../lib/dbService';
 import { subscribeToPushNotifications, unsubscribeFromPushNotifications, getNotificationStatus } from '../services/notificationService';
+import { startRazorpayCheckout, restoreSubscription, PAYMENT_STATUS } from '../utils/razorpay';
+import { SubscriptionManager } from '../services/subscription/SubscriptionManager';
 
 import PermissionsConnectionsSection from './PermissionsConnectionsSection';
 
@@ -158,29 +160,56 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
     URL.revokeObjectURL(url);
   };
 
+  const [paymentState, setPaymentState] = useState(PAYMENT_STATUS.IDLE);
+
   const handleSubscribeRazorpay = async (plan) => {
+    setSaving(true);
+    setPaymentState(PAYMENT_STATUS.CREATING_ORDER);
     try {
       await startRazorpayCheckout({
-        planId: plan.id,
-        amountPaise: plan.amountPaise,
-        userEmail: user?.email || 'supreethkiran25@gmail.com',
-        userName: userProfile?.displayName || 'Calyxo User',
-        onSuccess: async (paymentId) => {
-          const updated = {
-            ...userProfile,
-            subscriptionPlan: plan.id,
-            isSubscribed: true,
-            lastPaymentId: paymentId
-          };
-          setUserProfile(updated);
-          if (userId) await saveUserProfile(userId, updated);
-          setSaveStatus(`Subscribed to ${plan.name}!`);
-          setTimeout(() => setSaveStatus(''), 3000);
+        plan,
+        user,
+        userProfile,
+        updateUserProfile: setUserProfile,
+        onNotification: (msg) => {
+          setSaveStatus(msg);
+          setTimeout(() => setSaveStatus(''), 4000);
+        },
+        onLoadingChange: setSaving,
+        onStatusChange: setPaymentState,
+        onSuccess: (paymentId, updated) => {
+          setPaymentState(PAYMENT_STATUS.SUCCESS);
+          setSaveStatus(`🎉 Subscribed to ${plan.name}!`);
+          setTimeout(() => setSaveStatus(''), 4000);
+        },
+        onError: (err) => {
+          setPaymentState(PAYMENT_STATUS.FAILED);
+          setSaveStatus(err.message || 'Payment could not be completed.');
+          setTimeout(() => setSaveStatus(''), 5000);
         }
       });
     } catch (e) {
-      alert('Razorpay Checkout simulated or unavailable in current session.');
+      setPaymentState(PAYMENT_STATUS.FAILED);
+      setSaveStatus(e.message || 'Payment checkout error.');
+      setTimeout(() => setSaveStatus(''), 5000);
+    } finally {
+      setSaving(false);
     }
+  };
+
+  const handleRestoreSubscription = async () => {
+    setSaving(true);
+    setSaveStatus('Restoring subscription from server...');
+    await restoreSubscription({
+      user,
+      userProfile,
+      updateUserProfile: setUserProfile,
+      onNotification: (msg) => {
+        setSaveStatus(msg);
+        setTimeout(() => setSaveStatus(''), 4000);
+      }
+    });
+    setSaving(false);
   };
 
   const handleCancelSubscription = async () => {
@@ -188,7 +217,8 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
       const updated = {
         ...userProfile,
         subscriptionPlan: 'FREE',
-        isSubscribed: false
+        isSubscribed: false,
+        updatedAt: new Date().toISOString()
       };
       setUserProfile(updated);
       if (userId) await saveUserProfile(userId, updated);
@@ -824,6 +854,10 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
         const rawAnnual = sysSettings.high_price_annual_inr || sysSettings.high_price_annual;
         const annualPriceINR = Number((!rawAnnual || rawAnnual === '2' || rawAnnual === '7999') ? 199 : rawAnnual);
 
+        const subStatus = SubscriptionManager.getSubscriptionStatus(userProfile, user);
+        const activeTier = subStatus.tier;
+        const isUserSubscribed = subStatus.isActive && subStatus.tier !== 'FREE';
+
         const monthlyYrCost = monthlyPriceINR * 12;
         const savingsAmount = monthlyYrCost - annualPriceINR;
         const discountPct = (monthlyYrCost > annualPriceINR && annualPriceINR > 0) ? Math.round((savingsAmount / monthlyYrCost) * 100) : 0;
@@ -841,7 +875,7 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
               'Basic Calorie & Water Tracking',
               'Manual Workout & Food Logging',
               'Standard Community Feed Access',
-              'Basic AI Fitness Queries'
+              'Basic AI Fitness Queries (10/month)'
             ]
           },
           {
@@ -866,7 +900,7 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
             name: 'HIGH ANNUAL',
             price: `₹${annualPriceINR}`,
             period: 'per year',
-            badge: discountPct > 0 ? `SAVE ${discountPct}%` : 'BEST VALUE',
+            badge: discountPct > 0 ? `SAVE ${discountPct}%` : 'ANNUAL PASS',
             accentColor: 'border-indigo-500',
             bgGradient: 'bg-indigo-500/10',
             amountPaise: annualPriceINR * 100,
@@ -879,6 +913,11 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
           }
         ];
 
+        let ctaText = 'Subscribe via Razorpay';
+        if (paymentState === PAYMENT_STATUS.CREATING_ORDER) ctaText = 'Processing Payment...';
+        else if (paymentState === PAYMENT_STATUS.CHECKOUT_ACTIVE) ctaText = 'Checkout in Progress...';
+        else if (paymentState === PAYMENT_STATUS.VERIFYING_PAYMENT) ctaText = 'Verifying Payment...';
+
         return (
           <div className="space-y-4 text-xs">
             {/* Status Header Card */}
@@ -888,28 +927,51 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
                   <CreditCard className="w-4 h-4 text-[var(--color-acid-green)]" />
                   <span className="text-xs font-black uppercase text-[var(--foreground)]">Current Active Status</span>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full bg-[var(--color-acid-green)]/20 text-[var(--color-acid-green)] text-[10px] font-black uppercase border border-[var(--color-acid-green)]/30">
-                  Active Subscription
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${
+                  isUserSubscribed 
+                    ? 'bg-[var(--color-acid-green)]/20 text-[var(--color-acid-green)] border-[var(--color-acid-green)]/30' 
+                    : 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20'
+                }`}>
+                  {isUserSubscribed ? 'Active Subscription' : 'Free Tier'}
                 </span>
               </div>
               <div className="flex items-center justify-between pt-1">
-                <p className="text-[11px] text-[var(--muted-foreground)]">
-                  Active Tier: <strong className="text-[var(--color-acid-green)] font-bold uppercase">{currentPlan} PLAN</strong>
-                </p>
-                <button
-                  type="button"
-                  onClick={handleCancelSubscription}
-                  className="px-2.5 py-1 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/30 text-[10px] font-bold uppercase cursor-pointer"
-                >
-                  Cancel Subscription
-                </button>
+                <div>
+                  <p className="text-[11px] text-[var(--muted-foreground)]">
+                    Active Tier: <strong className="text-[var(--color-acid-green)] font-bold uppercase">{subStatus.planName}</strong>
+                  </p>
+                  {subStatus.expiresAt && (
+                    <p className="text-[9px] text-[var(--muted-foreground)] mt-0.5">
+                      Period End: {new Date(subStatus.expiresAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleRestoreSubscription}
+                    disabled={saving}
+                    className="px-2.5 py-1 rounded-xl bg-[var(--surface)] text-[var(--foreground)] hover:border-[var(--color-acid-green)] border border-[var(--card-border)] text-[10px] font-bold uppercase cursor-pointer"
+                  >
+                    Restore
+                  </button>
+                  {isUserSubscribed && (
+                    <button
+                      type="button"
+                      onClick={handleCancelSubscription}
+                      className="px-2.5 py-1 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/30 text-[10px] font-bold uppercase cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* 3 Subscription Plan Cards */}
             <div className="space-y-3">
               {plans.map(plan => {
-                const isCurrent = currentPlan === plan.id;
+                const isCurrent = (plan.id === 'FREE' && !isUserSubscribed) || (isUserSubscribed && (userProfile?.subscriptionPlan === plan.id || (activeTier === 'HIGH' && plan.id === 'HIGH')));
                 return (
                   <div key={plan.id} className={`p-4 rounded-2xl border ${plan.accentColor} ${plan.bgGradient} space-y-3 relative`}>
                     {plan.badge && (
@@ -954,11 +1016,12 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
                     ) : (
                       <button
                         type="button"
+                        disabled={saving}
                         onClick={() => handleSubscribeRazorpay(plan)}
-                        className="w-full py-2.5 rounded-xl font-black text-xs uppercase bg-[var(--color-acid-green)] text-black border-none cursor-pointer flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                        className="w-full py-2.5 rounded-xl font-black text-xs uppercase bg-[var(--color-acid-green)] text-black border-none cursor-pointer flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
                       >
                         <CreditCard className="w-4 h-4" />
-                        Subscribe via Razorpay
+                        {saving ? ctaText : 'Subscribe via Razorpay'}
                       </button>
                     )}
                   </div>
@@ -1108,7 +1171,7 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
                 {[
                   { label: 'Offline Sync', status: 'COMPLETED', color: 'text-[var(--color-acid-green)] bg-[var(--color-acid-green)]/10 border-[var(--color-acid-green)]/30' },
                   { label: 'Indian Food Expansion', status: 'COMPLETED', color: 'text-[var(--color-acid-green)] bg-[var(--color-acid-green)]/10 border-[var(--color-acid-green)]/30' },
-                  { label: 'Wearable Integration', status: 'IN DEV', color: 'text-blue-400 bg-blue-500/10 border-blue-500/30' },
+                  { label: 'Wearable Integration', status: 'COMPLETED', color: 'text-[var(--color-acid-green)] bg-[var(--color-acid-green)]/10 border-[var(--color-acid-green)]/30' },
                   { label: 'AI Posture Video', status: 'PLANNED', color: 'text-[var(--muted-foreground)] bg-[var(--surface)] border-[var(--card-border)]' }
                 ].map((mile, i) => (
                   <div key={i} className="p-3 bg-[var(--surface)] border border-[var(--card-border)] rounded-2xl flex justify-between items-center">

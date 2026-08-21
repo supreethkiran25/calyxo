@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useState, useEffect } from 'react';
 import { 
@@ -107,12 +106,6 @@ export default function PermissionsConnectionsSection({ onNotification }) {
 
   return (
     <div className="space-y-4">
-      <WearableCompanionModal
-        isOpen={isWearableModalOpen}
-        onClose={() => setIsWearableModalOpen(false)}
-        onNotification={onNotification}
-      />
-
       <div className="flex items-center gap-2 border-b border-card-border pb-3">
         <ShieldCheck className="w-4 h-4 text-emerald-400" />
         <h3 className="text-xs font-black uppercase tracking-wider text-muted">
@@ -147,7 +140,7 @@ export default function PermissionsConnectionsSection({ onNotification }) {
           </p>
 
           <button
-            onClick={handleConnectHealth}
+            onClick={handleToggleHealth}
             className={`w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider cursor-pointer transition-all border ${
               healthConn 
                 ? 'bg-surface border-destructive/40 text-destructive hover:bg-destructive/10' 
@@ -173,7 +166,7 @@ export default function PermissionsConnectionsSection({ onNotification }) {
           </div>
 
           <p className="text-[11px] text-muted leading-relaxed">
-            Supports Apple Watch (Series 3 through Ultra 2), Galaxy Watch, and Garmin (Forerunner 245) / Whoop / Oura via Apple Health & Health Connect. If you have no wearable, your phone tracks everything automatically.
+            Supports Apple Watch (Series 3 through Ultra 2), Galaxy Watch, and Garmin / boAt / Whoop / Oura via Apple Health & Health Connect. If you have no wearable, your phone tracks everything automatically.
           </p>
 
           <div className="grid grid-cols-2 gap-2">
@@ -182,7 +175,7 @@ export default function PermissionsConnectionsSection({ onNotification }) {
               className="py-2.5 rounded-xl bg-emerald-500 text-black font-black text-xs uppercase tracking-wider cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-md hover:brightness-110"
             >
               <Download className="w-3.5 h-3.5" />
-              Install on Watch
+              Wearables & Watch
             </button>
 
             <button

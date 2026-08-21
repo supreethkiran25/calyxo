@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -54,25 +53,12 @@ export default function LaunchScreen({ isLoading }) {
           <div className="relative z-10 flex flex-col items-center justify-center text-center my-auto">
             {/* Iconic Glowing Logo Emblem */}
             <motion.div
-              initial={{ scale: 0.75, opacity: 0, y: 10 }}
+              initial={{ scale: 0.8, opacity: 0, y: 10 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               className="relative flex items-center justify-center mb-6 group cursor-default"
             >
-              {/* Outer Subtle Radial Pulse Ring */}
-              <motion.div
-                animate={{
-                  scale: [1, 1.15, 1],
-                  opacity: [0.25, 0.6, 0.25]
-                }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-[#10B981]/10 border border-[#10B981]/30 blur-sm"
-              />
-
-              {/* Glassmorphic Logo Shield */}
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white/[0.04] backdrop-blur-2xl border border-white/15 flex items-center justify-center shadow-[0_16px_40px_rgba(0,0,0,0.8)] relative p-3 overflow-hidden">
-                <Logo className="w-12 h-12 sm:w-14 sm:h-14 text-[#10B981]" />
-              </div>
+              <Logo className="w-16 h-16 sm:w-20 sm:h-20 text-[#10B981]" glow={false} />
             </motion.div>
 
             {/* Bold Premium Brand Typography */}

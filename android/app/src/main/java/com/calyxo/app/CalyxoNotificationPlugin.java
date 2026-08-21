@@ -143,17 +143,36 @@ public class CalyxoNotificationPlugin extends Plugin {
             builder.setStyle(new NotificationCompat.BigTextStyle().bigText(body));
         }
 
-        try {
-            NotificationManagerCompat.from(context).notify(notifId, builder.build());
-            JSObject res = new JSObject();
-            res.put("success", true);
-            res.put("notificationId", notifId);
-            call.resolve(res);
-        } catch (SecurityException e) {
-            call.reject("Notification permission not granted: " + e.getMessage());
-        } catch (Exception e) {
-            call.reject("Failed to post Android notification: " + e.getMessage());
+        int delaySeconds = call.getInt("delaySeconds", 0);
+
+        Runnable postNotificationRunnable = () -> {
+            try {
+                NotificationManagerCompat.from(context).notify(notifId, builder.build());
+            } catch (SecurityException e) {
+                // Permission revoked
+            } catch (Exception e) {
+                // Ignored
+            }
+        };
+
+        if (delaySeconds > 1 && !isOngoing) {
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(postNotificationRunnable, delaySeconds * 1000L);
+        } else {
+            try {
+                NotificationManagerCompat.from(context).notify(notifId, builder.build());
+            } catch (SecurityException e) {
+                call.reject("Notification permission not granted: " + e.getMessage());
+                return;
+            } catch (Exception e) {
+                call.reject("Failed to post Android notification: " + e.getMessage());
+                return;
+            }
         }
+
+        JSObject res = new JSObject();
+        res.put("success", true);
+        res.put("notificationId", notifId);
+        call.resolve(res);
     }
 
     @PluginMethod

@@ -16,7 +16,7 @@
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
-		9AC1FC403036A4F700C61769 /* CalyxoWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 9AC1FC203036A4F500C61769 /* CalyxoWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		9AC1FC403036A4F700C61769 /* CalyxoWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 9AC1FC203036A4F500C61769 /* CalyxoWatch Watch App.app */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		CA1A00012FE9A00000000001 /* CalyxoLiveActivityBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1A00002FE9A00000000001 /* CalyxoLiveActivityBridge.swift */; };
 		CA1A00042FE9A00000000004 /* CalyxoHealthKitPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1A00052FE9A00000000005 /* CalyxoHealthKitPlugin.swift */; };
 		CA2B00012FE9B00000000001 /* CalyxoActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA2B00002FE9B00000000000 /* CalyxoActivityAttributes.swift */; };
@@ -24,7 +24,7 @@
 		CA2B00112FE9B00000000011 /* CalyxoWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA2B00102FE9B00000000010 /* CalyxoWidgetBundle.swift */; };
 		CA2B00132FE9B00000000013 /* CalyxoHomeWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA2B00122FE9B00000000012 /* CalyxoHomeWidgets.swift */; };
 		CA2B00152FE9B00000000015 /* CalyxoLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA2B00142FE9B00000000014 /* CalyxoLiveActivity.swift */; };
-		CA2B00412FE9B00000000041 /* CalyxoWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CA2B00402FE9B00000000040 /* CalyxoWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CA2B00412FE9B00000000041 /* CalyxoWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CA2B00402FE9B00000000040 /* CalyxoWidgetsExtension.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		CA3C00012FE9C00000000001 /* CalyxoLiveActivityPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3C00002FE9C00000000000 /* CalyxoLiveActivityPlugin.swift */; };
 		CA3C00032FE9C00000000003 /* CalyxoWidgetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3C00022FE9C00000000002 /* CalyxoWidgetPlugin.swift */; };
 		CA4D00012FE9D00000000001 /* CalyxoNotificationPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4D00002FE9D00000000000 /* CalyxoNotificationPlugin.swift */; };
@@ -351,13 +351,19 @@
 					};
 					9AC1FC1F3036A4F500C61769 = {
 						CreatedOnToolsVersion = 26.6;
+						DevelopmentTeam = LYRAC6MJY2;
+						ProvisioningStyle = Automatic;
 					};
 					9AC1FC2B3036A4F700C61769 = {
 						CreatedOnToolsVersion = 26.6;
+						DevelopmentTeam = LYRAC6MJY2;
+						ProvisioningStyle = Automatic;
 						TestTargetID = 9AC1FC1F3036A4F500C61769;
 					};
 					9AC1FC353036A4F700C61769 = {
 						CreatedOnToolsVersion = 26.6;
+						DevelopmentTeam = LYRAC6MJY2;
+						ProvisioningStyle = Automatic;
 						TestTargetID = 9AC1FC1F3036A4F500C61769;
 					};
 					CA2B00302FE9B00000000030 = {
@@ -707,10 +713,8 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = CalyxoWatch;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.supreethkiran.calyxo;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CalyxoWatch/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -752,10 +756,8 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = CalyxoWatch;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.supreethkiran.calyxo;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CalyxoWatch/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

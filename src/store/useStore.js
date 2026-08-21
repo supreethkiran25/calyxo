@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { useEcosystemStore } from './useEcosystemStore';
-import { applyAppearanceSettings, loadSavedAppearance } from '../utils/appearanceUtils';
+import { useEcosystemStore } from './useEcosystemStore.js';
+import { applyAppearanceSettings, loadSavedAppearance } from '../utils/appearanceUtils.js';
 
 const DEFAULT_USER_PROFILE = {
   onboarded: false,

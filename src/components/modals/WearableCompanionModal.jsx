@@ -9,20 +9,26 @@ import { useStore } from '../../store/useStore';
 import { syncWidgetData } from '../../services/widgetDataService';
 import { isToday, getTodayDateString, isSameLocalDate } from '../../utils/dateUtils';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { HealthCache } from '../../services/health/HealthCache';
+import { saveWaterIntake, addFoodLog, getCurrentUserIdSync } from '../../lib/dbService';
 
 export default function WearableCompanionModal({ isOpen, onClose, onNotification }) {
   const [activeDial, setActiveDial] = useState('rings'); // 'rings' | 'workout' | 'quicklog' | 'aicoach'
   const [watchModel, setWatchModel] = useState('apple'); // 'apple' | 'galaxy'
   const [isSyncing, setIsSyncing] = useState(false);
-  const [liveBpm, setLiveBpm] = useState(138);
 
+  const user = useStore(state => state.user);
   const userProfile = useStore(state => state.userProfile);
   const foodLogs = useStore(state => state.foodLogs || []);
   const waterIntake = useStore(state => state.waterIntake || 0);
-  const addWater = useStore(state => state.addWater);
-  const addFoodLog = useStore(state => state.addFoodLog);
+  const addWaterIntakeStore = useStore(state => state.addWaterIntake);
+  const addFoodLogStore = useStore(state => state.addFoodLog);
+  const userId = user?.uid || user?.id || getCurrentUserIdSync();
 
-  // Compute live metrics from store
+  // Compute live metrics from store & health cache
+  const cachedMetrics = HealthCache.getMetrics();
+  const realHeartRate = cachedMetrics?.heartRateBpm > 0 ? cachedMetrics.heartRateBpm : null;
+
   const todayStr = getTodayDateString();
   const todaysLogs = foodLogs.filter(x => isSameLocalDate(x.timestamp, todayStr) || isToday(x.timestamp));
   const calories = Math.round(todaysLogs.reduce((s, x) => s + (Number(x.calories) || 0), 0));
@@ -30,15 +36,6 @@ export default function WearableCompanionModal({ isOpen, onClose, onNotification
   const calGoal = Number(userProfile?.calorieGoal || userProfile?.dailyCalories || 2000);
   const protGoal = Number(userProfile?.proteinGoal || 150);
   const waterGoal = Number(userProfile?.waterGoal || 2500);
-
-  // Heart rate pulse simulation
-  useEffect(() => {
-    if (!isOpen) return;
-    const interval = setInterval(() => {
-      setLiveBpm(prev => 134 + Math.floor(Math.random() * 9));
-    }, 2500);
-    return () => clearInterval(interval);
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -50,8 +47,14 @@ export default function WearableCompanionModal({ isOpen, onClose, onNotification
 
   const handleQuickWater = async (amount) => {
     await triggerHaptic();
-    if (addWater) addWater(amount);
-    await syncWidgetData({ water: waterIntake + amount });
+    addWaterIntakeStore(amount);
+    const nextWater = useStore.getState().waterIntake;
+    if (userId) {
+      try {
+        await saveWaterIntake(userId, nextWater);
+      } catch (e) {}
+    }
+    await syncWidgetData({ water: nextWater });
     if (onNotification) onNotification(`+${amount}ml water logged from Wearable! 💧`);
   };
 
@@ -64,9 +67,14 @@ export default function WearableCompanionModal({ isOpen, onClose, onNotification
       carbs: 25,
       fat: 6,
       timestamp: Date.now(),
-      mealType: 'Snack'
+      mealSlot: 'snacks'
     };
-    if (addFoodLog) addFoodLog(snack);
+    try {
+      const saved = await addFoodLog(userId, snack);
+      addFoodLogStore(saved || snack);
+    } catch (e) {
+      addFoodLogStore(snack);
+    }
     await syncWidgetData({ calories: calories + 200, protein: protein + 10 });
     if (onNotification) onNotification('Quick Snack (200 kcal) logged from Wearable! ⚡');
   };
@@ -288,8 +296,8 @@ export default function WearableCompanionModal({ isOpen, onClose, onNotification
                         <span className="text-[9px] font-mono text-gray-400">SET 2/4</span>
                       </div>
                       <div className="flex items-center gap-1.5 mt-1">
-                        <Heart className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
-                        <span className="text-sm font-black text-white font-mono">{liveBpm}</span>
+                        <Heart className={`w-3.5 h-3.5 ${realHeartRate ? 'text-rose-500 animate-pulse' : 'text-gray-500'}`} />
+                        <span className="text-sm font-black text-white font-mono">{realHeartRate ? realHeartRate : '--'}</span>
                         <span className="text-[8px] text-gray-400">BPM</span>
                       </div>
                     </div>
@@ -308,7 +316,7 @@ export default function WearableCompanionModal({ isOpen, onClose, onNotification
                       onClick={triggerHaptic}
                       className="w-full py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 cursor-pointer border-none shadow-md shadow-emerald-500/20"
                     >
-                      <Check className="w-3 h-3" /> Complete Set
+                      <Check className="w-3.5 h-3.5" /> Complete Set
                     </button>
                   </div>
                 )}
@@ -323,21 +331,21 @@ export default function WearableCompanionModal({ isOpen, onClose, onNotification
                       onClick={() => handleQuickWater(250)}
                       className="w-full py-1.5 px-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 rounded-xl text-[9px] font-black uppercase flex items-center justify-between cursor-pointer"
                     >
-                      <span className="flex items-center gap-1"><Droplets className="w-3 h-3" /> +250ml Water</span>
+                      <span className="flex items-center gap-1"><Droplets className="w-3.5 h-3.5" /> +250ml Water</span>
                       <Plus className="w-2.5 h-2.5" />
                     </button>
                     <button
                       onClick={() => handleQuickWater(500)}
                       className="w-full py-1.5 px-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 rounded-xl text-[9px] font-black uppercase flex items-center justify-between cursor-pointer"
                     >
-                      <span className="flex items-center gap-1"><Droplets className="w-3 h-3" /> +500ml Water</span>
+                      <span className="flex items-center gap-1"><Droplets className="w-3.5 h-3.5" /> +500ml Water</span>
                       <Plus className="w-2.5 h-2.5" />
                     </button>
                     <button
                       onClick={handleQuickSnack}
                       className="w-full py-1.5 px-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-xl text-[9px] font-black uppercase flex items-center justify-between cursor-pointer"
                     >
-                      <span className="flex items-center gap-1"><Flame className="w-3 h-3" /> +200 kcal Snack</span>
+                      <span className="flex items-center gap-1"><Flame className="w-3.5 h-3.5" /> +200 kcal Snack</span>
                       <Plus className="w-2.5 h-2.5" />
                     </button>
                   </div>
@@ -347,14 +355,14 @@ export default function WearableCompanionModal({ isOpen, onClose, onNotification
                 {activeDial === 'aicoach' && (
                   <div className="flex-1 flex flex-col justify-between py-1 text-left w-full">
                     <div className="flex items-center gap-1 text-emerald-400">
-                      <Sparkles className="w-3 h-3" />
+                      <Sparkles className="w-3.5 h-3.5" />
                       <span className="text-[9px] font-black uppercase">CALYXO AI COACH</span>
                     </div>
                     <p className="text-[9px] text-gray-200 leading-tight bg-white/5 p-2 rounded-xl border border-white/10">
-                      "Hit 45g more protein today. Your recovery rate is peaking at 92%. Great session!"
+                      "Hit daily hydration and protein targets to sustain physical readiness. Great consistency!"
                     </p>
                     <span className="text-[7px] text-gray-400 font-mono text-center">
-                      Auto-synced via Gemini OS
+                      Auto-synced via Calyxo Engine
                     </span>
                   </div>
                 )}
@@ -371,10 +379,10 @@ export default function WearableCompanionModal({ isOpen, onClose, onNotification
                 </div>
                 <div>
                   <h4 className="text-xs font-black text-white uppercase tracking-wider">
-                    Automatic Watch Installation Active (watchOS 8.0+)
+                    Ecosystem Device Compatibility
                   </h4>
                   <p className="text-[11px] text-gray-400">
-                    When Calyxo is installed on your phone, watchOS 8.0+ and Wear OS 3.0+ companion apps install automatically on paired wearables.
+                    Direct live apps and standardized health-bridge telemetry sync across your devices:
                   </p>
                 </div>
               </div>
@@ -383,19 +391,19 @@ export default function WearableCompanionModal({ isOpen, onClose, onNotification
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-white/10 text-xs text-gray-300">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>watchOS 8.0+ (Series 4–9, SE 1/2, Ultra 1/2)</span>
+                <span>Apple Watch (watchOS 8.0+ Native App & HealthKit)</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Wear OS 3.0+ (Galaxy Watch 4–7, Pixel Watch)</span>
+                <span>Galaxy Watch & Pixel Watch (Wear OS & Health Connect)</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Bi-directional Workout & BPM Stream</span>
+                <span>boAt, Noise, Fire-Boltt (Syncs via Apple Health / Health Connect)</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Lock Screen & Watch Face Complications</span>
+                <span>Garmin, Whoop, Oura (Health Data Bridge Sync)</span>
               </div>
             </div>
           </div>

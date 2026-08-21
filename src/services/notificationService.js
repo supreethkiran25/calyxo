@@ -1,7 +1,7 @@
 // Calyxo Universal Notification Engine (iOS Native + W3C Web Push & PWA)
 import { Capacitor } from '@capacitor/core';
-import { VAPID_PUBLIC_KEY, urlBase64ToUint8Array } from '../utils/vapidKeys';
-import { supabase } from '../lib/supabaseClient';
+import { VAPID_PUBLIC_KEY, urlBase64ToUint8Array } from '../utils/vapidKeys.js';
+import { supabase } from '../lib/supabaseClient.js';
 
 let swRegistration = null;
 
