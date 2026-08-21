@@ -393,19 +393,32 @@ export function subscribeToInAppNotifications(userId, callback) {
   // 2. Realtime broadcast channel for instant live delivery across active iOS, Android, and Web apps
   const broadcastChannel = supabase
     .channel('calyxo_alerts_broadcast')
-    .on('broadcast', { event: 'ADMIN_ALERT' }, (event) => {
-      const alert = event.payload;
+    .on('broadcast', { event: 'ADMIN_ALERT' }, async (event) => {
+      const alert = event?.payload;
       if (!alert) return;
-      const targetUserIds = alert.targetUserIds || [];
-      // Deliver if targeted to everyone (empty targetUserIds) or explicitly targeted to this user
-      if (targetUserIds.length === 0 || targetUserIds.includes(userId)) {
-        triggerOSNotification(
+      
+      const targetUserIds = Array.isArray(alert.targetUserIds) ? alert.targetUserIds : [];
+      const currentUid = String(userId || '').trim().toLowerCase();
+      
+      const isMatch = alert.isBroadcast === true || 
+                      targetUserIds.length === 0 || 
+                      targetUserIds.some(tid => String(tid).trim().toLowerCase() === currentUid);
+
+      if (isMatch) {
+        // Trigger OS notification banner (native iOS/Android or Web Push/PWA)
+        await triggerOSNotification(
           alert.title || 'Calyxo Announcement',
           alert.body || '',
           alert.cta_link || '/user/dashboard',
-          alert.id
-        );
-        getUserNotifications(userId).then(n => callback(n, alert));
+          alert.id || `alert-${Date.now()}`
+        ).catch(() => {});
+
+        // Refresh in-app notifications and trigger in-app toast
+        getUserNotifications(userId).then(n => {
+          callback(n || [], alert);
+        }).catch(() => {
+          callback([], alert);
+        });
       }
     })
     .subscribe();

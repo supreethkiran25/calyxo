@@ -1426,7 +1426,7 @@ export const sendAdminNotification = async (payload) => {
     // 2. Resolve all target user IDs
     try {
       if (targetUserIds.length === 0) {
-        // If everyone or tier-filtered
+        // If everyone or tier-filtered, query all user tables
         let query = supabase.from('user_profiles').select('id, subscription_plan');
         if (payload.audience === 'Premium Users') {
           query = query.eq('subscription_plan', 'HIGH');
@@ -1435,7 +1435,14 @@ export const sendAdminNotification = async (payload) => {
         }
         const { data: dbUsers } = await query;
         const dbIds = dbUsers ? dbUsers.map(u => u.id).filter(Boolean) : [];
-        
+
+        // Also check users_metrics and push_subscriptions
+        const { data: umUsers } = await supabase.from('users_metrics').select('id, userId');
+        const umIds = (umUsers || []).map(u => u.userId || (u.id ? u.id.replace('_profile', '') : null)).filter(Boolean);
+
+        const { data: psUsers } = await supabase.from('push_subscriptions').select('user_id');
+        const psIds = (psUsers || []).map(u => u.user_id).filter(Boolean);
+
         // Also include master directory IDs for complete coverage
         const masterIds = MASTER_SUPABASE_AUTH_ACCOUNTS
           .filter(u => {
@@ -1445,7 +1452,7 @@ export const sendAdminNotification = async (payload) => {
           })
           .map(u => u.id);
 
-        targetUserIds = [...new Set([...dbIds, ...masterIds])];
+        targetUserIds = [...new Set([...dbIds, ...umIds, ...psIds, ...masterIds])];
       }
 
       // Batch insert into user_notifications
@@ -1461,9 +1468,13 @@ export const sendAdminNotification = async (payload) => {
           created_at: nowStr
         }));
 
-        const { error: inAppErr } = await supabase.from('user_notifications').insert(userNotifEntries);
-        if (inAppErr) {
-          console.warn('[adminService] user_notifications batch insert warning:', inAppErr.message);
+        // Batch in safe chunks of 50
+        for (let i = 0; i < userNotifEntries.length; i += 50) {
+          const chunk = userNotifEntries.slice(i, i + 50);
+          const { error: inAppErr } = await supabase.from('user_notifications').insert(chunk);
+          if (inAppErr) {
+            console.warn('[adminService] user_notifications chunk insert warning:', inAppErr.message);
+          }
         }
       }
     } catch (inAppEx) {
@@ -1471,6 +1482,7 @@ export const sendAdminNotification = async (payload) => {
     }
 
     const recipientCount = targetUserIds.length;
+    const isBroadcast = payload.audience === 'Everyone' || (!payload.userId && (!payload.userIds || payload.userIds.length === 0));
 
     // 3. Supabase Realtime System Broadcast (Instant live pop-up for active iOS, Android, and Web sessions)
     try {
@@ -1487,10 +1499,14 @@ export const sendAdminNotification = async (payload) => {
               cta_label: entry.cta_label,
               cta_link: entry.cta_link,
               audience: entry.audience,
-              targetUserIds,
+              targetUserIds: targetUserIds.map(String),
+              isBroadcast,
               created_at: nowStr
             }
           });
+          setTimeout(() => {
+            supabase.removeChannel(realtimeChannel);
+          }, 3000);
         }
       });
     } catch (realtimeEx) {
