@@ -20,6 +20,7 @@ import { requestNotificationPermission } from '../services/notificationService';
 import { Capacitor } from '@capacitor/core';
 import IOSWheelDatePicker from './onboarding/IOSWheelDatePicker';
 import LegalModal from './modals/LegalModal';
+import Logo from './Logo';
 
 const SCREENS = [
   { id: 'welcome', title: "Let's build your Calyxo", category: 'Welcome' },
@@ -171,7 +172,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
         if (userId) await saveEcosystemState(userId, { boatConnected: true });
       }
     } catch (err) {
-      console.warn('[Onboarding] Device connection warning:', err);
+      console.warn('[Onboarding] Device connection notice:', err);
     } finally {
       setConnectingDevice(null);
     }
@@ -207,13 +208,21 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
         dietPreferences: [profile.nutrition.diet]
       });
 
-      // 1. Update Zustand store synchronously so UserLayout immediately renders the dashboard
+      // 1. Mark persistent localStorage keys to guarantee user is never re-prompted
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('calyxo_onboarded', 'true');
+        if (userId) {
+          localStorage.setItem(`calyxo_onboarded_${userId}`, 'true');
+        }
+      }
+
+      // 2. Update Zustand store synchronously so UserLayout immediately renders the dashboard
       useStore.getState().setUserProfile(finalProfile);
       if (updateUserProfile) {
         updateUserProfile(finalProfile);
       }
 
-      // 2. Persist to Supabase Database
+      // 3. Persist to Supabase Database
       if (userId) {
         await saveUserProfile(userId, finalProfile);
         await saveEcosystemState(userId, {
@@ -224,25 +233,31 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
         });
       }
 
-      // 3. Clear local onboarding draft
+      // 4. Clear local onboarding draft
       UserIntelligenceProfile.clearLocalDraft();
 
-      // 4. Request native notifications if on native platform
+      // 5. Request native notifications if on native platform
       if (Capacitor.isNativePlatform()) {
         await requestNotificationPermission().catch(() => {});
       }
 
-      // 5. Invoke onComplete callback
+      // 6. Invoke onComplete callback
       if (onComplete) {
         onComplete(finalProfile);
       }
 
-      // 6. Direct navigation to dashboard
-      navigate('/user/dashboard');
+      // 7. Direct navigation to dashboard
+      navigate('/user/dashboard', { replace: true });
+
+      // Fallback reload if router is pending
+      setTimeout(() => {
+        if (window.location.pathname.includes('/user/dashboard') === false) {
+          window.location.href = '/user/dashboard';
+        }
+      }, 250);
     } catch (err) {
       console.error('[Onboarding] Finalization error:', err);
-      // Fallback navigation
-      navigate('/user/dashboard');
+      window.location.href = '/user/dashboard';
     } finally {
       setIsFinalizing(false);
     }
@@ -252,23 +267,18 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
   const progressPercent = Math.round(((currentScreenIdx) / (SCREENS.length - 1)) * 100);
 
   return (
-    <div className="min-h-[100dvh] bg-[#080B11] text-slate-100 flex flex-col justify-between selection:bg-amber-500/20 font-sans">
+    <div className="min-h-[100dvh] bg-[#0A0A0F] text-slate-100 flex flex-col justify-between selection:bg-[#A3E635]/20 font-sans">
       {/* Background ambient lighting */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute -top-32 -left-32 w-96 h-96 bg-amber-500/8 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 -right-32 w-96 h-96 bg-indigo-500/8 rounded-full blur-3xl" />
-        <div className="absolute -bottom-32 left-1/3 w-96 h-96 bg-cyan-500/8 rounded-full blur-3xl" />
+        <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#10B981]/10 rounded-full blur-[120px]" />
+        <div className="absolute top-1/2 -right-32 w-96 h-96 bg-[#00F0FF]/8 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-32 left-1/3 w-96 h-96 bg-[#A3E635]/8 rounded-full blur-[120px]" />
       </div>
 
       {/* Top Navigation Bar */}
       <header className="relative z-10 w-full max-w-xl mx-auto px-5 pt-6 pb-2">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 flex items-center justify-center shadow-lg shadow-amber-500/20">
-              <Sparkles className="w-4 h-4 text-slate-950 stroke-[2.5]" />
-            </div>
-            <span className="text-sm font-bold tracking-wider text-white">CALYXO</span>
-          </div>
+          <Logo showText={true} className="w-8 h-8 text-white" />
 
           {currentScreenIdx > 0 && currentScreenIdx < SCREENS.length - 1 && (
             <button
@@ -287,9 +297,9 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
               <span>{currentScreen.category}</span>
               <span>{currentScreenIdx} of {SCREENS.length - 1}</span>
             </div>
-            <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+            <div className="w-full h-1 bg-white/[0.06] rounded-full overflow-hidden">
               <motion.div 
-                className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full"
+                className="h-full bg-gradient-to-r from-[#A3E635] via-[#10B981] to-[#00F0FF] rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${progressPercent}%` }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
@@ -304,22 +314,22 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
         <AnimatePresence mode="wait">
           <motion.div
             key={currentScreen.id}
-            initial={{ opacity: 0, y: 12, scale: 0.99 }}
+            initial={{ opacity: 0, y: 10, scale: 0.99 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -12, scale: 0.99 }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, y: -10, scale: 0.99 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="w-full"
           >
             {/* SCREEN 01 — WELCOME */}
             {currentScreen.id === 'welcome' && (
               <div className="text-center py-4 space-y-6">
-                <div className="relative mx-auto w-20 h-20 rounded-3xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.1] flex items-center justify-center shadow-2xl shadow-amber-500/10">
-                  <Sparkles className="w-10 h-10 text-amber-400" />
+                <div className="relative mx-auto w-20 h-20 rounded-3xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.1] flex items-center justify-center shadow-2xl">
+                  <Logo className="w-10 h-10 text-[#A3E635]" />
                 </div>
 
                 <div className="space-y-2.5">
                   <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
-                    Let's build your <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-200">Calyxo</span>.
+                    Let's build your <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#A3E635] to-[#10B981]">Calyxo</span>.
                   </h1>
                   <p className="text-sm text-slate-300 max-w-md mx-auto leading-relaxed">
                     Tell us a little about yourself. We'll use it to calibrate your workouts, nutrition, recovery, and AI coaching.
@@ -327,18 +337,18 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                 </div>
 
                 <div className="grid grid-cols-3 gap-2.5 pt-2 max-w-md mx-auto text-left">
-                  <div className="p-3.5 rounded-2xl bg-[#0F1422] border border-white/[0.06]">
-                    <Dumbbell className="w-4 h-4 text-amber-400 mb-1.5" />
+                  <div className="p-3.5 rounded-2xl bg-[#12121A] border border-white/[0.06]">
+                    <Dumbbell className="w-4 h-4 text-[#A3E635] mb-1.5" />
                     <p className="text-xs font-semibold text-white">AI Coach</p>
                     <p className="text-[10px] text-slate-400">Custom routines</p>
                   </div>
-                  <div className="p-3.5 rounded-2xl bg-[#0F1422] border border-white/[0.06]">
-                    <Utensils className="w-4 h-4 text-emerald-400 mb-1.5" />
+                  <div className="p-3.5 rounded-2xl bg-[#12121A] border border-white/[0.06]">
+                    <Utensils className="w-4 h-4 text-[#10B981] mb-1.5" />
                     <p className="text-xs font-semibold text-white">Smart Meals</p>
                     <p className="text-[10px] text-slate-400">Diet & macros</p>
                   </div>
-                  <div className="p-3.5 rounded-2xl bg-[#0F1422] border border-white/[0.06]">
-                    <Moon className="w-4 h-4 text-indigo-400 mb-1.5" />
+                  <div className="p-3.5 rounded-2xl bg-[#12121A] border border-white/[0.06]">
+                    <Moon className="w-4 h-4 text-[#00F0FF] mb-1.5" />
                     <p className="text-xs font-semibold text-white">Recovery</p>
                     <p className="text-[10px] text-slate-400">Daily readiness</p>
                   </div>
@@ -375,18 +385,18 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                         onClick={() => updateSection('goals', { primaryGoal: goalOption.id })}
                         className={`w-full p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all ${
                           isSelected 
-                            ? 'bg-amber-500/10 border-amber-500/80 shadow-lg shadow-amber-500/10' 
-                            : 'bg-[#0E131E] border-white/[0.06] hover:border-white/[0.12]'
+                            ? 'bg-[#A3E635]/15 border-[#A3E635]/80 shadow-lg shadow-[#A3E635]/10' 
+                            : 'bg-[#12121A] border-white/[0.06] hover:border-white/[0.12]'
                         }`}
                       >
                         <div>
-                          <p className={`text-sm font-semibold ${isSelected ? 'text-amber-300' : 'text-white'}`}>
+                          <p className={`text-sm font-semibold ${isSelected ? 'text-[#A3E635]' : 'text-white'}`}>
                             {goalOption.label}
                           </p>
                           <p className="text-[11px] text-slate-400 mt-0.5">{goalOption.desc}</p>
                         </div>
                         <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                          isSelected ? 'border-amber-400 bg-amber-400' : 'border-slate-700'
+                          isSelected ? 'border-[#A3E635] bg-[#A3E635]' : 'border-slate-700'
                         }`}>
                           {isSelected && <Check className="w-3 h-3 text-slate-950 stroke-[3]" />}
                         </div>
@@ -410,8 +420,8 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                           onClick={() => updateSection('goals', { primaryPriority: p })}
                           className={`p-2 rounded-xl border text-center text-[11px] font-medium capitalize transition-all ${
                             isSelected 
-                              ? 'bg-amber-500/15 border-amber-400 text-amber-300 font-bold' 
-                              : 'bg-[#0E131E] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
+                              ? 'bg-[#A3E635]/20 border-[#A3E635] text-[#A3E635] font-bold' 
+                              : 'bg-[#12121A] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
                           }`}
                         >
                           {p.replace('_', ' ')}
@@ -423,7 +433,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
               </div>
             )}
 
-            {/* SCREEN 03 — BODY PROFILE (With Cupertino iOS Date Picker) */}
+            {/* SCREEN 03 — BODY PROFILE (With iOS Drum Roller) */}
             {currentScreen.id === 'body_profile' && (
               <div className="space-y-5">
                 <div>
@@ -435,12 +445,12 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
 
                 {/* Units Toggle */}
                 <div className="flex justify-end">
-                  <div className="inline-flex rounded-full bg-[#0E131E] border border-white/[0.08] p-1">
+                  <div className="inline-flex rounded-full bg-[#12121A] border border-white/[0.08] p-1">
                     <button
                       type="button"
                       onClick={() => setUnits('metric')}
                       className={`px-3 py-1 text-xs rounded-full font-semibold transition-all ${
-                        units === 'metric' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400'
+                        units === 'metric' ? 'bg-[#A3E635] text-slate-950 font-bold' : 'text-slate-400'
                       }`}
                     >
                       Metric (kg/cm)
@@ -449,7 +459,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                       type="button"
                       onClick={() => setUnits('imperial')}
                       className={`px-3 py-1 text-xs rounded-full font-semibold transition-all ${
-                        units === 'imperial' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400'
+                        units === 'imperial' ? 'bg-[#A3E635] text-slate-950 font-bold' : 'text-slate-400'
                       }`}
                     >
                       Imperial (lbs/ft)
@@ -457,7 +467,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                   </div>
                 </div>
 
-                {/* Cupertino iOS Date & Wheel Picker */}
+                {/* Cupertino iOS Date Wheel Picker */}
                 <IOSWheelDatePicker
                   value={profile.identity.dob || '2001-01-01'}
                   onChange={(dateStr, age) => updateSection('identity', { dob: dateStr, age })}
@@ -465,7 +475,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {/* Biological Sex */}
-                  <div className="p-3.5 rounded-2xl bg-[#0E131E] border border-white/[0.08] space-y-2">
+                  <div className="p-3.5 rounded-2xl bg-[#12121A] border border-white/[0.08] space-y-2">
                     <label className="text-[11px] font-semibold text-slate-400">Sex (Metabolism)</label>
                     <div className="grid grid-cols-3 gap-1.5">
                       {['male', 'female', 'other'].map((s) => (
@@ -475,7 +485,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                           onClick={() => updateSection('identity', { sex: s })}
                           className={`py-1.5 text-xs rounded-xl border font-semibold capitalize transition-all ${
                             profile.identity.sex === s 
-                              ? 'bg-amber-500/20 border-amber-400 text-amber-300' 
+                              ? 'bg-[#A3E635]/20 border-[#A3E635] text-[#A3E635]' 
                               : 'bg-white/[0.02] border-white/[0.06] text-slate-400'
                           }`}
                         >
@@ -486,7 +496,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                   </div>
 
                   {/* Height */}
-                  <div className="p-3.5 rounded-2xl bg-[#0E131E] border border-white/[0.08] space-y-1.5">
+                  <div className="p-3.5 rounded-2xl bg-[#12121A] border border-white/[0.08] space-y-1.5">
                     <label className="text-[11px] font-semibold text-slate-400">Height ({units === 'metric' ? 'cm' : 'in'})</label>
                     <input
                       type="number"
@@ -494,12 +504,12 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                       max={250}
                       value={profile.identity.height || 175}
                       onChange={(e) => updateSection('identity', { height: Number(e.target.value) })}
-                      className="w-full bg-[#141b2b] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400 font-bold"
+                      className="w-full bg-[#1A1A24] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#A3E635] font-bold"
                     />
                   </div>
 
                   {/* Weight */}
-                  <div className="p-3.5 rounded-2xl bg-[#0E131E] border border-white/[0.08] space-y-1.5">
+                  <div className="p-3.5 rounded-2xl bg-[#12121A] border border-white/[0.08] space-y-1.5">
                     <label className="text-[11px] font-semibold text-slate-400">Weight ({units === 'metric' ? 'kg' : 'lbs'})</label>
                     <input
                       type="number"
@@ -507,7 +517,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                       max={300}
                       value={profile.identity.weight || 70}
                       onChange={(e) => updateSection('identity', { weight: Number(e.target.value) })}
-                      className="w-full bg-[#141b2b] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400 font-bold"
+                      className="w-full bg-[#1A1A24] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#A3E635] font-bold"
                     />
                   </div>
                 </div>
@@ -539,8 +549,8 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                         onClick={() => updateSection('training', { experience: exp.id })}
                         className={`p-3 rounded-2xl border text-left text-xs font-semibold transition-all ${
                           isSelected 
-                            ? 'bg-amber-500/15 border-amber-400 text-amber-300' 
-                            : 'bg-[#0E131E] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
+                            ? 'bg-[#A3E635]/15 border-[#A3E635] text-[#A3E635]' 
+                            : 'bg-[#12121A] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
                         }`}
                       >
                         {exp.label}
@@ -567,8 +577,8 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                           onClick={() => updateSection('training', { frequency: freq.id })}
                           className={`p-2.5 rounded-xl border text-center text-xs font-semibold transition-all ${
                             isSelected 
-                              ? 'bg-amber-500/15 border-amber-400 text-amber-300' 
-                              : 'bg-[#0E131E] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
+                              ? 'bg-[#A3E635]/15 border-[#A3E635] text-[#A3E635]' 
+                              : 'bg-[#12121A] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
                           }`}
                         >
                           {freq.label}
@@ -597,8 +607,8 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                           onClick={() => updateSection('training', { duration: dur.id })}
                           className={`p-2 rounded-xl border text-center text-xs font-semibold transition-all ${
                             isSelected 
-                              ? 'bg-amber-500/15 border-amber-400 text-amber-300' 
-                              : 'bg-[#0E131E] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
+                              ? 'bg-[#A3E635]/15 border-[#A3E635] text-[#A3E635]' 
+                              : 'bg-[#12121A] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
                           }`}
                         >
                           {dur.label}
@@ -637,8 +647,8 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                         onClick={() => updateSection('training', { environment: env.id })}
                         className={`p-2.5 rounded-xl border text-center text-xs font-semibold transition-all ${
                           isSelected 
-                            ? 'bg-amber-500/15 border-amber-400 text-amber-300' 
-                            : 'bg-[#0E131E] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
+                            ? 'bg-[#A3E635]/15 border-[#A3E635] text-[#A3E635]' 
+                            : 'bg-[#12121A] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
                         }`}
                       >
                         {env.label}
@@ -669,13 +679,13 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                           }}
                           className={`p-2.5 rounded-xl border text-left text-xs font-medium capitalize flex items-center justify-between transition-all ${
                             isChecked 
-                              ? 'bg-amber-500/15 border-amber-400 text-amber-300 font-bold' 
-                              : 'bg-[#0E131E] border-white/[0.06] text-slate-400 hover:border-white/[0.12]'
+                              ? 'bg-[#A3E635]/15 border-[#A3E635] text-[#A3E635] font-bold' 
+                              : 'bg-[#12121A] border-white/[0.06] text-slate-400 hover:border-white/[0.12]'
                           }`}
                         >
                           <span>{eq.replace('_', ' ')}</span>
                           <div className={`w-4 h-4 rounded-md border flex items-center justify-center ${
-                            isChecked ? 'border-amber-400 bg-amber-400' : 'border-slate-700'
+                            isChecked ? 'border-[#A3E635] bg-[#A3E635]' : 'border-slate-700'
                           }`}>
                             {isChecked && <Check className="w-2.5 h-2.5 text-slate-950 stroke-[3]" />}
                           </div>
@@ -715,8 +725,8 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                           onClick={() => updateSection('nutrition', { diet: d.id })}
                           className={`p-2.5 rounded-xl border text-center text-xs font-semibold transition-all ${
                             isSelected 
-                              ? 'bg-amber-500/15 border-amber-400 text-amber-300' 
-                              : 'bg-[#0E131E] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
+                              ? 'bg-[#A3E635]/15 border-[#A3E635] text-[#A3E635]' 
+                              : 'bg-[#12121A] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
                           }`}
                         >
                           {d.label}
@@ -745,8 +755,8 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                           }}
                           className={`px-3 py-1.5 rounded-xl border text-xs font-medium transition-all ${
                             isSelected 
-                              ? 'bg-emerald-500/15 border-emerald-400 text-emerald-300 font-bold' 
-                              : 'bg-[#0E131E] border-white/[0.06] text-slate-400 hover:border-white/[0.12]'
+                              ? 'bg-[#10B981]/20 border-[#10B981] text-[#10B981] font-bold' 
+                              : 'bg-[#12121A] border-white/[0.06] text-slate-400 hover:border-white/[0.12]'
                           }`}
                         >
                           {cuisine}
@@ -784,8 +794,8 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                           onClick={() => updateSection('lifestyle', { activityLevel: act.id })}
                           className={`p-2.5 rounded-xl border text-center text-xs font-semibold transition-all ${
                             isSelected 
-                              ? 'bg-amber-500/15 border-amber-400 text-amber-300' 
-                              : 'bg-[#0E131E] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
+                              ? 'bg-[#A3E635]/15 border-[#A3E635] text-[#A3E635]' 
+                              : 'bg-[#12121A] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
                           }`}
                         >
                           {act.label}
@@ -808,8 +818,8 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                           onClick={() => updateSection('lifestyle', { sleepDuration: sl })}
                           className={`p-2 rounded-xl border text-center text-xs font-medium transition-all ${
                             isSelected 
-                              ? 'bg-indigo-500/15 border-indigo-400 text-indigo-300 font-bold' 
-                              : 'bg-[#0E131E] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
+                              ? 'bg-[#00F0FF]/20 border-[#00F0FF] text-[#00F0FF] font-bold' 
+                              : 'bg-[#12121A] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
                           }`}
                         >
                           {sl.replace('_', '–').replace('h', 'h')}
@@ -849,8 +859,8 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                           }}
                           className={`p-2.5 rounded-xl border text-center text-xs font-semibold capitalize transition-all ${
                             isSelected 
-                              ? 'bg-red-500/15 border-red-400 text-red-300 font-bold' 
-                              : 'bg-[#0E131E] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
+                              ? 'bg-rose-500/20 border-rose-400 text-rose-300 font-bold' 
+                              : 'bg-[#12121A] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
                           }`}
                         >
                           {area}
@@ -860,8 +870,8 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                   </div>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-[#0E131E] border border-white/[0.06] text-slate-400 text-xs flex items-center gap-2.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div className="p-3 rounded-2xl bg-[#12121A] border border-white/[0.06] text-slate-400 text-xs flex items-center gap-2.5">
+                  <ShieldCheck className="w-4 h-4 text-[#10B981] shrink-0" />
                   <span>Calyxo automatically substitutes joint-heavy movements with safe biomechanical alternatives.</span>
                 </div>
               </div>
@@ -888,10 +898,10 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                     return (
                       <div
                         key={dev.id}
-                        className="p-3.5 rounded-2xl bg-[#0E131E] border border-white/[0.06] flex items-center justify-between"
+                        className="p-3.5 rounded-2xl bg-[#12121A] border border-white/[0.06] flex items-center justify-between"
                       >
                         <div className="flex items-center gap-3">
-                          <Watch className="w-4 h-4 text-amber-400" />
+                          <Watch className="w-4 h-4 text-[#A3E635]" />
                           <div>
                             <p className="text-xs font-semibold text-white">{dev.label}</p>
                             <p className="text-[10px] text-slate-400">{dev.platform} Integration</p>
@@ -903,7 +913,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                           onClick={() => handleConnectDevice(dev.id)}
                           className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
                             isConnected 
-                              ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' 
+                              ? 'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/40' 
                               : 'bg-white/[0.06] text-white hover:bg-white/[0.1] border border-white/[0.08]'
                           }`}
                         >
@@ -911,7 +921,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                             <span className="animate-spin text-xs">⚡</span>
                           ) : isConnected ? (
                             <>
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981]" />
                               Connected
                             </>
                           ) : (
@@ -950,11 +960,11 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                         onClick={() => updateSection('coaching', { personality: style.id })}
                         className={`p-3 rounded-2xl border text-left transition-all ${
                           isSelected 
-                            ? 'bg-amber-500/15 border-amber-400' 
-                            : 'bg-[#0E131E] border-white/[0.06] hover:border-white/[0.12]'
+                            ? 'bg-[#A3E635]/15 border-[#A3E635]' 
+                            : 'bg-[#12121A] border-white/[0.06] hover:border-white/[0.12]'
                         }`}
                       >
-                        <p className={`text-xs font-bold ${isSelected ? 'text-amber-300' : 'text-white'}`}>
+                        <p className={`text-xs font-bold ${isSelected ? 'text-[#A3E635]' : 'text-white'}`}>
                           {style.label}
                         </p>
                         <p className="text-[10px] text-slate-400 mt-0.5">{style.desc}</p>
@@ -981,7 +991,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                     value={profile.story?.rawText || ''}
                     onChange={(e) => updateSection('story', { rawText: e.target.value })}
                     placeholder="e.g. I've been training for two years, stopped for a few months because of college, and now I want to build muscle without spending more than 45 minutes in the gym."
-                    className="w-full bg-[#0E131E] border border-white/[0.08] rounded-2xl p-4 text-xs text-white focus:outline-none focus:border-amber-400 placeholder:text-slate-500 leading-relaxed resize-none"
+                    className="w-full bg-[#12121A] border border-white/[0.08] rounded-2xl p-4 text-xs text-white focus:outline-none focus:border-[#A3E635] placeholder:text-slate-500 leading-relaxed resize-none"
                   />
                 </div>
 
@@ -989,20 +999,20 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                   <motion.div 
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-1.5"
+                    className="p-3 rounded-2xl bg-[#A3E635]/10 border border-[#A3E635]/20 space-y-1.5"
                   >
-                    <div className="flex items-center justify-between text-xs font-bold text-amber-300">
+                    <div className="flex items-center justify-between text-xs font-bold text-[#A3E635]">
                       <span className="flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <Sparkles className="w-3.5 h-3.5 text-[#A3E635]" />
                         Extracted Signals
                       </span>
-                      <span className="text-[10px] text-amber-400/80 font-mono">
+                      <span className="text-[10px] text-[#A3E635]/80 font-mono">
                         {Math.round(liveStorySignals.confidence * 100)}% confidence
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {liveStorySignals.signalsFound.map((sig, idx) => (
-                        <span key={idx} className="text-[10px] px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-200 border border-amber-500/30">
+                        <span key={idx} className="text-[10px] px-2 py-0.5 rounded-md bg-[#A3E635]/20 text-[#A3E635] border border-[#A3E635]/30">
                           {sig}
                         </span>
                       ))}
@@ -1016,14 +1026,14 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
             {currentScreen.id === 'summary' && (
               <div className="space-y-5">
                 <div className="text-center space-y-1">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto mb-2">
+                  <div className="w-10 h-10 rounded-2xl bg-[#10B981]/20 border border-[#10B981]/40 text-[#10B981] flex items-center justify-center mx-auto mb-2">
                     <UserCheck className="w-5 h-5 stroke-[2.5]" />
                   </div>
                   <h2 className="text-2xl font-bold text-white tracking-tight">Calyxo Understands You</h2>
                   <p className="text-xs text-slate-400">Everything is calibrated from your authentic responses.</p>
                 </div>
 
-                <div className="p-4 rounded-3xl bg-[#0E131E] border border-white/[0.08] space-y-3 shadow-2xl">
+                <div className="p-4 rounded-3xl bg-[#12121A] border border-white/[0.08] space-y-3 shadow-2xl">
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div>
                       <p className="text-slate-500 font-semibold text-[10px]">PRIMARY GOAL</p>
@@ -1066,9 +1076,9 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
 
                 <div className="flex items-center gap-1.5 justify-center text-[11px] text-slate-500">
                   <span>By starting, you agree to Calyxo's</span>
-                  <button type="button" onClick={() => setLegalModalType('terms')} className="text-amber-400 underline">Terms</button>
+                  <button type="button" onClick={() => setLegalModalType('terms')} className="text-[#A3E635] underline">Terms</button>
                   <span>&</span>
-                  <button type="button" onClick={() => setLegalModalType('privacy')} className="text-amber-400 underline">Privacy</button>
+                  <button type="button" onClick={() => setLegalModalType('privacy')} className="text-[#A3E635] underline">Privacy</button>
                 </div>
               </div>
             )}
@@ -1106,11 +1116,11 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                 type="button"
                 disabled={isFinalizing}
                 onClick={finalizeOnboarding}
-                className="flex-1 sm:flex-initial px-8 py-3 rounded-full bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-bold text-sm shadow-xl shadow-amber-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                className="flex-1 sm:flex-initial px-8 py-3 rounded-full bg-white hover:bg-slate-100 text-black font-bold text-sm shadow-xl shadow-white/10 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
               >
                 {isFinalizing ? (
-                  <span className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 animate-spin text-slate-950" />
+                  <span className="flex items-center gap-2 text-slate-900">
+                    <Sparkles className="w-4 h-4 animate-spin" />
                     Launching Dashboard...
                   </span>
                 ) : (
@@ -1125,7 +1135,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
             <button
               type="button"
               onClick={handleNext}
-              className="w-full sm:w-auto px-8 py-3 rounded-full bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-bold text-sm shadow-xl shadow-amber-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-8 py-3 rounded-full bg-white hover:bg-slate-100 text-black font-bold text-sm shadow-xl shadow-white/10 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
             >
               {currentScreen.id === 'welcome' ? "Let's begin" : 'Continue'}
               <ChevronRight className="w-4 h-4 stroke-[2.5]" />

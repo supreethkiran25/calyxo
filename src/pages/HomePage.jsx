@@ -59,11 +59,6 @@ export default function HomePage() {
     return <LaunchScreen isLoading={true} />;
   }
 
-  // If user is authenticated but hasn't completed onboarding
-  if (user && (!userProfile || userProfile.onboarded !== true)) {
-    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
-  }
-
   // Navigating to / MUST always stay at / and render LandingPage
   return <LandingPage />;
 }
