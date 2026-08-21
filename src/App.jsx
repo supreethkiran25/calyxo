@@ -74,12 +74,6 @@ function App() {
               {/* Root */}
               <Route path="/" element={<HomePage />} />
 
-              {/* Public Legal & Info Webpages */}
-              <Route path="/terms" element={<PageErrorBoundary><div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] p-4 sm:p-8"><TermsPage /></div></PageErrorBoundary>} />
-              <Route path="/privacy" element={<PageErrorBoundary><div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] p-4 sm:p-8"><PrivacyPage /></div></PageErrorBoundary>} />
-              <Route path="/about" element={<PageErrorBoundary><div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] p-4 sm:p-8"><AboutPage /></div></PageErrorBoundary>} />
-              <Route path="/support" element={<PageErrorBoundary><div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] p-4 sm:p-8"><SupportPage /></div></PageErrorBoundary>} />
-
               {/* Admin Login Route */}
               <Route path="/admin/login" element={<AdminLoginPage />} />
 

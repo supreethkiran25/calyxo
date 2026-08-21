@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import StaggeredMenu from './StaggeredMenu';
 import SettingsDrawerPanel from './SettingsDrawerPanel';
 import { signOutUser } from '../lib/dbService';
+import useQuickActionsStore from '../store/useQuickActionsStore';
 
 export default function MobileDrawerMenu({ isOpen, onClose }) {
   const navigate = useNavigate();
@@ -42,8 +43,8 @@ export default function MobileDrawerMenu({ isOpen, onClose }) {
 
   const socialItems = [
     { label: 'Invite', onClick: handleShareApp },
-    { label: 'Privacy Policy', link: '/user/privacy' },
-    { label: 'Terms of Service', link: '/user/terms' },
+    { label: 'Privacy Policy', onClick: () => { useQuickActionsStore.getState().openLegalModal('privacy'); onClose(); } },
+    { label: 'Terms of Service', onClick: () => { useQuickActionsStore.getState().openLegalModal('terms'); onClose(); } },
     { label: 'Support', link: '/user/support' },
     { label: 'About Calyxo', link: '/user/about' },
     {

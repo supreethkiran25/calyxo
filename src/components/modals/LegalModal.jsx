@@ -1,12 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Shield, Scale, Heart, Activity, Sparkles, FileText, Lock, Mail, AlertTriangle, Globe, Database, Smartphone, UserCheck, Server, CheckCircle2, Award, RefreshCw, Layers, Cpu, Eye } from 'lucide-react';
+import { X, Shield, Scale, Heart, Activity, Sparkles, FileText, Lock, Mail, AlertTriangle, Globe, Database, Smartphone, UserCheck, Server, CheckCircle2, Award, RefreshCw, Layers, Cpu } from 'lucide-react';
 
 export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
+  const [currentType, setCurrentType] = useState(type || 'terms');
+
+  useEffect(() => {
+    if (type) setCurrentType(type);
+  }, [type]);
+
   if (!isOpen) return null;
 
-  const isPrivacy = type === 'privacy';
+  const isPrivacy = currentType === 'privacy';
 
   const modalContent = (
     <AnimatePresence>
@@ -27,30 +33,57 @@ export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
           exit={{ opacity: 0, scale: 0.95, y: 16 }}
           className="relative w-full max-w-4xl bg-[#111116] border border-white/15 rounded-3xl shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden z-10"
         >
-          {/* Header with Exactly ONE Clean Close Button */}
-          <div className="p-5 sm:p-6 border-b border-white/10 flex items-center justify-between bg-[#111116]/95 backdrop-blur-md sticky top-0 z-20">
+          {/* Header with Switcher and Close Button */}
+          <div className="p-4 sm:p-5 border-b border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#111116]/95 backdrop-blur-md sticky top-0 z-20">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-[var(--color-acid-green)]/15 border border-[var(--color-acid-green)]/30 flex items-center justify-center text-[var(--color-acid-green)] shrink-0">
                 {isPrivacy ? <Shield className="w-5 h-5" /> : <Scale className="w-5 h-5" />}
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-black text-white uppercase tracking-wider">
+                <h2 className="text-sm sm:text-base font-black text-white uppercase tracking-wider">
                   {isPrivacy ? 'Privacy Policy & Global Data Charter' : 'Terms and Conditions & User Agreement'}
                 </h2>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                <p className="text-[9.5px] text-gray-400 font-bold uppercase tracking-widest">
                   Calyxo Health Technologies Private Limited • 2026 Production Edition
                 </p>
               </div>
             </div>
 
-            <button 
-              type="button"
-              onClick={onClose}
-              className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white flex items-center justify-center transition-all cursor-pointer border-none shrink-0"
-              aria-label="Close Legal Document"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <div className="flex items-center bg-white/5 p-1 rounded-2xl border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setCurrentType('privacy')}
+                  className={`py-1 px-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all cursor-pointer ${
+                    isPrivacy 
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm' 
+                      : 'text-gray-400 hover:text-white border border-transparent'
+                  }`}
+                >
+                  Privacy Policy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentType('terms')}
+                  className={`py-1 px-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all cursor-pointer ${
+                    !isPrivacy 
+                      ? 'bg-[var(--color-acid-green)]/20 text-[var(--color-acid-green)] border border-[var(--color-acid-green)]/40 shadow-sm' 
+                      : 'text-gray-400 hover:text-white border border-transparent'
+                  }`}
+                >
+                  Terms of Service
+                </button>
+              </div>
+
+              <button 
+                type="button"
+                onClick={onClose}
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white flex items-center justify-center transition-all cursor-pointer border-none shrink-0"
+                aria-label="Close Legal Document"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Scrollable Document Body */}

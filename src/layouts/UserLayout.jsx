@@ -29,6 +29,7 @@ const ProgressUploadModal = lazy(() => import('../components/modals/ProgressUplo
 const AIChatModal = lazy(() => import('../components/modals/AIChatModal'));
 const WaterLoggerModal = lazy(() => import('../components/modals/WaterLoggerModal'));
 const WeightLoggerModal = lazy(() => import('../components/modals/WeightLoggerModal'));
+const LegalModal = lazy(() => import('../components/modals/LegalModal'));
 
 const DESKTOP_NAV = [
   {
@@ -108,7 +109,7 @@ export default function UserLayout() {
     };
   }, []);
 
-  const activeWorkflow = useQuickActionsStore(state => state.activeWorkflow);
+  const { activeWorkflow, legalModalType, closeLegalModal } = useQuickActionsStore();
 
   useEffect(() => {
     try {
@@ -555,6 +556,11 @@ export default function UserLayout() {
         <AIChatModal />
         <WaterLoggerModal />
         <WeightLoggerModal />
+        <LegalModal 
+          isOpen={Boolean(legalModalType)} 
+          onClose={closeLegalModal} 
+          type={legalModalType || 'terms'} 
+        />
 
         <MobileDrawerMenu 
           isOpen={isMobileDrawerOpen} 

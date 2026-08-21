@@ -6,6 +6,7 @@ import { useStore } from '../store/useStore';
 import { saveUserProfile, saveEcosystemState } from '../lib/dbService';
 import { generateProgram } from '../services/geminiService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
+import LegalModal from './modals/LegalModal';
 
 const STEPS = [
   { id: 'identity', title: 'Who are you?', icon: User, desc: 'Let\'s get to know you better.' },
@@ -66,6 +67,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
   // Legal Consent & Medical Disclaimer States
   const [consentMedical, setConsentMedical] = useState(false);
   const [consentTerms, setConsentTerms] = useState(false);
+  const [legalModalType, setLegalModalType] = useState(null);
 
   // Loading/Generating State
   const [generating, setGenerating] = useState(false);
@@ -687,23 +689,21 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                     />
                     <span className="text-xs text-foreground font-semibold leading-snug">
                       I have read and agree to Calyxo's{' '}
-                      <a 
-                        href="/user/terms"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-acid-green hover:underline font-bold"
+                      <button 
+                        type="button" 
+                        onClick={(e) => { e.preventDefault(); setLegalModalType('terms'); }}
+                        className="text-acid-green hover:underline font-bold bg-transparent border-none p-0 cursor-pointer"
                       >
                         Terms of Service
-                      </a>
+                      </button>
                       {' and '}
-                      <a 
-                        href="/user/privacy"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-acid-green hover:underline font-bold"
+                      <button 
+                        type="button" 
+                        onClick={(e) => { e.preventDefault(); setLegalModalType('privacy'); }}
+                        className="text-acid-green hover:underline font-bold bg-transparent border-none p-0 cursor-pointer"
                       >
                         Privacy Policy
-                      </a>
+                      </button>
                       .
                     </span>
                   </label>
@@ -735,6 +735,13 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
             </button>
           </div>
         )}
+
+        {/* Embedded Legal Modal Viewer */}
+        <LegalModal 
+          isOpen={Boolean(legalModalType)} 
+          onClose={() => setLegalModalType(null)} 
+          type={legalModalType || 'terms'} 
+        />
       </div>
     </div>
   );

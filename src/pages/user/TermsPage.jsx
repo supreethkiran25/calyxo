@@ -23,38 +23,7 @@ export default function TermsPage() {
       animate="visible"
       className="space-y-8 max-w-4xl pb-20 mx-auto"
     >
-      {/* Top Header & Navigation Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-[var(--surface)] border border-[var(--card-border)] mb-6">
-        <div className="flex items-center gap-3">
-          <a href="/" className="font-black text-lg tracking-wider text-[var(--foreground)] flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <span className="text-emerald-400">⚡</span> CALYXO
-          </a>
-          <span className="text-[var(--card-border)]">|</span>
-          <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Legal Portal</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <a 
-            href="/terms" 
-            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-          >
-            Terms of Service
-          </a>
-          <a 
-            href="/privacy" 
-            className="px-3 py-1.5 rounded-lg text-xs font-bold text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-hover)] transition-all"
-          >
-            Privacy Policy
-          </a>
-          <a 
-            href="/" 
-            className="ml-2 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[var(--surface-hover)] text-[var(--foreground)] hover:bg-[var(--card-border)] transition-all"
-          >
-            Back to App
-          </a>
-        </div>
-      </div>
-
-      {/* Title */}
+      {/* Header */}
       <div>
         <div className="flex items-center gap-2 text-emerald-400 text-xs font-black uppercase tracking-widest mb-1">
           <Scale className="w-4 h-4" /> Production Legal Agreement & User Agreement

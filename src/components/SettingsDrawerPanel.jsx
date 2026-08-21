@@ -10,6 +10,7 @@ import { saveUserProfile, signOutUser, updateUserPassword, updateUserEmail } fro
 import { subscribeToPushNotifications, unsubscribeFromPushNotifications, getNotificationStatus } from '../services/notificationService';
 import { startRazorpayCheckout, restoreSubscription, PAYMENT_STATUS } from '../utils/razorpay';
 import { SubscriptionManager } from '../services/subscription/SubscriptionManager';
+import useQuickActionsStore from '../store/useQuickActionsStore';
 
 import PermissionsConnectionsSection from './PermissionsConnectionsSection';
 
@@ -1239,14 +1240,14 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => { onNavigate?.('/user/privacy'); onClose(); }}
-                  className="py-2.5 px-3 bg-[var(--color-acid-green)]/20 text-[var(--color-acid-green)] border border-[var(--color-acid-green)]/40 rounded-2xl font-black text-xs uppercase tracking-wider cursor-pointer"
+                  onClick={() => { useQuickActionsStore.getState().openLegalModal('privacy'); }}
+                  className="py-2.5 px-3 bg-[var(--color-acid-green)]/20 text-[var(--color-acid-green)] border border-[var(--color-acid-green)]/40 rounded-2xl font-black text-xs uppercase tracking-wider cursor-pointer hover:bg-[var(--color-acid-green)]/30 transition-colors"
                 >
                   Privacy Policy
                 </button>
                 <button
                   type="button"
-                  onClick={() => { onNavigate?.('/user/terms'); onClose(); }}
+                  onClick={() => { useQuickActionsStore.getState().openLegalModal('terms'); }}
                   className="py-2.5 px-3 bg-[var(--surface)] text-[var(--foreground)] border border-[var(--card-border)] rounded-2xl font-bold text-xs uppercase tracking-wider cursor-pointer hover:border-[var(--color-acid-green)] transition-colors"
                 >
                   Terms of Service
