@@ -21,6 +21,8 @@ const EcosystemPage = lazyWithRetry(() => import('./pages/website/EcosystemPage'
 const ExperiencePage = lazyWithRetry(() => import('./pages/website/ExperiencePage'));
 const PhilosophyPage = lazyWithRetry(() => import('./pages/website/PhilosophyPage'));
 const VisionPage = lazyWithRetry(() => import('./pages/website/VisionPage'));
+const WebPrivacyPage = lazyWithRetry(() => import('./pages/website/WebPrivacyPage'));
+const WebTermsPage = lazyWithRetry(() => import('./pages/website/WebTermsPage'));
 
 // User Pages
 const UserDashboardPage = lazyWithRetry(() => import('./pages/user/DashboardPage'));
@@ -84,6 +86,8 @@ function App() {
               <Route path="/experience" element={<ExperiencePage />} />
               <Route path="/philosophy" element={<PhilosophyPage />} />
               <Route path="/vision" element={<VisionPage />} />
+              <Route path="/privacy" element={<WebPrivacyPage />} />
+              <Route path="/terms" element={<WebTermsPage />} />
 
               {/* Admin Login Route */}
               <Route path="/admin/login" element={<AdminLoginPage />} />

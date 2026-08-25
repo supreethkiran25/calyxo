@@ -94,7 +94,7 @@ export default function WebFooter({ onOpenBetaModal }) {
               <ul className="space-y-2 text-xs">
                 <li>
                   <button 
-                    onClick={() => openLegal('privacy')} 
+                    onClick={() => handleNav('/privacy')} 
                     className="text-[#8E8E93] hover:text-cyan-300 transition-colors cursor-pointer bg-none border-none p-0 text-left flex items-center gap-1.5"
                   >
                     <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
@@ -103,7 +103,7 @@ export default function WebFooter({ onOpenBetaModal }) {
                 </li>
                 <li>
                   <button 
-                    onClick={() => openLegal('terms')} 
+                    onClick={() => handleNav('/terms')} 
                     className="text-[#8E8E93] hover:text-[#CCFF00] transition-colors cursor-pointer bg-none border-none p-0 text-left flex items-center gap-1.5"
                   >
                     <FileText className="w-3.5 h-3.5 text-[#CCFF00]" />
@@ -124,14 +124,14 @@ export default function WebFooter({ onOpenBetaModal }) {
             
             <div className="flex items-center gap-6">
               <button 
-                onClick={() => openLegal('privacy')} 
+                onClick={() => handleNav('/privacy')} 
                 className="text-[#8E8E93] hover:text-white transition-colors cursor-pointer bg-none border-none p-0"
               >
                 Encrypted Biometrics
               </button>
               <span>•</span>
               <button 
-                onClick={() => openLegal('privacy')} 
+                onClick={() => handleNav('/privacy')} 
                 className="text-[#8E8E93] hover:text-white transition-colors cursor-pointer bg-none border-none p-0"
               >
                 Zero Third-Party Ad Tracking
