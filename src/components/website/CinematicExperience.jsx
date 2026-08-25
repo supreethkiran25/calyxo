@@ -9,6 +9,7 @@ import Logo from '../Logo';
 import CinematicNavbar from './CinematicNavbar';
 import Cinematic3DCore from './Cinematic3DCore';
 import CinematicPhone from './CinematicPhone';
+import ScrollDimensionShowcase from './ScrollDimensionShowcase';
 import BetaAccessModal from './BetaAccessModal';
 import WebFooter from './WebFooter';
 import PageTransition from './PageTransition';
@@ -219,72 +220,9 @@ export default function CinematicExperience() {
       </section>
 
       {/* ─────────────────────────────────────────────────────────────────────────────
-          SECTION 3: FLOATING IPHONE SHOWCASE WITH REAL CALYXO UI
+          SECTION 3: SCROLL-DRIVEN CONTINUOUS DIMENSIONS SHOWCASE (PINNED IPHONE)
           ───────────────────────────────────────────────────────────────────────────── */}
-      <section id="showcase" className="py-32 sm:py-48 px-6 sm:px-12 max-w-[1400px] mx-auto border-t border-white/10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          
-          {/* Left: Floating Device Container with Real Calyxo UI */}
-          <FadeUp className="lg:col-span-7 flex justify-center items-center relative">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[450px] bg-[#CCFF00] rounded-full opacity-[0.03] blur-[120px] pointer-events-none" />
-            <CinematicPhone currentStep={activeFeatureIndex} />
-          </FadeUp>
-
-          {/* Right: Technical Feature Architecture */}
-          <div className="lg:col-span-5 flex flex-col space-y-8 pl-0 lg:pl-8 mt-12 lg:mt-0">
-            <FadeUp delay={0.1} className="space-y-3">
-              <span className="text-[10px] font-mono tracking-widest text-[#CCFF00] uppercase font-bold">
-                PRECISION HEALTH OS
-              </span>
-              <h3 className="font-outfit text-3xl sm:text-4xl font-bold text-white tracking-tight">
-                One interface. <br />
-                <span className="text-[#8E8E93] font-normal">Six continuous dimensions.</span>
-              </h3>
-              <p className="text-sm text-[#8E8E93] leading-relaxed">
-                Every vital signal beautifully orchestrated in real-time. Tap any dimension below to inspect the live interface:
-              </p>
-            </FadeUp>
-
-            {/* Hairline Divider Feature Items */}
-            <div className="space-y-3 border-t border-white/10 pt-6">
-              {featureSteps.map((step, idx) => {
-                const isActive = activeFeatureIndex === idx;
-                const Icon = step.icon;
-                return (
-                  <motion.div
-                    key={step.title}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    onClick={() => setActiveFeatureIndex(idx)}
-                    className={`flex items-start gap-4 p-3.5 rounded-2xl transition-all cursor-pointer ${
-                      isActive ? 'bg-white/[0.05] border border-white/15 shadow-xl' : 'hover:bg-white/[0.02] border border-transparent'
-                    }`}
-                  >
-                    <div className={`mt-0.5 w-7 h-7 flex items-center justify-center rounded-full border transition-colors shrink-0 ${
-                      isActive ? 'border-[#CCFF00] text-[#CCFF00] bg-[#CCFF00]/10' : 'border-white/20 text-white/50'
-                    }`}>
-                      <Icon className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-mono text-xs font-bold text-white tracking-wide">
-                          {step.title}
-                        </h4>
-                        <span className="text-[9px] font-mono text-[#8E8E93]">({step.tag})</span>
-                      </div>
-                      <p className="text-xs text-[#8E8E93] font-light leading-relaxed">
-                        {step.desc}
-                      </p>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-
-          </div>
-
-        </div>
-      </section>
+      <ScrollDimensionShowcase />
 
       {/* ─────────────────────────────────────────────────────────────────────────────
           SECTION 4: PHILOSOPHY ("Understand more. Do less.")
