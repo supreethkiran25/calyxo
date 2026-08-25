@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ArrowRight, Download } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -11,8 +12,10 @@ export default function CinematicNavbar({ onOpenAuth, onOpenBetaModal, onNavigat
   const user = useStore(state => state.user);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
@@ -34,10 +37,10 @@ export default function CinematicNavbar({ onOpenAuth, onOpenBetaModal, onNavigat
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  return (
+  const navContent = (
     <>
-      {/* Permanent Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-4 sm:px-8 py-3 bg-[#020203]/90 backdrop-blur-2xl border-b border-white/[0.12] shadow-2xl">
+      {/* Permanent Fixed Header - Outside Transformed DOM via Portal */}
+      <header className="fixed top-0 left-0 right-0 z-[100] transition-all duration-300 px-4 sm:px-8 py-3.5 bg-[#020203]/95 backdrop-blur-2xl border-b border-white/[0.12] shadow-2xl">
         <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
           
           {/* Brand Mark with Official Logo */}
@@ -110,7 +113,7 @@ export default function CinematicNavbar({ onOpenAuth, onOpenBetaModal, onNavigat
             {/* Mobile Toggle */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 text-[#8E8E93] hover:text-white cursor-pointer bg-transparent border-none"
+              className="md:hidden p-2 text-[#8E8E93] hover:text-white cursor-pointer bg-transparent border-none ml-1"
               aria-label="Toggle Menu"
             >
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -127,7 +130,7 @@ export default function CinematicNavbar({ onOpenAuth, onOpenBetaModal, onNavigat
             initial={{ opacity: 0, y: -15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
-            className="fixed inset-0 z-40 bg-black/95 px-8 pt-28 pb-12 flex flex-col justify-between md:hidden"
+            className="fixed inset-0 z-[110] bg-black/95 px-8 pt-28 pb-12 flex flex-col justify-between md:hidden"
           >
             <div className="space-y-8">
               <div 
@@ -190,4 +193,10 @@ export default function CinematicNavbar({ onOpenAuth, onOpenBetaModal, onNavigat
       </AnimatePresence>
     </>
   );
+
+  if (!mounted || typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(navContent, document.body);
 }

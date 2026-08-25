@@ -202,14 +202,6 @@ export default function CinematicExperience() {
 
         </div>
 
-        {/* Minimalist Vertical Scroll Indicator */}
-        <div className="absolute bottom-8 left-6 sm:left-12 flex flex-col items-center opacity-40 animate-pulse pointer-events-none">
-          <span className="text-[9px] font-mono uppercase tracking-widest mb-2 [writing-mode:vertical-rl]">
-            Scroll
-          </span>
-          <div className="w-[1px] h-10 bg-white" />
-        </div>
-
       </section>
 
       {/* ─────────────────────────────────────────────────────────────────────────────

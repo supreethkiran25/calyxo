@@ -3,7 +3,7 @@ import React from 'react';
 // General App Store URL
 export const CALYXO_APP_STORE_URL = 'https://www.apple.com/app-store/';
 
-export function AppleLogoIcon({ className = "w-5 h-5", fill = "currentColor" }) {
+export function AppleLogoIcon({ className = "w-6 h-6", fill = "currentColor" }) {
   return (
     <svg 
       className={className} 
@@ -36,28 +36,29 @@ export default function AppStoreBadge({
   return (
     <button
       onClick={handleClick}
-      className={`group inline-flex items-center gap-3 px-5 py-2.5 rounded-xl transition-all duration-200 cursor-pointer active:scale-95 select-none ${
+      aria-label="Download on the App Store"
+      className={`inline-flex items-center gap-3.5 px-5 py-2.5 rounded-xl transition-all duration-200 cursor-pointer active:scale-95 select-none h-[48px] ${
         isWhite 
           ? 'bg-white hover:bg-gray-100 text-black border border-gray-200 shadow-xl' 
-          : 'bg-[#000000] hover:bg-[#121214] text-white border border-white/20 shadow-xl hover:border-white/40'
+          : 'bg-[#000000] hover:bg-[#111114] text-white border border-[#333336] shadow-xl hover:border-[#66666a]'
       } ${className}`}
     >
-      <div className="shrink-0">
+      <div className="shrink-0 flex items-center justify-center">
         <AppleLogoIcon 
-          className={size === 'lg' ? 'w-8 h-8' : size === 'sm' ? 'w-5 h-5' : 'w-6 h-6'} 
+          className="w-6 h-6" 
           fill={isWhite ? '#000000' : '#FFFFFF'} 
         />
       </div>
 
-      <div className="text-left leading-tight font-sans">
-        <span className={`block font-medium tracking-wider ${
-          size === 'lg' ? 'text-[10px]' : 'text-[8.5px]'
-        } ${isWhite ? 'text-gray-700' : 'text-gray-300'}`}>
+      <div className="text-left font-sans flex flex-col justify-center">
+        <span className={`text-[10px] tracking-tight font-normal leading-none mb-0.5 ${
+          isWhite ? 'text-gray-700' : 'text-gray-300'
+        }`}>
           Download on the
         </span>
-        <span className={`block font-bold tracking-tight font-outfit ${
-          size === 'lg' ? 'text-lg' : 'text-sm'
-        } ${isWhite ? 'text-black' : 'text-white'}`}>
+        <span className={`text-[17px] font-bold tracking-tight font-outfit leading-none ${
+          isWhite ? 'text-black' : 'text-white'
+        }`}>
           App Store
         </span>
       </div>
