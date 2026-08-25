@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -77,47 +76,48 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-[calc(1rem+env(safe-area-inset-top,0px))]">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-background/80 backdrop-blur-md"
+          className="absolute inset-0 bg-background/85 backdrop-blur-md"
           onClick={onClose}
         />
 
         {/* Modal Content */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          className="relative w-full max-w-xl bg-surface border border-card-border rounded-3xl p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto text-foreground"
+          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 15 }}
+          className="relative w-full max-w-xl bg-surface border border-card-border rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5 max-h-[85dvh] overflow-y-auto text-foreground scrollbar-thin"
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-card-border pb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
-                <Smartphone className="w-5 h-5" />
+          <div className="flex items-center justify-between border-b border-card-border pb-3 sm:pb-4 sticky top-0 bg-surface/95 backdrop-blur-md -mt-2 pt-2 z-10">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold shrink-0">
+                <Smartphone className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-black uppercase tracking-wide">Health Platform Connections</h3>
-                <span className="text-xs text-muted font-medium">Apple Health (HealthKit) & Android Health Connect</span>
+                <h3 className="text-sm sm:text-base font-black uppercase tracking-wide">Health Platform Connections</h3>
+                <span className="text-[11px] sm:text-xs text-muted font-medium block">Apple Health (HealthKit) & Health Connect</span>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-full bg-card-bg text-muted hover:text-foreground cursor-pointer border border-card-border"
+              aria-label="Close modal"
+              className="p-2 rounded-full bg-card-bg text-muted hover:text-foreground cursor-pointer border border-card-border shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Connection Status Card */}
-          <div className="p-4 rounded-2xl bg-card-bg border border-card-border space-y-3">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-card-bg border border-card-border space-y-2.5 sm:space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-muted uppercase">Connected Platform</span>
-              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+              <span className="text-[11px] sm:text-xs font-bold text-muted uppercase">Connected Platform</span>
+              <span className={`px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider ${
                 isConnected
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                   : 'bg-destructive/20 text-destructive border border-destructive/30'
@@ -127,8 +127,8 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
             </div>
 
             <div className="flex justify-between items-center pt-1">
-              <span className="text-sm font-black text-foreground">{platformName}</span>
-              <span className="text-xs font-bold text-muted">
+              <span className="text-xs sm:text-sm font-black text-foreground">{platformName}</span>
+              <span className="text-[10px] sm:text-xs font-bold text-muted">
                 {HealthSyncEngine.formatLastSyncTime()}
               </span>
             </div>
@@ -136,7 +136,7 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
             {!isConnected && (
               <button
                 onClick={handleConnect}
-                className="w-full py-3 rounded-2xl bg-emerald-500 text-black font-black text-xs uppercase tracking-wider cursor-pointer border-none shadow-md hover:brightness-110 flex items-center justify-center gap-2"
+                className="w-full py-2.5 sm:py-3 rounded-2xl bg-emerald-500 text-black font-black text-xs uppercase tracking-wider cursor-pointer border-none shadow-md hover:brightness-110 flex items-center justify-center gap-2"
               >
                 <ShieldCheck className="w-4 h-4" />
                 <span>Connect {platformName}</span>
@@ -146,7 +146,7 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
 
           {/* Historical Data Importer */}
           {isConnected && (
-            <div className="p-4 rounded-2xl bg-card-bg border border-card-border space-y-3">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-card-bg border border-card-border space-y-2.5 sm:space-y-3">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <Database className="w-4 h-4 text-emerald-400" />
@@ -155,7 +155,7 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
                 <span className="text-[10px] font-bold text-muted">Multi-Timeframe</span>
               </div>
 
-              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
+              <div className="grid grid-cols-4 gap-1.5 py-1">
                 {[
                   { id: '7d', label: '7 Days' },
                   { id: '30d', label: '30 Days' },
@@ -165,9 +165,9 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
                   <button
                     key={tf.id}
                     onClick={() => setImportTimeframe(tf.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border transition-all ${
+                    className={`py-1.5 px-1 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider cursor-pointer border transition-all text-center ${
                       importTimeframe === tf.id
-                        ? 'bg-emerald-500 text-black border-emerald-500'
+                        ? 'bg-emerald-500 text-black border-emerald-500 shadow-sm'
                         : 'bg-surface border-card-border text-muted hover:text-foreground'
                     }`}
                   >
@@ -201,16 +201,16 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
 
           {/* Granted Permissions Breakdown */}
           <div className="space-y-2">
-            <h4 className="text-xs font-black uppercase tracking-wider text-muted">Platform Permissions Scope</h4>
-            <div className="grid grid-cols-2 gap-2">
+            <h4 className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-muted">Platform Permissions Scope</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
               {[...REQUIRED_PERMISSIONS, ...OPTIONAL_PERMISSIONS].map(permKey => {
                 const isGranted = !!grantedPerms[permKey];
                 const label = permKey.replace(/_/g, ' ').toUpperCase();
 
                 return (
-                  <div key={permKey} className="flex justify-between items-center p-2 rounded-xl bg-card-bg/60 border border-card-border/60 text-[10px]">
-                    <span className="font-bold text-foreground truncate">{label}</span>
-                    <span className={`font-bold uppercase ${isGranted ? 'text-emerald-400' : 'text-muted'}`}>
+                  <div key={permKey} className="flex justify-between items-center px-3 py-2 rounded-xl bg-card-bg/60 border border-card-border/60 text-[10px] sm:text-[11px]">
+                    <span className="font-bold text-foreground truncate pr-2">{label}</span>
+                    <span className={`font-black uppercase shrink-0 ${isGranted ? 'text-emerald-400' : 'text-muted'}`}>
                       {isGranted ? 'Granted' : 'Denied'}
                     </span>
                   </div>
@@ -220,7 +220,7 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
           </div>
 
           {/* Bluetooth Heart Rate / BPM Machine Direct Pairing */}
-          <div className="p-4 rounded-2xl bg-card-bg border border-card-border space-y-3">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-card-bg border border-card-border space-y-2.5 sm:space-y-3">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
@@ -252,13 +252,13 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
           </div>
 
           {/* Third-Party Wearables Telemetry (boAt, Garmin, Apple Watch, Galaxy Watch, Whoop, Fitbit) */}
-          <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 space-y-2 text-xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-emerald-400 font-bold uppercase">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 space-y-2 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-1.5">
+              <div className="flex items-center gap-1.5 text-emerald-400 font-bold uppercase text-[11px] sm:text-xs">
                 <ShieldCheck className="w-4 h-4" /> Wearable Ecosystem Compatibility
               </div>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase">
-                boAt • Apple Watch • Galaxy • Garmin • Whoop
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[8.5px] sm:text-[9px] font-black uppercase">
+                Apple Watch • boAt • Galaxy • Garmin • Whoop
               </span>
             </div>
             <p className="text-[11px] text-muted leading-relaxed">
@@ -267,8 +267,8 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
           </div>
 
           {/* Connection Troubleshooting */}
-          <div className="p-4 rounded-2xl bg-surface border border-card-border space-y-2 text-xs">
-            <div className="flex items-center gap-1.5 text-foreground font-bold uppercase">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-surface border border-card-border space-y-2 text-xs">
+            <div className="flex items-center gap-1.5 text-foreground font-bold uppercase text-[11px] sm:text-xs">
               <Info className="w-4 h-4 text-emerald-400" /> Troubleshooting Guidance
             </div>
             <ul className="text-[11px] text-muted space-y-1 pl-4 list-disc leading-relaxed">
@@ -280,11 +280,11 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
 
           {/* Action Buttons */}
           {isConnected && (
-            <div className="grid grid-cols-3 gap-2 pt-2">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pt-1 pb-1">
               <button
                 onClick={handleSyncNow}
                 disabled={syncing}
-                className="py-3 rounded-2xl bg-emerald-500 text-black font-black text-xs uppercase tracking-wider cursor-pointer border-none shadow-md hover:brightness-110 flex items-center justify-center gap-1"
+                className="py-2.5 sm:py-3 rounded-2xl bg-emerald-500 text-black font-black text-[10px] sm:text-xs uppercase tracking-wider cursor-pointer border-none shadow-md hover:brightness-110 flex items-center justify-center gap-1"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
                 <span>Sync</span>
@@ -292,15 +292,15 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
 
               <button
                 onClick={handleDeleteHistory}
-                className="py-3 rounded-2xl bg-surface border border-card-border text-muted font-bold text-xs uppercase tracking-wider cursor-pointer hover:text-foreground flex items-center justify-center gap-1"
+                className="py-2.5 sm:py-3 rounded-2xl bg-surface border border-card-border text-muted font-bold text-[10px] sm:text-xs uppercase tracking-wider cursor-pointer hover:text-foreground flex items-center justify-center gap-1 truncate px-1"
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Clear Cache</span>
+                <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Clear Cache</span>
               </button>
 
               <button
                 onClick={handleDisconnect}
-                className="py-3 rounded-2xl bg-surface border border-destructive/40 text-destructive font-black text-xs uppercase tracking-wider cursor-pointer hover:bg-destructive/10"
+                className="py-2.5 sm:py-3 rounded-2xl bg-surface border border-destructive/40 text-destructive font-black text-[10px] sm:text-xs uppercase tracking-wider cursor-pointer hover:bg-destructive/10 truncate px-1"
               >
                 Disconnect
               </button>

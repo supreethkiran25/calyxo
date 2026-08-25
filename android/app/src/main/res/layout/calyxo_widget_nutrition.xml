@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_nutrition_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="10dp"
+    android:background="#0A0A0C">
+
+    <!-- Header: Calories Summary -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/widget_nutrition_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🥗 NUTRITION"
+            android:textColor="#F59E0B"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_nutrition_cals"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 / 2,000 kcal"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Macro Breakdown Cards (Protein, Carbs, Fat) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp">
+
+        <!-- Protein Card -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="#18181B"
+            android:padding="4dp"
+            android:layout_marginEnd="3dp">
+
+            <TextView
+                android:id="@+id/widget_protein_val"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0g"
+                android:textColor="#10B981"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_protein_lbl"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Protein"
+                android:textColor="#71717A"
+                android:textSize="9sp" />
+        </LinearLayout>
+
+        <!-- Carbs Card -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="#18181B"
+            android:padding="4dp"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp">
+
+            <TextView
+                android:id="@+id/widget_carbs_val"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0g"
+                android:textColor="#38BDF8"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_carbs_lbl"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Carbs"
+                android:textColor="#71717A"
+                android:textSize="9sp" />
+        </LinearLayout>
+
+        <!-- Fat Card -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="#18181B"
+            android:padding="4dp"
+            android:layout_marginStart="3dp">
+
+            <TextView
+                android:id="@+id/widget_fat_val"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0g"
+                android:textColor="#F43F5E"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_fat_lbl"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Fat"
+                android:textColor="#71717A"
+                android:textSize="9sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Footer: 1-Tap Log Food -->
+    <TextView
+        android:id="@+id/btn_log_food"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:background="#18181B"
+        android:padding="6dp"
+        android:text="⚡ Open Calyxo Food Diary"
+        android:textColor="#10B981"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:clickable="true"
+        android:focusable="true" />
+
+</LinearLayout>

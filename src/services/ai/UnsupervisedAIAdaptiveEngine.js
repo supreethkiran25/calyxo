@@ -95,7 +95,7 @@ export class UnsupervisedAIAdaptiveEngine {
     // 3. Metabolic Balance (0.0 to 1.0)
     const calorieGoal = Number(safeProfile.dailyCalories || safeProfile.calorieGoal || 2000);
     const totalCals = safeFood.reduce((s, f) => s + (Number(f?.calories) || 0), 0);
-    const waterGoal = Number(safeProfile.waterTarget || 2500);
+    const waterGoal = Number(safeProfile.waterTarget || safeProfile.waterGoal || 3000);
     const waterScore = Math.min(1.0, safeWater / waterGoal);
     const calScore = totalCals > 0 ? Math.min(1.0, totalCals / calorieGoal) : 0.7;
     const metabolicBalance = (calScore * 0.6) + (waterScore * 0.4);

@@ -34,7 +34,7 @@ export class AdvancedFoodIntelligenceEngine {
     const matchedEntities = [];
 
     // Split phrases by and, with, +, comma
-    const segments = rawText.split(/\s+(?:and|\+|\,|with)\s+/i);
+    const segments = rawText.split(/\s+(?:and|\+|,|with)\s+/i);
 
     for (const segment of segments) {
       const segTrimmed = segment.trim();

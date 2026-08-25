@@ -17,22 +17,22 @@ struct CalyxoLiveActivityWidget: Widget {
                 // ── Expanded Dynamic Island View ──────────────────────────────
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 8) {
-                        Image(systemName: "figure.run")
+                        Image(systemName: context.state.isResting ? "figure.mind.and.body" : "figure.run")
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(context.state.isResting ? Self.brandCyan : Self.brandGreen)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(context.state.exerciseName.isEmpty ? context.state.workoutName : context.state.exerciseName)
+                            Text(context.state.isResting ? "REST PERIOD" : (context.state.exerciseName.isEmpty ? context.state.workoutName : context.state.exerciseName))
                                 .font(.system(size: 14, weight: .black, design: .rounded))
                                 .foregroundColor(.white)
                                 .lineLimit(1)
 
-                            Text("Set \(context.state.currentSet) of \(context.state.totalSets) • \(context.state.currentReps) reps")
+                            Text(context.state.isResting ? "Set \(context.state.currentSet) completed • Rest & Recover" : "Set \(context.state.currentSet) of \(context.state.totalSets) • \(context.state.currentReps) reps")
                                 .font(.system(size: 11, weight: .bold, design: .monospaced))
                                 .foregroundColor(Color(white: 0.7))
                         }
                     }
-                    .padding(.leading, 4)
+                    .padding(.leading, 6)
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
@@ -54,7 +54,7 @@ struct CalyxoLiveActivityWidget: Widget {
                                 .foregroundColor(.white)
                         }
                     }
-                    .padding(.trailing, 4)
+                    .padding(.trailing, 6)
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
@@ -137,17 +137,20 @@ struct CalyxoLiveActivityWidget: Widget {
                     .padding(.top, 4)
                 }
             } compactLeading: {
-                HStack(spacing: 5) {
-                    Image(systemName: "figure.run")
-                        .font(.system(size: 12, weight: .bold))
+                HStack(spacing: 3.5) {
+                    Image(systemName: context.state.isResting ? "figure.mind.and.body" : "figure.run")
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundColor(context.state.isResting ? Self.brandCyan : Self.brandGreen)
-                    Text("WORKOUT")
+                    Text(context.state.isResting ? "REST" : (context.state.exerciseName.isEmpty ? (context.state.workoutName.isEmpty ? "WORKOUT" : context.state.workoutName) : context.state.exerciseName).uppercased())
                         .font(.system(size: 9, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(context.state.isResting ? Self.brandCyan : .white)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                 }
-                .padding(.leading, 4)
+                .frame(maxWidth: 80, alignment: .leading)
+                .padding(.leading, 5)
             } compactTrailing: {
-                HStack(spacing: 4) {
+                HStack(spacing: 2) {
                     if context.state.isResting, let restEnd = context.state.restEndDate {
                         Text(timerInterval: Date()...max(Date(), restEnd), countsDown: true)
                             .monospacedDigit()
@@ -160,10 +163,10 @@ struct CalyxoLiveActivityWidget: Widget {
                             .foregroundColor(.white)
                     }
                 }
-                .padding(.trailing, 4)
+                .padding(.trailing, 5)
             } minimal: {
-                Image(systemName: "figure.run")
-                    .font(.system(size: 12, weight: .bold))
+                Image(systemName: context.state.isResting ? "figure.mind.and.body" : "figure.run")
+                    .font(.system(size: 11.5, weight: .bold))
                     .foregroundColor(context.state.isResting ? Self.brandCyan : Self.brandGreen)
             }
         }
@@ -212,15 +215,21 @@ struct CalyxoLiveActivityWidget: Widget {
 
             // Main Info Row: Exercise, Set and Live Big Timer
             HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(context.state.exerciseName.isEmpty ? context.state.workoutName : context.state.exerciseName)
-                        .font(.system(size: 17, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
+                HStack(spacing: 8) {
+                    Image(systemName: context.state.isResting ? "figure.mind.and.body" : "figure.run")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(context.state.isResting ? Self.brandCyan : Self.brandGreen)
 
-                    Text("Set \(context.state.currentSet) of \(context.state.totalSets) • \(context.state.currentReps) reps")
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
-                        .foregroundColor(Color(white: 0.65))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(context.state.isResting ? "REST PERIOD" : (context.state.exerciseName.isEmpty ? context.state.workoutName : context.state.exerciseName))
+                            .font(.system(size: 17, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+
+                        Text(context.state.isResting ? "Set \(context.state.currentSet) completed • Rest & Recover" : "Set \(context.state.currentSet) of \(context.state.totalSets) • \(context.state.currentReps) reps")
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .foregroundColor(Color(white: 0.65))
+                    }
                 }
 
                 Spacer()
@@ -324,6 +333,6 @@ struct CalyxoLiveActivityWidget: Widget {
         .background(Color(red: 10/255, green: 10/255, blue: 12/255))
     }
 
-    private static let brandGreen = Color(red: 46/255, green: 204/255, blue: 113/255)
+    private static let brandGreen = Color(red: 204/255, green: 255/255, blue: 0/255)
     private static let brandCyan = Color(red: 0/255, green: 240/255, blue: 255/255)
 }

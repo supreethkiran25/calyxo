@@ -37,7 +37,9 @@ export default function MobileDrawerMenu({ isOpen, onClose }) {
     { label: 'Home', ariaLabel: 'Home Dashboard', link: '/user/dashboard' },
     { label: 'Nutrition', ariaLabel: 'Nutrition Tracker', link: '/user/nutrition' },
     { label: 'Workout', ariaLabel: 'Workout Tracking', link: '/user/workout' },
-    { label: 'Challenges', ariaLabel: 'Progress & Challenges', link: '/user/progress' },
+    { label: 'Health Hub', ariaLabel: 'Health Hub & Wearables', link: '/user/health' },
+    { label: 'Challenges', ariaLabel: 'Fitness Challenges', link: '/user/challenges' },
+    { label: 'Progress Hub', ariaLabel: 'Transformation & Body Analytics', link: '/user/progress' },
     { label: 'AI', ariaLabel: 'Calyxo AI Intelligence', link: '/user/ai' }
   ];
 

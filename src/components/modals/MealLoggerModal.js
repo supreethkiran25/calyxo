@@ -28,6 +28,7 @@ export default function MealLoggerModal() {
   const [protein, setProtein] = useState('');
   const [carbs, setCarbs] = useState('');
   const [fat, setFat] = useState('');
+  const [mealSlot, setMealSlot] = useState('Lunch');
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -40,6 +41,9 @@ export default function MealLoggerModal() {
   useEffect(() => {
     if (activeWorkflow === 'log_meal') {
       setSavedSuccess(false);
+      if (workflowData?.slot || workflowData?.category) {
+        setMealSlot(workflowData.slot || workflowData.category);
+      }
       if (workflowData?.initialFood) {
         selectSuggestion(workflowData.initialFood);
       } else {
@@ -56,6 +60,7 @@ export default function MealLoggerModal() {
       setProtein('');
       setCarbs('');
       setFat('');
+      setMealSlot('Lunch');
       setSuggestions([]);
       setShowDropdown(false);
       setSavedSuccess(false);
@@ -156,7 +161,7 @@ export default function MealLoggerModal() {
   };
 
   const handleSaveMeal = async () => {
-    if (!mealName || !mealName.trim()) return;
+    if (isSaving || !mealName || !mealName.trim()) return;
 
     setIsSaving(true);
     try {
@@ -178,16 +183,29 @@ export default function MealLoggerModal() {
         portionWeightGrams = Math.round(pieceWeight * (Number(quantity) || 1));
       }
 
+      let logTimestamp = Date.now();
+      if (workflowData?.date) {
+        const parts = String(workflowData.date).split('-');
+        if (parts.length === 3) {
+          const targetDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
+          if (!isNaN(targetDate.getTime())) {
+            logTimestamp = targetDate.getTime();
+          }
+        }
+      }
+
       const logEntry = {
         userId: uid,
         name: mealName.trim(),
+        mealType: mealSlot,
+        category: mealSlot,
         calories: calsNum,
         protein: Math.round((parseFloat(protein) || 0) * 10) / 10,
         carbs: Math.round((parseFloat(carbs) || 0) * 10) / 10,
         fat: Math.round((parseFloat(fat) || 0) * 10) / 10,
         portionWeight: portionWeightGrams,
         unitType: unitType,
-        timestamp: Date.now()
+        timestamp: logTimestamp
       };
 
       const savedItem = await addFoodLog(uid, logEntry);
@@ -216,9 +234,9 @@ export default function MealLoggerModal() {
   return (
     <AnimatePresence>
       <div 
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+        className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4"
         style={{
-          paddingBottom: 'max(env(safe-area-inset-bottom, 0px), var(--keyboard-height, 0px))',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           transition: 'padding-bottom 0.2s ease-out'
         }}
       >
@@ -236,7 +254,7 @@ export default function MealLoggerModal() {
           exit={{ opacity: 0, y: 20 }}
           className="relative w-full max-w-lg bg-surface border border-card-border rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col overflow-hidden"
           style={{
-            maxHeight: 'min(92dvh, calc(100dvh - var(--keyboard-height, 0px) - 16px))'
+            maxHeight: 'min(92dvh, calc(100dvh - var(--keyboard-height, 0px) - 20px))'
           }}
         >
           {/* Header */}
@@ -252,7 +270,13 @@ export default function MealLoggerModal() {
             </button>
           </div>
 
-          <div className="space-y-4 overflow-y-auto flex-1 pr-1 custom-scrollbar">
+          <div 
+            data-keyboard-scroll="true"
+            className="space-y-4 overflow-y-auto flex-1 pr-1 custom-scrollbar modal-scroll-body"
+            style={{
+              paddingBottom: 'calc(var(--keyboard-height, 0px) + 24px)'
+            }}
+          >
             {/* Search Food Name Input */}
             <div ref={dropdownRef} className="relative">
               <label className="text-xs font-bold text-muted uppercase tracking-wider mb-1.5 flex items-center justify-between">
@@ -350,6 +374,27 @@ export default function MealLoggerModal() {
               </div>
             )}
             
+            {/* MEAL CATEGORY SELECTOR */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted uppercase tracking-wider block">Meal Category</label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map((slot) => (
+                  <button
+                    key={slot}
+                    type="button"
+                    onClick={() => setMealSlot(slot)}
+                    className={`py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all border text-center cursor-pointer ${
+                      mealSlot.toLowerCase() === slot.toLowerCase()
+                        ? 'bg-acid-green text-accent-foreground border-acid-green shadow-xs'
+                        : 'bg-[var(--input)] border-card-border text-muted hover:text-foreground'
+                    }`}
+                  >
+                    {slot}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* PORTION SIZE & SERVING UNIT SELECTOR */}
             <div className="bg-surface/60 border border-card-border p-4 rounded-2xl space-y-3 shadow-inner">
               <div className="flex items-center justify-between">
@@ -448,13 +493,13 @@ export default function MealLoggerModal() {
             type="button"
             onClick={handleSaveMeal}
             disabled={isSaving || !mealName || !mealName.trim() || savedSuccess}
-            className="w-full mt-4 py-3.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-black text-xs uppercase tracking-widest rounded-2xl flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer border-none"
+            className="w-full mt-4 py-3.5 bg-accent hover:brightness-110 disabled:opacity-50 text-accent-foreground font-black text-xs uppercase tracking-widest rounded-2xl flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer border-none active:scale-[0.98]"
           >
             {isSaving ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
             ) : savedSuccess ? (
               <>
-                <Check className="w-4 h-4 text-white" /> Logged Successfully!
+                <Check className="w-4 h-4 text-accent-foreground" /> Logged Successfully!
               </>
             ) : (
               <>

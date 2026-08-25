@@ -14,12 +14,31 @@ import LiveActivityManager from '../../services/LiveActivityManager';
 // ── CURATED CHALLENGES CATALOG ──────────────────────────────────────────────
 const CURATED_CHALLENGES = [
   {
+    id: 'ch_5x5_strength',
+    title: '21-Day 5x5 Compound Heavy Strength Challenge',
+    shortDesc: 'Pure barbell strength progression focusing on Squats, Bench Press, Overhead Press, and Deadlifts.',
+    category: 'Strength',
+    difficulty: 'Intermediate',
+    durationDays: 21,
+    estimatedDailyMin: 40,
+    estBurnPerSession: 380,
+    equipment: 'Full Gym / Barbell & Rack',
+    heroImage: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1000&q=80',
+    benefits: ['Builds total body foundational strength', 'Increases central nervous system power output', 'Triggers dense myofibrillar muscle hypertrophy'],
+    tips: ['Warm up thoroughly with lighter weight before heavy working sets.', 'Rest 90-120 seconds between sets.'],
+    dailyPlan: [
+      { id: 'ex_1', title: 'Barbell Back Squats', reps: '5 sets x 5 reps', durationMin: 15 },
+      { id: 'ex_2', title: 'Barbell Flat Bench Press', reps: '5 sets x 5 reps', durationMin: 15 },
+      { id: 'ex_3', title: 'Barbell Bent-Over Row', reps: '5 sets x 5 reps', durationMin: 10 }
+    ]
+  },
+  {
     id: 'ch_shatapavali_5k',
     title: '5,000 Step Post-Meal Shatapavali Walk',
     shortDesc: 'Ancient Indian post-meal walking habit to accelerate fat loss and regulate blood sugar.',
     category: 'Fat Loss',
     difficulty: 'Beginner',
-    durationDays: 14,
+    durationDays: 15,
     estimatedDailyMin: 20,
     estBurnPerSession: 220,
     equipment: 'Walking Shoes',
@@ -32,21 +51,21 @@ const CURATED_CHALLENGES = [
     ]
   },
   {
-    id: 'ch_surya_15',
-    title: '15-Day Morning Surya Namaskar Flow',
-    shortDesc: 'Full-body yoga mobility routine to open hips, strengthen core, and boost morning energy.',
-    category: 'Home',
-    difficulty: 'Beginner',
-    durationDays: 15,
-    estimatedDailyMin: 15,
-    estBurnPerSession: 140,
-    equipment: 'Yoga Mat / Bodyweight',
-    heroImage: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=1000&q=80',
-    benefits: ['Increases full-body flexibility', 'Boosts metabolic rate early in the morning', 'Relieves spinal stiffness'],
-    tips: ['Sync movement with deep nasal breathing.', 'Perform smoothly without rushing reps.'],
+    id: 'ch_10k_master',
+    title: '10,000 Step Daily Endurance Master',
+    shortDesc: 'Achieve elite daily active movement to build cardiovascular stamina and stay lean.',
+    category: 'Strength',
+    difficulty: 'Intermediate',
+    durationDays: 21,
+    estimatedDailyMin: 45,
+    estBurnPerSession: 420,
+    equipment: 'Phone / Fitness Tracker',
+    heroImage: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1000&q=80',
+    benefits: ['Maximizes daily fat loss', 'Improves cardiovascular endurance', 'Keeps resting heart rate healthy'],
+    tips: ['Break steps into morning, afternoon, and post-dinner walks.', 'Stay hydrated throughout the day.'],
     dailyPlan: [
-      { id: 'ex_1', title: 'Surya Namaskar (Sun Salutations)', reps: '12 complete rounds', durationMin: 10 },
-      { id: 'ex_2', title: 'Pranayama Deep Breathing', reps: '3 mins hold & flow', durationMin: 5 }
+      { id: 'ex_1', title: 'Active Brisk Walking', reps: '10,000 steps', durationMin: 40 },
+      { id: 'ex_2', title: 'Lower Body Stretch & Cool-down', reps: '2 sets x 60 sec', durationMin: 5 }
     ]
   },
   {
@@ -69,24 +88,6 @@ const CURATED_CHALLENGES = [
     ]
   },
   {
-    id: 'ch_10k_master',
-    title: '10,000 Step Daily Endurance Master',
-    shortDesc: 'Achieve elite daily active movement to build cardiovascular stamina and stay lean.',
-    category: 'Strength',
-    difficulty: 'Intermediate',
-    durationDays: 21,
-    estimatedDailyMin: 45,
-    estBurnPerSession: 420,
-    equipment: 'Phone / Fitness Tracker',
-    heroImage: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1000&q=80',
-    benefits: ['Maximizes daily fat loss', 'Improves cardiovascular endurance', 'Keeps resting heart rate healthy'],
-    tips: ['Break steps into morning, afternoon, and post-dinner walks.', 'Stay hydrated throughout the day.'],
-    dailyPlan: [
-      { id: 'ex_1', title: 'Active Brisk Walking', reps: '10,000 steps', durationMin: 40 },
-      { id: 'ex_2', title: 'Lower Body Stretch & Cool-down', reps: '2 sets x 60 sec', durationMin: 5 }
-    ]
-  },
-  {
     id: 'ch_desi_calisthenics',
     title: '14-Day Desi Calisthenics Core Shred',
     shortDesc: 'Pure bodyweight push-up and core conditioning program for functional athleticism.',
@@ -104,10 +105,66 @@ const CURATED_CHALLENGES = [
       { id: 'ex_2', title: 'Elbow Plank Hold', reps: '3 sets x 60 sec', durationMin: 5 },
       { id: 'ex_3', title: 'Mountain Climbers', reps: '3 sets x 30 sec', durationMin: 5 }
     ]
+  },
+  {
+    id: 'ch_posture_spine',
+    title: '10-Day Desk Worker Posture & Spine Reset',
+    shortDesc: 'Relieve lower back tightness and forward neck posture with physical therapy mobility.',
+    category: 'Home',
+    difficulty: 'Beginner',
+    durationDays: 10,
+    estimatedDailyMin: 15,
+    estBurnPerSession: 120,
+    equipment: 'Bodyweight Only',
+    heroImage: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1000&q=80',
+    benefits: ['Reverses rounded shoulders and text-neck', 'Decompresses lumbar spine', 'Improves breathing capacity'],
+    tips: ['Perform slowly and breathe deeply into each stretch.', 'Hold positions without bouncing.'],
+    dailyPlan: [
+      { id: 'ex_1', title: 'Cat-Cow Spinal Waves', reps: '3 sets x 10 reps', durationMin: 5 },
+      { id: 'ex_2', title: 'Thoracic Extension & Doorway Pec Stretch', reps: '3 sets x 45 sec', durationMin: 5 },
+      { id: 'ex_3', title: 'Glute Bridges & Bird Dogs', reps: '3 sets x 12 reps', durationMin: 5 }
+    ]
+  },
+  {
+    id: 'ch_hiit_fatloss',
+    title: '21-Day High-Intensity Metabolic Fat Burner',
+    shortDesc: 'Explosive bodyweight HIIT intervals to torch calories and build stamina fast.',
+    category: 'Fat Loss',
+    difficulty: 'Intermediate',
+    durationDays: 21,
+    estimatedDailyMin: 25,
+    estBurnPerSession: 310,
+    equipment: 'Bodyweight Only',
+    heroImage: 'https://images.unsplash.com/photo-1434596922112-19c563067271?auto=format&fit=crop&w=1000&q=80',
+    benefits: ['Maximizes EPOC post-exercise calorie burn', 'High cardiovascular efficiency', 'Requires zero equipment'],
+    tips: ['Give 100% effort during working intervals.', 'Hydrate with electrolytes before starting.'],
+    dailyPlan: [
+      { id: 'ex_1', title: 'Jumping Jacks & High Knees', reps: '4 rounds x 45s work / 15s rest', durationMin: 8 },
+      { id: 'ex_2', title: 'Bodyweight Jump Squats', reps: '4 rounds x 45s work / 15s rest', durationMin: 8 },
+      { id: 'ex_3', title: 'Burpees & Plank Jacks', reps: '4 rounds x 45s work / 15s rest', durationMin: 9 }
+    ]
+  },
+  {
+    id: 'ch_1000_pushups',
+    title: '30-Day 1,000 Push-ups Mastery Club',
+    shortDesc: 'Progressive volume challenge to forge iron upper-body pushing strength and chest definition.',
+    category: 'Strength',
+    difficulty: 'Intermediate',
+    durationDays: 30,
+    estimatedDailyMin: 15,
+    estBurnPerSession: 180,
+    equipment: 'Bodyweight Only',
+    heroImage: 'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?auto=format&fit=crop&w=1000&q=80',
+    benefits: ['Dense chest and triceps development', 'Rock-solid shoulder girdle stability', 'Progressive volume overload'],
+    tips: ['Distribute reps into clean, non-failure sets throughout the day if needed.'],
+    dailyPlan: [
+      { id: 'ex_1', title: 'Chest Push-up Sets', reps: '4 sets x 10-15 reps (35 reps daily)', durationMin: 10 },
+      { id: 'ex_2', title: 'Triceps Diamond Push-ups', reps: '2 sets to failure', durationMin: 5 }
+    ]
   }
 ];
 
-const CATEGORY_CHIPS = ['All', 'Fat Loss', 'Muscle Gain', 'Strength', 'Home', 'Gym', 'Beginner'];
+const CATEGORY_CHIPS = ['All', 'Fat Loss', 'Muscle Gain', 'Strength', 'Home', 'Beginner'];
 
 export default function ChallengeModule({ onNotification }) {
   const ecoStore = useEcosystemStore();
@@ -121,14 +178,20 @@ export default function ChallengeModule({ onNotification }) {
 
   const currentChallenge = useMemo(() => {
     if (!activeChallengeItem) return null;
-    const match = CURATED_CHALLENGES.find(c => c.id === activeChallengeItem.id || c.title.toLowerCase().includes(activeChallengeItem.name.toLowerCase().substring(0, 8)));
+    const activeName = String(activeChallengeItem.name || activeChallengeItem.title || '').toLowerCase();
+    const match = CURATED_CHALLENGES.find(c => 
+      c.id === activeChallengeItem.id || 
+      (activeName.length > 3 && c.title && c.title.toLowerCase().includes(activeName.substring(0, 8)))
+    ) || CURATED_CHALLENGES[0];
+
     return {
       ...CURATED_CHALLENGES[0],
-      ...match,
-      id: activeChallengeItem.id,
-      title: activeChallengeItem.name || CURATED_CHALLENGES[0].title,
-      progressDays: activeChallengeItem.progress || 0,
-      targetDays: activeChallengeItem.targetVal || 14
+      ...(match || {}),
+      id: activeChallengeItem.id || match?.id || 'ch_5x5_strength',
+      title: activeChallengeItem.name || activeChallengeItem.title || match?.title || CURATED_CHALLENGES[0].title,
+      progressDays: Number(activeChallengeItem.progress) || 0,
+      targetDays: Number(activeChallengeItem.targetVal || activeChallengeItem.target) || match?.durationDays || 21,
+      dailyPlan: match?.dailyPlan || CURATED_CHALLENGES[0].dailyPlan
     };
   }, [activeChallengeItem]);
 
@@ -359,7 +422,7 @@ export default function ChallengeModule({ onNotification }) {
                     {currentChallenge.title}
                   </h2>
                   <p className="text-xs font-medium text-emerald-400 mt-0.5">
-                    Day {currentChallenge.progressDays || 1} of {currentChallenge.targetDays} • {currentChallenge.targetDays - (currentChallenge.progressDays || 1)} days remaining
+                    Day {Math.min((currentChallenge.progressDays || 0) + 1, currentChallenge.targetDays)} of {currentChallenge.targetDays} • {Math.max(0, currentChallenge.targetDays - (currentChallenge.progressDays || 0))} days remaining
                   </p>
                 </div>
 
@@ -368,7 +431,7 @@ export default function ChallengeModule({ onNotification }) {
                   <div className="w-full h-3 bg-black/40 border border-card-border rounded-full overflow-hidden p-0.5">
                     <div
                       className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.max(8, Math.round(((currentChallenge.progressDays || 1) / currentChallenge.targetDays) * 100))}%` }}
+                      style={{ width: `${Math.min(100, Math.round(((currentChallenge.progressDays || 0) / currentChallenge.targetDays) * 100))}%` }}
                     />
                   </div>
                 </div>
@@ -403,7 +466,7 @@ export default function ChallengeModule({ onNotification }) {
                   className="w-full py-4 rounded-2xl bg-emerald-500 text-black font-black text-sm uppercase tracking-wider cursor-pointer border-none shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
                   <Play className="w-4 h-4 fill-current" />
-                  <span>Continue Today's Workout</span>
+                  <span>{(currentChallenge.progressDays || 0) > 0 ? "Continue Today's Workout" : "Start Day 1 Workout"}</span>
                 </button>
               </section>
             ) : (

@@ -1,7 +1,7 @@
 // Calyxo Enterprise PWA Service Worker & Background Sync Engine
-const CACHE_NAME = 'calyxo-static-v4';
-const DYNAMIC_CACHE = 'calyxo-dynamic-v4';
-const SHELL_CACHE = 'calyxo-shell-v4';
+const CACHE_NAME = 'calyxo-static-v5';
+const DYNAMIC_CACHE = 'calyxo-dynamic-v5';
+const SHELL_CACHE = 'calyxo-shell-v5';
 
 const APP_SHELL_ROUTES = [
   '/',

@@ -22,15 +22,23 @@ export default function NativeMobileBridge() {
     // Initialize Native Push / Local Notification Authorization
     requestNotificationPermission().catch(() => {});
 
-    // Configure Status Bar
-    const initStatusBar = async () => {
+    // Configure Status Bar with Dynamic Theme Support
+    const updateStatusBar = async () => {
       try {
-        await StatusBar.setStyle({ style: Style.Dark });
-        await StatusBar.setBackgroundColor({ color: '#0a0a0c' });
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light' || 
+                        (!document.documentElement.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: light)').matches);
+        await StatusBar.setStyle({ style: isLight ? Style.Light : Style.Dark });
+        await StatusBar.setBackgroundColor({ color: isLight ? '#F8FAFC' : '#09090B' });
       } catch (e) {
         console.warn('[NativeMobileBridge] StatusBar init error:', e);
       }
     };
+
+    // Listen for theme attribute mutations
+    const themeObserver = new MutationObserver(() => {
+      updateStatusBar();
+    });
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
     // Hide Splash Screen after React mount
     const hideSplash = async () => {
@@ -41,11 +49,13 @@ export default function NativeMobileBridge() {
       }
     };
 
+    let isMounted = true;
+
     // Hardware Back Button listener (Android)
     let backButtonListener = null;
     const initBackButton = async () => {
       try {
-        backButtonListener = await CapApp.addListener('backButton', ({ canGoBack }) => {
+        const handle = await CapApp.addListener('backButton', ({ canGoBack }) => {
           const path = window.location.pathname;
           if (path !== '/' && path !== '/user/dashboard' && path !== '/admin') {
             window.history.back();
@@ -53,6 +63,11 @@ export default function NativeMobileBridge() {
             CapApp.exitApp();
           }
         });
+        if (!isMounted) {
+          handle?.remove?.();
+        } else {
+          backButtonListener = handle;
+        }
       } catch (e) {
         console.warn('[NativeMobileBridge] BackButton listener error:', e);
       }
@@ -62,7 +77,7 @@ export default function NativeMobileBridge() {
     let appUrlListener = null;
     const initDeepLinks = async () => {
       try {
-        appUrlListener = await CapApp.addListener('appUrlOpen', async (data) => {
+        const handle = await CapApp.addListener('appUrlOpen', async (data) => {
           console.log('[NativeMobileBridge] App opened with URL:', data?.url);
           if (!data?.url) return;
 
@@ -137,6 +152,11 @@ export default function NativeMobileBridge() {
             }
           }
         });
+        if (!isMounted) {
+          handle?.remove?.();
+        } else {
+          appUrlListener = handle;
+        }
       } catch (e) {
         console.warn('[NativeMobileBridge] Deep link listener error:', e);
       }
@@ -196,56 +216,127 @@ export default function NativeMobileBridge() {
     let appStateListener = null;
     const initAppStateChange = async () => {
       try {
-        appStateListener = await CapApp.addListener('appStateChange', ({ isActive }) => {
+        const handle = await CapApp.addListener('appStateChange', ({ isActive }) => {
           if (isActive) {
             console.log('[NativeMobileBridge] Mobile app resumed — triggering instant cross-device auto-sync');
             window.dispatchEvent(new CustomEvent('calyxo_data_sync'));
             checkNotificationDeepLink();
           }
         });
+        if (!isMounted) {
+          handle?.remove?.();
+        } else {
+          appStateListener = handle;
+        }
       } catch (e) {
         console.warn('[NativeMobileBridge] AppState listener error:', e);
       }
     };
 
-    // Keyboard viewport handling on mobile
-    let keyboardShowListener = null;
-    let keyboardHideListener = null;
-    const initKeyboardHandling = async () => {
+    // Smart active element scroll-into-view helper
+    const ensureElementVisible = (el) => {
+      if (!el || typeof el.getBoundingClientRect !== 'function') return;
       try {
-        keyboardShowListener = await Keyboard.addListener('keyboardWillShow', (info) => {
-          const height = info.keyboardHeight || 0;
-          document.documentElement.style.setProperty('--keyboard-height', `${height}px`);
-          document.body.classList.add('keyboard-open');
-          
-          const activeEl = document.activeElement;
-          if (activeEl && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName)) {
-            setTimeout(() => {
-              activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 100);
-          }
-        });
+        const rect = el.getBoundingClientRect();
+        const vvHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        const currentKbHeight = parseFloat(document.documentElement.style.getPropertyValue('--keyboard-height') || '0');
+        const effectiveVisibleHeight = vvHeight > 0 ? vvHeight : Math.max(200, window.innerHeight - currentKbHeight);
 
-        keyboardHideListener = await Keyboard.addListener('keyboardWillHide', () => {
-          document.documentElement.style.setProperty('--keyboard-height', '0px');
-          document.body.classList.remove('keyboard-open');
-        });
-      } catch (e) {
-        console.warn('[NativeMobileBridge] Keyboard listener error:', e);
+        // If element is covered by keyboard or below the bottom 50% of the visible area
+        if (rect.bottom > effectiveVisibleHeight - 20 || rect.top < 60) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } catch (err) {
+        try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
       }
     };
+
+    const triggerSmartScrollSequence = (targetEl) => {
+      const el = targetEl || document.activeElement;
+      if (!el || !['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) return;
+      
+      // Multi-phase positioning to match keyboard slide-up curve
+      setTimeout(() => ensureElementVisible(el), 40);
+      setTimeout(() => ensureElementVisible(el), 160);
+      setTimeout(() => ensureElementVisible(el), 320);
+      setTimeout(() => ensureElementVisible(el), 480);
+    };
+
+    // Keyboard viewport handling on mobile (Capacitor & Web Visual Viewport)
+    let keyboardShowListener = null;
+    let keyboardHideListener = null;
+    let keyboardDidShowListener = null;
+    let keyboardDidHideListener = null;
+
+    const initKeyboardHandling = async () => {
+      try {
+        // 1. Native Capacitor Keyboard listeners
+        const showHandle = await Keyboard.addListener('keyboardWillShow', (info) => {
+          const height = info.keyboardHeight || 0;
+          document.documentElement.style.setProperty('--keyboard-height', `${height}px`);
+          document.documentElement.classList.add('keyboard-open');
+          document.body.classList.add('keyboard-open');
+          triggerSmartScrollSequence();
+        });
+        if (isMounted) keyboardShowListener = showHandle; else showHandle?.remove?.();
+
+        const didShowHandle = await Keyboard.addListener('keyboardDidShow', (info) => {
+          const height = info.keyboardHeight || 0;
+          document.documentElement.style.setProperty('--keyboard-height', `${height}px`);
+          triggerSmartScrollSequence();
+        });
+        if (isMounted) keyboardDidShowListener = didShowHandle; else didShowHandle?.remove?.();
+
+        const hideHandle = await Keyboard.addListener('keyboardWillHide', () => {
+          document.documentElement.style.setProperty('--keyboard-height', '0px');
+          document.documentElement.classList.remove('keyboard-open');
+          document.body.classList.remove('keyboard-open');
+        });
+        if (isMounted) keyboardHideListener = hideHandle; else hideHandle?.remove?.();
+
+        const didHideHandle = await Keyboard.addListener('keyboardDidHide', () => {
+          document.documentElement.style.setProperty('--keyboard-height', '0px');
+          document.documentElement.classList.remove('keyboard-open');
+          document.body.classList.remove('keyboard-open');
+        });
+        if (isMounted) keyboardDidHideListener = didHideHandle; else didHideHandle?.remove?.();
+      } catch (e) {
+        console.warn('[NativeMobileBridge] Keyboard plugin listener notice:', e);
+      }
+    };
+
+    // 2. Standard Web Visual Viewport API (for iOS Safari, Android Chrome, and PWA)
+    const handleVisualViewportChange = () => {
+      if (!window.visualViewport) return;
+      const vv = window.visualViewport;
+      const heightDelta = window.innerHeight - vv.height;
+      if (heightDelta > 150) {
+        // Keyboard is likely open
+        document.documentElement.style.setProperty('--keyboard-height', `${Math.round(heightDelta)}px`);
+        document.documentElement.classList.add('keyboard-open');
+        document.body.classList.add('keyboard-open');
+        triggerSmartScrollSequence();
+      } else {
+        document.documentElement.style.setProperty('--keyboard-height', '0px');
+        document.documentElement.classList.remove('keyboard-open');
+        document.body.classList.remove('keyboard-open');
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleVisualViewportChange);
+      window.visualViewport.addEventListener('scroll', handleVisualViewportChange);
+    }
 
     // Auto-scroll input into view on focus across all devices
     const handleFocusIn = (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
-        setTimeout(() => {
-          e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 200);
+        triggerSmartScrollSequence(e.target);
       }
     };
     window.addEventListener('focusin', handleFocusIn);
 
-    initStatusBar();
+    updateStatusBar();
     hideSplash();
     initBackButton();
     initDeepLinks();
@@ -254,7 +345,13 @@ export default function NativeMobileBridge() {
     checkNotificationDeepLink();
 
     return () => {
+      isMounted = false;
+      themeObserver.disconnect();
       window.removeEventListener('focusin', handleFocusIn);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleVisualViewportChange);
+        window.visualViewport.removeEventListener('scroll', handleVisualViewportChange);
+      }
       if (backButtonListener && typeof backButtonListener.remove === 'function') {
         backButtonListener.remove();
       }
@@ -267,8 +364,14 @@ export default function NativeMobileBridge() {
       if (keyboardShowListener && typeof keyboardShowListener.remove === 'function') {
         keyboardShowListener.remove();
       }
+      if (keyboardDidShowListener && typeof keyboardDidShowListener.remove === 'function') {
+        keyboardDidShowListener.remove();
+      }
       if (keyboardHideListener && typeof keyboardHideListener.remove === 'function') {
         keyboardHideListener.remove();
+      }
+      if (keyboardDidHideListener && typeof keyboardDidHideListener.remove === 'function') {
+        keyboardDidHideListener.remove();
       }
     };
   }, []);

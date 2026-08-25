@@ -41,12 +41,16 @@ export default function BackgroundEffects({ activeTab }) {
     motionQuery.addEventListener('change', motionListener);
 
     // Detect Battery Status (auto battery saver mode)
+    let batteryRef = null;
+    let checkBatteryRef = null;
     if (typeof navigator !== 'undefined' && navigator.getBattery) {
       navigator.getBattery().then(battery => {
+        batteryRef = battery;
         const checkBattery = () => {
           // Trigger battery saver if below 20% and discharging
           setIsBatteryLow(battery.level < 0.2 && !battery.charging);
         };
+        checkBatteryRef = checkBattery;
         checkBattery();
         battery.addEventListener('levelchange', checkBattery);
         battery.addEventListener('chargingchange', checkBattery);
@@ -56,6 +60,12 @@ export default function BackgroundEffects({ activeTab }) {
     return () => {
       window.removeEventListener('resize', checkViewport);
       motionQuery.removeEventListener('change', motionListener);
+      if (batteryRef && checkBatteryRef) {
+        try {
+          batteryRef.removeEventListener('levelchange', checkBatteryRef);
+          batteryRef.removeEventListener('chargingchange', checkBatteryRef);
+        } catch (e) {}
+      }
     };
   }, []);
 

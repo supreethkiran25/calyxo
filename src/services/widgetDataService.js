@@ -2,11 +2,25 @@ import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
 import { useStore } from '../store/useStore.js';
 import { isToday, getTodayDateString, isSameLocalDate } from '../utils/dateUtils.js';
+import { getCurrentUserIdSync, getAuthTokenSync } from '../lib/dbService.js';
+import { supabase } from '../lib/supabaseClient.js';
 
 export const WIDGET_DATA_KEY = 'calyxo_widget_data';
+export const WIDGET_CONFIG_KEY = 'calyxo_widget_customization';
+
+export const DEFAULT_WIDGET_CONFIG = {
+  theme: 'emerald', // 'emerald' | 'obsidian' | 'cyberpunk' | 'solar' | 'cosmic' | 'frosted'
+  size: 'medium',   // 'small' | 'medium' | 'large' | 'lockscreen'
+  type: 'rings',    // 'rings' | 'steps' | 'nutrition' | 'hydration' | 'workout'
+  showStreak: true,
+  showGlow: true,
+  showLabels: true,
+  ringPriority: 'quad', // 'quad' | 'steps' | 'calories' | 'hydration'
+  updatedAt: new Date().toISOString()
+};
 
 export const syncWidgetData = async (customData = {}) => {
-  // 1. Read current real state from useStore if available
+  // 1. Read current real state from useStore and pedometer cache
   let stateCalories = null;
   let stateProtein = null;
   let stateCarbs = null;
@@ -16,12 +30,15 @@ export const syncWidgetData = async (customData = {}) => {
   let stateProtGoal = null;
   let stateWaterGoal = null;
   let stateStreak = null;
+  let stateSteps = null;
+  let stateStepGoal = null;
 
   try {
     const storeState = useStore?.getState ? useStore.getState() : null;
+    const todayStr = getTodayDateString();
+
     if (storeState) {
       const foodLogs = storeState.foodLogs || [];
-      const todayStr = getTodayDateString();
       const todaysLogs = foodLogs.filter(x => isSameLocalDate(x.timestamp, todayStr) || isToday(x.timestamp));
 
       stateCalories = todaysLogs.reduce((s, x) => s + (Number(x.calories) || 0), 0);
@@ -33,8 +50,30 @@ export const syncWidgetData = async (customData = {}) => {
       const userProfile = storeState.userProfile;
       stateCalGoal = Number(userProfile?.calorieGoal || userProfile?.dailyCalories || 2000);
       stateProtGoal = Number(userProfile?.proteinGoal || 150);
-      stateWaterGoal = Number(userProfile?.waterGoal || 2500);
+      stateWaterGoal = Number(userProfile?.waterGoal || userProfile?.waterTarget || 3000);
+      stateStepGoal = Number(userProfile?.stepGoal || userProfile?.dailySteps || 10000);
       stateStreak = Number(userProfile?.streak || 0);
+    }
+
+    // Try reading real step count from localStorage / health sync cache
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const pedometerKey = 'calyxo_pedometer_steps_' + todayStr;
+        const storedSteps = localStorage.getItem(pedometerKey);
+        if (storedSteps !== null) {
+          const parsed = parseInt(storedSteps, 10);
+          if (!isNaN(parsed) && parsed >= 0) stateSteps = parsed;
+        }
+
+        if (stateSteps === null) {
+          const healthCacheRaw = localStorage.getItem('calyxo_health_metrics');
+          if (healthCacheRaw) {
+            const h = JSON.parse(healthCacheRaw);
+            if (h && typeof h.steps === 'number') stateSteps = h.steps;
+            if (h && typeof h.stepGoal === 'number' && !stateStepGoal) stateStepGoal = h.stepGoal;
+          }
+        }
+      } catch (e) {}
     }
   } catch (e) {
     // Non-fatal fallback
@@ -73,7 +112,11 @@ export const syncWidgetData = async (customData = {}) => {
 
   const steps = customData.steps !== undefined 
     ? customData.steps 
-    : (prev?.steps || 0);
+    : (stateSteps !== null ? stateSteps : (prev?.steps || 0));
+
+  const stepGoal = customData.stepGoal !== undefined
+    ? customData.stepGoal
+    : (stateStepGoal !== null ? stateStepGoal : (prev?.stepGoal || 10000));
 
   const water = customData.water !== undefined 
     ? customData.water 
@@ -81,7 +124,7 @@ export const syncWidgetData = async (customData = {}) => {
 
   const waterGoal = customData.waterGoal !== undefined 
     ? customData.waterGoal 
-    : (stateWaterGoal !== null ? stateWaterGoal : (prev?.waterGoal || 2500));
+    : (stateWaterGoal !== null ? stateWaterGoal : (prev?.waterGoal || 3000));
 
   const streak = customData.streak !== undefined 
     ? customData.streak 
@@ -100,6 +143,7 @@ export const syncWidgetData = async (customData = {}) => {
     carbs: Math.round(carbs),
     fat: Math.round(fat),
     steps: Math.round(steps),
+    stepGoal: Math.round(stepGoal),
     water: Math.round(water),
     waterGoal: Math.round(waterGoal),
     streak: Math.max(0, streak),
@@ -117,6 +161,16 @@ export const syncWidgetData = async (customData = {}) => {
     if (Capacitor.isNativePlatform()) {
       const { CalyxoWidget } = Capacitor.Plugins;
       if (CalyxoWidget) {
+        let userId = '';
+        let authToken = '';
+        try {
+          userId = getCurrentUserIdSync();
+          authToken = getAuthTokenSync();
+        } catch (e) {}
+
+        const supabaseUrl = supabase?.supabaseUrl || 'https://nwcatvlfoayzrwatvyrf.supabase.co';
+        const supabaseAnonKey = supabase?.supabaseKey || '';
+
         await CalyxoWidget.syncWidgetData({
           calories: payload.calories,
           calorieGoal: payload.calorieGoal,
@@ -125,10 +179,15 @@ export const syncWidgetData = async (customData = {}) => {
           carbs: payload.carbs,
           fat: payload.fat,
           steps: payload.steps,
+          stepGoal: payload.stepGoal,
           water: payload.water,
           waterGoal: payload.waterGoal,
           streak: payload.streak,
-          activeWorkoutName: payload.activeWorkoutName
+          activeWorkoutName: payload.activeWorkoutName,
+          supabaseUrl,
+          supabaseAnonKey,
+          userId: userId || '',
+          authToken: authToken || ''
         });
         console.log('[WidgetDataService] Synced with Native Widgets (iOS & Android):', payload);
       }
@@ -136,6 +195,12 @@ export const syncWidgetData = async (customData = {}) => {
   } catch (err) {
     console.error('[WidgetDataService] Failed to sync widget data:', err);
   }
+
+  return payload;
+};
+
+export const forceWidgetSync = async (customData = {}) => {
+  return await syncWidgetData(customData);
 };
 
 export const clearWidgetData = async () => {
@@ -155,8 +220,9 @@ export const clearWidgetData = async () => {
           carbs: 0,
           fat: 0,
           steps: 0,
+          stepGoal: 10000,
           water: 0,
-          waterGoal: 2500,
+          waterGoal: 3000,
           streak: 0,
           activeWorkoutName: ''
         });
@@ -176,6 +242,35 @@ export const getWidgetData = async () => {
     console.error('[WidgetDataService] Failed to get widget data:', err);
     return null;
   }
+};
+
+export const saveWidgetCustomization = async (config) => {
+  try {
+    const merged = { ...DEFAULT_WIDGET_CONFIG, ...config, updatedAt: new Date().toISOString() };
+    await Preferences.set({
+      key: WIDGET_CONFIG_KEY,
+      value: JSON.stringify(merged)
+    });
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(WIDGET_CONFIG_KEY, JSON.stringify(merged));
+    }
+    return merged;
+  } catch (err) {
+    console.warn('[WidgetDataService] Failed to save widget customization:', err);
+    return DEFAULT_WIDGET_CONFIG;
+  }
+};
+
+export const getWidgetCustomization = async () => {
+  try {
+    const { value } = await Preferences.get({ key: WIDGET_CONFIG_KEY });
+    if (value) return JSON.parse(value);
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem(WIDGET_CONFIG_KEY);
+      if (stored) return JSON.parse(stored);
+    }
+  } catch (err) {}
+  return DEFAULT_WIDGET_CONFIG;
 };
 
 export const pinWidgetToHomeScreen = async () => {

@@ -129,9 +129,9 @@ function extractVariationMetadata(rawName) {
     variationLabel = `${detectedPrep} Style`;
   } else {
     // If name has a qualifier like 'Masala', 'Rava', 'Plain', 'Spicy', 'Boneless', use that
-    const parts = rawName.split(/[\(\/]/);
+    const parts = rawName.split(/[/(]/);
     if (parts.length > 1) {
-      variationLabel = parts[1].replace(/[\)]/g, '').trim();
+      variationLabel = parts[1].replace(/[)]/g, '').trim();
     } else {
       variationLabel = 'Classic / Home-style';
     }

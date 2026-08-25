@@ -15,6 +15,13 @@ export class HealthDataService {
   /**
    * Fetch today's current health metrics snapshot from native OS or PWA sensor
    */
+  /**
+   * Alias for fetchTodayMetrics for backward compatibility
+   */
+  static async getTodayHealthSummary() {
+    return this.fetchTodayMetrics();
+  }
+
   static async fetchTodayMetrics() {
     const isConn = HealthPermissionManager.isConnected();
     const platform = HealthPermissionManager.getPlatform();
@@ -46,17 +53,18 @@ export class HealthDataService {
         if (CalyxoHealthKit) {
           const hkData = await CalyxoHealthKit.queryTodayMetrics();
           console.log('[CALYXO-HEALTH] Native HealthKit data received:', hkData);
-          if (hkData) {
             metrics.steps = hkData.steps || metrics.steps;
             metrics.distanceKm = hkData.distanceKm || (metrics.steps > 0 ? Number((metrics.steps * 0.00075).toFixed(2)) : 0.0);
             metrics.activeCalories = hkData.activeCalories || (metrics.steps > 0 ? Math.round(metrics.steps * 0.042) : 0);
             metrics.heartRateBpm = hkData.heartRateBpm || 0;
             metrics.restingHeartRateBpm = hkData.restingHeartRateBpm || 0;
+            metrics.sleepHours = hkData.sleepHours || metrics.sleepHours || 0.0;
             metrics.weightKg = hkData.weightKg || 0.0;
             metrics.bodyFatPct = hkData.bodyFatPct || 0.0;
             metrics.vo2Max = hkData.vo2Max || 0.0;
+            metrics.hrvMs = hkData.hrvMs || 0.0;
+            if (hkData.distanceCyclingKm) metrics.distanceCyclingKm = hkData.distanceCyclingKm;
             metrics.lastSyncTimestamp = Date.now();
-          }
         }
       } else if (platform === 'android_health_connect' && Capacitor.isNativePlatform()) {
         const { CalyxoHealthPlugin } = Capacitor.Plugins;

@@ -27,7 +27,8 @@ import {
   Menu,
   Crown,
   Lock,
-  Sparkles
+  Sparkles,
+  MoreVertical
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore.js';
@@ -65,6 +66,7 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
   const [isThinking, setIsThinking] = useState(false);
   const [thinkingStep, setThinkingStep] = useState('Analyzing biometrics...');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [editingSessionId, setEditingSessionId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
@@ -132,13 +134,16 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
 
   // Refresh Sessions from Manager
   const refreshSessions = () => {
+    const currentUserId = user?.uid || user?.id || 'guest';
+    chatSessionManager.setUser(currentUserId);
     const list = chatSessionManager.getActiveSessionsList();
     setSessionsList(list);
     const active = chatSessionManager.getActiveSession();
     if (!active && list.length === 0) {
       const created = chatSessionManager.createSession({
         title: 'New Conversation',
-        role: userProfile?.role || 'USER'
+        role: userProfile?.role || 'USER',
+        userName: userProfile?.name || userProfile?.fullName || user?.displayName || 'Athlete'
       });
       setActiveSession(created);
       setSessionsList([created]);
@@ -261,20 +266,20 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
         {/* ── Chat History Sidebar ────────────────────────────────────────── */}
         <aside className={`
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-          lg:translate-x-0 absolute lg:relative z-30 inset-y-0 left-0 w-80 bg-neutral-950/95 backdrop-blur-xl border-r border-card-border flex flex-col transition-transform duration-300 ease-in-out
+          lg:translate-x-0 absolute lg:relative z-30 inset-y-0 left-0 w-80 bg-surface/95 backdrop-blur-xl border-r border-card-border flex flex-col transition-transform duration-300 ease-in-out
         `}>
           <div className="p-4 border-b border-card-border flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-xl bg-acid-green/10 text-acid-green border border-acid-green/20">
+              <div className="p-1.5 rounded-xl bg-accent/10 text-accent border border-accent/20">
                 <Bot className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-white leading-tight">Calyxo AI</h2>
+                <h2 className="text-sm font-bold text-foreground leading-tight">Calyxo AI</h2>
                 <div className="flex items-center gap-1">
                   {isSubscribed ? (
-                    <span className="text-[10px] text-acid-green font-mono font-bold">{subStatus.planName}</span>
+                    <span className="text-[10px] text-accent font-mono font-bold">{subStatus.planName}</span>
                   ) : (
-                    <span className="text-[10px] text-amber-400 font-mono font-bold flex items-center gap-0.5">
+                    <span className="text-[10px] text-amber-500 font-mono font-bold flex items-center gap-0.5">
                       <Lock className="w-2.5 h-2.5" /> High Exclusive
                     </span>
                   )}
@@ -300,7 +305,7 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
                   refreshSessions();
                   setSidebarOpen(false);
                 }}
-                className="p-1.5 rounded-xl bg-surface hover:bg-neutral-800 text-acid-green border border-acid-green/30 hover:border-acid-green transition-all cursor-pointer flex items-center gap-1 text-xs font-semibold px-2.5"
+                className="p-1.5 rounded-xl bg-surface-subtle hover:bg-surface-interactive text-accent border border-accent/30 hover:border-accent transition-all cursor-pointer flex items-center gap-1 text-xs font-semibold px-2.5"
                 title="Create New Chat"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -312,13 +317,13 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
           {/* Search */}
           <div className="p-3 border-b border-card-border/50">
             <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input 
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search conversations..."
-                className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-neutral-900/80 border border-neutral-800 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-acid-green/50 transition-colors"
+                className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-surface-subtle border border-card-border text-xs text-foreground placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
               />
             </div>
           </div>
@@ -337,12 +342,12 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
                   }}
                   className={`group flex items-center justify-between px-3 py-2.5 rounded-xl text-xs cursor-pointer transition-all ${
                     isActive 
-                      ? 'bg-neutral-800/80 text-white font-medium border border-neutral-700 shadow-sm' 
-                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900/60'
+                      ? 'bg-surface-subtle text-foreground font-bold border border-card-border shadow-xs' 
+                      : 'text-secondary hover:text-foreground hover:bg-surface-subtle'
                   }`}
                 >
                   <div className="flex items-center gap-2 truncate flex-1">
-                    {sess.isPinned && <Pin className="w-3 h-3 text-acid-green shrink-0 fill-acid-green/20" />}
+                    {sess.isPinned && <Pin className="w-3 h-3 text-accent shrink-0 fill-accent/20" />}
                     {editingSessionId === sess.id ? (
                       <input 
                         type="text"
@@ -416,14 +421,17 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
             <div className="p-3 border-t border-card-border/50">
               <button 
                 onClick={() => {
-                  if (window.confirm('Clear conversation messages?')) {
-                    chatSessionManager.clearConversation(activeSession.id);
+                  const userName = userProfile?.name || userProfile?.fullName || user?.displayName || 'Athlete';
+                  const cleared = chatSessionManager.clearConversation(activeSession.id, userName);
+                  if (cleared) {
+                    setActiveSession({ ...cleared });
                     refreshSessions();
+                    if (onNotification) onNotification('Conversation cleared ✓');
                   }
                 }}
-                className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white text-xs font-mono transition-colors cursor-pointer"
+                className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-surface-subtle hover:bg-surface-interactive text-muted hover:text-foreground text-xs font-mono transition-colors cursor-pointer border border-card-border"
               >
-                <RefreshCw className="w-3 h-3" />
+                <RefreshCw className="w-3 h-3 text-amber-500" />
                 <span>Clear History</span>
               </button>
             </div>
@@ -434,39 +442,99 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
         <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
           
           {/* Top Intelligence Header */}
-          <header className="px-3 py-2 sm:px-4 sm:py-3 border-b border-card-border bg-neutral-950/80 backdrop-blur-md flex items-center justify-between shrink-0">
+          <header className="px-3 py-2 sm:px-4 sm:py-3 border-b border-card-border bg-surface/80 backdrop-blur-md flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <button 
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden p-1.5 sm:p-2 rounded-xl bg-surface hover:bg-neutral-800 text-neutral-300 cursor-pointer shrink-0"
+                className="lg:hidden p-1.5 sm:p-2 rounded-xl bg-surface-subtle hover:bg-surface-interactive text-foreground cursor-pointer shrink-0"
                 aria-label="Toggle Conversation Sidebar"
               >
                 <Menu className="w-4 h-4" />
               </button>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  <h1 className="text-xs sm:text-base font-black text-white tracking-wide truncate">CALYXO INTELLIGENCE</h1>
-                  <span className="px-1.5 py-0.5 rounded-full bg-acid-green/15 text-acid-green text-[8px] sm:text-[9px] font-black uppercase tracking-wider border border-acid-green/30 shrink-0">
+                  <h1 className="text-xs sm:text-base font-black text-foreground tracking-wide truncate">CALYXO INTELLIGENCE</h1>
+                  <span className="px-1.5 py-0.5 rounded-full bg-accent/15 text-accent text-[8px] sm:text-[9px] font-black uppercase tracking-wider border border-accent/30 shrink-0">
                     REAL-DATA GROUNDED
                   </span>
                 </div>
-                <p className="hidden sm:block text-[11px] text-neutral-400 font-mono">Personalized Health & Performance Architecture</p>
+                <p className="hidden sm:block text-[11px] text-muted font-mono">Personalized Health & Performance Architecture</p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               <button 
                 onClick={loadBriefing}
-                className="p-1.5 rounded-xl bg-surface hover:bg-neutral-800 text-neutral-300 hover:text-white text-xs flex items-center gap-1 border border-card-border cursor-pointer transition-colors"
+                className="p-1.5 rounded-xl bg-surface-subtle hover:bg-surface-interactive text-foreground text-xs flex items-center gap-1 border border-card-border cursor-pointer transition-colors"
                 title="Refresh Briefing"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${isBriefingLoading ? 'animate-spin text-acid-green' : ''}`} />
+                <RefreshCw className={`w-3.5 h-3.5 ${isBriefingLoading ? 'animate-spin text-accent' : ''}`} />
                 <span className="hidden sm:inline text-[11px] font-mono">Sync</span>
               </button>
+
+              {/* Actions Dropdown Menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  className="p-1.5 rounded-xl bg-surface-subtle hover:bg-surface-interactive text-foreground border border-card-border cursor-pointer transition-colors"
+                  title="More Options"
+                  aria-label="More AI options"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+
+                {menuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-surface border border-card-border rounded-2xl shadow-2xl z-50 p-1.5 space-y-1 backdrop-blur-xl">
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        handleCreateNewSession();
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-foreground hover:bg-surface-subtle rounded-xl cursor-pointer text-left"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-accent" />
+                      <span>New Chat</span>
+                    </button>
+                    {activeSession && (
+                      <button
+                        onClick={() => {
+                          setMenuOpen(false);
+                          const userName = userProfile?.name || userProfile?.fullName || user?.displayName || 'Athlete';
+                          const cleared = chatSessionManager.clearConversation(activeSession.id, userName);
+                          if (cleared) {
+                            setActiveSession({ ...cleared });
+                            refreshSessions();
+                            if (onNotification) onNotification('Chat messages cleared ✓');
+                          }
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-amber-500 hover:bg-amber-500/10 rounded-xl cursor-pointer text-left"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Clear Current Chat</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        const userName = userProfile?.name || userProfile?.fullName || user?.displayName || 'Athlete';
+                        const newSession = chatSessionManager.clearAllSessions(userName);
+                        setActiveSession(newSession);
+                        refreshSessions();
+                        if (onNotification) onNotification('All conversation history cleared ✓');
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10 rounded-xl cursor-pointer text-left"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Clear All History</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {isModal && onClose && (
                 <button
                   onClick={onClose}
-                  className="p-1.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white border border-neutral-800 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-xl bg-surface-subtle hover:bg-surface-interactive text-muted hover:text-foreground border border-card-border transition-colors cursor-pointer"
                   title="Close"
                   aria-label="Close modal"
                 >
@@ -484,23 +552,23 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
               <motion.div 
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-amber-500/20 via-neutral-900/90 to-amber-950/40 border border-amber-500/40 shadow-2xl space-y-4"
+                className="p-5 sm:p-6 rounded-3xl bg-surface border border-amber-500/40 shadow-card space-y-4"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="space-y-1.5">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase tracking-widest">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase tracking-widest font-mono">
                       <Crown className="w-3.5 h-3.5 fill-amber-400" />
                       <span>Calyxo High Subscription Required</span>
                     </div>
-                    <h3 className="text-base font-black text-white">Unlock Full AI Coaching & Intelligence</h3>
-                    <p className="text-xs text-neutral-300 max-w-xl leading-relaxed">
+                    <h3 className="text-base font-black text-foreground">Unlock Full AI Coaching & Intelligence</h3>
+                    <p className="text-xs text-secondary max-w-xl leading-relaxed">
                       Upgrade to Calyxo High to unlock personalized daily athletic briefings, unlimited AI workout programming, macro-targeted meal planning, and recovery explanations.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowPremiumModal(true)}
-                    className="px-6 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-black font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-xl shadow-amber-400/20 shrink-0 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                    className="px-6 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-black font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md shadow-amber-400/20 shrink-0 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <Sparkles className="w-4 h-4" />
                     <span>Unlock Calyxo AI (₹2/mo)</span>
@@ -514,69 +582,69 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-4 sm:p-5 rounded-3xl bg-neutral-900/90 border border-neutral-800/80 shadow-xl space-y-3.5"
+                className="p-4 sm:p-5 rounded-3xl bg-surface border border-card-border shadow-card space-y-3.5"
               >
-                <div className="flex items-center justify-between border-b border-neutral-800/60 pb-2.5">
+                <div className="flex items-center justify-between border-b border-card-border/60 pb-2.5">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-acid-green animate-pulse" />
-                    <h3 className="text-xs font-black uppercase tracking-wider text-white">Today's Health Intelligence</h3>
+                    <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                    <h3 className="text-xs font-black uppercase tracking-wider text-foreground font-mono">Today's Health Intelligence</h3>
                   </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 font-mono">
-                    <ShieldCheck className="w-3.5 h-3.5 text-acid-green" />
+                  <div className="flex items-center gap-1.5 text-[10px] text-secondary font-mono">
+                    <ShieldCheck className="w-3.5 h-3.5 text-accent" />
                     <span>{briefing.source}</span>
                   </div>
                 </div>
 
                 {/* 4-Pillar Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  <div className="p-2.5 sm:p-3 rounded-2xl bg-neutral-950/60 border border-neutral-800/60 space-y-1">
-                    <div className="flex items-center justify-between text-neutral-400 text-[10px]">
+                  <div className="p-2.5 sm:p-3 rounded-2xl bg-surface-subtle border border-card-border space-y-1 shadow-xs">
+                    <div className="flex items-center justify-between text-muted text-[10px]">
                       <span>Recovery</span>
-                      <Heart className="w-3.5 h-3.5 text-rose-400" />
+                      <Heart className="w-3.5 h-3.5 text-rose-500" />
                     </div>
-                    <div className="text-base sm:text-lg font-black text-white">
+                    <div className="text-base sm:text-lg font-black text-foreground font-mono">
                       {briefing.metricsSummary.recoveryScore ? `${briefing.metricsSummary.recoveryScore}%` : '—'}
                     </div>
-                    <div className="text-[10px] text-emerald-400 font-mono truncate">
+                    <div className="text-[10px] text-accent font-mono truncate">
                       {briefing.metricsSummary.recoveryReadiness}
                     </div>
                   </div>
 
-                  <div className="p-2.5 sm:p-3 rounded-2xl bg-neutral-950/60 border border-neutral-800/60 space-y-1">
-                    <div className="flex items-center justify-between text-neutral-400 text-[10px]">
+                  <div className="p-2.5 sm:p-3 rounded-2xl bg-surface-subtle border border-card-border space-y-1 shadow-xs">
+                    <div className="flex items-center justify-between text-muted text-[10px]">
                       <span>Nutrition</span>
-                      <Flame className="w-3.5 h-3.5 text-amber-400" />
+                      <Flame className="w-3.5 h-3.5 text-amber-500" />
                     </div>
-                    <div className="text-base sm:text-lg font-black text-white">
+                    <div className="text-base sm:text-lg font-black text-foreground font-mono">
                       {briefing.metricsSummary.nutritionStatus}
                     </div>
-                    <div className="text-[10px] text-neutral-400 font-mono truncate">Daily Target</div>
+                    <div className="text-[10px] text-muted font-mono truncate">Daily Target</div>
                   </div>
 
-                  <div className="p-2.5 sm:p-3 rounded-2xl bg-neutral-950/60 border border-neutral-800/60 space-y-1">
-                    <div className="flex items-center justify-between text-neutral-400 text-[10px]">
+                  <div className="p-2.5 sm:p-3 rounded-2xl bg-surface-subtle border border-card-border space-y-1 shadow-xs">
+                    <div className="flex items-center justify-between text-muted text-[10px]">
                       <span>Training</span>
-                      <Dumbbell className="w-3.5 h-3.5 text-cyan-400" />
+                      <Dumbbell className="w-3.5 h-3.5 text-cyan-500" />
                     </div>
-                    <div className="text-base sm:text-lg font-black text-white">
-                      {briefing.metricsSummary.workoutCount} <span className="text-xs font-normal text-neutral-400">session(s)</span>
+                    <div className="text-base sm:text-lg font-black text-foreground font-mono">
+                      {briefing.metricsSummary.workoutCount} <span className="text-xs font-normal text-muted">session(s)</span>
                     </div>
-                    <div className="text-[10px] text-cyan-400 font-mono truncate">Verified Sets</div>
+                    <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-mono truncate">Verified Sets</div>
                   </div>
 
-                  <div className="p-2.5 sm:p-3 rounded-2xl bg-neutral-950/60 border border-neutral-800/60 space-y-1">
-                    <div className="flex items-center justify-between text-neutral-400 text-[10px]">
+                  <div className="p-2.5 sm:p-3 rounded-2xl bg-surface-subtle border border-card-border space-y-1 shadow-xs">
+                    <div className="flex items-center justify-between text-muted text-[10px]">
                       <span>Hydration</span>
-                      <Droplet className="w-3.5 h-3.5 text-blue-400" />
+                      <Droplet className="w-3.5 h-3.5 text-blue-500" />
                     </div>
-                    <div className="text-base sm:text-lg font-black text-white">
+                    <div className="text-base sm:text-lg font-black text-foreground font-mono">
                       {briefing.metricsSummary.hydrationPercent}%
                     </div>
-                    <div className="text-[10px] text-blue-400 font-mono truncate">Sentinel Log</div>
+                    <div className="text-[10px] text-blue-600 dark:text-blue-400 font-mono truncate">Sentinel Log</div>
                   </div>
                 </div>
 
-                <p className="text-xs text-neutral-300 leading-relaxed font-sans pt-1">
+                <p className="text-xs text-secondary leading-relaxed font-sans pt-1">
                   {briefing.insightSummary}
                 </p>
               </motion.div>
@@ -584,7 +652,7 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
 
             {/* Quick Action Prompt Chips */}
             <div className="space-y-1.5">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-500">Suggested Inquiries</div>
+              <div className="text-[10px] font-mono uppercase tracking-wider text-muted">Suggested Inquiries</div>
               <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {QUICK_ACTIONS.map((action, idx) => {
                   const Icon = action.icon;
@@ -592,18 +660,18 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
                     <button
                       key={idx}
                       onClick={() => handleSendMessage(action.query)}
-                      className={`flex items-center gap-2 px-3 py-1.5 sm:py-2 rounded-2xl border text-xs transition-all shrink-0 cursor-pointer shadow-sm active:scale-95 ${
+                      className={`flex items-center gap-2 px-3 py-1.5 sm:py-2 rounded-2xl border text-xs transition-all shrink-0 cursor-pointer shadow-xs active:scale-95 ${
                         !isSubscribed 
-                          ? 'bg-neutral-900/60 hover:bg-neutral-800 border-amber-500/20 hover:border-amber-500/50 text-neutral-300' 
-                          : 'bg-neutral-900 hover:bg-neutral-800 border-neutral-800 hover:border-acid-green/40 text-neutral-200 hover:text-white'
+                          ? 'bg-surface-subtle hover:bg-surface-interactive border-amber-500/20 text-secondary' 
+                          : 'bg-surface hover:bg-surface-interactive border-card-border text-foreground'
                       }`}
                     >
                       {!isSubscribed ? (
-                        <Lock className="w-3 h-3 text-amber-400 shrink-0" />
+                        <Lock className="w-3 h-3 text-amber-500 shrink-0" />
                       ) : (
-                        <Icon className="w-3.5 h-3.5 text-acid-green shrink-0" />
+                        <Icon className="w-3.5 h-3.5 text-accent shrink-0" />
                       )}
-                      <span className="whitespace-nowrap">{action.label}</span>
+                      <span className="whitespace-nowrap font-medium">{action.label}</span>
                     </button>
                   );
                 })}
@@ -622,10 +690,10 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
                     className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} space-y-1.5`}
                   >
                     <div className={`
-                      max-w-2xl rounded-3xl p-4 sm:p-5 text-xs sm:text-sm leading-relaxed shadow-lg ${
+                      max-w-2xl rounded-3xl p-4 sm:p-5 text-xs sm:text-sm leading-relaxed shadow-card ${
                         isUser
-                          ? 'bg-acid-green text-black font-semibold rounded-br-sm'
-                          : 'bg-neutral-900/90 border border-neutral-800/90 text-neutral-100 rounded-bl-sm'
+                          ? 'bg-accent text-accent-foreground font-semibold rounded-br-sm'
+                          : 'bg-surface border border-card-border text-foreground rounded-bl-sm'
                       }
                     `}>
                       {isUser ? (
@@ -731,9 +799,9 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
                           {msg.plan.meals && (
                             <div className="space-y-1.5">
                               {msg.plan.meals.map((m, mIdx) => (
-                                <div key={mIdx} className="text-xs text-neutral-300 py-0.5">
-                                  <div className="font-bold text-white">{m.name}</div>
-                                  <div className="text-[11px] text-neutral-400 font-mono">{m.calories} kcal · {m.protein}g protein</div>
+                                <div key={mIdx} className="text-xs text-secondary py-0.5">
+                                  <div className="font-bold text-foreground">{m.name}</div>
+                                  <div className="text-[11px] text-muted font-mono">{m.calories} kcal · {m.protein}g protein</div>
                                 </div>
                               ))}
                             </div>
@@ -743,7 +811,7 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
                           <div className="pt-2 flex justify-end">
                             <button
                               onClick={() => setPendingPlanAction(msg.plan)}
-                              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-acid-green text-black font-bold text-xs hover:scale-105 active:scale-95 transition-all shadow-md cursor-pointer"
+                              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-accent text-accent-foreground font-bold text-xs hover:scale-105 active:scale-95 transition-all shadow-md cursor-pointer border-none"
                             >
                               <CheckCircle2 className="w-4 h-4" />
                               <span>{msg.plan.actionType === 'WORKOUT_INJECTION' ? 'Add to My Plan' : 'Apply to Nutrition'}</span>
@@ -755,26 +823,26 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
 
                     {/* Message Metadata & Feedback Footer */}
                     {!isUser && (
-                      <div className="flex items-center justify-between w-full max-w-2xl px-2 text-[10px] text-neutral-500 font-mono">
+                      <div className="flex items-center justify-between w-full max-w-2xl px-2 text-[10px] text-muted font-mono">
                         <div>
                           {msg.sourceProvenance && (
-                            <span className="text-neutral-400">Based on: {msg.sourceProvenance}</span>
+                            <span className="text-muted">Based on: {msg.sourceProvenance}</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
                           <button 
                             onClick={() => copyToClipboard(msg.id, msg.text)} 
-                            className="hover:text-white transition-colors cursor-pointer p-1"
+                            className="hover:text-foreground transition-colors cursor-pointer p-1 border-none bg-transparent"
                             title="Copy response"
                           >
-                            {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-acid-green" /> : <Copy className="w-3.5 h-3.5" />}
+                            {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-accent" /> : <Copy className="w-3.5 h-3.5 text-muted" />}
                           </button>
                           <button 
                             onClick={() => {
                               chatSessionManager.setMessageFeedback(activeSession.id, msg.id, 'up');
                               refreshSessions();
                             }} 
-                            className={`hover:text-acid-green transition-colors cursor-pointer p-1 ${msg.feedback === 'up' ? 'text-acid-green' : ''}`}
+                            className={`hover:text-accent transition-colors cursor-pointer p-1 border-none bg-transparent ${msg.feedback === 'up' ? 'text-accent' : 'text-muted'}`}
                             title="Helpful"
                           >
                             <ThumbsUp className="w-3.5 h-3.5" />
@@ -784,7 +852,7 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
                               chatSessionManager.setMessageFeedback(activeSession.id, msg.id, 'down');
                               refreshSessions();
                             }} 
-                            className={`hover:text-red-400 transition-colors cursor-pointer p-1 ${msg.feedback === 'down' ? 'text-red-400' : ''}`}
+                            className={`hover:text-rose-500 transition-colors cursor-pointer p-1 border-none bg-transparent ${msg.feedback === 'down' ? 'text-rose-500' : 'text-muted'}`}
                             title="Not helpful"
                           >
                             <ThumbsDown className="w-3.5 h-3.5" />
@@ -801,9 +869,9 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
                 <motion.div 
                   initial={{ opacity: 0 }} 
                   animate={{ opacity: 1 }} 
-                  className="flex items-center gap-2 p-3 rounded-2xl bg-neutral-900 border border-neutral-800 text-neutral-400 text-xs w-fit"
+                  className="flex items-center gap-2 p-3 rounded-2xl bg-surface-subtle border border-card-border text-secondary text-xs w-fit"
                 >
-                  <Bot className="w-3.5 h-3.5 text-acid-green animate-pulse" />
+                  <Bot className="w-3.5 h-3.5 text-accent animate-pulse" />
                   <span className="font-mono">{thinkingStep}</span>
                 </motion.div>
               )}
@@ -812,10 +880,9 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
             </div>
           </div>
 
-          {/* Input Bar */}
           <div 
-            className="p-2.5 sm:p-4 border-t border-card-border bg-neutral-950/95 backdrop-blur-xl shrink-0 transition-all duration-150"
-            style={{ paddingBottom: keyboardHeight > 0 ? `${keyboardHeight + 6}px` : undefined }}
+            className="p-2.5 sm:p-4 border-t border-card-border bg-surface/95 backdrop-blur-xl shrink-0 transition-all duration-150"
+            style={{ paddingBottom: keyboardHeight > 0 ? `${keyboardHeight + 8}px` : 'max(env(safe-area-inset-bottom, 0px), var(--keyboard-height, 0px))' }}
           >
             {isSubscribed ? (
               <form 
@@ -838,12 +905,12 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
                   }}
                   placeholder="Ask Calyxo anything (e.g. 'Build a 30m dumbbell workout' or 'Explain my recovery')..."
                   disabled={isThinking}
-                  className="flex-1 bg-neutral-900 border border-neutral-800 focus:border-acid-green/60 text-white placeholder-neutral-500 rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-base sm:text-sm focus:outline-none transition-colors"
+                  className="flex-1 bg-surface-subtle border border-card-border focus:border-accent text-foreground placeholder:text-muted rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-base sm:text-sm focus:outline-none transition-colors"
                 />
                 <button
                   type="submit"
                   disabled={!inputValue.trim() || isThinking}
-                  className="p-2.5 sm:p-3 rounded-2xl bg-acid-green disabled:opacity-40 disabled:hover:scale-100 text-black hover:scale-105 active:scale-95 transition-all cursor-pointer font-bold shrink-0 shadow-lg shadow-acid-green/20"
+                  className="p-2.5 sm:p-3 rounded-2xl bg-accent disabled:opacity-40 disabled:hover:scale-100 text-accent-foreground hover:scale-105 active:scale-95 transition-all cursor-pointer font-bold shrink-0 shadow-md shadow-accent/20 border-none"
                   aria-label="Send Query"
                 >
                   <Send className="w-4 h-4" />
@@ -852,13 +919,13 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
             ) : (
               <div 
                 onClick={() => setShowPremiumModal(true)}
-                className="flex items-center justify-between gap-3 max-w-4xl mx-auto p-3.5 rounded-2xl bg-neutral-900/80 border border-amber-500/30 hover:border-amber-500/60 transition-all cursor-pointer group shadow-lg"
+                className="flex items-center justify-between gap-3 max-w-4xl mx-auto p-3.5 rounded-2xl bg-surface-subtle border border-amber-500/30 hover:border-amber-500/60 transition-all cursor-pointer group shadow-card"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-500 shrink-0">
                     <Lock className="w-4 h-4" />
                   </div>
-                  <span className="text-xs text-neutral-400 group-hover:text-white transition-colors truncate">
+                  <span className="text-xs text-secondary group-hover:text-foreground transition-colors truncate">
                     AI Chat requires Calyxo High subscription. Tap to unlock...
                   </span>
                 </div>
@@ -876,44 +943,44 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
       <AnimatePresence>
         {pendingPlanAction && (
           <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
           >
             <motion.div 
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-3xl p-6 space-y-4 shadow-2xl"
+              initial={{ scale: 0.95 }} 
+              animate={{ scale: 1 }} 
+              exit={{ scale: 0.95 }} 
+              className="w-full max-w-md bg-surface border border-card-border rounded-3xl p-6 space-y-4 shadow-card"
             >
-              <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+              <div className="flex items-center justify-between border-b border-card-border pb-3">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-acid-green" />
-                  <h3 className="text-sm font-bold text-white">Confirm Plan Injection</h3>
+                  <CheckCircle2 className="w-5 h-5 text-accent" />
+                  <h3 className="text-sm font-bold text-foreground">Confirm Plan Injection</h3>
                 </div>
                 <button 
-                  onClick={() => setPendingPlanAction(null)}
-                  className="p-1 text-neutral-400 hover:text-white cursor-pointer"
+                  onClick={() => setPendingPlanAction(null)} 
+                  className="p-1 text-muted hover:text-foreground cursor-pointer bg-transparent border-none"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <p className="text-xs text-neutral-300 leading-relaxed">
+              <p className="text-xs text-secondary leading-relaxed">
                 Are you sure you want to apply <strong>"{pendingPlanAction.title}"</strong> to your active {pendingPlanAction.actionType === 'WORKOUT_INJECTION' ? 'Workout Routine Library' : 'Nutrition Targets'}?
               </p>
 
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   onClick={() => setPendingPlanAction(null)}
-                  className="px-4 py-2 rounded-xl bg-neutral-800 text-neutral-300 text-xs font-semibold hover:bg-neutral-700 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-surface-subtle text-secondary text-xs font-semibold hover:text-foreground border border-card-border cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => executePlanAction(pendingPlanAction)}
-                  className="px-4 py-2 rounded-xl bg-acid-green text-black text-xs font-bold hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-accent text-accent-foreground text-xs font-bold hover:brightness-110 active:scale-95 transition-all cursor-pointer border-none shadow-md shadow-accent/20"
                 >
                   Confirm & Apply
                 </button>

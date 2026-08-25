@@ -21,6 +21,8 @@
  * 17. Structured Observability Logging & PII Sanitization
  */
 
+import crypto from 'crypto';
+globalThis._nodeCrypto = crypto;
 import { getFreshnessState, FRESHNESS_LEVELS } from '../services/health/DataFreshnessHelper.js';
 import { PremiumEntitlementService, AI_CAPABILITIES, SUBSCRIPTION_STATES, SUBSCRIPTION_TIERS } from '../services/subscription/PremiumEntitlementService.js';
 import { getWearableProfile, WEARABLE_VENDORS } from '../services/health/WearableCompatibilityManager.js';
@@ -38,7 +40,6 @@ import { AIBriefingEngine } from '../services/ai/AIBriefingEngine.js';
 import { smartReminderEngine } from '../services/notifications/SmartReminderEngine.js';
 import { syncEngine } from '../services/sync/SyncEngine.js';
 import { verifyPaymentSignature } from './razorpay.js';
-import crypto from 'crypto';
 
 let passed = 0;
 let failed = 0;

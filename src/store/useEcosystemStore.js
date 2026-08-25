@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { getSecureItem, setSecureItem, getCurrentUserIdSync, saveEcosystemState } from '../lib/dbService.js';
-import { calculateConsecutiveDaysStreak, calculateWaterGoalStreak } from '../utils/streakEngine.js';
+import { calculateConsecutiveDaysStreak, calculateWaterGoalStreak, shiftDays } from '../utils/streakEngine.js';
+import { getTodayDateString } from '../utils/dateUtils.js';
 
 const LOCAL_ECOSYSTEM_KEY = "calyxo_ecosystem_state";
 
 
 const INITIAL_STATE = {
-  streaks: { loginStreak: 1, workoutStreak: 0, nutritionStreak: 0, waterStreak: 0, lastCheckIn: new Date().toDateString() },
+  streaks: { loginStreak: 1, workoutStreak: 0, nutritionStreak: 0, waterStreak: 0, lastCheckIn: new Date().toISOString().split('T')[0], lastCheckInDate: new Date().toISOString().split('T')[0] },
   achievements: [
     { id: 'first_workout', name: 'First Workout', icon: 'Dumbbell', description: 'Log your first workout session', unlocked: false },
     { id: 'first_meal', name: 'First Meal Logged', icon: 'Utensils', description: 'Log your first meal entry', unlocked: false },
@@ -34,12 +35,12 @@ const INITIAL_STATE = {
     personalizedRecommendations: ["Stay hydrated", "Increase protein"]
   },
   activeChallenges: [
-    { id: 'easy_surya_namaskar', tier: 'EASY', name: '15-Day Morning Surya Namaskar', target: 'Complete 12 rounds of Surya Namaskar daily', progress: 3, targetVal: 15, completed: false, unit: 'days' },
-    { id: 'easy_walk', tier: 'EASY', name: '5,000 Step Walk', target: 'Walk 5,000 brisk steps every evening after dinner', progress: 4, targetVal: 10, completed: false, unit: 'days' },
-    { id: 'medium_10k_steps', tier: 'MEDIUM', name: '10,000 Daily Step Count Master', target: 'Achieve 10,000 total steps daily', progress: 5, targetVal: 14, completed: false, unit: 'days' },
-    { id: 'medium_desi_gym', tier: 'MEDIUM', name: 'Desi Gym Muscle Builder', target: 'Complete 20 total strength workout sessions', progress: 6, targetVal: 20, completed: false, unit: 'sessions' },
-    { id: 'hard_100k_volume', tier: 'HARD', name: '100,000 KG Heavy Lifters Club', target: 'Lift 100,000 kg total volume across compound lifts', progress: 18500, targetVal: 100000, completed: false, unit: 'kg' },
-    { id: 'hard_1000_pushups', tier: 'HARD', name: '1,000 Push-ups Upper Body Challenge', target: 'Complete 1,000 cumulative push-ups over 30 days', progress: 240, targetVal: 1000, completed: false, unit: 'reps' }
+    { id: 'easy_surya_namaskar', tier: 'EASY', name: '15-Day Morning Surya Namaskar', target: 'Complete 12 rounds of Surya Namaskar daily', progress: 0, targetVal: 15, completed: false, unit: 'days' },
+    { id: 'easy_walk', tier: 'EASY', name: '5,000 Step Walk', target: 'Walk 5,000 brisk steps every evening after dinner', progress: 0, targetVal: 10, completed: false, unit: 'days' },
+    { id: 'medium_10k_steps', tier: 'MEDIUM', name: '10,000 Daily Step Count Master', target: 'Achieve 10,000 total steps daily', progress: 0, targetVal: 14, completed: false, unit: 'days' },
+    { id: 'medium_desi_gym', tier: 'MEDIUM', name: 'Desi Gym Muscle Builder', target: 'Complete 20 total strength workout sessions', progress: 0, targetVal: 20, completed: false, unit: 'sessions' },
+    { id: 'hard_100k_volume', tier: 'HARD', name: '100,000 KG Heavy Lifters Club', target: 'Lift 100,000 kg total volume across compound lifts', progress: 0, targetVal: 100000, completed: false, unit: 'kg' },
+    { id: 'hard_1000_pushups', tier: 'HARD', name: '1,000 Push-ups Upper Body Challenge', target: 'Complete 1,000 cumulative push-ups over 30 days', progress: 0, targetVal: 1000, completed: false, unit: 'reps' }
   ],
   personality: 'motivational',
   measurementLogs: [],
@@ -48,30 +49,57 @@ const INITIAL_STATE = {
   clientAssignments: {}
 };
 
-const getLocalEcosystemState = () => {
-  const saved = getSecureItem(LOCAL_ECOSYSTEM_KEY);
-  if (saved) return saved;
-  return INITIAL_STATE;
+const getLocalEcosystemState = (userId = null) => {
+  const uid = userId || getCurrentUserIdSync();
+  if (uid) {
+    const key = LOCAL_ECOSYSTEM_KEY + '_' + uid;
+    const saved = getSecureItem(key, uid);
+    if (saved) return saved;
+  }
+  // Clear any stale global un-scoped key to prevent cross-account pollution
+  if (typeof window !== 'undefined') {
+    try { localStorage.removeItem(LOCAL_ECOSYSTEM_KEY); } catch (e) {}
+  }
+  return { ...INITIAL_STATE };
 };
 
-const saveLocalEcosystemState = (state) => {
-  setSecureItem(LOCAL_ECOSYSTEM_KEY, state);
+const saveLocalEcosystemState = (state, userId = null) => {
+  const uid = userId || getCurrentUserIdSync();
+  if (uid) {
+    const key = LOCAL_ECOSYSTEM_KEY + '_' + uid;
+    setSecureItem(key, state, uid);
+  }
 };
 
 export const useEcosystemStore = create((set, get) => ({
   ...getLocalEcosystemState(),
 
-  // Generic Sync from DB
+  // Initialize or switch active user session (Strictly User-Scoped)
+  initUserEcosystem: (userId) => {
+    if (!userId) {
+      set({ ...INITIAL_STATE });
+      return;
+    }
+    const userState = getLocalEcosystemState(userId);
+    set(userState);
+  },
+
+  // Authoritative Sync from DB for the authenticated user (Strictly User-Scoped)
   syncEcosystemState: (data) => {
     if (data) {
+      const uid = getCurrentUserIdSync();
       const currentState = get();
-      const currentStreak = currentState.streaks?.loginStreak || 1;
-      const remoteStreak = data.streaks?.loginStreak || 1;
 
       const mergedStreaks = {
+        ...(currentState.streaks || {}),
         ...(data.streaks || {}),
-        loginStreak: Math.max(currentStreak, remoteStreak),
-        lastCheckIn: data.streaks?.lastCheckIn || currentState.streaks?.lastCheckIn
+        loginStreak: Number(data.streaks?.loginStreak ?? currentState.streaks?.loginStreak ?? 1),
+        workoutStreak: Number(data.streaks?.workoutStreak ?? currentState.streaks?.workoutStreak ?? 0),
+        nutritionStreak: Number(data.streaks?.nutritionStreak ?? currentState.streaks?.nutritionStreak ?? 0),
+        waterStreak: Number(data.streaks?.waterStreak ?? currentState.streaks?.waterStreak ?? 0),
+        lastCheckInDate: data.streaks?.lastCheckInDate || currentState.streaks?.lastCheckInDate || getTodayDateString(),
+        lastCheckIn: data.streaks?.lastCheckIn || currentState.streaks?.lastCheckIn || getTodayDateString(),
+        loginDates: Array.isArray(data.streaks?.loginDates) ? data.streaks.loginDates : (currentState.streaks?.loginDates || [])
       };
 
       const mergedState = {
@@ -81,52 +109,44 @@ export const useEcosystemStore = create((set, get) => ({
       };
 
       set(mergedState);
-      saveLocalEcosystemState(mergedState);
+      saveLocalEcosystemState(mergedState, uid);
     }
   },
 
-  // Streaks actions
+  // Streaks actions — Pure Mathematical Streak Synchronization
   checkDailyLoginStreak: () => set((state) => {
     const uid = getCurrentUserIdSync();
-    const todayStr = new Date().toDateString();
-    const lastCheckIn = state.streaks?.lastCheckIn;
+    const todayStr = getTodayDateString(); // Authoritative local calendar date YYYY-MM-DD
 
-    if (!lastCheckIn) {
-      const nextStreaks = { ...(state.streaks || {}), loginStreak: 1, lastCheckIn: todayStr };
-      const nextState = { ...state, streaks: nextStreaks };
-      saveLocalEcosystemState(nextState);
-      if (uid) saveEcosystemState(uid, nextState).catch(() => {});
-      return { streaks: nextStreaks };
+    // Existing login history dates (YYYY-MM-DD)
+    const existingDates = Array.isArray(state.streaks?.loginDates) ? state.streaks.loginDates : [];
+    const dateSet = new Set(existingDates);
+
+    // If user has a previous login streak but empty loginDates array, reconstruct historical dates
+    const priorStreak = Number(state.streaks?.loginStreak) || 1;
+    if (dateSet.size === 0 && priorStreak > 0) {
+      for (let i = 0; i < priorStreak; i++) {
+        dateSet.add(shiftDays(todayStr, -i));
+      }
     }
 
-    if (lastCheckIn === todayStr) {
-      return state;
-    }
+    // Add today's check-in
+    dateSet.add(todayStr);
+    const updatedDates = Array.from(dateSet).sort();
 
-    const lastDate = new Date(lastCheckIn);
-    const todayDate = new Date(todayStr);
-    const diffTime = todayDate.getTime() - lastDate.getTime();
-    const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
-
-    let loginStreak = state.streaks?.loginStreak || 1;
-    let workoutStreak = state.streaks?.workoutStreak || 0;
-
-    if (diffDays === 1) {
-      loginStreak += 1;
-    } else if (diffDays > 1) {
-      loginStreak = 1;
-      workoutStreak = 0;
-    }
+    // Mathematically calculate the exact consecutive days streak
+    const exactLoginStreak = calculateConsecutiveDaysStreak(updatedDates, todayStr);
 
     const nextStreaks = {
       ...(state.streaks || {}),
-      loginStreak,
-      workoutStreak,
+      loginStreak: exactLoginStreak,
+      loginDates: updatedDates,
+      lastCheckInDate: todayStr,
       lastCheckIn: todayStr
     };
 
     const nextState = { ...state, streaks: nextStreaks };
-    saveLocalEcosystemState(nextState);
+    saveLocalEcosystemState(nextState, uid);
     if (uid) saveEcosystemState(uid, nextState).catch(() => {});
     return { streaks: nextStreaks };
   }),
@@ -140,7 +160,7 @@ export const useEcosystemStore = create((set, get) => ({
     return { streaks: next };
   }),
 
-  recalculateDynamicStreaks: (foodLogs = [], workoutLogs = [], waterLogs = [], waterTarget = 2500) => set((state) => {
+  recalculateDynamicStreaks: (foodLogs = [], workoutLogs = [], waterLogs = [], waterTarget = 3000) => set((state) => {
     const uid = getCurrentUserIdSync();
     const nutritionTimestamps = (foodLogs || []).map(f => f.timestamp || f.created_at);
     // Count ONLY completed workout sessions (not abandoned or in-progress)
@@ -324,8 +344,10 @@ export const useEcosystemStore = create((set, get) => ({
 
   // Reset store
   resetEcosystemStore: () => {
+    const uid = getCurrentUserIdSync();
     set({ ...INITIAL_STATE });
     if (typeof window !== 'undefined') {
+      if (uid) localStorage.removeItem();
       localStorage.removeItem(LOCAL_ECOSYSTEM_KEY);
     }
   }

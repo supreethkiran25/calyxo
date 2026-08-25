@@ -10,6 +10,9 @@ export const ONBOARDING_DRAFT_STORAGE_KEY = 'calyxo_onboarding_draft';
 
 export const DEFAULT_USER_INTELLIGENCE_PROFILE = {
   identity: {
+    fullName: '',
+    firstName: '',
+    nickname: '',
     age: 25,
     dob: '2001-01-01',
     sex: 'male', // 'male' | 'female' | 'other'
@@ -34,10 +37,12 @@ export const DEFAULT_USER_INTELLIGENCE_PROFILE = {
     preferredStyles: ['strength', 'hypertrophy']
   },
   nutrition: {
-    diet: 'non_vegetarian', // 'vegetarian' | 'vegan' | 'eggetarian' | 'non_vegetarian' | 'pescatarian' | 'other'
+    diet: 'non_vegetarian', // 'vegetarian' | 'vegan' | 'eggetarian' | 'non_vegetarian' | 'pescatarian' | 'jain' | 'keto' | 'other'
     cuisines: ['Indian', 'Western'],
     mealBehavior: 'mix_of_both', // 'mostly_home' | 'mostly_outside' | 'mix_of_both'
     nutritionPriority: 'high_protein', // 'fat_loss' | 'muscle_gain' | 'high_protein' | 'better_energy' | 'better_food_quality' | 'better_digestion' | 'balanced'
+    allergies: ['none'],
+    cookingStyle: 'mostly_home',
     budget: 'moderate',
     mealSchedule: {
       breakfast: true,
@@ -52,6 +57,15 @@ export const DEFAULT_USER_INTELLIGENCE_PROFILE = {
     sleepDuration: '7_8h', // 'under_5h' | '5_6h' | '6_7h' | '7_8h' | '8h_plus'
     sleepConsistency: 'mostly_consistent', // 'very_consistent' | 'mostly_consistent' | 'changes_often' | 'highly_irregular'
     stressLevel: 'moderate' // 'low' | 'moderate' | 'high' | 'very_high'
+  },
+  schedule: {
+    wakeTime: '06:30',
+    breakfastTime: '08:30',
+    lunchTime: '13:00',
+    snackTime: '17:00',
+    workoutTime: '18:30',
+    dinnerTime: '20:30',
+    sleepTime: '23:00'
   },
   limitations: {
     restrictions: ['none'],
@@ -97,8 +111,15 @@ export class UserIntelligenceProfile {
       return { ...DEFAULT_USER_INTELLIGENCE_PROFILE };
     }
 
+    const rawFullName = raw.identity?.fullName || raw.fullName || raw.name || '';
+    const rawFirstName = raw.identity?.firstName || raw.firstName || (rawFullName ? rawFullName.trim().split(' ')[0] : '') || '';
+    const rawNickname = raw.identity?.nickname || raw.nickname || rawFirstName || '';
+
     return {
       identity: {
+        fullName: rawFullName,
+        firstName: rawFirstName,
+        nickname: rawNickname,
         age: Number(raw.identity?.age || raw.age) || 25,
         dob: raw.identity?.dob || raw.dob || '2001-01-01',
         sex: raw.identity?.sex || raw.gender || 'male',
@@ -123,10 +144,12 @@ export class UserIntelligenceProfile {
         preferredStyles: Array.isArray(raw.training?.preferredStyles) ? raw.training.preferredStyles : ['strength', 'hypertrophy']
       },
       nutrition: {
-        diet: raw.nutrition?.diet || (Array.isArray(raw.dietPreferences) ? raw.dietPreferences[0] : 'non_vegetarian') || 'non_vegetarian',
-        cuisines: Array.isArray(raw.nutrition?.cuisines) ? raw.nutrition.cuisines : ['Indian', 'Western'],
+        diet: raw.nutrition?.diet || (Array.isArray(raw.dietPreferences) ? raw.dietPreferences[0] : (raw.dietPreference || raw.diet)) || 'non_vegetarian',
+        cuisines: Array.isArray(raw.nutrition?.cuisines) ? raw.nutrition.cuisines : (Array.isArray(raw.cuisines) ? raw.cuisines : ['Indian', 'Western']),
         mealBehavior: raw.nutrition?.mealBehavior || 'mix_of_both',
         nutritionPriority: raw.nutrition?.nutritionPriority || 'high_protein',
+        allergies: Array.isArray(raw.nutrition?.allergies) ? raw.nutrition.allergies : (Array.isArray(raw.allergies) ? raw.allergies : ['none']),
+        cookingStyle: raw.nutrition?.cookingStyle || 'mostly_home',
         budget: raw.nutrition?.budget || 'moderate',
         mealSchedule: raw.nutrition?.mealSchedule || { breakfast: true, lunch: true, dinner: true, snacks: false }
       },
@@ -136,6 +159,15 @@ export class UserIntelligenceProfile {
         sleepDuration: raw.lifestyle?.sleepDuration || '7_8h',
         sleepConsistency: raw.lifestyle?.sleepConsistency || 'mostly_consistent',
         stressLevel: raw.lifestyle?.stressLevel || 'moderate'
+      },
+      schedule: {
+        wakeTime: raw.schedule?.wakeTime || '06:30',
+        breakfastTime: raw.schedule?.breakfastTime || '08:30',
+        lunchTime: raw.schedule?.lunchTime || '13:00',
+        snackTime: raw.schedule?.snackTime || '17:00',
+        workoutTime: raw.schedule?.workoutTime || '18:30',
+        dinnerTime: raw.schedule?.dinnerTime || '20:30',
+        sleepTime: raw.schedule?.sleepTime || '23:00'
       },
       limitations: {
         restrictions: Array.isArray(raw.limitations?.restrictions) ? raw.limitations.restrictions : ['none'],

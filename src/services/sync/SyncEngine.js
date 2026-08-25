@@ -212,7 +212,7 @@ export class OutboxSyncManager {
   }
 
   async flush(syncHandler) {
-    if (this.isSyncing || this.queue.length === 0 || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+    if (this.isSyncing || this.queue.length === 0 || (typeof window !== 'undefined' && typeof navigator !== 'undefined' && navigator.onLine === false)) {
       return;
     }
 
@@ -233,6 +233,7 @@ export class OutboxSyncManager {
           // Dead letter discard after 5 failed retries
           this.queue = this.queue.filter((e) => e.eventId !== evt.eventId);
         }
+        this.persistLocal();
       }
     }
 

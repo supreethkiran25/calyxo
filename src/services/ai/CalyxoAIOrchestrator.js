@@ -16,6 +16,7 @@ import { ExplainableAICoachService } from './ExplainableAICoachService.js';
 import { UnsupervisedAIAdaptiveEngine } from './UnsupervisedAIAdaptiveEngine.js';
 import { SubscriptionManager, AI_CAPABILITIES } from '../subscription/SubscriptionManager.js';
 import { UserIntelligenceProfile } from '../onboarding/UserIntelligenceProfile.js';
+import { getTodayDateString, isSameLocalDate, parseSafeDate } from '../../utils/dateUtils.js';
 
 export const AI_INTENTS = {
   GREETING_OR_CONVERSATIONAL: 'GREETING_OR_CONVERSATIONAL',
@@ -28,6 +29,12 @@ export const AI_INTENTS = {
   NUTRITION_PLAN_MODIFICATION: 'NUTRITION_PLAN_MODIFICATION',
   POST_WORKOUT_NUTRITION: 'POST_WORKOUT_NUTRITION',
   SLEEP_OPTIMIZATION: 'SLEEP_OPTIMIZATION',
+  NUTRITION_TODAY_QUERY: 'NUTRITION_TODAY_QUERY',
+  PROTEIN_REMAINING_QUERY: 'PROTEIN_REMAINING_QUERY',
+  CALORIES_REMAINING_QUERY: 'CALORIES_REMAINING_QUERY',
+  WORKOUT_HISTORY_SPECIFIC_QUERY: 'WORKOUT_HISTORY_SPECIFIC_QUERY',
+  STREAK_QUERY: 'STREAK_QUERY',
+  NEXT_MEAL_RECOMMENDATION: 'NEXT_MEAL_RECOMMENDATION',
   LOG_HISTORY_QUERY: 'LOG_HISTORY_QUERY',
   FITNESS_AGE_QUERY: 'FITNESS_AGE_QUERY',
   CHALLENGE_QUERY: 'CHALLENGE_QUERY',
@@ -96,6 +103,34 @@ export class CalyxoAIOrchestrator {
       return AI_INTENTS.NUTRITION_PLAN_REQUEST;
     }
 
+    // Specific Nutrition Questions
+    if ((q.includes('what did i eat') || q.includes('what i ate') || q.includes('show my meals') || q.includes('my food today') || q.includes('food log today') || q.includes('meals today') || q.includes('what food did i')) && !q.includes('yesterday')) {
+      return AI_INTENTS.NUTRITION_TODAY_QUERY;
+    }
+    if (q.includes('protein') && (q.includes('left') || q.includes('remaining') || q.includes('how much') || q.includes('target') || q.includes('hit') || q.includes('need') || q.includes('protein today') || q.includes('was that') || q.includes('in that'))) {
+      return AI_INTENTS.PROTEIN_REMAINING_QUERY;
+    }
+    if ((q.includes('calorie') || q.includes('calories') || q.includes('kcal')) && (q.includes('how many') || q.includes('left') || q.includes('remaining') || q.includes('eat today') || q.includes('ate today') || q.includes('target') || q.includes('eaten'))) {
+      return AI_INTENTS.CALORIES_REMAINING_QUERY;
+    }
+    if (q.includes('what should i eat now') || q.includes('what to eat now') || q.includes('what should i eat next') || q.includes('what should i eat') || q.includes('next meal') || q.includes('snack recommendation')) {
+      return AI_INTENTS.NEXT_MEAL_RECOMMENDATION;
+    }
+
+    // Specific Workout Questions
+    if (q.includes('what workout') || q.includes('workout yesterday') || q.includes('exercises did i do') || q.includes('exercise yesterday') || q.includes('exercises yesterday') || q.includes('what exercises') || q.includes('train yesterday') || q.includes('trained yesterday') || q.includes('train today') || q.includes('trained today') || q.includes('last workout')) {
+      return AI_INTENTS.WORKOUT_HISTORY_SPECIFIC_QUERY;
+    }
+
+    if (q.includes('what should i workout today') || q.includes('what should i train today') || q.includes('what workout should i do')) {
+      return AI_INTENTS.WORKOUT_PLAN_REQUEST;
+    }
+
+    // Streak Query
+    if (q.includes('streak') || q.includes('am i on a streak') || q.includes('my streak') || q.includes('login streak')) {
+      return AI_INTENTS.STREAK_QUERY;
+    }
+
     // Recovery & Fitness Age
     if (q.includes('recovery') || q.includes('sore') || q.includes('fatigue') || q.includes('readiness')) {
       return AI_INTENTS.RECOVERY_EXPLANATION;
@@ -105,7 +140,7 @@ export class CalyxoAIOrchestrator {
     }
 
     // Challenge Progress
-    if (q.includes('challenge') || q.includes('badge') || q.includes('streak') || q.includes('leaderboard')) {
+    if (q.includes('challenge') || q.includes('badge') || q.includes('leaderboard')) {
       return AI_INTENTS.CHALLENGE_QUERY;
     }
 
@@ -315,7 +350,7 @@ Tap **Add to My Plan** to apply this routine.`;
       const rec = AIToolRegistry.getRecoveryAnalysis({
         sleepHours: safeHealthLogs.sleep || 0,
         waterMl: safeWaterIntake || 0,
-        waterGoalMl: safeUserProfile.waterTarget || 2500,
+        waterGoalMl: safeUserProfile.waterTarget || safeUserProfile.waterGoal || 3000,
         proteinGrams: safeFoodLogs.reduce((s, x) => s + (Number(x?.protein) || 0), 0),
         proteinGoalGrams: safeUserProfile.proteinTarget || 130,
         soreness: safeHealthLogs.soreness || 3,
@@ -467,6 +502,203 @@ Review the items below and tap **Apply to Nutrition** to sync this with your dai
         text,
         plan: null,
         sourceProvenance: 'Challenge Engine · Verified Logs'
+      };
+    }
+
+    // ── 10a. Specific Nutrition Breakdown Today ───────────────────────────
+    if (intent === AI_INTENTS.NUTRITION_TODAY_QUERY) {
+      const nutSummary = AIToolRegistry.getTodayNutritionSummary({
+        foodLogs: safeFoodLogs,
+        userProfile: safeUserProfile
+      });
+
+      let text = `### 🥗 Today's Nutrition Breakdown\n\n`;
+      if (nutSummary.hasLogged) {
+        text += `You have logged **${nutSummary.itemCount} food item(s)** totaling **${nutSummary.totalCalories} kcal** today.\n\n`;
+        
+        const slotKeys = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+        slotKeys.forEach(slot => {
+          const items = nutSummary.mealsBySlot[slot];
+          if (items && items.length > 0) {
+            text += `**${slot}:**\n`;
+            items.forEach(it => {
+              text += `• ${it.name} (${it.quantity} ${it.unit}): **${it.calories} kcal** (${it.protein}g P, ${it.carbs}g C, ${it.fat}g F)\n`;
+            });
+            text += `\n`;
+          }
+        });
+
+        text += `**Daily Target Progress:**\n`;
+        text += `* **Calories:** ${nutSummary.totalCalories} / ${nutSummary.targetCalories} kcal (${nutSummary.remainingCalories} kcal remaining)\n`;
+        text += `* **Protein:** ${nutSummary.totalProtein}g / ${nutSummary.targetProtein}g (${nutSummary.remainingProtein}g remaining)\n`;
+        text += `* **Carbs:** ${nutSummary.totalCarbs}g / ${nutSummary.targetCarbs}g\n`;
+        text += `* **Fat:** ${nutSummary.totalFat}g / ${nutSummary.targetFat}g\n`;
+      } else {
+        text += `You haven't logged any meals yet today.\n\n`;
+        text += `* **Daily Calorie Target:** **${nutSummary.targetCalories} kcal**\n`;
+        text += `* **Daily Protein Target:** **${nutSummary.targetProtein}g**\n`;
+        text += `* **Daily Carbs Target:** **${nutSummary.targetCarbs}g**\n`;
+        text += `* **Daily Fat Target:** **${nutSummary.targetFat}g**\n\n`;
+        text += `Open the **Nutrition** tab or tap **+ Add Food** to record your breakfast or lunch!`;
+      }
+
+      return {
+        role: 'assistant',
+        text,
+        plan: null,
+        sourceProvenance: 'Authoritative Nutrition Aggregation Engine'
+      };
+    }
+
+    // ── 10b. Protein Target & Remaining Query ──────────────────────────────
+    if (intent === AI_INTENTS.PROTEIN_REMAINING_QUERY) {
+      const nutSummary = AIToolRegistry.getTodayNutritionSummary({
+        foodLogs: safeFoodLogs,
+        userProfile: safeUserProfile
+      });
+
+      let text = `### 🥩 Protein Target & Remaining Today\n\n`;
+      text += `* **Protein Consumed:** **${nutSummary.totalProtein}g**\n`;
+      text += `* **Daily Protein Target:** **${nutSummary.targetProtein}g**\n`;
+      text += `* **Protein Remaining:** **${nutSummary.remainingProtein}g**\n\n`;
+
+      if (nutSummary.remainingProtein > 0) {
+        text += `Here are targeted whole-food options to hit your remaining **${nutSummary.remainingProtein}g** protein:\n`;
+        text += `* 🍗 **Chicken Breast (cooked):** ~31g protein per 100g\n`;
+        text += `* 🥛 **Whey Protein Isolate:** ~25g protein per 1 scoop (30g)\n`;
+        text += `* 🧀 **Low-Fat Paneer / Cottage Cheese:** ~18g protein per 100g\n`;
+        text += `* 🥚 **Large Eggs:** ~6g protein each (3 eggs = 18g)\n`;
+        text += `* 🍲 **Soya Chunks (dry):** ~52g protein per 100g (50g = 26g protein)\n`;
+      } else {
+        text += `🎉 **Protein Goal Crushed!** You have met or exceeded your daily protein target for muscle repair and recovery.`;
+      }
+
+      return {
+        role: 'assistant',
+        text,
+        plan: null,
+        sourceProvenance: 'Deterministic Protein Calculation Engine'
+      };
+    }
+
+    // ── 10c. Calories Consumed & Remaining Query ───────────────────────────
+    if (intent === AI_INTENTS.CALORIES_REMAINING_QUERY) {
+      const nutSummary = AIToolRegistry.getTodayNutritionSummary({
+        foodLogs: safeFoodLogs,
+        userProfile: safeUserProfile
+      });
+
+      let text = `### 🔥 Calorie Balance & Remaining Today\n\n`;
+      text += `* **Calories Consumed:** **${nutSummary.totalCalories} kcal**\n`;
+      text += `* **Daily Calorie Target:** **${nutSummary.targetCalories} kcal**\n`;
+      text += `* **Calories Remaining:** **${nutSummary.remainingCalories} kcal**\n\n`;
+
+      if (nutSummary.calorieDeficit > 0) {
+        text += `You have **${nutSummary.remainingCalories} kcal** remaining in your energy budget today.`;
+      } else if (nutSummary.calorieDeficit === 0) {
+        text += `You have hit your daily calorie target with 100% precision!`;
+      } else {
+        text += `You are **${Math.abs(nutSummary.calorieDeficit)} kcal** over your daily baseline target. Adjust upcoming meals accordingly if fat loss is your target.`;
+      }
+
+      return {
+        role: 'assistant',
+        text,
+        plan: null,
+        sourceProvenance: 'Deterministic Energy Balance Engine'
+      };
+    }
+
+    // ── 10d. Workout History (Yesterday / Today / Recent) ──────────────────
+    if (intent === AI_INTENTS.WORKOUT_HISTORY_SPECIFIC_QUERY) {
+      const isYesterday = qLower.includes('yesterday');
+      let targetDateStr = null;
+      let dateLabel = "today's session";
+
+      if (isYesterday) {
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        targetDateStr = d.toISOString().split('T')[0];
+        dateLabel = "yesterday's session";
+      }
+
+      const workoutSummary = AIToolRegistry.getWorkoutHistorySummary({
+        workoutLogs: safeWorkoutLogs,
+        targetDateStr
+      });
+
+      let text = `### 🏋️ Workout Summary (${dateLabel.toUpperCase()})\n\n`;
+      if (workoutSummary.hasWorkouts) {
+        text += `Found **${workoutSummary.sessionCount} session(s)** with **${workoutSummary.totalVolumeKg} kg** total volume across **${workoutSummary.totalSets} set(s)**:\n\n`;
+        workoutSummary.exercises.forEach(ex => {
+          text += `* **${ex.name}:** ${ex.sets} sets × ${ex.reps} reps @ ${ex.weight}kg (${ex.volumeKg}kg volume)\n`;
+        });
+      } else {
+        text += `No workout logs were recorded for **${dateLabel}**.\n\n`;
+        text += `To record training, open the **Workout** tab and tap **+ Log Exercise**!`;
+      }
+
+      return {
+        role: 'assistant',
+        text,
+        plan: null,
+        sourceProvenance: 'Authoritative Workout Store Query'
+      };
+    }
+
+    // ── 10e. Active Streak Query ──────────────────────────────────────────
+    if (intent === AI_INTENTS.STREAK_QUERY) {
+      const streakSummary = AIToolRegistry.getStreakSummary({
+        foodLogs: safeFoodLogs,
+        workoutLogs: safeWorkoutLogs,
+        userProfile: safeUserProfile
+      });
+
+      let text = `### 🔥 Calyxo Active Streak Status\n\n`;
+      text += `You are currently on an active **${streakSummary.currentStreak}-Day Calyxo Streak**! 🔥\n\n`;
+      text += `* **Nutrition Streak:** ${streakSummary.nutritionStreak} consecutive days\n`;
+      text += `* **Workout Streak:** ${streakSummary.workoutStreak} consecutive days\n`;
+      text += `* **Logged Today:** ${streakSummary.hasLoggedToday ? '✅ Yes, today is protected!' : '⚠️ Not yet today — log a meal or workout before midnight to protect your streak!'}\n\n`;
+      text += `Consistency is the single biggest predictor of metabolic adaptation and progressive overload. Keep the momentum going!`;
+
+      return {
+        role: 'assistant',
+        text,
+        plan: null,
+        sourceProvenance: 'Deterministic Streak Engine'
+      };
+    }
+
+    // ── 10f. Next Meal Recommendation ──────────────────────────────────────
+    if (intent === AI_INTENTS.NEXT_MEAL_RECOMMENDATION) {
+      const nutSummary = AIToolRegistry.getTodayNutritionSummary({
+        foodLogs: safeFoodLogs,
+        userProfile: safeUserProfile
+      });
+
+      let text = `### 🍽️ Recommended Next Meal / Snack\n\n`;
+      text += `Based on your remaining daily budget (**${nutSummary.remainingCalories} kcal** and **${nutSummary.remainingProtein}g protein**):\n\n`;
+
+      if (nutSummary.remainingProtein >= 30) {
+        text += `**High-Protein Recovery Plate:**\n`;
+        text += `* 180g Grilled Chicken Breast or 200g High-Protein Tofu (~30g protein, ~200 kcal)\n`;
+        text += `* 150g Steamed Jasmine Rice or 1 cup Quinoa (~35g carbs, ~180 kcal)\n`;
+        text += `* Steamed Broccoli / Mixed Greens with 1 tsp Olive Oil (~60 kcal)\n`;
+      } else if (nutSummary.remainingProtein >= 15) {
+        text += `**Targeted Protein Snack:**\n`;
+        text += `* 1 cup Plain Non-Fat Greek Yogurt with 1 tbsp chia seeds (~18g protein, ~150 kcal)\n`;
+        text += `* or 1 Scoop Whey Protein shaken with 250ml Almond Milk (~25g protein, ~130 kcal)\n`;
+      } else {
+        text += `**Light Energy / Micronutrient Snack:**\n`;
+        text += `* 1 Sliced Apple with 1 tbsp Almond Butter (~160 kcal, 4g fiber)\n`;
+        text += `* Mixed Berry Bowl with 10g walnuts (~120 kcal)\n`;
+      }
+
+      return {
+        role: 'assistant',
+        text,
+        plan: null,
+        sourceProvenance: 'Dynamic Nutrient Balancing Engine'
       };
     }
 

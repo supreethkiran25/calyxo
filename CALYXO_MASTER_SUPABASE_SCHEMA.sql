@@ -331,55 +331,6 @@ CREATE TABLE IF NOT EXISTS public.trainer_messages (
 
 ALTER TABLE public.trainer_messages ENABLE ROW LEVEL SECURITY;
 
--- Performance Indexes
-CREATE INDEX IF NOT EXISTS idx_user_profiles_plan ON public.user_profiles(subscription_plan);
-CREATE INDEX IF NOT EXISTS idx_user_profiles_role ON public.user_profiles(role);
-CREATE INDEX IF NOT EXISTS idx_exercise_category ON public.exercise_database(category);
-CREATE INDEX IF NOT EXISTS idx_food_category ON public.food_database(category);
-CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON public.admin_audit_logs(action);
-CREATE INDEX IF NOT EXISTS idx_feedback_status ON public.feedback_tickets(status);
-CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON public.push_subscriptions(user_id);
-
--- RLS Policies (Permissive Access for Super Admin & Owners)
-DROP POLICY IF EXISTS "Public Read Exercise Catalog" ON public.exercise_database;
-CREATE POLICY "Public Read Exercise Catalog" ON public.exercise_database FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Public Read Food Catalog" ON public.food_database;
-CREATE POLICY "Public Read Food Catalog" ON public.food_database FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Admin & Owner Access Profiles" ON public.user_profiles;
-CREATE POLICY "Admin & Owner Access Profiles" ON public.user_profiles FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Admin & Owner Access Metrics" ON public.users_metrics;
-CREATE POLICY "Admin & Owner Access Metrics" ON public.users_metrics FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Admin Full Access Exercises" ON public.exercise_database;
-CREATE POLICY "Admin Full Access Exercises" ON public.exercise_database FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Admin Full Access Foods" ON public.food_database;
-CREATE POLICY "Admin Full Access Foods" ON public.food_database FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Admin Full Access Feedback" ON public.feedback_tickets;
-CREATE POLICY "Admin Full Access Feedback" ON public.feedback_tickets FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Admin Full Access Notifications" ON public.system_notifications;
-CREATE POLICY "Admin Full Access Notifications" ON public.system_notifications FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Admin Full Access Audit Logs" ON public.admin_audit_logs;
-CREATE POLICY "Admin Full Access Audit Logs" ON public.admin_audit_logs FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Admin Full Access Settings" ON public.system_settings;
-CREATE POLICY "Admin Full Access Settings" ON public.system_settings FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Users manage own food logs" ON public.food_logs;
-CREATE POLICY "Users manage own food logs" ON public.food_logs FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Users manage own workout logs" ON public.workout_logs;
-CREATE POLICY "Users manage own workout logs" ON public.workout_logs FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Users manage own push subscriptions" ON public.push_subscriptions;
-CREATE POLICY "Users manage own push subscriptions" ON public.push_subscriptions FOR ALL USING (true);
-
 -- 21. Subscriptions Table (Super Admin & SaaS Subscription Engine)
 CREATE TABLE IF NOT EXISTS public.subscriptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -399,9 +350,6 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
 
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Admin & User Access Subscriptions" ON public.subscriptions;
-CREATE POLICY "Admin & User Access Subscriptions" ON public.subscriptions FOR ALL USING (true);
-
 -- 22. In-App User Notifications Table
 CREATE TABLE IF NOT EXISTS public.user_notifications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -417,8 +365,106 @@ CREATE TABLE IF NOT EXISTS public.user_notifications (
 
 ALTER TABLE public.user_notifications ENABLE ROW LEVEL SECURITY;
 
+-- Performance Indexes
+CREATE INDEX IF NOT EXISTS idx_user_profiles_plan ON public.user_profiles(subscription_plan);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_role ON public.user_profiles(role);
+CREATE INDEX IF NOT EXISTS idx_exercise_category ON public.exercise_database(category);
+CREATE INDEX IF NOT EXISTS idx_food_category ON public.food_database(category);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON public.admin_audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_feedback_status ON public.feedback_tickets(status);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON public.push_subscriptions(user_id);
+
+-- Super Admin Authorization Helper Function
+CREATE OR REPLACE FUNCTION public.is_super_admin()
+RETURNS boolean AS $$
+BEGIN
+  RETURN (
+    coalesce(auth.jwt() ->> 'role', '') = 'super_admin'
+    OR coalesce(auth.jwt() -> 'user_metadata' ->> 'role', '') = 'super_admin'
+    OR coalesce(auth.jwt() ->> 'email', '') IN ('supreethkiran25@gmail.com')
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 1. Exercise Catalog (Public Read, Admin Write)
+DROP POLICY IF EXISTS "Public Read Exercise Catalog" ON public.exercise_database;
+DROP POLICY IF EXISTS "Admin Full Access Exercises" ON public.exercise_database;
+CREATE POLICY "Public Read Exercise Catalog" ON public.exercise_database FOR SELECT USING (true);
+CREATE POLICY "Admin Modify Exercises" ON public.exercise_database FOR ALL USING (public.is_super_admin()) WITH CHECK (public.is_super_admin());
+
+-- 2. Food Catalog (Public Read, Admin Write)
+DROP POLICY IF EXISTS "Public Read Food Catalog" ON public.food_database;
+DROP POLICY IF EXISTS "Admin Full Access Foods" ON public.food_database;
+CREATE POLICY "Public Read Food Catalog" ON public.food_database FOR SELECT USING (true);
+CREATE POLICY "Admin Modify Foods" ON public.food_database FOR ALL USING (public.is_super_admin()) WITH CHECK (public.is_super_admin());
+
+-- 3. User Profiles (User Scoped Read/Write, Admin Full)
+DROP POLICY IF EXISTS "Admin & Owner Access Profiles" ON public.user_profiles;
+CREATE POLICY "Users read own profile" ON public.user_profiles FOR SELECT USING (auth.uid() = id OR public.is_super_admin());
+CREATE POLICY "Users insert own profile" ON public.user_profiles FOR INSERT WITH CHECK (auth.uid() = id OR public.is_super_admin());
+CREATE POLICY "Users update own profile" ON public.user_profiles FOR UPDATE USING (auth.uid() = id OR public.is_super_admin()) WITH CHECK (auth.uid() = id OR public.is_super_admin());
+
+-- 4. User Metrics & Telemetry (User Scoped Read/Write)
+DROP POLICY IF EXISTS "Admin & Owner Access Metrics" ON public.users_metrics;
+CREATE POLICY "Users access own metrics" ON public.users_metrics FOR ALL USING (auth.uid() = user_id OR public.is_super_admin()) WITH CHECK (auth.uid() = user_id OR public.is_super_admin());
+
+-- 5. Food & Nutrition Logs (User Scoped Read/Write)
+DROP POLICY IF EXISTS "Users manage own food logs" ON public.food_logs;
+CREATE POLICY "Users manage own food logs" ON public.food_logs FOR ALL USING (auth.uid() = user_id OR public.is_super_admin()) WITH CHECK (auth.uid() = user_id OR public.is_super_admin());
+
+DROP POLICY IF EXISTS "Users manage own nutrition logs" ON public.nutrition_logs;
+CREATE POLICY "Users manage own nutrition logs" ON public.nutrition_logs FOR ALL USING (auth.uid() = user_id OR public.is_super_admin()) WITH CHECK (auth.uid() = user_id OR public.is_super_admin());
+
+DROP POLICY IF EXISTS "Users manage own meal scans" ON public.meal_scans;
+CREATE POLICY "Users manage own meal scans" ON public.meal_scans FOR ALL USING (auth.uid() = user_id OR public.is_super_admin()) WITH CHECK (auth.uid() = user_id OR public.is_super_admin());
+
+-- 6. Workout & Weight Logs (User Scoped Read/Write)
+DROP POLICY IF EXISTS "Users manage own workout logs" ON public.workout_logs;
+CREATE POLICY "Users manage own workout logs" ON public.workout_logs FOR ALL USING (auth.uid() = user_id OR public.is_super_admin()) WITH CHECK (auth.uid() = user_id OR public.is_super_admin());
+
+DROP POLICY IF EXISTS "Users manage own weight logs" ON public.weight_logs;
+CREATE POLICY "Users manage own weight logs" ON public.weight_logs FOR ALL USING (auth.uid() = user_id OR public.is_super_admin()) WITH CHECK (auth.uid() = user_id OR public.is_super_admin());
+
+DROP POLICY IF EXISTS "Users manage own chat sessions" ON public.chat_sessions;
+CREATE POLICY "Users manage own chat sessions" ON public.chat_sessions FOR ALL USING (auth.uid() = user_id OR public.is_super_admin()) WITH CHECK (auth.uid() = user_id OR public.is_super_admin());
+
+-- 7. Push Subscriptions (User Scoped Read/Write)
+DROP POLICY IF EXISTS "Users manage own push subscriptions" ON public.push_subscriptions;
+CREATE POLICY "Users manage own push subscriptions" ON public.push_subscriptions FOR ALL USING (auth.uid() = user_id OR public.is_super_admin()) WITH CHECK (auth.uid() = user_id OR public.is_super_admin());
+
+-- 8. Subscriptions (User Read-Only, Service Role / Admin Write)
+DROP POLICY IF EXISTS "Admin & User Access Subscriptions" ON public.subscriptions;
+CREATE POLICY "Users read own subscription" ON public.subscriptions FOR SELECT USING (auth.uid() = user_id OR public.is_super_admin());
+CREATE POLICY "Admin manage subscriptions" ON public.subscriptions FOR ALL USING (public.is_super_admin()) WITH CHECK (public.is_super_admin());
+
+-- 9. In-App Notifications (User Scoped)
 DROP POLICY IF EXISTS "Admin & User Access Notifications" ON public.user_notifications;
-CREATE POLICY "Admin & User Access Notifications" ON public.user_notifications FOR ALL USING (true);
+CREATE POLICY "Users access own notifications" ON public.user_notifications FOR ALL USING (auth.uid() = user_id OR public.is_super_admin()) WITH CHECK (auth.uid() = user_id OR public.is_super_admin());
+
+-- 10. Trainer-Client CRM & Multi-Tenancy
+DROP POLICY IF EXISTS "Trainer and client access" ON public.trainer_clients;
+CREATE POLICY "Trainer and client access" ON public.trainer_clients FOR ALL USING (auth.uid() = trainer_id OR auth.uid() = client_id OR public.is_super_admin()) WITH CHECK (auth.uid() = trainer_id OR auth.uid() = client_id OR public.is_super_admin());
+
+DROP POLICY IF EXISTS "Trainer and client notes" ON public.trainer_notes;
+CREATE POLICY "Trainer and client notes" ON public.trainer_notes FOR ALL USING (auth.uid() = trainer_id OR auth.uid() = client_id OR public.is_super_admin()) WITH CHECK (auth.uid() = trainer_id OR auth.uid() = client_id OR public.is_super_admin());
+
+DROP POLICY IF EXISTS "PT connections access" ON public.pt_connections;
+CREATE POLICY "PT connections access" ON public.pt_connections FOR ALL USING (auth.uid() = user_id OR auth.uid() = trainer_id OR public.is_super_admin()) WITH CHECK (auth.uid() = user_id OR auth.uid() = trainer_id OR public.is_super_admin());
+
+-- 11. Admin Tables (Strict Super Admin Access Only)
+DROP POLICY IF EXISTS "Admin Full Access Feedback" ON public.feedback_tickets;
+CREATE POLICY "Users create feedback" ON public.feedback_tickets FOR INSERT WITH CHECK (auth.role() = 'authenticated' OR public.is_super_admin());
+CREATE POLICY "Users read own feedback or admin" ON public.feedback_tickets FOR SELECT USING (auth.uid()::text = user_id OR public.is_super_admin());
+CREATE POLICY "Admin manage feedback" ON public.feedback_tickets FOR UPDATE USING (public.is_super_admin()) WITH CHECK (public.is_super_admin());
+
+DROP POLICY IF EXISTS "Admin Full Access Notifications" ON public.system_notifications;
+CREATE POLICY "Admin Full Access Notifications" ON public.system_notifications FOR ALL USING (public.is_super_admin()) WITH CHECK (public.is_super_admin());
+
+DROP POLICY IF EXISTS "Admin Full Access Audit Logs" ON public.admin_audit_logs;
+CREATE POLICY "Admin Full Access Audit Logs" ON public.admin_audit_logs FOR ALL USING (public.is_super_admin()) WITH CHECK (public.is_super_admin());
+
+DROP POLICY IF EXISTS "Admin Full Access Settings" ON public.system_settings;
+CREATE POLICY "Admin Full Access Settings" ON public.system_settings FOR ALL USING (public.is_super_admin()) WITH CHECK (public.is_super_admin());
 
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON public.subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON public.user_notifications(user_id);

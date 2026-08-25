@@ -272,7 +272,7 @@ export default function UserPortal() {
           {/* Logo & Toggle */}
           <div className={`flex items-center px-6 mb-8 ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
             <div className="flex items-center gap-3">
-              <Logo className="w-8 h-8 text-[var(--color-acid-green)]" glow={true} />
+              <Logo className="w-8 h-8 text-accent" glow={true} />
               {!isSidebarCollapsed && (
                 <span className="brand-name text-lg text-[var(--foreground)]">calyxo</span>
               )}

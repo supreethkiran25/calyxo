@@ -48,9 +48,10 @@ export default async function handler(req, res) {
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest('hex');
 
-    const isMatch = generatedSignature === razorpay_signature;
+    const genBuf = Buffer.from(generatedSignature, 'utf-8');
+    const sigBuf = Buffer.from(razorpay_signature, 'utf-8');
 
-    if (!isMatch) {
+    if (genBuf.length !== sigBuf.length || !crypto.timingSafeEqual(genBuf, sigBuf)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid payment signature. Verification failed.'

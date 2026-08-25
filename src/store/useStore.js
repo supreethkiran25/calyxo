@@ -1,6 +1,17 @@
 import { create } from 'zustand';
 import { useEcosystemStore } from './useEcosystemStore.js';
 import { applyAppearanceSettings, loadSavedAppearance } from '../utils/appearanceUtils.js';
+import { syncWidgetData } from '../services/widgetDataService.js';
+
+const triggerWidgetSync = () => {
+  if (typeof setTimeout !== 'undefined') {
+    setTimeout(() => {
+      try {
+        syncWidgetData();
+      } catch (e) {}
+    }, 50);
+  }
+};
 
 const DEFAULT_USER_PROFILE = {
   onboarded: false,
@@ -48,7 +59,7 @@ const DEFAULT_USER_PROFILE = {
   // Health Targets
   dailyCalories: 2000,
   calorieGoal: 2000,
-  waterTarget: 2500,
+  waterTarget: 3000,
   proteinTarget: 120,
   protein: 120,
   carbs: 230,
@@ -147,23 +158,34 @@ export const useStore = create((set, get) => ({
   },
 
   // Syncing & Database setters
-  setFoodLogs: (foodLogs) => set({ foodLogs }),
+  setFoodLogs: (foodLogs) => {
+    set({ foodLogs });
+    triggerWidgetSync();
+  },
   addFoodLog: (logItem) => set((state) => {
     // Award +50 XP
     useEcosystemStore.getState().addXP(50);
+    triggerWidgetSync();
     return { foodLogs: [logItem, ...state.foodLogs] };
   }),
-  updateFoodLog: (logId, updatedData) => set((state) => ({
-    foodLogs: state.foodLogs.map(x => (x.id === logId || x.timestamp === logId) ? { ...x, ...updatedData } : x)
-  })),
-  deleteFoodLog: (logId) => set((state) => ({
-    foodLogs: state.foodLogs.filter((x) => x.id !== logId && x.timestamp !== logId)
-  })),
+  updateFoodLog: (logId, updatedData) => {
+    triggerWidgetSync();
+    return set((state) => ({
+      foodLogs: state.foodLogs.map(x => (x.id === logId || x.timestamp === logId) ? { ...x, ...updatedData } : x)
+    }));
+  },
+  deleteFoodLog: (logId) => {
+    triggerWidgetSync();
+    return set((state) => ({
+      foodLogs: state.foodLogs.filter((x) => x.id !== logId && x.timestamp !== logId)
+    }));
+  },
 
   setWorkoutLogs: (workoutLogs) => set({ workoutLogs }),
   addWorkoutLog: (workout) => set((state) => {
     // Award +100 XP
     useEcosystemStore.getState().addXP(100);
+    triggerWidgetSync();
     return { workoutLogs: [workout, ...state.workoutLogs] };
   }),
   updateWorkoutLog: (logId, updatedData) => set((state) => ({
@@ -188,76 +210,89 @@ export const useStore = create((set, get) => ({
     return { waterLogDate: today };
   }),
 
-  setWaterIntake: (waterIntake) => set({ waterIntake, waterLogDate: new Date().toDateString() }),
+  setWaterIntake: (waterIntake) => {
+    triggerWidgetSync();
+    return set({ waterIntake, waterLogDate: new Date().toDateString() });
+  },
   addWaterIntake: (amount) => set((state) => {
     const prevWater = state.waterIntake;
-    const target = state.userProfile?.waterTarget || 2500;
+    const target = state.userProfile?.waterTarget || 3000;
     const nextWater = Math.min(prevWater + amount, 10000);
     if (prevWater < target && nextWater >= target) {
       // Crossed target! Award +30 XP
       useEcosystemStore.getState().addXP(30);
     }
+    triggerWidgetSync();
     return { waterIntake: nextWater };
   }),
-  resetWaterIntake: () => set({ waterIntake: 0 }),
+  resetWaterIntake: () => {
+    triggerWidgetSync();
+    return set({ waterIntake: 0 });
+  },
 
   // Trainer Data
   trainerClients: [],
   setTrainerClients: (clients) => set({ trainerClients: clients }),
-  setUserProfile: (profile) => set((state) => {
-    const raw = profile ? {
-      ...DEFAULT_USER_PROFILE,
-      ...profile,
-      notifications: {
-        ...DEFAULT_USER_PROFILE.notifications,
-        ...(profile.notifications || {})
-      },
-      appearance: {
-        ...DEFAULT_USER_PROFILE.appearance,
-        ...(profile.appearance || {})
-      }
-    } : DEFAULT_USER_PROFILE;
+  setUserProfile: (profile) => {
+    triggerWidgetSync();
+    return set((state) => {
+      const raw = profile ? {
+        ...DEFAULT_USER_PROFILE,
+        ...profile,
+        notifications: {
+          ...DEFAULT_USER_PROFILE.notifications,
+          ...(profile.notifications || {})
+        },
+        appearance: {
+          ...DEFAULT_USER_PROFILE.appearance,
+          ...(profile.appearance || {})
+        }
+      } : DEFAULT_USER_PROFILE;
 
-    const targetCals = Number(raw.calorieGoal || raw.dailyCalories || raw.calTarget || 2000);
-    const targetProt = Number(raw.proteinGoal || raw.proteinTarget || raw.protein || raw.protTarget || 120);
-    const targetWater = Number(raw.waterGoal || raw.waterTarget || 3000);
+      const targetCals = Number(raw.calorieGoal || raw.dailyCalories || raw.calTarget || 2000);
+      const targetProt = Number(raw.proteinGoal || raw.proteinTarget || raw.protein || raw.protTarget || 120);
+      const targetWater = Number(raw.waterGoal || raw.waterTarget || 3000);
 
-    return {
-      userProfile: {
-        ...raw,
-        calorieGoal: targetCals,
-        dailyCalories: targetCals,
-        calTarget: targetCals,
-        proteinGoal: targetProt,
-        proteinTarget: targetProt,
-        protein: targetProt,
-        protTarget: targetProt,
-        waterGoal: targetWater,
-        waterTarget: targetWater
-      }
-    };
-  }),
-  updateUserProfile: (profileUpdates) => set((state) => {
-    const raw = { ...state.userProfile, ...profileUpdates };
-    const targetCals = Number(raw.calorieGoal || raw.dailyCalories || raw.calTarget || 2000);
-    const targetProt = Number(raw.proteinGoal || raw.proteinTarget || raw.protein || raw.protTarget || 120);
-    const targetWater = Number(raw.waterGoal || raw.waterTarget || 3000);
+      return {
+        userProfile: {
+          ...raw,
+          calorieGoal: targetCals,
+          dailyCalories: targetCals,
+          calTarget: targetCals,
+          proteinGoal: targetProt,
+          proteinTarget: targetProt,
+          protein: targetProt,
+          protTarget: targetProt,
+          waterGoal: targetWater,
+          waterTarget: targetWater
+        }
+      };
+    });
+  },
+  updateUserProfile: (profileUpdates) => {
+    triggerWidgetSync();
+    return set((state) => {
+      const raw = { ...state.userProfile, ...profileUpdates };
+      const targetCals = Number(raw.calorieGoal || raw.dailyCalories || raw.calTarget || 2000);
+      const targetProt = Number(raw.proteinGoal || raw.proteinTarget || raw.protein || raw.protTarget || 120);
+      const targetWater = Number(raw.waterGoal || raw.waterTarget || 3000);
 
-    return {
-      userProfile: {
-        ...raw,
-        calorieGoal: targetCals,
-        dailyCalories: targetCals,
-        calTarget: targetCals,
-        proteinGoal: targetProt,
-        proteinTarget: targetProt,
-        protein: targetProt,
-        protTarget: targetProt,
-        waterGoal: targetWater,
-        waterTarget: targetWater
-      }
-    };
-  }),
+      return {
+        userProfile: {
+          ...raw,
+          calorieGoal: targetCals,
+          dailyCalories: targetCals,
+          calTarget: targetCals,
+          proteinGoal: targetProt,
+          proteinTarget: targetProt,
+          protein: targetProt,
+          protTarget: targetProt,
+          waterGoal: targetWater,
+          waterTarget: targetWater
+        }
+      };
+    });
+  },
 
   toggleFavoriteExercise: (id) => set((state) => {
     const isFav = state.favoriteExercises.includes(id);

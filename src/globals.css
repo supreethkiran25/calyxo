@@ -1,4 +1,46 @@
 @import "tailwindcss";
+/* Native App Interaction Polish */
+html, body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input, textarea, [contenteditable="true"], .select-text, .selectable {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
+/* Crisp hardware acceleration for native shells */
+nav, header, aside, .modal-backdrop {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* ── Calyxo Ultra-Responsive Touch & 120Hz Hardware Acceleration ── */
+* {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+html, body {
+  touch-action: manipulation;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+}
+
+button, a, input, select, textarea, [role="button"] {
+  touch-action: manipulation;
+}
+
+button:active:not(:disabled),
+a:active,
+.active-press:active {
+  transform: scale(0.96) translateZ(0);
+  transition: transform 75ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 
 .brand-name {
   font-family: 'Syne', 'Unbounded', 'Outfit', sans-serif !important;
@@ -33,32 +75,40 @@ h1, h2, h3, h4, h5, h6 {
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
   --color-card: var(--card);
+  --color-card-bg: var(--card-bg);
   --color-card-foreground: var(--card-foreground);
+  --color-card-border: var(--card-border);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-interactive: var(--surface-interactive);
   --color-primary: var(--primary);
-  --color-secondary: var(--secondary);
-  --color-muted: var(--muted);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--text-secondary);
+  --color-secondary-surface: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--text-muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-acid-green: var(--accent);
+  --color-acid-green-dim: var(--accent-dim);
   --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
+  --color-input-foreground: var(--input-foreground);
+  --color-input-border: var(--input-border);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-destructive: var(--destructive);
-
-  /* Calyxo brand color mappings */
-  --color-obsidian: var(--background);
-  --color-surface: var(--secondary);
-  --color-acid-green: var(--accent);
-  --color-acid-green-dim: var(--accent-dim);
-  --color-orange: var(--orange-theme);
-  --color-blue: var(--blue-theme);
-  --color-red: var(--destructive);
-  --color-border-light: var(--border);
-  --color-card-border: var(--card-border);
-  --color-card-bg: var(--card-bg);
-  --color-text-muted: var(--text-muted);
+  --color-nav-bg: var(--nav-bg);
+  --color-nav-border: var(--nav-border);
+  --color-header-bg: var(--header-bg);
 
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-display: 'Outfit', 'Plus Jakarta Sans', sans-serif;
@@ -66,137 +116,166 @@ h1, h2, h3, h4, h5, h6 {
 
 :root {
   --keyboard-height: 0px;
-  /* Calyxo Signature Brand Variables (Default Obsidian Theme) */
-  --background: #0A0A0F;
-  --foreground: #f3f4f6;
-  --card: rgba(255, 255, 255, 0.05);
-  --card-foreground: #f3f4f6;
-  --primary: #4D6E00;
-  --primary-foreground: #ffffff;
-  --secondary: #12121A;
-  --secondary-foreground: #f3f4f6;
-  --muted: #1A1A24;
-  --muted-foreground: #B9B9C7;
-  --accent: #4D6E00;
-  --accent-dim: #3D5900;
-  --accent-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: #12121A;
-  --input-foreground: #f3f4f6;
+  --viewport-visible-height: 100dvh;
+  /* Calyxo Signature Premium Dark Theme */
+  color-scheme: dark;
+  --background: #0A0A0C;
+  --foreground: #F8FAFC;
+  --text-primary: #FFFFFF;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --text-disabled: #475569;
+  --surface: #131317;
+  --surface-elevated: #1A1A22;
+  --surface-subtle: rgba(255, 255, 255, 0.04);
+  --surface-interactive: rgba(255, 255, 255, 0.07);
+  --card: #131317;
+  --card-bg: #131317;
+  --card-foreground: #F8FAFC;
+  --card-border: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --accent: #CCFF00;
+  --accent-dim: #A3E635;
+  --accent-soft: rgba(204, 255, 0, 0.12);
+  --accent-foreground: #000000;
+  --primary: #CCFF00;
+  --primary-foreground: #000000;
+  --secondary: #181820;
+  --secondary-foreground: #F8FAFC;
+  --muted: #181820;
+  --muted-foreground: #94A3B8;
+  --input: #131317;
+  --input-bg: #131317;
+  --input-border: rgba(255, 255, 255, 0.1);
+  --input-foreground: #F8FAFC;
   --success: #10B981;
   --warning: #F59E0B;
-  --destructive: #ef5350;
+  --destructive: #EF4444;
+  --nav-bg: rgba(10, 10, 12, 0.92);
+  --nav-border: rgba(255, 255, 255, 0.08);
+  --header-bg: rgba(10, 10, 12, 0.92);
+  --card-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+}
 
-  /* Brand overrides */
-  --orange-theme: #F59E0B;
-  --blue-theme: #3B82F6;
-  --primary-bg: #4D6E00;
-  --primary-fg: #ffffff;
-  --glow-shadow: 0 0 20px rgba(77, 110, 0, 0.4);
-  --accent-glow: rgba(77, 110, 0, 0.25);
+/* Keyboard-Aware Visibility & Active Scroll Padding */
+html.keyboard-open,
+body.keyboard-open {
+  scroll-padding-bottom: calc(var(--keyboard-height, 0px) + 32px);
+}
 
-  /* Backward compatibility links */
-  --card-bg: var(--card);
-  --card-border: var(--border);
-  --text-muted: var(--muted-foreground);
-  --nav-bg: rgba(10, 10, 15, 0.85);
-  --nav-border: var(--border);
-  --surface: var(--secondary);
-  --input-bg: var(--input);
-  --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8);
+.keyboard-open .modal-scroll-body,
+.keyboard-open .sheet-scroll-body,
+.keyboard-open [data-keyboard-scroll="true"] {
+  scroll-padding-bottom: calc(var(--keyboard-height, 0px) + 48px) !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus,
+[contenteditable="true"]:focus {
+  scroll-margin-bottom: calc(var(--keyboard-height, 0px) + 48px);
+  scroll-margin-top: 48px;
 }
 
 :root.dark,
 [data-theme='dark'],
 [data-theme='obsidian'] {
-  /* Obsidian Dark (Calyxo Signature Theme) */
-  --background: #0A0A0F;
-  --foreground: #f3f4f6;
-  --card: rgba(255, 255, 255, 0.05);
-  --card-foreground: #f3f4f6;
-  --primary: #4D6E00;
-  --primary-foreground: #ffffff;
-  --secondary: #12121A;
-  --secondary-foreground: #f3f4f6;
-  --muted: #1A1A24;
-  --muted-foreground: #B9B9C7;
-  --accent: #4D6E00;
-  --accent-dim: #3D5900;
-  --accent-foreground: #ffffff;
+  color-scheme: dark;
+  --background: #09090B;
+  --foreground: #F8FAFC;
+  --text-primary: #FFFFFF;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --text-disabled: #475569;
+  --surface: #121218;
+  --surface-elevated: #181824;
+  --surface-subtle: rgba(255, 255, 255, 0.05);
+  --surface-interactive: rgba(255, 255, 255, 0.08);
+  --card: #121218;
+  --card-bg: #121218;
+  --card-foreground: #F8FAFC;
+  --card-border: rgba(255, 255, 255, 0.1);
   --border: rgba(255, 255, 255, 0.1);
-  --input: #12121A;
-  --input-foreground: #f3f4f6;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --accent: #CCFF00;
+  --accent-dim: #99CC00;
+  --accent-soft: rgba(204, 255, 0, 0.15);
+  --accent-foreground: #000000;
+  --primary: #CCFF00;
+  --primary-foreground: #000000;
+  --secondary: #121218;
+  --secondary-foreground: #F8FAFC;
+  --muted: #181820;
+  --muted-foreground: #94A3B8;
+  --input: #121218;
+  --input-bg: #121218;
+  --input-border: rgba(255, 255, 255, 0.12);
+  --input-foreground: #F8FAFC;
   --success: #10B981;
   --warning: #F59E0B;
-  --destructive: #ef5350;
-
-  --orange-theme: #f57c38;
-  --blue-theme: #4fc3f7;
-  --primary-bg: #4D6E00;
-  --primary-fg: #ffffff;
-  --glow-shadow: 0 0 20px rgba(77, 110, 0, 0.4);
-  --accent-glow: rgba(77, 110, 0, 0.25);
-
-  --card-bg: var(--card);
-  --card-border: var(--border);
-  --text-muted: var(--muted-foreground);
-  --nav-bg: rgba(10, 10, 15, 0.85);
-  --nav-border: var(--border);
-  --surface: var(--secondary);
-  --input-bg: var(--input);
+  --destructive: #EF4444;
+  --nav-bg: rgba(9, 9, 11, 0.88);
+  --nav-border: rgba(255, 255, 255, 0.1);
+  --header-bg: rgba(9, 9, 11, 0.92);
   --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8);
 }
 
 [data-theme='light'] {
-  /* Light Theme (Calyxo Signature Athletic Green) */
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --primary: #4D6E00;
-  --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #475569;
-  --accent: #4D6E00;
-  --accent-dim: #3D5900;
-  --accent-foreground: #ffffff;
-  --border: #e2e8f0;
-  --input: #ffffff;
-  --input-foreground: #0f172a;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --destructive: #dc2626;
-
-  --orange-theme: #d97706;
-  --blue-theme: #0284c7;
-  --primary-bg: #4D6E00;
-  --primary-fg: #ffffff;
-  --glow-shadow: 0 0 20px rgba(77, 110, 0, 0.2);
-  --accent-glow: rgba(77, 110, 0, 0.15);
-
-  --card-bg: var(--card);
-  --card-border: var(--border);
-  --text-muted: var(--muted-foreground);
-  --nav-bg: rgba(255, 255, 255, 0.95);
-  --nav-border: var(--border);
-  --surface: var(--secondary);
-  --input-bg: var(--input);
-  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  color-scheme: light;
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --text-primary: #0F172A;
+  --text-secondary: #334155;
+  --text-muted: #64748B;
+  --text-disabled: #94A3B8;
+  --surface: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --surface-subtle: #F1F5F9;
+  --surface-interactive: #E2E8F0;
+  --card: #FFFFFF;
+  --card-bg: #FFFFFF;
+  --card-foreground: #0F172A;
+  --card-border: #E2E8F0;
+  --border: #E2E8F0;
+  --border-subtle: #F1F5F9;
+  --border-strong: #CBD5E1;
+  --accent: #A3E635;
+  --accent-dim: #84CC16;
+  --accent-soft: rgba(163, 230, 53, 0.18);
+  --accent-foreground: #000000;
+  --primary: #A3E635;
+  --primary-foreground: #000000;
+  --secondary: #F1F5F9;
+  --secondary-foreground: #0F172A;
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+  --input: #FFFFFF;
+  --input-bg: #FFFFFF;
+  --input-border: #CBD5E1;
+  --input-foreground: #0F172A;
+  --success: #16A34A;
+  --warning: #D97706;
+  --destructive: #DC2626;
+  --nav-bg: rgba(255, 255, 255, 0.96);
+  --nav-border: #E2E8F0;
+  --header-bg: rgba(255, 255, 255, 0.96);
+  --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
 }
 
-/* Light Theme Global Utility Class Overrides for User & Admin Apps */
+/* Light Theme Global Utility Class Overrides */
 [data-theme='light'] body,
 [data-theme='light'] #root {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
 }
 
 [data-theme='light'] .bg-neutral-950 {
-  background-color: #f8fafc !important;
-  border-color: #e2e8f0 !important;
-  color: #0f172a !important;
+  background-color: #F8FAFC !important;
+  border-color: #E2E8F0 !important;
+  color: #0F172A !important;
 }
 
 [data-theme='light'] .bg-neutral-900,
@@ -204,69 +283,46 @@ h1, h2, h3, h4, h5, h6 {
 [data-theme='light'] .bg-neutral-900\/80,
 [data-theme='light'] .bg-neutral-900\/60,
 [data-theme='light'] .bg-neutral-900\/50 {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
-  color: #0f172a !important;
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #0F172A !important;
 }
 
 [data-theme='light'] .bg-neutral-950\/50,
 [data-theme='light'] .bg-neutral-950\/60,
 [data-theme='light'] .bg-neutral-950\/40 {
-  background-color: #f1f5f9 !important;
-  border-color: #e2e8f0 !important;
-  color: #0f172a !important;
+  background-color: #F1F5F9 !important;
+  border-color: #E2E8F0 !important;
+  color: #0F172A !important;
 }
 
 [data-theme='light'] .bg-neutral-800,
 [data-theme='light'] .bg-neutral-800\/80,
 [data-theme='light'] .bg-neutral-800\/60,
 [data-theme='light'] .bg-neutral-800\/50 {
-  background-color: #e2e8f0 !important;
-  border-color: #cbd5e1 !important;
-  color: #0f172a !important;
+  background-color: #F1F5F9 !important;
+  border-color: #CBD5E1 !important;
+  color: #0F172A !important;
 }
 
-[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .text-white:not(.force-white),
-[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .text-neutral-100:not(.force-white),
-[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .text-neutral-200:not(.force-white),
-[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .text-neutral-300:not(.force-white) {
-  color: #0f172a !important;
+[data-theme='light'] .glass {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05) !important;
 }
 
-.force-white,
-.force-white * {
-  color: #ffffff !important;
-}
-
-.dark-immersion {
-  color-scheme: dark !important;
-}
-
-[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .text-neutral-400,
-[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .text-neutral-500 {
-  color: #64748b !important;
-}
-
-[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .border-neutral-800,
-[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .border-neutral-800\/80,
-[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .border-neutral-800\/60,
-[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .border-neutral-800\/50,
-[data-theme='light'] :not(.dark-immersion):not(.dark-immersion *) .border-neutral-700 {
-  border-color: #e2e8f0 !important;
-}
-
-[data-theme='light'] aside:not(.dark-immersion-header):not(.dark-immersion *),
-[data-theme='light'] header:not(.dark-immersion-header):not(.dark-immersion *) {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
+[data-theme='light'] aside,
+[data-theme='light'] header {
+  background-color: var(--header-bg) !important;
+  border-color: var(--border) !important;
 }
 
 [data-theme='light'] input,
 [data-theme='light'] select,
 [data-theme='light'] textarea {
-  background-color: #ffffff !important;
-  border-color: #cbd5e1 !important;
-  color: #0f172a !important;
+  background-color: var(--input) !important;
+  border-color: var(--input-border) !important;
+  color: var(--input-foreground) !important;
 }
 
 /* Light Theme Badges & Tints */
@@ -322,26 +378,51 @@ h1, h2, h3, h4, h5, h6 {
   color: #7c3aed !important;
 }
 
-/* Global Brand Utility Overrides */
-.bg-acid-green {
-  background-color: #4D6E00 !important;
-  color: #ffffff !important;
+/* Dynamic Calyxo Brand Colors */
+:root:not([data-theme='light']) .bg-acid-green,
+[data-theme='obsidian'] .bg-acid-green,
+[data-theme='dark'] .bg-acid-green {
+  background-color: #CCFF00 !important;
+  color: #000000 !important;
 }
 
-.text-acid-green {
-  color: #4D6E00 !important;
+:root:not([data-theme='light']) .text-acid-green,
+[data-theme='obsidian'] .text-acid-green,
+[data-theme='dark'] .text-acid-green {
+  color: #CCFF00 !important;
 }
 
-.bg-acid-green\/10,
-.bg-acid-green\/15,
-.bg-acid-green\/20 {
-  background-color: rgba(77, 110, 0, 0.15) !important;
+:root:not([data-theme='light']) .bg-acid-green\/10,
+:root:not([data-theme='light']) .bg-acid-green\/15,
+:root:not([data-theme='light']) .bg-acid-green\/20 {
+  background-color: rgba(204, 255, 0, 0.15) !important;
 }
 
-.border-acid-green\/30,
-.border-acid-green\/20,
-.border-acid-green\/40 {
-  border-color: rgba(77, 110, 0, 0.35) !important;
+:root:not([data-theme='light']) .border-acid-green\/30,
+:root:not([data-theme='light']) .border-acid-green\/20,
+:root:not([data-theme='light']) .border-acid-green\/40 {
+  border-color: rgba(204, 255, 0, 0.30) !important;
+}
+
+[data-theme='light'] .bg-acid-green {
+  background-color: #A3E635 !important;
+  color: #000000 !important;
+}
+
+[data-theme='light'] .text-acid-green {
+  color: #4D7C0F !important;
+}
+
+[data-theme='light'] .bg-acid-green\/10,
+[data-theme='light'] .bg-acid-green\/15,
+[data-theme='light'] .bg-acid-green\/20 {
+  background-color: rgba(163, 230, 53, 0.22) !important;
+}
+
+[data-theme='light'] .border-acid-green\/30,
+[data-theme='light'] .border-acid-green\/20,
+[data-theme='light'] .border-acid-green\/40 {
+  border-color: rgba(132, 204, 22, 0.40) !important;
 }
 
 [data-theme='solarized'] {
@@ -1283,7 +1364,7 @@ textarea:focus {
   color: #0F172A !important;
 }
 
-/* Safe Area Inset Support for PWA Mobile Standalone & Physical Devices */
+/* Safe Area Inset Support for Native iOS & Android & Physical Devices */
 :root {
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
@@ -1292,11 +1373,11 @@ textarea:focus {
 }
 
 .pb-safe {
-  padding-bottom: max(1rem, calc(1rem + env(safe-area-inset-bottom, 0px)));
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
 }
 
 .pt-safe {
-  padding-top: max(1rem, calc(1rem + env(safe-area-inset-top, 0px)));
+  padding-top: env(safe-area-inset-top, 0px) !important;
 }
 
 .min-h-screen-dvh {
@@ -1361,4 +1442,60 @@ textarea,
   }
 }
 
-
+
+
+/* ── Missing Utility Definitions ─────────────────────── */
+
+/* force-white: Overrides any theme foreground color to pure white.
+   Used on LandingPage and LaunchScreen (always dark bg). */
+.force-white {
+  color: #ffffff !important;
+}
+
+/* dark-immersion: Forces dark background immersion for landing/launch screens
+   that always render on a dark canvas, regardless of user theme. */
+.dark-immersion {
+  background-color: #030303 !important;
+  color: #f3f4f6 !important;
+  color-scheme: dark;
+}
+
+/* dark-immersion-header: Dark-only navbar header variant for landing page */
+.dark-immersion-header {
+  color: #ffffff !important;
+  color-scheme: dark;
+}
+
+/* scrollbar-hide: Alias for scrollbar-none — widely used across sidebar, main, AI chat */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* custom-scrollbar: Themed minimal scrollbar for modals, admin panels, and drawers */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--card-border) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--card-border);
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-acid-green);
+}

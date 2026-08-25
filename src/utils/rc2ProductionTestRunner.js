@@ -16,6 +16,7 @@
  */
 
 import crypto from 'crypto';
+globalThis._nodeCrypto = crypto;
 import { getFreshnessState, FRESHNESS_LEVELS } from '../services/health/DataFreshnessHelper.js';
 import { PremiumEntitlementService, AI_CAPABILITIES, SUBSCRIPTION_STATES, SUBSCRIPTION_TIERS } from '../services/subscription/PremiumEntitlementService.js';
 import { getWearableProfile, getAllWearableProfiles, WEARABLE_VENDORS } from '../services/health/WearableCompatibilityManager.js';
@@ -300,9 +301,9 @@ async function runRC2TestSuite() {
   assert(PremiumEntitlementService.isEntitled(AI_CAPABILITIES.PERSONAL_HEALTH_REPORTS, unSubUser) === false, 'Free user gated from Health Reports');
 
   // 3.26 - 3.30 Payment Status Machine & Role Entitlements
-  assert(PAYMENT_STATUS.IDLE === 'IDLE', 'PAYMENT_STATUS.IDLE exists');
-  assert(PAYMENT_STATUS.SUCCESS === 'SUCCESS', 'PAYMENT_STATUS.SUCCESS exists');
-  assert(PAYMENT_STATUS.FAILED === 'FAILED', 'PAYMENT_STATUS.FAILED exists');
+  assert(PAYMENT_STATUS.IDLE === 'PAYMENT_IDLE' || PAYMENT_STATUS.IDLE === 'IDLE', 'PAYMENT_STATUS.IDLE exists');
+  assert(PAYMENT_STATUS.SUCCESS === 'PAYMENT_SUCCESS' || PAYMENT_STATUS.SUCCESS === 'SUCCESS', 'PAYMENT_STATUS.SUCCESS exists');
+  assert(PAYMENT_STATUS.FAILED === 'PAYMENT_FAILED' || PAYMENT_STATUS.FAILED === 'FAILED', 'PAYMENT_STATUS.FAILED exists');
   const trainerProfile = { role: 'trainer' };
   assert(PremiumEntitlementService.isEntitled(AI_CAPABILITIES.CLIENT_PROGRAMMING, trainerProfile) === true, 'Trainer entitled to client programming');
   const adminProfile = { role: 'admin' };

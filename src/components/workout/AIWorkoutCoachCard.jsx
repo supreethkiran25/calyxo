@@ -8,13 +8,14 @@ export default function AIWorkoutCoachCard({
   userProfile = {},
   historicalWorkoutLogs = [],
   recoveryScore = 82,
-  onStartSession,
-  onOpenUpgradeModal
+  onStartSession = () => {},
+  onOpenUpgradeModal = () => {}
 }) {
   const isPremium = SubscriptionManager.isPremium(userProfile);
   const [selectedSplit, setSelectedSplit] = useState('chest_triceps');
   const [equipment, setEquipment] = useState('gym');
   const [injuryFilter, setInjuryFilter] = useState('');
+  const [variationSeed, setVariationSeed] = useState(0);
 
   const [workout, setWorkout] = useState(() => {
     try {
@@ -22,7 +23,8 @@ export default function AIWorkoutCoachCard({
         goal: userProfile?.goal || 'hypertrophy',
         muscleGroup: 'chest_triceps',
         equipment: 'gym',
-        recoveryScore: recoveryScore || 82
+        recoveryScore: recoveryScore || 82,
+        variationIndex: 0
       });
     } catch (e) {
       return { title: 'Adaptive Daily Routine', recoveryScore: 82, exercises: [] };
@@ -40,14 +42,17 @@ export default function AIWorkoutCoachCard({
     }
   }, [workout, historicalWorkoutLogs]);
 
-  const handleRegenerate = (split = selectedSplit, eq = equipment, injury = injuryFilter) => {
+  const handleRegenerate = (split = selectedSplit, eq = equipment, injury = injuryFilter, bumpSeed = true) => {
     try {
+      const nextSeed = bumpSeed ? variationSeed + 1 : variationSeed;
+      if (bumpSeed) setVariationSeed(nextSeed);
       const w = AdaptiveWorkoutCoachEngine.generateAdaptiveWorkout({
         goal: userProfile?.goal || 'hypertrophy',
         muscleGroup: split,
         equipment: eq,
         injuryRestrictions: injury ? [injury] : [],
-        recoveryScore: recoveryScore || 82
+        recoveryScore: recoveryScore || 82,
+        variationIndex: nextSeed
       });
       setWorkout(w);
     } catch (e) {
@@ -56,73 +61,129 @@ export default function AIWorkoutCoachCard({
   };
 
   return (
-    <div className="w-full bg-[#0d0d10] border border-amber-500/20 rounded-3xl p-5 sm:p-7 shadow-xl space-y-6 relative overflow-hidden">
-      {/* Ambient Glow */}
-      <div className="absolute top-0 left-0 w-80 h-40 bg-gradient-to-b from-amber-500/10 to-transparent blur-3xl pointer-events-none rounded-full" />
-
+    <div className="w-full bg-surface border border-card-border rounded-3xl p-5 sm:p-7 shadow-card space-y-6 relative overflow-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black tracking-widest text-amber-400 uppercase flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-400" /> AI WORKOUT COACH & PROGRESSION
+            <span className="text-[10px] font-black tracking-widest text-accent uppercase flex items-center gap-1 font-mono">
+              <Sparkles className="w-3 h-3 text-accent" /> AI WORKOUT COACH & PROGRESSION
             </span>
             {!isPremium && <PremiumLockBadge onClick={() => onOpenUpgradeModal('AI Workout Coach')} />}
           </div>
-          <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-1">
+          <h3 className="text-xl sm:text-2xl font-black text-foreground tracking-tight mt-1">
             {workout?.title || "Today's Adaptive Workout"}
           </h3>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-secondary mt-0.5">
             Autoregulated by CNS recovery ({workout?.recoveryScore || 82}%) with progressive overload targets.
           </p>
         </div>
 
         {/* Start Workout Button */}
-        <button
-          onClick={() => {
-            if (!isPremium) {
-              onOpenUpgradeModal('AI Adaptive Workout');
-              return;
-            }
-            if (onStartSession) onStartSession(workout);
-          }}
-          className="px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-black font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-500/20 border-none shrink-0 self-start sm:self-auto"
-        >
-          <Play className="w-4 h-4 fill-black" />
-          <span>Launch AI Routine</span>
-        </button>
+        {isPremium && (
+          <button
+            onClick={() => {
+              if (onStartSession) onStartSession(workout);
+            }}
+            className="px-5 py-3 rounded-2xl bg-accent text-accent-foreground font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-accent/20 border-none shrink-0 self-start sm:self-auto hover:brightness-110 active:scale-95"
+          >
+            <Play className="w-4 h-4 fill-current" />
+            <span>Launch AI Routine</span>
+          </button>
+        )}
       </div>
 
+      {!isPremium ? (
+        <div className="relative rounded-2xl overflow-hidden border border-lime-500/20 bg-gradient-to-b from-[#12121A] to-[#0A0A10] p-6 sm:p-8 text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-lime-500/10 border border-lime-500/30 flex items-center justify-center mx-auto text-lime-400">
+            <Lock className="w-6 h-6" />
+          </div>
+          <div className="space-y-1.5 max-w-md mx-auto">
+            <h4 className="text-base sm:text-lg font-black text-white">Unlock Adaptive AI Workout Coach</h4>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Autoregulate your sets and volume dynamically with CNS readiness ({workout?.recoveryScore || 82}%), 4-week progressive overload curve tracking, and biomechanical injury substitutions.
+            </p>
+          </div>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => onOpenUpgradeModal?.('AI Workout Coach')}
+              className="px-6 py-3 rounded-2xl bg-[#CCFF00] text-black font-black text-xs uppercase tracking-wider hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-[#CCFF00]/15 cursor-pointer border-none"
+            >
+              ✨ Unlock with Calyxo High
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* 4-Week Baseline Progress Banner */}
-      <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="p-4 rounded-2xl bg-surface-subtle border border-card-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center text-accent shrink-0">
             <TrendingUp className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-emerald-300">
+            <h4 className="text-xs font-bold text-foreground">
               {baselineComparison.headline}
             </h4>
-            <p className="text-[11px] text-gray-400 mt-0.5">
+            <p className="text-[11px] text-secondary mt-0.5">
               {baselineComparison.fourWeekSummary}
             </p>
           </div>
         </div>
         <div className="text-right shrink-0">
-          <span className="text-xs font-mono font-bold text-white">
+          <span className="text-xs font-mono font-bold text-foreground">
             Peak: {baselineComparison.currentMaxLiftKg} kg
           </span>
-          <p className="text-[10px] text-gray-500">4-Wk Base: {baselineComparison.baselineMaxLiftKg} kg</p>
+          <p className="text-[10px] text-muted font-mono">4-Wk Base: {baselineComparison.baselineMaxLiftKg} kg</p>
         </div>
       </div>
 
       {/* Routine Customization Filters */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-gray-400 font-medium">Split:</span>
+      <div className="flex flex-col gap-3.5 p-4 bg-surface-subtle border border-card-border/60 rounded-2xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-secondary font-medium shrink-0">Equipment:</span>
+            {['gym', 'dumbbells_only'].map(eq => (
+              <button
+                key={eq}
+                onClick={() => {
+                  setEquipment(eq);
+                  handleRegenerate(selectedSplit, eq, injuryFilter);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase transition-all cursor-pointer ${
+                  equipment === eq
+                    ? 'bg-accent text-accent-foreground shadow-xs'
+                    : 'text-secondary hover:text-foreground bg-surface border border-card-border'
+                }`}
+              >
+                {eq === 'gym' ? 'Full Gym' : 'Dumbbells Only'}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => handleRegenerate(selectedSplit, equipment, injuryFilter)}
+            className="px-3.5 py-2 rounded-xl bg-surface hover:bg-surface-interactive text-xs font-bold text-foreground flex items-center justify-center gap-2 transition-all cursor-pointer border border-card-border shadow-xs active:scale-95 shrink-0"
+            title="Recalculate set volume and intensity based on recovery"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-accent" />
+            <span>⚡ Re-calc Volume (CNS {workout?.recoveryScore || 82}%)</span>
+          </button>
+        </div>
+
+        {/* Split selection chips */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar pt-1 border-t border-card-border/40">
+          <span className="text-xs text-secondary font-medium shrink-0 mr-1">Split:</span>
           {[
             { id: 'chest_triceps', label: 'Chest + Tri' },
-            { id: 'back_biceps', label: 'Back + Bi' }
+            { id: 'back_biceps', label: 'Back + Bi' },
+            { id: 'shoulders_legs', label: 'Shoulder + Leg' },
+            { id: 'shoulders_arms', label: 'Shoulders + Arms' },
+            { id: 'legs_glutes', label: 'Legs & Glutes' },
+            { id: 'push', label: 'Push' },
+            { id: 'pull', label: 'Pull' },
+            { id: 'full_body', label: 'Full Body' }
           ].map(s => (
             <button
               key={s.id}
@@ -130,42 +191,16 @@ export default function AIWorkoutCoachCard({
                 setSelectedSplit(s.id);
                 handleRegenerate(s.id, equipment, injuryFilter);
               }}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
                 selectedSplit === s.id
-                  ? 'bg-white/15 text-white border border-white/20'
-                  : 'text-gray-500 hover:text-gray-300'
+                  ? 'bg-accent text-accent-foreground shadow-xs'
+                  : 'text-secondary hover:text-foreground bg-surface border border-card-border'
               }`}
             >
               {s.label}
             </button>
           ))}
-
-          <span className="text-xs text-gray-400 font-medium ml-2">Equipment:</span>
-          {['gym', 'dumbbells_only'].map(eq => (
-            <button
-              key={eq}
-              onClick={() => {
-                setEquipment(eq);
-                handleRegenerate(selectedSplit, eq, injuryFilter);
-              }}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase transition-all ${
-                equipment === eq
-                  ? 'bg-white/15 text-white border border-white/20'
-                  : 'text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              {eq.replace('_', ' ')}
-            </button>
-          ))}
         </div>
-
-        <button
-          onClick={() => handleRegenerate(selectedSplit, equipment, injuryFilter)}
-          className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white flex items-center gap-1.5 transition-all cursor-pointer border-none"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>Adapt Volume</span>
-        </button>
       </div>
 
       {/* Generated Exercise Flow */}
@@ -173,34 +208,36 @@ export default function AIWorkoutCoachCard({
         {(workout?.exercises || []).map((ex, idx) => (
           <div
             key={ex.id || idx}
-            className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-amber-500/30 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+            className="p-4 rounded-2xl bg-surface-subtle border border-card-border hover:border-accent/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
           >
             <div className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+              <span className="w-6 h-6 rounded-lg bg-accent/15 text-accent font-black text-xs flex items-center justify-center shrink-0 mt-0.5 font-mono">
                 {idx + 1}
               </span>
               <div>
-                <h4 className="text-sm font-bold text-white">{ex.name}</h4>
-                <p className="text-[11px] text-gray-400 mt-0.5">{ex.notes}</p>
-                <div className="flex items-center gap-2 mt-1.5 text-[10px] text-gray-500">
-                  <span>Tempo: <strong className="text-gray-300">{ex.tempo}</strong></span>
+                <h4 className="text-sm font-bold text-foreground">{ex.name}</h4>
+                <p className="text-[11px] text-secondary mt-0.5">{ex.notes}</p>
+                <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted">
+                  <span>Tempo: <strong className="text-secondary">{ex.tempo}</strong></span>
                   <span>·</span>
-                  <span className="text-amber-400/90 font-semibold">{ex.rpe}</span>
+                  <span className="text-accent font-semibold">{ex.rpe}</span>
                 </div>
               </div>
             </div>
 
-            <div className="text-right sm:shrink-0 flex sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 border-white/5 pt-2 sm:pt-0">
-              <span className="text-xs font-mono font-bold text-white">
+            <div className="text-right sm:shrink-0 flex sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 border-card-border/60 pt-2 sm:pt-0">
+              <span className="text-xs font-mono font-bold text-foreground">
                 {ex.targetSets} Sets × {ex.targetReps} Reps
               </span>
-              <span className="text-[11px] font-mono text-emerald-400 font-bold">
+              <span className="text-[11px] font-mono text-accent font-bold">
                 {ex.suggestedWeightKg > 0 ? `${ex.suggestedWeightKg} kg Target` : 'Bodyweight'}
               </span>
             </div>
           </div>
         ))}
       </div>
+        </>
+      )}
     </div>
   );
 }

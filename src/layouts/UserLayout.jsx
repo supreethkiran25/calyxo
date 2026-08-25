@@ -1,6 +1,11 @@
-import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
+import smartReminderEngine from '../services/notifications/SmartReminderEngine';
+import { getUserTimezone } from '../utils/dateUtils';
+import { toast } from 'sonner';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { Capacitor } from '@capacitor/core';
+import React, { useState, useEffect, useRef, Suspense, lazy, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home as HomeIcon, BookOpen, BarChart2, User, Users, LogOut, Bot, X, TrendingUp, Heart, Search, Menu, Plus, Crown, Lock, Bell, CheckCheck, Trash } from 'lucide-react';
+import { Home as HomeIcon, BookOpen, BarChart2, User, Users, LogOut, Bot, X, TrendingUp, Heart, Search, Menu, Plus, Crown, Lock, Bell, CheckCheck, Trash, Flame } from 'lucide-react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
@@ -38,8 +43,9 @@ const DESKTOP_NAV = [
       { id: 'dashboard', href: '/user/dashboard', label: 'Home', icon: HomeIcon },
       { id: 'nutrition', href: '/user/nutrition', label: 'Nutrition', icon: BookOpen },
       { id: 'workout', href: '/user/workout', label: 'Workout', icon: BarChart2 },
-      { id: 'health', href: '/user/health', label: 'Recovery', icon: Heart },
-      { id: 'progress', href: '/user/progress', label: 'Challenges', icon: TrendingUp },
+      { id: 'health', href: '/user/health', label: 'Health Hub', icon: Heart },
+      { id: 'challenges', href: '/user/challenges', label: 'Challenges', icon: Flame },
+      { id: 'progress', href: '/user/progress', label: 'Progress Hub', icon: TrendingUp },
       { id: 'ai', href: '/user/ai', label: 'AI', icon: Bot, isPremium: true },
     ]
   },
@@ -57,6 +63,7 @@ export default function UserLayout() {
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
   const [systemSettings, setSystemSettings] = useState(() => {
     try {
       const local = localStorage.getItem('calyxo_system_settings');
@@ -67,6 +74,14 @@ export default function UserLayout() {
   });
 
   const navigate = useNavigate();
+  const triggerNavHaptic = useCallback(async () => {
+    try {
+      if (Capacitor.isNativePlatform()) {
+        await Haptics.impact({ style: ImpactStyle.Light });
+      }
+    } catch (e) {}
+  }, []);
+
   const mainRef = useRef(null);
 
   const user = useStore(state => state.user);
@@ -221,6 +236,9 @@ export default function UserLayout() {
         const uid = authUser.uid || authUser.id;
         const seq = ++authSeq;
 
+        // Initialize user-scoped ecosystem store for this specific user
+        useEcosystemStore.getState().initUserEcosystem(uid);
+
         const { profile, foods, workouts, weights, water, waterLogs, ecosystem } = await loadUserData(uid);
 
         // Discard if a newer auth callback already completed.
@@ -231,13 +249,13 @@ export default function UserLayout() {
         }
 
         const store = useStore.getState();
-        if (foods && (foods.length > 0 || store.foodLogs.length === 0)) store.setFoodLogs(foods);
-        if (workouts && (workouts.length > 0 || store.workoutLogs.length === 0)) store.setWorkoutLogs(workouts);
-        if (weights && (weights.length > 0 || store.weightLogs.length === 0)) store.setWeightLogs(weights);
+        store.setFoodLogs(foods || []);
+        store.setWorkoutLogs(workouts || []);
+        store.setWeightLogs(weights || []);
         if (water !== undefined && water !== null) setWaterIntake(water);
         if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
         useEcosystemStore.getState().checkDailyLoginStreak();
-        const waterTarget = Number(profile?.waterGoal || profile?.waterTarget || store.userProfile?.waterTarget || 2500);
+        const waterTarget = Number(profile?.waterGoal || profile?.waterTarget || store.userProfile?.waterTarget || 3000);
         useEcosystemStore.getState().recalculateDynamicStreaks(foods || [], workouts || [], waterLogs || [], waterTarget);
         syncWidgetData();
         setIsProfileLoading(false);
@@ -249,27 +267,117 @@ export default function UserLayout() {
     return () => unsubscribeAuth();
   }, []);
 
+  // Auto-sync widgets on focus, visibility change, and online reconnect
+  useEffect(() => {
+    const handleSync = () => {
+      syncWidgetData();
+    };
+
+    window.addEventListener('focus', handleSync);
+    window.addEventListener('online', handleSync);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') handleSync();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('focus', handleSync);
+      window.removeEventListener('online', handleSync);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
+
+  // Smart User Engagement & Logging Reminders (Throttled to prevent spam & notification fatigue)
+  const lastSmartReminderRunRef = useRef(0);
+  const seenToastKeysRef = useRef(new Set());
+
+  useEffect(() => {
+    const runSmartReminders = async (isForced = false) => {
+      try {
+        const now = Date.now();
+        if (!isForced && now - lastSmartReminderRunRef.current < 45 * 60 * 1000) {
+          return;
+        }
+        lastSmartReminderRunRef.current = now;
+
+        const uid = user?.uid || user?.id || 'user_default';
+        const tz = getUserTimezone();
+        const store = useStore.getState();
+        const eco = useEcosystemStore.getState();
+
+        const reminderContext = {
+          userId: uid,
+          userName: store.userProfile?.firstName || store.userProfile?.nickname || user?.displayName?.split(' ')[0] || 'Athlete',
+          timeZone: tz,
+          waterIntake: store.waterIntake || 0,
+          waterTarget: Number(store.userProfile?.waterGoal || store.userProfile?.waterTarget || 3000),
+          foodLogs: store.foodLogs || [],
+          workoutLogs: store.workoutLogs || [],
+          streak: eco.streaks?.loginStreak || 1,
+          workoutStreak: eco.streaks?.workoutStreak || 0,
+          stepCount: (() => {
+            try {
+              const todayKey = 'calyxo_pedometer_steps_' + new Date().toISOString().split('T')[0];
+              return parseInt(localStorage.getItem(todayKey) || '0', 10);
+            } catch (e) { return 0; }
+          })(),
+          stepGoal: Number(store.userProfile?.stepGoal || store.userProfile?.dailySteps || 10000),
+          schedule: store.userProfile?.schedule || {
+            wakeTime: '06:30',
+            breakfastTime: '08:30',
+            lunchTime: '13:00',
+            snackTime: '17:00',
+            workoutTime: '18:30',
+            dinnerTime: '20:30',
+            sleepTime: '23:00'
+          }
+        };
+
+        // 1. Evaluate any milestones ready to fire right now (strictly deduplicated: max 1 message per type per day)
+        await smartReminderEngine.evaluateAndTriggerReminders(reminderContext);
+        // 2. Pre-schedule future daily milestones with OS if not already scheduled today
+        await smartReminderEngine.scheduleDailyPlan(reminderContext);
+      } catch (err) {
+        console.warn('[UserLayout] Smart Reminder error:', err);
+      }
+    };
+
+    runSmartReminders(false);
+    const interval = setInterval(() => runSmartReminders(true), 45 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [user?.uid]);
+
   // Realtime cross-device data sync, Web Push engine, and tab focus re-sync
   useEffect(() => {
     const uid = user?.uid || user?.id;
     if (!uid) return;
 
-    // Register service worker and subscribe to W3C Web Push
-    registerServiceWorker().then(() => {
-      subscribeToPushNotifications(uid);
-    });
+    // Register service worker and subscribe to W3C Web Push (non-fatal on native)
+    try {
+      registerServiceWorker().then(() => {
+        try { subscribeToPushNotifications(uid); } catch (e) {}
+      }).catch(() => {});
+    } catch (e) {}
 
-    // 1. In-app notifications realtime subscription
+    // 1. In-app notifications realtime subscription with strict deduplication
     const unsubNotifs = subscribeToInAppNotifications(uid, (notifsList, incomingItem) => {
-      setNotifications(notifsList || []);
-      if (incomingItem && incomingItem.title) {
-        toast(incomingItem.title, {
-          description: incomingItem.body,
-          action: incomingItem.cta_link ? {
-            label: incomingItem.cta_label || 'View',
-            onClick: () => navigate(incomingItem.cta_link)
-          } : undefined
-        });
+      try {
+        setNotifications(notifsList || []);
+        if (incomingItem && incomingItem.title) {
+          const toastKey = `${incomingItem.id || incomingItem.notification_id || incomingItem.title}_${incomingItem.created_at || ''}`;
+          if (!seenToastKeysRef.current.has(toastKey)) {
+            seenToastKeysRef.current.add(toastKey);
+            toast(incomingItem.title, {
+              description: incomingItem.body,
+              action: incomingItem.cta_link ? {
+                label: incomingItem.cta_label || 'View',
+                onClick: () => navigate(incomingItem.cta_link)
+              } : undefined
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('[UserLayout] Notification display error:', e);
       }
     });
 
@@ -286,7 +394,7 @@ export default function UserLayout() {
       if (weights && (weights.length > 0 || store.weightLogs.length === 0)) store.setWeightLogs(weights);
       if (water !== undefined && water !== null) store.setWaterIntake(water);
       if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
-      const waterTarget = Number(profile?.waterGoal || profile?.waterTarget || store.userProfile?.waterTarget || 2500);
+      const waterTarget = Number(profile?.waterGoal || profile?.waterTarget || store.userProfile?.waterTarget || 3000);
       useEcosystemStore.getState().recalculateDynamicStreaks(foods || [], workouts || [], waterLogs || [], waterTarget);
     });
 
@@ -309,7 +417,7 @@ export default function UserLayout() {
       if (weights && (weights.length > 0 || store.weightLogs.length === 0)) store.setWeightLogs(weights);
       if (water !== undefined && water !== null) store.setWaterIntake(water);
       if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
-      const waterTarget = Number(profile?.waterGoal || profile?.waterTarget || store.userProfile?.waterTarget || 2500);
+      const waterTarget = Number(profile?.waterGoal || profile?.waterTarget || store.userProfile?.waterTarget || 3000);
       useEcosystemStore.getState().recalculateDynamicStreaks(foods || [], workouts || [], waterLogs || [], waterTarget);
     };
 
@@ -442,9 +550,9 @@ export default function UserLayout() {
               className="p-2 text-muted hover:text-foreground transition-colors bg-transparent border-none cursor-pointer rounded-full hover:bg-surface relative"
             >
               <Bell className="w-5 h-5" />
-              {notifications.filter(n => !n.read).length > 0 && (
+              {unreadCount > 0 && (
                 <span className="absolute top-0 right-0 w-4 h-4 rounded-full bg-acid-green text-black text-[9px] font-black flex items-center justify-center">
-                  {notifications.filter(n => !n.read).length}
+                  {unreadCount}
                 </span>
               )}
             </button>
@@ -456,44 +564,46 @@ export default function UserLayout() {
       </aside>
 
       {/* Mobile Header & Content */}
-      <div className="flex-1 flex flex-col relative z-10 w-full lg:w-auto h-[100dvh] overflow-hidden">
+      <div className="flex-1 flex flex-col w-full lg:w-auto h-[100dvh] overflow-hidden">
         {/* Mobile Header */}
-        <header className="lg:hidden h-[calc(3.5rem+env(safe-area-inset-top,0px))] pt-safe border-b border-card-border bg-background/90 backdrop-blur-xl flex items-center justify-between px-4 sticky top-0 z-30 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <button onClick={() => setIsMobileDrawerOpen(true)} aria-label="Open Navigation Drawer" className="p-2 text-foreground bg-transparent border-none cursor-pointer">
-              <Menu className="w-6 h-6" />
-            </button>
-            <Link 
-              to="/user/dashboard" 
-              onClick={handleLogoClick}
-              className="flex items-center gap-2.5 cursor-pointer hover:opacity-90 transition-opacity no-underline text-current"
-            >
-              <Logo className="w-7 h-7 text-acid-green" glow={true} />
-              <span className="brand-name text-base text-foreground tracking-wider leading-none">CALYXO</span>
-              {isSubscribed && (
-                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-acid-green/15 text-acid-green border border-acid-green/30 text-[8px] font-black uppercase tracking-wider" title={`Subscribed: ${subscriptionPlan}`}>
-                  <Crown className="w-3 h-3 text-acid-green shrink-0 animate-pulse" />
-                  <span>{subscriptionPlan}</span>
-                </div>
-              )}
-            </Link>
-          </div>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setIsNotifDrawerOpen(true)} 
-              aria-label="Open Notifications" 
-              className="p-2 text-foreground bg-transparent border-none cursor-pointer relative"
-            >
-              <Bell className="w-5 h-5 text-muted hover:text-foreground transition-colors" />
-              {notifications.filter(n => !n.read).length > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-acid-green text-black text-[9px] font-black flex items-center justify-center animate-bounce">
-                  {notifications.filter(n => !n.read).length}
-                </span>
-              )}
-            </button>
-            <button onClick={() => setIsSearchOpen(true)} aria-label="Open Search" className="p-2 text-foreground bg-transparent border-none cursor-pointer">
-              <Search className="w-5 h-5" />
-            </button>
+        <header className="lg:hidden pt-[max(env(safe-area-inset-top,0px),0.75rem)] border-b border-card-border bg-background/95 backdrop-blur-xl sticky top-0 z-30 shrink-0">
+          <div className="h-14 flex items-center justify-between px-4 w-full">
+            <div className="flex items-center gap-2.5">
+              <button onClick={() => setIsMobileDrawerOpen(true)} aria-label="Open Navigation Drawer" className="p-2 text-foreground bg-transparent border-none cursor-pointer">
+                <Menu className="w-6 h-6" />
+              </button>
+              <Link 
+                to="/user/dashboard" 
+                onClick={handleLogoClick}
+                className="flex items-center gap-2.5 cursor-pointer hover:opacity-90 transition-opacity no-underline text-current"
+              >
+                <Logo className="w-7 h-7 text-accent" glow={true} />
+                <span className="brand-name text-base text-accent tracking-wider leading-none">CALYXO</span>
+                {isSubscribed && (
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30 text-[8px] font-black uppercase tracking-wider" title={`Subscribed: ${subscriptionPlan}`}>
+                    <Crown className="w-3 h-3 text-accent shrink-0 animate-pulse" />
+                    <span>{subscriptionPlan}</span>
+                  </div>
+                )}
+              </Link>
+            </div>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setIsNotifDrawerOpen(true)} 
+                aria-label="Open Notifications" 
+                className="p-2 text-foreground bg-transparent border-none cursor-pointer relative"
+              >
+                <Bell className="w-5 h-5 text-[var(--text-secondary)] hover:text-foreground transition-colors" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-accent text-accent-foreground text-[9px] font-black flex items-center justify-center animate-bounce">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+              <button onClick={() => setIsSearchOpen(true)} aria-label="Open Search" className="p-2 text-[var(--text-secondary)] hover:text-foreground bg-transparent border-none cursor-pointer">
+                <Search className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </header>
 
@@ -504,12 +614,13 @@ export default function UserLayout() {
           </div>
         </main>
         {/* Mobile Bottom Navigation */}
-        <nav aria-label="Mobile Navigation" className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-card-border z-30 px-2 pb-safe shadow-2xl transform-gpu will-change-transform">
+        <nav aria-label="Mobile Navigation" className="lg:hidden fixed bottom-0 left-0 right-0 bg-nav-bg backdrop-blur-md border-t border-card-border z-30 px-2 pb-safe shadow-card transform-gpu will-change-transform">
           <div className="flex items-center justify-around h-16 max-w-md mx-auto">
             <Link
               to="/user/dashboard"
               aria-label="Home Dashboard"
               onClick={() => {
+                triggerNavHaptic();
                 setIsQuickActionsOpen(false);
                 setIsMobileDrawerOpen(false);
                 setIsNotifDrawerOpen(false);
@@ -517,7 +628,7 @@ export default function UserLayout() {
                 if (mainRef.current) mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
               }}
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
-                pathname === '/user/dashboard' ? 'text-acid-green font-black' : 'text-muted hover:text-foreground'
+                pathname === '/user/dashboard' ? 'text-accent font-black drop-shadow-[0_0_10px_rgba(204,255,0,0.3)]' : 'text-[var(--text-secondary)] hover:text-foreground'
               }`}
             >
               <HomeIcon className="w-5 h-5 pointer-events-none" />
@@ -526,8 +637,9 @@ export default function UserLayout() {
             <Link
               to="/user/nutrition"
               aria-label="Nutrition Page"
+              onClick={triggerNavHaptic}
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
-                pathname === '/user/nutrition' ? 'text-acid-green font-black' : 'text-muted hover:text-foreground'
+                pathname === '/user/nutrition' ? 'text-accent font-black drop-shadow-[0_0_10px_rgba(204,255,0,0.3)]' : 'text-[var(--text-secondary)] hover:text-foreground'
               }`}
             >
               <BookOpen className="w-5 h-5 pointer-events-none" />
@@ -536,20 +648,24 @@ export default function UserLayout() {
             
             {/* Quick Create Action Button */}
             <button
-              onClick={() => setIsQuickActionsOpen(true)}
+              onClick={() => {
+                triggerNavHaptic();
+                setIsQuickActionsOpen(true);
+              }}
               aria-label="Quick Action Menu"
               className="flex flex-col items-center justify-center -mt-5 border-none bg-transparent outline-none cursor-pointer group touch-manipulation transform-gpu"
             >
-              <div className="w-12 h-12 rounded-full bg-acid-green text-black flex items-center justify-center shadow-lg shadow-acid-green/40 active:scale-90 group-hover:scale-105 transition-all">
-                <Plus className="w-6 h-6 stroke-[3] pointer-events-none" />
+              <div className="w-12 h-12 rounded-full bg-accent text-accent-foreground flex items-center justify-center shadow-lg shadow-accent/40 active:scale-90 group-hover:scale-105 transition-all">
+                <Plus className="w-6 h-6 stroke-[3] text-black pointer-events-none" />
               </div>
             </button>
 
             <Link
               to="/user/workout"
               aria-label="Workout Page"
+              onClick={triggerNavHaptic}
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
-                pathname === '/user/workout' ? 'text-acid-green font-black' : 'text-muted hover:text-foreground'
+                pathname === '/user/workout' ? 'text-accent font-black drop-shadow-[0_0_10px_rgba(204,255,0,0.3)]' : 'text-[var(--text-secondary)] hover:text-foreground'
               }`}
             >
               <BarChart2 className="w-5 h-5 pointer-events-none" />
@@ -558,8 +674,9 @@ export default function UserLayout() {
             <Link
               to="/user/profile"
               aria-label="Profile Settings Page"
+              onClick={triggerNavHaptic}
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
-                pathname === '/user/profile' ? 'text-acid-green font-black' : 'text-muted hover:text-foreground'
+                pathname === '/user/profile' ? 'text-accent font-black drop-shadow-[0_0_10px_rgba(204,255,0,0.3)]' : 'text-[var(--text-secondary)] hover:text-foreground'
               }`}
             >
               <User className="w-5 h-5 pointer-events-none" />
@@ -600,38 +717,51 @@ export default function UserLayout() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-end bg-black/80 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-50 flex justify-end bg-black/80 backdrop-blur-sm p-0 sm:p-4"
           >
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="w-full max-w-md h-full bg-neutral-900 border border-neutral-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden p-6 space-y-4"
+              className="w-full sm:max-w-md h-full bg-surface border-l sm:border border-card-border sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden p-5 sm:p-6 space-y-4 pt-[max(env(safe-area-inset-top,0px),1.25rem)] pb-[max(env(safe-area-inset-bottom,0px),1.25rem)]"
             >
-              <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-xl bg-acid-green/10 text-acid-green border border-acid-green/20">
+              <div className="flex items-center justify-between border-b border-card-border pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2.5 rounded-2xl bg-accent/15 text-accent border border-accent/20">
                     <Bell className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-white">Notifications</h3>
-                    <p className="text-xs text-neutral-400 font-mono">
-                      {notifications.filter(n => !n.read).length} Unread Messages
+                    <h3 className="text-base font-bold text-foreground">Notifications</h3>
+                    <p className="text-xs text-muted font-mono">
+                      {unreadCount} Unread Messages
                     </p>
                   </div>
                 </div>
-                <button 
-                  onClick={() => setIsNotifDrawerOpen(false)} 
-                  className="p-1.5 rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800 cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-1.5">
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={async () => {
+                        await markAllNotificationsAsRead();
+                        setNotifications(prev => prev.map(x => ({ ...x, read: true })));
+                      }}
+                      className="text-[10px] font-bold text-accent px-2.5 py-1 rounded-full bg-accent/10 hover:bg-accent/20 border border-accent/20 cursor-pointer"
+                    >
+                      Read All
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => setIsNotifDrawerOpen(false)} 
+                    className="p-2 rounded-xl text-muted hover:text-foreground hover:bg-surface-elevated cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar">
                 {notifications.length === 0 ? (
-                  <div className="text-center py-12 space-y-2 text-neutral-500 text-xs">
+                  <div className="text-center py-12 space-y-2 text-muted text-xs">
                     <Bell className="w-8 h-8 mx-auto opacity-40" />
                     <p>No notifications yet.</p>
                   </div>
@@ -640,11 +770,11 @@ export default function UserLayout() {
                     <div 
                       key={n.id} 
                       className={`p-4 rounded-2xl border transition-all space-y-2 ${
-                        n.read ? 'bg-neutral-950/40 border-neutral-800/60 opacity-80' : 'bg-neutral-900 border-indigo-500/40 shadow-lg shadow-indigo-500/5'
+                        n.read ? 'bg-surface/50 border-card-border/60 opacity-75' : 'bg-card-bg border-acid-green/30 shadow-lg shadow-acid-green/5'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <h4 className="text-xs font-bold text-white leading-tight">{n.title}</h4>
+                        <h4 className="text-xs font-bold text-foreground leading-tight">{n.title}</h4>
                         <div className="flex items-center gap-1 shrink-0">
                           {!n.read && (
                             <button
@@ -670,8 +800,8 @@ export default function UserLayout() {
                           </button>
                         </div>
                       </div>
-                      <p className="text-xs text-neutral-300 leading-relaxed">{n.body}</p>
-                      <div className="flex items-center justify-between text-[10px] text-neutral-500 font-mono pt-1">
+                      <p className="text-xs text-muted-foreground leading-relaxed">{n.body}</p>
+                      <div className="flex items-center justify-between text-[10px] text-muted font-mono pt-1">
                         <span>{n.created_at ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}</span>
                         {n.cta_link && (
                           <Link 

@@ -58,7 +58,7 @@ export default function ProgressUploadModal() {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-[calc(1rem+env(safe-area-inset-top,0px))]">
         <motion.div 
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           className="absolute inset-0 bg-background/80 backdrop-blur-sm"
@@ -69,7 +69,11 @@ export default function ProgressUploadModal() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="relative w-full max-w-md bg-surface border border-card-border rounded-3xl p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto custom-scrollbar"
+          data-keyboard-scroll="true"
+          style={{
+            maxHeight: 'min(88dvh, calc(100dvh - var(--keyboard-height, 0px) - 20px))'
+          }}
+          className="relative w-full max-w-md bg-surface border border-card-border rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col overflow-y-auto scrollbar-thin modal-scroll-body"
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
@@ -154,7 +158,7 @@ export default function ProgressUploadModal() {
             <button 
               onClick={handleSave}
               disabled={isSaving || (!weight && !photo)}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              className="w-full py-3.5 bg-accent hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed text-accent-foreground rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer border-none shadow-md active:scale-[0.98]"
             >
               {isSaving ? (
                 <>

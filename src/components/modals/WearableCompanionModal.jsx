@@ -35,7 +35,7 @@ export default function WearableCompanionModal({ isOpen, onClose, onNotification
   const protein = Math.round(todaysLogs.reduce((s, x) => s + (Number(x.protein) || 0), 0));
   const calGoal = Number(userProfile?.calorieGoal || userProfile?.dailyCalories || 2000);
   const protGoal = Number(userProfile?.proteinGoal || 150);
-  const waterGoal = Number(userProfile?.waterGoal || 2500);
+  const waterGoal = Number(userProfile?.waterGoal || userProfile?.waterTarget || 3000);
 
   if (!isOpen) return null;
 
@@ -101,43 +101,44 @@ export default function WearableCompanionModal({ isOpen, onClose, onNotification
   const waterPercent = Math.min(100, Math.round((waterIntake / Math.max(1, waterGoal)) * 100));
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-[calc(1rem+env(safe-area-inset-top,0px))] bg-black/80 backdrop-blur-xl">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="w-full max-w-2xl bg-[#0A0A0C] border border-white/10 rounded-3xl overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_40px_rgba(16,185,129,0.15)] flex flex-col max-h-[90vh]"
+        exit={{ opacity: 0, scale: 0.95, y: 15 }}
+        className="w-full max-w-2xl bg-[#0A0A0C] border border-white/10 rounded-3xl overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_40px_rgba(16,185,129,0.15)] flex flex-col max-h-[85dvh]"
       >
         {/* Header */}
-        <div className="p-5 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <Watch className="w-5 h-5" />
+        <div className="p-3.5 sm:p-5 border-b border-white/10 flex items-center justify-between bg-white/[0.02] shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+              <Watch className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-black text-white uppercase tracking-wider">
+                <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wider">
                   Calyxo Wearable OS Studio
                 </h3>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-black text-emerald-400 uppercase tracking-widest">
+                <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[8px] sm:text-[9px] font-black text-emerald-400 uppercase tracking-widest">
                   AUTO-PAIRED
                 </span>
               </div>
-              <p className="text-xs text-gray-400">
+              <p className="text-[11px] sm:text-xs text-gray-400 leading-tight">
                 Live interactive companion app automatically installed on Apple Watch & Wear OS
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-400 hover:text-white cursor-pointer transition-colors border-none"
+            aria-label="Close modal"
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-400 hover:text-white cursor-pointer transition-colors border-none shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-6 flex-1 scrollbar-thin">
           {/* Controls Bar: Model & Dial Selector */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white/[0.03] p-2.5 rounded-2xl border border-white/5">
             {/* Device Form Factor */}

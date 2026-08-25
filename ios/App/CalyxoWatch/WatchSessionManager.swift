@@ -8,7 +8,7 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
     @Published var calories: Int = 0
     @Published var calorieGoal: Int = 2000
     @Published var water: Int = 0
-    @Published var waterGoal: Int = 2500
+    @Published var waterGoal: Int = 3000
     @Published var protein: Int = 0
     @Published var proteinGoal: Int = 150
     @Published var activeWorkoutName: String = "Rest Day"

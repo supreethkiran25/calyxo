@@ -13,6 +13,7 @@
  */
 
 import crypto from 'crypto';
+globalThis._nodeCrypto = crypto;
 import {
   SubscriptionManager,
   SUBSCRIPTION_STATES,

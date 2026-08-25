@@ -36,7 +36,7 @@ export default function HealthSettingsModal({ isOpen, onClose, onNotification })
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-[calc(1rem+env(safe-area-inset-top,0px))]">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -51,7 +51,7 @@ export default function HealthSettingsModal({ isOpen, onClose, onNotification })
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="relative w-full max-w-lg bg-surface border border-card-border rounded-3xl p-6 shadow-2xl space-y-6 max-h-[85vh] overflow-y-auto text-foreground"
+          className="relative w-full max-w-lg bg-surface border border-card-border rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-6 max-h-[85dvh] overflow-y-auto text-foreground scrollbar-thin"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-card-border pb-4">

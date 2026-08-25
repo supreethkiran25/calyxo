@@ -28,10 +28,20 @@ export default async function handler(req, res) {
 
   const { userId, title, body, url, tag, badge, icon } = req.body || {};
 
-
   if (!userId) {
     return res.status(400).json({ error: 'userId is required' });
   }
+
+  // SECURITY: Ensure authenticated user only triggers notifications for their own account unless Super Admin
+  const isSuperAdmin = authUser.role === 'super_admin' || authUser.user_metadata?.role === 'super_admin' || authUser.email === 'supreethkiran25@gmail.com';
+  if (authUser.id !== userId && !isSuperAdmin) {
+    return res.status(403).json({ error: 'Forbidden: You cannot send notifications to another user.' });
+  }
+
+  // Input Sanitization & Length Bounds
+  const cleanTitle = typeof title === 'string' ? title.substring(0, 100).trim() : 'Calyxo';
+  const cleanBody = typeof body === 'string' ? body.substring(0, 300).trim() : 'Your workout is waiting for you.';
+  const cleanUrl = typeof url === 'string' && (url.startsWith('/') || url.startsWith('https://')) ? url : '/user/dashboard';
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
@@ -55,11 +65,11 @@ export default async function handler(req, res) {
     }
 
     const payload = JSON.stringify({
-      title: title || 'Calyxo',
-      body: body || 'Your workout is waiting for you.',
+      title: cleanTitle,
+      body: cleanBody,
       icon: icon || '/icon-192x192.png',
       badge: badge || '/icon-192x192.png',
-      url: url || '/user/dashboard',
+      url: cleanUrl,
       tag: tag || 'calyxo-push'
     });
 

@@ -83,7 +83,7 @@ export function getApiBaseUrl() {
 export const verifyPaymentSignature = ({ orderId, paymentId, signature, keySecret }) => {
   if (!orderId || !paymentId || !signature || !keySecret) return false;
   try {
-    const cryptoObj = (typeof globalThis !== 'undefined' && (globalThis.cryptoModule || globalThis._nodeCrypto)) || (typeof require === 'function' ? require('crypto') : null);
+    const cryptoObj = (typeof globalThis !== 'undefined' && (globalThis.cryptoModule || globalThis._nodeCrypto)) || null;
     if (cryptoObj && cryptoObj.createHmac) {
       const expected = cryptoObj.createHmac('sha256', keySecret).update(`${orderId}|${paymentId}`).digest('hex');
       return expected === signature;

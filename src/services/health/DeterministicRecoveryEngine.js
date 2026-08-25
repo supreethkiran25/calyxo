@@ -31,18 +31,19 @@ export function calculateDeterministicRecovery({
   waterGoalMl = 3000,
   proteinGrams = 0,
   proteinGoalGrams = 150,
+  activeCaloriesBurned = 0,
   soreness = 5, // 1 (none) to 10 (severe)
   fatigue = 5,  // 1 (fresh) to 10 (exhausted)
   restingHR = 0,
   hasLoggedWorkoutToday = false
 }) {
   // Guard: If zero metrics have ever been recorded, return unavailable
-  if (sleepHours <= 0 && waterMl <= 0 && proteinGrams <= 0 && !hasLoggedWorkoutToday && restingHR <= 0) {
+  if (sleepHours <= 0 && waterMl <= 0 && proteinGrams <= 0 && !hasLoggedWorkoutToday && restingHR <= 0 && activeCaloriesBurned <= 0) {
     return {
       available: false,
       score: null,
       readiness: 'UNAVAILABLE',
-      message: 'Not enough data. Connect sleep and heart-rate data to improve recovery accuracy.',
+      message: 'Not enough data. Connect sleep, heart-rate, and activity data to improve recovery accuracy.',
       recommendation: 'Connect sleep and heart-rate data to improve recovery accuracy.',
       breakdown: null
     };
@@ -85,8 +86,13 @@ export function calculateDeterministicRecovery({
     }
   }
 
-  // 7. Today's Workout Load impact (-5 points if heavy session already logged)
-  const workoutLoadDeduction = hasLoggedWorkoutToday ? 5 : 0;
+  // 7. Active Energy & Workout Load impact (-5 to -10 points based on calorie burn vs refuel)
+  let metabolicBurnDeduction = 0;
+  if (activeCaloriesBurned > 600) {
+    metabolicBurnDeduction = 6;
+  } else if (activeCaloriesBurned > 300 || hasLoggedWorkoutToday) {
+    metabolicBurnDeduction = 4;
+  }
 
   // Aggregate final recovery score
   const totalScore = Math.max(
@@ -96,11 +102,11 @@ export function calculateDeterministicRecovery({
       baseScore +
         sleepPoints +
         waterPoints +
-        proteinPoints -
-        sorenessDeduction -
-        fatigueDeduction +
+        proteinPoints +
         hrModifier -
-        workoutLoadDeduction
+        sorenessDeduction -
+        fatigueDeduction -
+        metabolicBurnDeduction
     )
   );
 

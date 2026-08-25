@@ -55,7 +55,9 @@ export async function verifyAuthUser(req) {
             .update(`${headerB64}.${payloadB64}`)
             .digest('base64url');
 
-          if (crypto.timingSafeEqual(Buffer.from(signatureB64), Buffer.from(expectedSig))) {
+          const sigBuf = Buffer.from(signatureB64);
+          const expBuf = Buffer.from(expectedSig);
+          if (sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf)) {
             const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
             const now = Math.floor(Date.now() / 1000);
 

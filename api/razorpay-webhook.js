@@ -22,8 +22,10 @@ export default async function handler(req, res) {
     const bodyStr = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
     shasum.update(bodyStr);
     const digest = shasum.digest('hex');
+    const digestBuf = Buffer.from(digest, 'hex');
+    const sigBuf = Buffer.from(signature, 'hex');
 
-    if (!crypto.timingSafeEqual(Buffer.from(digest, 'hex'), Buffer.from(signature, 'hex'))) {
+    if (digestBuf.length !== sigBuf.length || !crypto.timingSafeEqual(digestBuf, sigBuf)) {
       return res.status(400).json({ error: 'Invalid webhook signature' });
     }
 
@@ -40,6 +42,20 @@ export default async function handler(req, res) {
       const paymentId = payload.id;
 
       if (userEmail && (eventType === 'payment.captured' || eventType === 'order.paid' || eventType === 'subscription.charged')) {
+        // Idempotency: Check if this paymentId was already processed
+        if (paymentId) {
+          const { data: existingAudit } = await supabase
+            .from('admin_audit_logs')
+            .select('id')
+            .eq('action', 'WEBHOOK_PAYMENT_CAPTURED')
+            .filter('details->>payment_id', 'eq', paymentId)
+            .maybeSingle();
+
+          if (existingAudit) {
+            return res.status(200).json({ status: 'ok', event: eventType, note: 'Payment already processed (idempotent duplicate)' });
+          }
+        }
+
         // Find matching profile by email
         const { data: profile } = await supabase
           .from('user_profiles')
@@ -67,7 +83,7 @@ export default async function handler(req, res) {
             payment_source: 'Razorpay',
             payment_id: paymentId || `pay_wh_${Date.now()}`,
             amount: (payload.amount ? payload.amount / 100 : 2),
-            currency: 'INR',
+            currency: payload.currency || 'INR',
             updated_at: now.toISOString()
           }, { onConflict: 'user_id' });
 
@@ -75,12 +91,13 @@ export default async function handler(req, res) {
             admin_id: 'Razorpay Webhook Engine',
             action: 'WEBHOOK_PAYMENT_CAPTURED',
             target_id: profile.id,
-            details: JSON.stringify({
+            details: {
               event: eventType,
               payment_id: paymentId,
               email: userEmail,
-              amount: payload.amount ? payload.amount / 100 : 2
-            })
+              amount: payload.amount ? payload.amount / 100 : 2,
+              currency: payload.currency || 'INR'
+            }
           });
         }
       }
@@ -89,6 +106,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ status: 'ok', event: eventType });
   } catch (err) {
     console.error('Razorpay webhook processing exception:', err);
-    return res.status(500).json({ error: err.message || 'Webhook processing failed' });
+    return res.status(500).json({ error: 'Webhook processing failed' });
   }
 }

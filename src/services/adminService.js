@@ -46,52 +46,36 @@ export const isSuperAdmin = (user) => {
   if (!user || typeof user !== 'object') return false;
   const email = (user.email || '')?.toLowerCase().trim();
   if (!SUPER_ADMIN_EMAILS.includes(email)) return false;
-  return user.role === 'super_admin' || user.user_metadata?.role === 'super_admin' || user.isAdminSession === true;
+  return user.role === 'super_admin' || user.user_metadata?.role === 'super_admin';
 };
 
 export const verifyAdminAccessRPC = async () => {
-  // 1. Instant local session check to prevent blocking and reload delay
-  if (typeof window !== 'undefined') {
-    try {
-      const savedSession = JSON.parse(localStorage.getItem('calyxo_admin_session') || '{}');
-      if (isSuperAdmin(savedSession)) {
-        return true;
-      }
-    } catch (e) {}
-  }
-
-  if (isMockMode) {
+  // Only allow mock bypass in local development
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV && isMockMode) {
     return true;
   }
 
-  // 2. Race remote check against a 2.5-second timeout to never block UI
+  // Authoritative server-side check via Supabase Auth session & RPC
   try {
-    const authPromise = (async () => {
-      try {
-        const { data, error } = await supabase.rpc('verify_admin_access');
-        if (!error && data && data.is_admin === true) {
-          return true;
-        }
-      } catch (e) {}
-
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user && (user.user_metadata?.is_admin === true || SUPER_ADMIN_EMAILS.includes(user.email?.toLowerCase().trim()))) {
-          if (typeof window !== 'undefined') {
-            user.role = 'super_admin';
-            user.isAdminSession = true;
-            localStorage.setItem('calyxo_admin_session', JSON.stringify(user));
-          }
-          return true;
-        }
-      } catch (e) {}
-
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return false;
-    })();
+    }
 
-    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(false), 2500));
-    return await Promise.race([authPromise, timeoutPromise]);
+    const email = (user.email || '').toLowerCase().trim();
+    if (SUPER_ADMIN_EMAILS.includes(email) || user.role === 'super_admin' || user.user_metadata?.role === 'super_admin') {
+      return true;
+    }
+
+    // Secondary server-side RPC verification
+    const { data, error } = await supabase.rpc('verify_admin_access');
+    if (!error && data && data.is_admin === true) {
+      return true;
+    }
+
+    return false;
   } catch (e) {
+    // Fail closed on error
     return false;
   }
 };
@@ -336,7 +320,7 @@ export const getAdminUsers = async ({ search = '', planFilter = '', statusFilter
       photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name)}&background=6366f1&color=fff`,
       weight: 70,
       height: 175,
-      water_target: 2500,
+      water_target: 3000,
       device_info: 'Browser App',
       app_version: 'v1.0.0',
       push_enabled: true,

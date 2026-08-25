@@ -32,8 +32,11 @@ public class CalyxoWidgetPlugin extends Plugin {
             json.put("carbs", call.getInt("carbs", 0));
             json.put("fat", call.getInt("fat", 0));
             json.put("steps", call.getInt("steps", 0));
+            json.put("stepGoal", call.getInt("stepGoal", 10000));
             json.put("water", call.getInt("water", 0));
-            json.put("waterGoal", call.getInt("waterGoal", 2500));
+            int wg = call.getInt("waterGoal", 3000);
+            if (wg == 2500) wg = 3000;
+            json.put("waterGoal", wg);
             json.put("streak", call.getInt("streak", 0));
             json.put("activeWorkoutName", call.getString("activeWorkoutName", "Rest & Recovery"));
             json.put("updatedAt", System.currentTimeMillis());
@@ -107,21 +110,30 @@ public class CalyxoWidgetPlugin extends Plugin {
 
     private void reloadAllWidgets(Context context) {
         AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
-        ComponentName thisWidget = new ComponentName(context, CalyxoAppWidgetProvider.class);
-        int[] appWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget);
+        Class<?>[] providers = new Class<?>[] {
+            CalyxoAppWidgetProvider.class,
+            CalyxoHydrationWidgetProvider.class,
+            CalyxoNutritionWidgetProvider.class,
+            CalyxoActivityWidgetProvider.class
+        };
 
-        if (appWidgetIds != null && appWidgetIds.length > 0) {
-            Intent intent = new Intent(context, CalyxoAppWidgetProvider.class);
-            intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
-            context.sendBroadcast(intent);
+        for (Class<?> providerClass : providers) {
+            ComponentName component = new ComponentName(context, providerClass);
+            int[] appWidgetIds = appWidgetManager.getAppWidgetIds(component);
 
-            try {
-                Intent miuiIntent = new Intent("com.miui.home.action.APPWIDGET_UPDATE");
-                miuiIntent.setComponent(thisWidget);
-                miuiIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
-                context.sendBroadcast(miuiIntent);
-            } catch (Exception ignored) {}
+            if (appWidgetIds != null && appWidgetIds.length > 0) {
+                Intent intent = new Intent(context, providerClass);
+                intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+                intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
+                context.sendBroadcast(intent);
+
+                try {
+                    Intent miuiIntent = new Intent("com.miui.home.action.APPWIDGET_UPDATE");
+                    miuiIntent.setComponent(component);
+                    miuiIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
+                    context.sendBroadcast(miuiIntent);
+                } catch (Exception ignored) {}
+            }
         }
     }
 }

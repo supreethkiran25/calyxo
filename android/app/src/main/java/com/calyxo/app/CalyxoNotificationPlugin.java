@@ -104,12 +104,30 @@ public class CalyxoNotificationPlugin extends Plugin {
         call.resolve(ret);
     }
 
+    private static long lastImmediateDispatchTime = 0;
+    private static String lastDispatchedTitle = "";
+
     @PluginMethod
     public void scheduleLocalNotification(PluginCall call) {
         String title = call.getString("title", "Calyxo Workout");
         String body = call.getString("body", "");
         String idStr = call.getString("id", "calyxo_workout");
         boolean isOngoing = call.getBoolean("isOngoing", false) || idStr.contains("live") || idStr.contains("workout");
+        int delaySeconds = call.getInt("delaySeconds", 0);
+
+        long now = System.currentTimeMillis();
+        // Anti-burst hardware guard: If an immediate notification (<=5s) with identical title or within 10s was dispatched, suppress!
+        if (delaySeconds <= 5 && !isOngoing) {
+            if ((now - lastImmediateDispatchTime < 10000L) && (lastDispatchedTitle.equals(title) || now - lastImmediateDispatchTime < 3000L)) {
+                JSObject ret = new JSObject();
+                ret.put("success", true);
+                ret.put("throttled", true);
+                call.resolve(ret);
+                return;
+            }
+            lastImmediateDispatchTime = now;
+            lastDispatchedTitle = title;
+        }
 
         int notifId = Math.abs(idStr.hashCode());
         Context context = getContext();
@@ -142,8 +160,6 @@ public class CalyxoNotificationPlugin extends Plugin {
         if (isOngoing) {
             builder.setStyle(new NotificationCompat.BigTextStyle().bigText(body));
         }
-
-        int delaySeconds = call.getInt("delaySeconds", 0);
 
         Runnable postNotificationRunnable = () -> {
             try {

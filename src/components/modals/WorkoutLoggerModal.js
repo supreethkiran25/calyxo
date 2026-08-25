@@ -7,6 +7,7 @@ import { useStore } from '../../store/useStore';
 import { searchAndRankExercises, isFuzzyMatch, loadExercisesData, getCachedExercises, getExerciseImage, getDistinctFallback } from '../../utils/exerciseSearch';
 import { addWorkoutLog, getCurrentUserId } from '../../lib/dbService';
 import { calculateWorkoutCaloriesBurned } from '../../utils/workoutUtils';
+import { formatDateToLocalString } from '../../utils/dateUtils';
 
 
 const ModalExerciseImage = ({ item, className = "w-11 h-11 rounded-lg object-cover border border-card-border shrink-0 bg-black/30" }) => {
@@ -52,7 +53,7 @@ const POPULAR_ROUTINES = [
 ];
 
 export default function WorkoutLoggerModal() {
-  const { activeWorkflow, closeWorkflow } = useQuickActionsStore();
+  const { activeWorkflow, workflowData, closeWorkflow } = useQuickActionsStore();
   const { addXP, updateStreaks } = useEcosystemStore();
   const addWorkoutLogStore = useStore(state => state.addWorkoutLog);
   const workoutNameInputRef = useRef(null);
@@ -224,6 +225,7 @@ export default function WorkoutLoggerModal() {
   };
 
   const handleSave = async () => {
+    if (isSaving) return;
     let validExercises = exercises.filter(ex => ex.name && ex.name.trim().length > 0);
     
     // If no exercise row is filled, but top workoutName search box is filled, use workoutName as exercise
@@ -248,6 +250,17 @@ export default function WorkoutLoggerModal() {
       if (!uid) {
         throw new Error("User ID is missing or session expired.");
       }
+      let logTimestamp = Date.now();
+      if (workflowData?.date) {
+        const parts = String(workflowData.date).split('-');
+        if (parts.length === 3) {
+          const targetDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
+          if (!isNaN(targetDate.getTime())) {
+            logTimestamp = targetDate.getTime();
+          }
+        }
+      }
+
       const logPromises = validExercises.map(ex => {
         const workoutData = {
           name: ex.name.trim() || workoutName.trim() || "Workout Exercise",
@@ -261,7 +274,7 @@ export default function WorkoutLoggerModal() {
           target: ex.target || null,
           body_part: ex.body_part || null,
           equipment: ex.equipment || null,
-          timestamp: Date.now()
+          timestamp: logTimestamp
         };
         workoutData.caloriesBurned = calculateWorkoutCaloriesBurned(workoutData);
         return addWorkoutLog(uid, workoutData);
@@ -287,23 +300,37 @@ export default function WorkoutLoggerModal() {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div 
+        className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4"
+        style={{
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          transition: 'padding-bottom 0.2s ease-out'
+        }}
+      >
         <motion.div 
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+          className="absolute inset-0 bg-background/80 backdrop-blur-md"
           onClick={closeWorkflow}
         />
         
         <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 1 }}
-          className="relative w-full max-w-2xl bg-surface border border-card-border rounded-3xl p-6 shadow-2xl flex flex-col max-h-[90vh]"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="relative w-full max-w-2xl bg-surface border border-card-border rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col overflow-hidden"
+          style={{
+            maxHeight: 'min(92dvh, calc(100dvh - var(--keyboard-height, 0px) - 20px))'
+          }}
         >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-              <Dumbbell className="w-5 h-5 text-blue-500" /> Log Workout Session
-            </h2>
+          <div className="flex items-center justify-between mb-3 border-b border-card-border/60 pb-3">
+            <div>
+              <h2 className="text-base sm:text-lg font-black uppercase tracking-wider text-foreground flex items-center gap-2">
+                <Dumbbell className="w-5 h-5 text-acid-green" /> Log Workout Session
+              </h2>
+              <span className="text-[10px] font-mono font-bold text-acid-green uppercase tracking-wider">
+                Logging for: {workflowData?.date ? formatDateToLocalString(workflowData.date) : 'Today'}
+              </span>
+            </div>
             <button 
               onClick={closeWorkflow}
               className="p-2 rounded-full bg-[var(--input)] text-muted hover:text-foreground transition-colors cursor-pointer border-none"
@@ -312,7 +339,13 @@ export default function WorkoutLoggerModal() {
             </button>
           </div>
 
-          <div className="overflow-y-auto flex-1 pr-2 custom-scrollbar space-y-6">
+          <div 
+            data-keyboard-scroll="true"
+            className="overflow-y-auto flex-1 pr-2 custom-scrollbar space-y-6 modal-scroll-body"
+            style={{
+              paddingBottom: 'calc(var(--keyboard-height, 0px) + 24px)'
+            }}
+          >
             
             {/* Top Search Input: Handles Typos (e.g. inclince -> incline) */}
             <div className="space-y-4">

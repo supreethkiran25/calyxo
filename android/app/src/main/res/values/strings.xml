@@ -4,6 +4,12 @@
     <string name="title_activity_main">Calyxo</string>
     <string name="package_name">com.calyxo.app</string>
     <string name="custom_url_scheme">com.calyxo.app</string>
-    <string name="widget_name">Calyxo Daily Fitness</string>
+    <string name="widget_name">Calyxo Daily Fitness Overview</string>
     <string name="widget_description">Track daily calories, hydration, workout sets, and streaks</string>
+    <string name="widget_hydration_name">Calyxo Water &amp; Hydration</string>
+    <string name="widget_hydration_description">Live water intake with 1-tap quick add actions</string>
+    <string name="widget_nutrition_name">Calyxo Nutrition &amp; Macros</string>
+    <string name="widget_nutrition_description">Track calories, protein, carbs, and fat breakdown</string>
+    <string name="widget_activity_name">Calyxo Steps &amp; Activity</string>
+    <string name="widget_activity_description">Real-time steps, active burn, and workout status</string>
 </resources>

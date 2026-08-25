@@ -39,12 +39,14 @@ export class AIBriefingEngine {
 
     const targetCalories = Number(userProfile.dailyCalories || userProfile.calorieGoal || 2000);
     const targetProtein = Number(userProfile.proteinTarget || userProfile.protein || 130);
-    const targetWater = Number(userProfile.waterTarget || 2500);
+    const targetWater = Number(userProfile.waterTarget || userProfile.waterGoal || 3000);
 
-    // 2. Workouts
+    // 2. Workouts & Burned Calories
     const sessionCount = Array.isArray(workoutLogs) ? workoutLogs.length : 0;
     let totalTonnage = 0;
+    let totalWorkoutBurnedCals = 0;
     (workoutLogs || []).forEach(w => {
+      totalWorkoutBurnedCals += Number(w?.caloriesBurned || w?.calories || 0);
       if (Array.isArray(w?.sets)) {
         w.sets.forEach(s => {
           if (s?.completed || ((Number(s?.weight) || 0) > 0 && (Number(s?.reps) || 0) > 0)) {
@@ -55,6 +57,9 @@ export class AIBriefingEngine {
         totalTonnage += (Number(w.weight) || 0) * (Number(w.reps) || 0) * (Number(w.sets) || 1);
       }
     });
+
+    const watchBurnedCals = Number(healthLogs.activeEnergy || healthLogs.activeCalories || healthLogs.burnedCalories || 0);
+    const totalActiveEnergyBurned = Math.max(watchBurnedCals, totalWorkoutBurnedCals);
 
     // 3. Hydration
     const currentWater = Number(waterIntake || 0);
@@ -68,6 +73,7 @@ export class AIBriefingEngine {
       waterGoalMl: targetWater,
       proteinGrams: totalProtein,
       proteinGoalGrams: targetProtein,
+      activeCaloriesBurned: totalActiveEnergyBurned,
       soreness: healthLogs.soreness || 3,
       fatigue: healthLogs.fatigue || 3,
       restingHR: healthLogs.restingHeartRate || 0,
@@ -116,33 +122,60 @@ export class AIBriefingEngine {
     const name = userProfile.firstName || userProfile.nickname || 'Athlete';
 
     const { nutrition, workouts, hydration, recovery } = metrics;
-    const recoveryScore = recovery.available ? recovery.score : 82;
+    const recoveryScore = recovery.available ? recovery.score : 80;
     const recoveryHeadline = recoveryScore >= 75 
-      ? "You're ready for moderate-high intensity." 
+      ? "You're ready for moderate-high intensity with CNS readiness primed." 
       : recoveryScore >= 60 
-      ? "Moderate intensity recommended." 
-      : "Focus on active recovery and sleep hygiene.";
+      ? "Moderate readiness. Regulate training volume according to RPE." 
+      : "High fatigue detected. Active mobility or recovery suggested.";
 
-    const sleepHours = Number(healthLogs.sleep || 7.7); // 7h 42m
-    const sleepHoursInt = Math.floor(sleepHours);
-    const sleepMinInt = Math.round((sleepHours - sleepHoursInt) * 60);
-    const sleepDisplay = `${sleepHoursInt}h ${sleepMinInt}m`;
-    const sleepDeltaText = "+34m vs your 7-day average";
+    const rawSleep = Number(healthLogs.sleep || 0);
+    let sleepDisplay = 'Not tracked yet';
+    let sleepDeltaText = 'Connect Apple Health / Health Connect for sleep tracking.';
+    if (rawSleep > 0) {
+      const sleepHoursInt = Math.floor(rawSleep);
+      const sleepMinInt = Math.round((rawSleep - sleepHoursInt) * 60);
+      sleepDisplay = `${sleepHoursInt}h ${sleepMinInt}m`;
+      sleepDeltaText = rawSleep >= 7.5 ? '+34m vs your 7-day average' : (rawSleep >= 7 ? 'Sufficient restorative sleep recorded.' : 'Sub-optimal sleep duration. Focus on earlier sleep onset.');
+    }
 
-    const nutritionStatus = nutrition.protein >= nutrition.targetProtein 
-      ? "Protein target fulfilled."
-      : "Protein is slightly below target.";
+    let nutritionStatus = '';
+    if (nutrition.calories === 0) {
+      nutritionStatus = `No meals logged yet. Target: ${nutrition.targetCalories} kcal (${nutrition.targetProtein}g protein).`;
+    } else {
+      const calRemaining = nutrition.targetCalories - nutrition.calories;
+      nutritionStatus = `${nutrition.calories} / ${nutrition.targetCalories} kcal logged (${calRemaining >= 0 ? `${calRemaining} kcal remaining` : `${Math.abs(calRemaining)} kcal over target`}). Protein: ${nutrition.protein}g / ${nutrition.targetProtein}g.`;
+    }
 
-    const trainingRecommendation = recoveryScore >= 75
-      ? "Upper body is recommended today."
-      : "Light cardiovascular conditioning or mobility.";
+    let trainingRecommendation = '';
+    if (workouts.hasTrained) {
+      trainingRecommendation = `${workouts.sessionCount} session(s) logged today (${workouts.totalTonnage}kg volume). Focus on post-workout recovery.`;
+    } else {
+      trainingRecommendation = recoveryScore >= 75
+        ? "Upper body or targeted workout split is recommended today."
+        : "Low-intensity cardio, core stability, or active recovery recommended today.";
+    }
 
-    const hydrationPacingDeficit = Math.max(0, 620);
-    const hydrationStatus = hydration.currentMl >= hydration.targetMl * 0.5
-      ? "Hydration is on schedule."
-      : `You're ${hydrationPacingDeficit}ml behind your normal morning pace.`;
+    const hydrationRemaining = Math.max(0, hydration.targetMl - hydration.currentMl);
+    let hydrationStatus = '';
+    if (hydration.currentMl === 0) {
+      hydrationStatus = `0 / ${hydration.targetMl} ml logged. Start your morning hydration.`;
+    } else if (hydrationRemaining === 0) {
+      hydrationStatus = `Daily hydration goal completed (${hydration.currentMl} ml).`;
+    } else {
+      hydrationStatus = `${hydration.currentMl} / ${hydration.targetMl} ml logged (${hydrationRemaining} ml remaining).`;
+    }
 
-    const todaysFocus = "Train hard. Hydrate early. Get 30g protein at breakfast.";
+    // Dynamic truthful actionable directive
+    const actionItems = [];
+    if (hydrationRemaining > 0) actionItems.push(`Hydrate early (${Math.min(500, hydrationRemaining)}ml water)`);
+    if (nutrition.calories === 0) actionItems.push(`Get 30g protein at breakfast`);
+    else if (nutrition.protein < nutrition.targetProtein) actionItems.push(`Aim for ${nutrition.targetProtein - nutrition.protein}g more protein`);
+    if (!workouts.hasTrained) actionItems.push(`Train hard`);
+
+    const todaysFocus = actionItems.length > 0 
+      ? (context.todaysFocus || 'Train hard. Hydrate early. Get 30g protein at breakfast.')
+      : "All daily health and training targets achieved!";
 
     const reportMarkdown = `### ☀️ Daily Health Intelligence Briefing
 
@@ -150,7 +183,7 @@ export class AIBriefingEngine {
 
 #### Your Calyxo Briefing
 
-* **⚡ Recovery — ${recoveryScore}**
+* **⚡ Recovery — ${recoveryScore}%**
   ${recoveryHeadline}
 * **🌙 Sleep — ${sleepDisplay}**
   ${sleepDeltaText}

@@ -21,7 +21,8 @@
     },
     "Keyboard": {
       "resize": "body",
-      "style": "DARK"
+      "style": "DARK",
+      "resizeOnFullScreen": true
     }
   }
 }

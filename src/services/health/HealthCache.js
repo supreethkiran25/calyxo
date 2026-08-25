@@ -25,7 +25,7 @@ export class HealthCache {
   }
 
   /**
-   * Retrieve cached metrics snapshot
+   * Retrieve cached metrics snapshot (with midnight day rollover check)
    */
   static getMetrics() {
     if (typeof window === 'undefined') return null;
@@ -33,7 +33,22 @@ export class HealthCache {
       const raw = localStorage.getItem(CACHE_KEY_METRICS);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
-      return parsed.data || null;
+      if (!parsed || !parsed.data) return null;
+
+      // If cache timestamp is from a previous calendar day, reset daily accumulations
+      const cachedDate = new Date(parsed.timestamp).toDateString();
+      const todayDate = new Date().toDateString();
+      if (cachedDate !== todayDate) {
+        return {
+          ...parsed.data,
+          steps: 0,
+          activeCalories: 0,
+          distanceKm: 0.0,
+          activeMinutes: 0
+        };
+      }
+
+      return parsed.data;
     } catch (e) {
       return null;
     }

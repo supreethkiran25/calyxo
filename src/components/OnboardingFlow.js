@@ -6,7 +6,7 @@ import {
   Shield, Scale, Check, Activity, Dumbbell, Utensils, Moon, 
   Watch, MessageSquare, Edit3, ArrowRight, UserCheck, AlertCircle, 
   Smartphone, Bluetooth, Flame, Zap, CheckCircle2, ShieldCheck,
-  Ruler
+  Ruler, Clock, Coffee, Sunrise, Sunset, ExternalLink
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { saveUserProfile, saveEcosystemState } from '../lib/dbService';
@@ -23,6 +23,7 @@ import AgeWheelPicker from './onboarding/AgeWheelPicker';
 import WeightWheelPicker from './onboarding/WeightWheelPicker';
 import HeightWheelPicker from './onboarding/HeightWheelPicker';
 import LegalModal from './modals/LegalModal';
+import WearablePairingModal from './modals/WearablePairingModal';
 import Logo from './Logo';
 
 const SCREENS = [
@@ -32,6 +33,7 @@ const SCREENS = [
   { id: 'fitness_experience', title: 'Your fitness journey', category: 'Training' },
   { id: 'training_environment', title: 'Training & Equipment', category: 'Environment' },
   { id: 'nutrition', title: 'Nutrition Personalization', category: 'Nutrition' },
+  { id: 'daily_routine', title: 'Daily Routine & Timings', category: 'Daily Routine' },
   { id: 'lifestyle', title: 'Daily Rhythm & Sleep', category: 'Lifestyle' },
   { id: 'limitations', title: 'Workout Adaptations', category: 'Adaptations' },
   { id: 'devices', title: 'Health Ecosystem', category: 'Devices' },
@@ -50,14 +52,24 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
   const [currentScreenIdx, setCurrentScreenIdx] = useState(0);
   const [profile, setProfile] = useState(() => {
     const draft = UserIntelligenceProfile.getLocalDraft();
-    if (draft && draft.profile) {
-      return UserIntelligenceProfile.sanitize(draft.profile);
+    let initial = draft && draft.profile
+      ? UserIntelligenceProfile.sanitize(draft.profile)
+      : UserIntelligenceProfile.sanitize(userProfile || DEFAULT_USER_INTELLIGENCE_PROFILE);
+
+    // Auto-populate name from auth user or store if empty
+    const existingName = initial.identity?.fullName || user?.displayName || userProfile?.name || userProfile?.fullName || '';
+    if (existingName && !initial.identity?.fullName) {
+      const first = existingName.trim().split(' ')[0] || '';
+      initial.identity.fullName = existingName;
+      initial.identity.firstName = initial.identity.firstName || first;
+      initial.identity.nickname = initial.identity.nickname || first;
     }
-    return UserIntelligenceProfile.sanitize(userProfile || DEFAULT_USER_INTELLIGENCE_PROFILE);
+    return initial;
   });
 
   const [units, setUnits] = useState('metric'); // 'metric' | 'imperial'
   const [legalModalType, setLegalModalType] = useState(null);
+  const [wearablePairingModalOpen, setWearablePairingModalOpen] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [connectingDevice, setConnectingDevice] = useState(null);
   const [liveStorySignals, setLiveStorySignals] = useState({ extractedContext: {}, confidence: 0, signalsFound: [] });
@@ -70,14 +82,35 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
     }
   }, []);
 
-  // Sync active health connections on mount
+  // Sync active health connections and request native Motion & Tracking permissions on mount & on focus
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const isHealthConnected = HealthPermissionManager.isConnected();
-      if (isHealthConnected) {
-        updateSection('devices', { appleHealth: true, appleWatch: true });
+    const syncStatus = async () => {
+      if (typeof window !== 'undefined') {
+        if (Capacitor.isNativePlatform()) {
+          HealthPermissionManager.requestMotionPermission();
+          HealthPermissionManager.requestTrackingPermission();
+          requestNotificationPermission();
+        }
+
+        const isLiveAuthorized = await HealthPermissionManager.checkLiveAuthorization();
+        const platform = HealthPermissionManager.getPlatform();
+        if (isLiveAuthorized || HealthPermissionManager.isConnected()) {
+          if (platform === 'ios_apple_health') {
+            updateSection('devices', { appleHealth: true, appleWatch: true });
+          } else if (platform === 'android_health_connect') {
+            updateSection('devices', { healthConnect: true });
+          }
+        }
       }
-    }
+    };
+    syncStatus();
+
+    window.addEventListener('focus', syncStatus);
+    document.addEventListener('visibilitychange', syncStatus);
+    return () => {
+      window.removeEventListener('focus', syncStatus);
+      document.removeEventListener('visibilitychange', syncStatus);
+    };
   }, []);
 
   // Save progressive draft on step or profile change
@@ -128,56 +161,101 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Real backend device connection handler
+  // Real backend device connection handler (with genuine modal authorization)
   const handleConnectDevice = async (deviceId) => {
-    setConnectingDevice(deviceId);
-    try {
-      if (deviceId === 'appleWatch' || deviceId === 'appleHealth') {
-        const res = await HealthPermissionManager.requestPermissions({ includeOptional: true });
-        const isConn = HealthPermissionManager.isConnected();
-        updateSection('devices', { appleHealth: isConn, appleWatch: isConn });
+    const isCurrentlyConnected = profile.devices?.[deviceId];
+
+    if (isCurrentlyConnected) {
+      if (deviceId === 'appleHealth' || deviceId === 'appleWatch') {
+        updateSection('devices', { appleHealth: false, appleWatch: false });
+        HealthPermissionManager.disconnect();
         if (userId) {
           await saveEcosystemState(userId, { 
-            appleHealthConnected: isConn, 
-            appleWatchConnected: isConn,
+            appleHealthConnected: false, 
+            appleWatchConnected: false,
+            healthSource: null 
+          });
+        }
+        if (onNotification) onNotification('Disconnected from Apple Health');
+      } else if (deviceId === 'healthConnect') {
+        updateSection('devices', { healthConnect: false });
+        HealthPermissionManager.disconnect();
+        if (userId) {
+          await saveEcosystemState(userId, {
+            healthConnectConnected: false,
+            healthSource: null
+          });
+        }
+        if (onNotification) onNotification('Disconnected from Health Connect');
+      } else if (deviceId === 'bluetoothWatch') {
+        updateSection('devices', { bluetoothWatch: false, bleHeartRate: false, garmin: false, deviceName: null });
+        if (onNotification) onNotification('Disconnected Bluetooth wearable');
+      }
+      return;
+    }
+
+    if (deviceId === 'appleHealth' || deviceId === 'appleWatch') {
+      setConnectingDevice(deviceId);
+      try {
+        const res = await HealthPermissionManager.requestPermissions({ includeOptional: true });
+        updateSection('devices', { appleHealth: true, appleWatch: true });
+        if (userId) {
+          await saveEcosystemState(userId, { 
+            appleHealthConnected: true, 
+            appleWatchConnected: true,
             healthSource: 'apple_health'
           });
         }
-      } else if (deviceId === 'healthConnect') {
+        
+        // If system prompt was previously dismissed (leaving Calyxo inactive), redirect to Settings
+        const metrics = await HealthDataService.fetchTodayMetrics();
+        const hasData = Number(metrics?.steps || 0) > 0 || Number(metrics?.activeCalories || 0) > 0;
+        
+        if (!hasData && (!res || !res.hasRequired)) {
+          await HealthPermissionManager.openHealthSettings();
+          if (onNotification) onNotification('Opening Health Settings — tap "Turn All Categories On" to enable sync.');
+        } else {
+          if (onNotification) onNotification('Apple Health connected! ⌚');
+        }
+      } catch (err) {
+        console.warn('Apple Health connection note:', err);
+        await HealthPermissionManager.openHealthSettings();
+        if (onNotification) onNotification('Opening Settings to enable Health permissions.');
+      } finally {
+        setConnectingDevice(null);
+      }
+      return;
+    }
+
+    if (deviceId === 'healthConnect') {
+      setConnectingDevice(deviceId);
+      try {
         const res = await HealthPermissionManager.requestPermissions({ includeOptional: true });
         const isConn = HealthPermissionManager.isConnected();
-        updateSection('devices', { healthConnect: isConn });
-        if (userId) {
-          await saveEcosystemState(userId, { 
-            healthConnectConnected: isConn,
-            healthSource: 'health_connect'
-          });
-        }
-      } else if (deviceId === 'bleHeartRate') {
-        if (typeof navigator !== 'undefined' && navigator.bluetooth) {
-          try {
-            await navigator.bluetooth.requestDevice({ filters: [{ services: ['heart_rate'] }] });
-            updateSection('devices', { bleHeartRate: true });
-            if (userId) await saveEcosystemState(userId, { bleHeartRateConnected: true });
-          } catch (e) {
-            updateSection('devices', { bleHeartRate: true });
-            if (userId) await saveEcosystemState(userId, { bleHeartRateConnected: true });
+        if (isConn) {
+          updateSection('devices', { healthConnect: true });
+          if (userId) {
+            await saveEcosystemState(userId, { 
+              healthConnectConnected: true,
+              healthSource: 'health_connect'
+            });
           }
+          if (onNotification) onNotification('Android Health Connect authorized & connected! ⚡');
         } else {
-          updateSection('devices', { bleHeartRate: true });
-          if (userId) await saveEcosystemState(userId, { bleHeartRateConnected: true });
+          updateSection('devices', { healthConnect: false });
+          if (onNotification) onNotification('Health Connect permissions not granted.');
         }
-      } else if (deviceId === 'bleBloodPressure') {
-        updateSection('devices', { bleBloodPressure: true });
-        if (userId) await saveEcosystemState(userId, { bleBloodPressureConnected: true });
-      } else if (deviceId === 'boat') {
-        updateSection('devices', { boat: true });
-        if (userId) await saveEcosystemState(userId, { boatConnected: true });
+      } catch (err) {
+        console.warn('Health Connect note:', err);
+      } finally {
+        setConnectingDevice(null);
       }
-    } catch (err) {
-      console.warn('[Onboarding] Device connection notice:', err);
-    } finally {
-      setConnectingDevice(null);
+      return;
+    }
+
+    if (deviceId === 'bluetoothWatch') {
+      setWearablePairingModalOpen(true);
+      return;
     }
   };
 
@@ -191,6 +269,10 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
         confidence: liveStorySignals.confidence || 1.0
       };
 
+      const rawFullName = profile.identity?.fullName || user?.displayName || userProfile?.name || 'Athlete';
+      const rawFirstName = profile.identity?.firstName || (rawFullName ? rawFullName.trim().split(' ')[0] : '') || user?.displayName?.split(' ')[0] || 'Athlete';
+      const rawNickname = profile.identity?.nickname || rawFirstName || 'Athlete';
+
       const finalProfile = UserIntelligenceProfile.sanitize({
         ...profile,
         story: finalStory,
@@ -198,6 +280,10 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
         onboarded: true,
         role: 'user',
         // Top-level canonical compatibility fields
+        name: rawFullName,
+        fullName: rawFullName,
+        firstName: rawFirstName,
+        nickname: rawNickname,
         goal: profile.goals.primaryGoal,
         goalWeight: profile.goals.targetWeight,
         experience: profile.training.experience,
@@ -208,7 +294,12 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
         gender: profile.identity.sex,
         coachPersonality: profile.coaching.personality,
         responseLength: profile.coaching.verbosity,
-        dietPreferences: [profile.nutrition.diet]
+        dietPreference: profile.nutrition.diet,
+        diet: profile.nutrition.diet,
+        dietPreferences: [profile.nutrition.diet],
+        cuisines: profile.nutrition.cuisines || [],
+        allergies: profile.nutrition.allergies || ['none'],
+        nutritionPriority: profile.nutrition.nutritionPriority || 'high_protein'
       });
 
       // 1. Mark persistent localStorage keys to guarantee this specific athlete is not re-prompted
@@ -320,35 +411,74 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="w-full space-y-4"
           >
-            {/* SCREEN 01 — WELCOME */}
+            {/* SCREEN 01 — WELCOME & ATHLETE IDENTITY */}
             {currentScreen.id === 'welcome' && (
-              <div className="text-center py-4 space-y-6">
-                <div className="relative mx-auto w-20 h-20 rounded-3xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.1] flex items-center justify-center shadow-2xl">
-                  <Logo className="w-10 h-10 text-[#A3E635]" />
+              <div className="text-center py-2 space-y-5">
+                <div className="relative mx-auto w-16 h-16 rounded-3xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.1] flex items-center justify-center shadow-2xl">
+                  <Logo className="w-8 h-8 text-[#A3E635]" />
                 </div>
 
-                <div className="space-y-2.5">
-                  <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+                <div className="space-y-1">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
                     Let's build your <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#A3E635] to-[#10B981]">Calyxo</span>.
                   </h1>
-                  <p className="text-sm text-slate-300 max-w-md mx-auto leading-relaxed">
-                    Tell us a little about yourself. We'll use it to calibrate your workouts, nutrition, recovery, and AI coaching.
+                  <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                    Personalized fitness architecture calibrated to your body, goals, and daily rhythm.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2.5 pt-2 max-w-md mx-auto text-left">
-                  <div className="p-3.5 rounded-2xl bg-[#12121A] border border-white/[0.06]">
-                    <Dumbbell className="w-4 h-4 text-[#A3E635] mb-1.5" />
+                {/* Athlete Name & Identity Card */}
+                <div className="p-4 sm:p-5 rounded-3xl bg-[#12121A] border border-white/[0.08] text-left space-y-3.5 shadow-xl max-w-md mx-auto">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+                      <span>What is your name?</span>
+                      <span className="text-[10px] text-[#A3E635] font-mono uppercase tracking-wider">Required</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={profile.identity?.fullName || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const first = val.trim().split(' ')[0] || '';
+                        updateSection('identity', { 
+                          fullName: val,
+                          firstName: first,
+                          nickname: profile.identity?.nickname || first
+                        });
+                      }}
+                      placeholder="e.g. Alex Morgan"
+                      className="w-full bg-[#0A0A0F] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-white placeholder:text-slate-500 focus:outline-none focus:border-[#A3E635] transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+                      <span>What should AI Coach call you?</span>
+                      <span className="text-[10px] text-slate-400 font-mono">Nickname</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={profile.identity?.nickname || ''}
+                      onChange={(e) => updateSection('identity', { nickname: e.target.value })}
+                      placeholder="e.g. Alex"
+                      className="w-full bg-[#0A0A0F] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-[#A3E635] placeholder:text-slate-500 focus:outline-none focus:border-[#A3E635] transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 max-w-md mx-auto text-left">
+                  <div className="p-3 rounded-2xl bg-[#12121A]/80 border border-white/[0.06]">
+                    <Dumbbell className="w-4 h-4 text-[#A3E635] mb-1" />
                     <p className="text-xs font-bold text-white">AI Coach</p>
                     <p className="text-[10px] text-slate-400">Custom routines</p>
                   </div>
-                  <div className="p-3.5 rounded-2xl bg-[#12121A] border border-white/[0.06]">
-                    <Utensils className="w-4 h-4 text-[#10B981] mb-1.5" />
+                  <div className="p-3 rounded-2xl bg-[#12121A]/80 border border-white/[0.06]">
+                    <Utensils className="w-4 h-4 text-[#10B981] mb-1" />
                     <p className="text-xs font-bold text-white">Smart Meals</p>
                     <p className="text-[10px] text-slate-400">Diet & macros</p>
                   </div>
-                  <div className="p-3.5 rounded-2xl bg-[#12121A] border border-white/[0.06]">
-                    <Moon className="w-4 h-4 text-[#00F0FF] mb-1.5" />
+                  <div className="p-3 rounded-2xl bg-[#12121A]/80 border border-white/[0.06]">
+                    <Moon className="w-4 h-4 text-[#00F0FF] mb-1" />
                     <p className="text-xs font-bold text-white">Recovery</p>
                     <p className="text-[10px] text-slate-400">Daily readiness</p>
                   </div>
@@ -667,22 +797,24 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
 
             {/* SCREEN 06 — NUTRITION PERSONALIZATION */}
             {currentScreen.id === 'nutrition' && (
-              <div className="space-y-4">
+              <div className="space-y-4 max-h-[62vh] overflow-y-auto pr-1">
                 <div>
                   <h2 className="text-2xl font-bold text-white tracking-tight">Nutrition Personalization</h2>
-                  <p className="text-xs text-slate-400 mt-1">Calyxo AI Meal Planner builds recipes tailored to your kitchen.</p>
+                  <p className="text-xs text-slate-400 mt-1">Calyxo AI Meal Planner builds recipes tailored to your dietary lifestyle.</p>
                 </div>
 
-                {/* Diet Pattern */}
+                {/* 1. Diet Pattern */}
                 <div className="space-y-2">
                   <label className="block text-xs font-bold text-slate-300">Dietary Pattern</label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
                       { id: 'vegetarian', label: 'Vegetarian' },
-                      { id: 'vegan', label: 'Vegan' },
                       { id: 'eggetarian', label: 'Eggetarian' },
                       { id: 'non_vegetarian', label: 'Non-Vegetarian' },
+                      { id: 'vegan', label: 'Vegan' },
+                      { id: 'jain', label: 'Jain / Sattvic' },
                       { id: 'pescatarian', label: 'Pescatarian' },
+                      { id: 'keto', label: 'Keto / Low-Carb' },
                       { id: 'other', label: 'Flexitarian' }
                     ].map((d) => {
                       const isSelected = profile.nutrition.diet === d.id;
@@ -704,11 +836,71 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                   </div>
                 </div>
 
-                {/* Cuisines */}
+                {/* 2. Nutrition Priority */}
                 <div className="space-y-2 pt-1">
-                  <label className="block text-xs font-bold text-slate-300">Preferred Cuisines</label>
-                  <div className="flex flex-wrap gap-2">
-                    {['South Indian', 'North Indian', 'Indian', 'Mediterranean', 'Asian', 'Western', 'Mixed'].map((cuisine) => {
+                  <label className="block text-xs font-bold text-slate-300">Primary Nutrition Focus</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                      { id: 'high_protein', label: 'High Protein (Gains)' },
+                      { id: 'fat_loss', label: 'Fat Loss (Deficit)' },
+                      { id: 'muscle_gain', label: 'Muscle Gain (Surplus)' },
+                      { id: 'clean_eating', label: 'Clean Wholesome Food' },
+                      { id: 'gut_health', label: 'Gut Health & Digestion' },
+                      { id: 'balanced', label: 'Balanced Everyday' }
+                    ].map((p) => {
+                      const isSelected = (profile.nutrition.nutritionPriority || 'high_protein') === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => updateSection('nutrition', { nutritionPriority: p.id })}
+                          className={`p-2 rounded-xl border text-center text-[11px] font-bold transition-all ${
+                            isSelected 
+                              ? 'bg-[#10B981]/20 border-[#10B981] text-[#10B981]' 
+                              : 'bg-[#12121A] border-white/[0.06] text-slate-300 hover:border-white/[0.12]'
+                          }`}
+                        >
+                          {p.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. Cooking / Meal Habit */}
+                <div className="space-y-2 pt-1">
+                  <label className="block text-xs font-bold text-slate-300">Meal & Cooking Routine</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { id: 'mostly_home', label: 'Home Cooked' },
+                      { id: 'mix_of_both', label: 'Home & Outside' },
+                      { id: 'meal_prep', label: 'Meal Prep / Tiffin' },
+                      { id: 'mostly_outside', label: 'Eating Out / Swiggy' }
+                    ].map((h) => {
+                      const isSelected = (profile.nutrition.mealBehavior || 'mix_of_both') === h.id;
+                      return (
+                        <button
+                          key={h.id}
+                          type="button"
+                          onClick={() => updateSection('nutrition', { mealBehavior: h.id })}
+                          className={`p-2 rounded-xl border text-center text-[11px] font-bold transition-all ${
+                            isSelected 
+                              ? 'bg-[#00F0FF]/15 border-[#00F0FF] text-[#00F0FF]' 
+                              : 'bg-[#12121A] border-white/[0.06] text-slate-400 hover:border-white/[0.12]'
+                          }`}
+                        >
+                          {h.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 4. Cuisines & Staples */}
+                <div className="space-y-2 pt-1">
+                  <label className="block text-xs font-bold text-slate-300">Preferred Cuisines & Staples</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['South Indian', 'North Indian', 'Pan-Indian', 'Mediterranean', 'Asian', 'Continental', 'High-Protein Desi'].map((cuisine) => {
                       const currentCuisines = profile.nutrition.cuisines || [];
                       const isSelected = currentCuisines.includes(cuisine);
                       return (
@@ -733,10 +925,321 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                     })}
                   </div>
                 </div>
+
+                {/* 5. Food Allergies & Exclusions */}
+                <div className="space-y-2 pt-1">
+                  <label className="block text-xs font-bold text-slate-300">Food Allergies / Exclusions</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { id: 'none', label: 'No Allergies' },
+                      { id: 'dairy', label: 'Lactose / Dairy' },
+                      { id: 'gluten', label: 'Gluten' },
+                      { id: 'nuts', label: 'Peanuts / Nuts' },
+                      { id: 'soy', label: 'Soy' },
+                      { id: 'seafood', label: 'Seafood' }
+                    ].map((all) => {
+                      const currentAllergies = profile.nutrition.allergies || ['none'];
+                      const isSelected = currentAllergies.includes(all.id);
+                      return (
+                        <button
+                          key={all.id}
+                          type="button"
+                          onClick={() => {
+                            let updated;
+                            if (all.id === 'none') {
+                              updated = ['none'];
+                            } else {
+                              const withoutNone = currentAllergies.filter(a => a !== 'none');
+                              updated = isSelected 
+                                ? withoutNone.filter(a => a !== all.id)
+                                : [...withoutNone, all.id];
+                              if (updated.length === 0) updated = ['none'];
+                            }
+                            updateSection('nutrition', { allergies: updated });
+                          }}
+                          className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                            isSelected 
+                              ? 'bg-[#A3E635]/20 border-[#A3E635] text-[#A3E635]' 
+                              : 'bg-[#12121A] border-white/[0.06] text-slate-400 hover:border-white/[0.12]'
+                          }`}
+                        >
+                          {all.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* SCREEN 07 — LIFESTYLE & RECOVERY */}
+            {/* SCREEN 07 — DAILY ROUTINE & TIMINGS (ALL-IN-ONE SCREEN) */}
+            {currentScreen.id === 'daily_routine' && (
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-white tracking-tight">Your Daily Routine</h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Set your meal, workout, and sleep times so Calyxo sends reminders at your exact schedule.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  
+                  {/* 1. WORKOUT / GYM TIMING */}
+                  <div className="p-3.5 rounded-2xl bg-[#12121A] border border-[#10B981]/30 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-xl bg-[#10B981]/20 text-[#10B981] flex items-center justify-center">
+                          <Dumbbell className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="text-xs font-bold text-white uppercase tracking-wide">Workout / Gym Time</span>
+                          <span className="text-[10px] text-slate-400 block">When do you usually train?</span>
+                        </div>
+                      </div>
+                      <input
+                        type="time"
+                        value={profile.schedule?.workoutTime || '18:30'}
+                        onChange={(e) => updateSection('schedule', { workoutTime: e.target.value })}
+                        className="bg-black/60 border border-white/15 rounded-xl px-2.5 py-1 text-xs font-mono font-bold text-[#10B981] focus:outline-none focus:border-[#10B981]"
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      {[
+                        { label: '🌅 6:30 AM', time: '06:30' },
+                        { label: '☀️ 7:30 AM', time: '07:30' },
+                        { label: '⚡ 12:30 PM', time: '12:30' },
+                        { label: '🏋️ 5:30 PM', time: '17:30' },
+                        { label: '🔥 6:30 PM', time: '18:30' },
+                        { label: '🌙 8:00 PM', time: '20:00' }
+                      ].map((item) => (
+                        <button
+                          key={item.time}
+                          type="button"
+                          onClick={() => updateSection('schedule', { workoutTime: item.time })}
+                          className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                            (profile.schedule?.workoutTime || '18:30') === item.time
+                              ? 'bg-[#10B981]/20 border-[#10B981] text-[#10B981]'
+                              : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 2. BREAKFAST & LUNCH */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    
+                    {/* Breakfast */}
+                    <div className="p-3 rounded-2xl bg-[#12121A] border border-white/[0.08] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-base">🍳</span>
+                          <span className="text-xs font-bold text-white">Breakfast</span>
+                        </div>
+                        <input
+                          type="time"
+                          value={profile.schedule?.breakfastTime || '08:30'}
+                          onChange={(e) => updateSection('schedule', { breakfastTime: e.target.value })}
+                          className="bg-black/60 border border-white/15 rounded-xl px-2 py-1 text-[11px] font-mono font-bold text-[#F59E0B] focus:outline-none focus:border-[#F59E0B]"
+                        />
+                      </div>
+                      <div className="flex gap-1">
+                        {['07:30', '08:30', '09:30'].map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => updateSection('schedule', { breakfastTime: t })}
+                            className={`flex-1 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                              (profile.schedule?.breakfastTime || '08:30') === t
+                                ? 'bg-[#F59E0B]/20 border-[#F59E0B] text-[#F59E0B]'
+                                : 'bg-white/5 border-white/10 text-slate-400'
+                            }`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Lunch */}
+                    <div className="p-3 rounded-2xl bg-[#12121A] border border-white/[0.08] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-base">🥗</span>
+                          <span className="text-xs font-bold text-white">Lunch</span>
+                        </div>
+                        <input
+                          type="time"
+                          value={profile.schedule?.lunchTime || '13:00'}
+                          onChange={(e) => updateSection('schedule', { lunchTime: e.target.value })}
+                          className="bg-black/60 border border-white/15 rounded-xl px-2 py-1 text-[11px] font-mono font-bold text-[#10B981] focus:outline-none focus:border-[#10B981]"
+                        />
+                      </div>
+                      <div className="flex gap-1">
+                        {['12:30', '13:00', '13:30', '14:00'].map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => updateSection('schedule', { lunchTime: t })}
+                            className={`flex-1 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                              (profile.schedule?.lunchTime || '13:00') === t
+                                ? 'bg-[#10B981]/20 border-[#10B981] text-[#10B981]'
+                                : 'bg-white/5 border-white/10 text-slate-400'
+                            }`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* 3. SNACK & DINNER */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    
+                    {/* Evening Snack */}
+                    <div className="p-3 rounded-2xl bg-[#12121A] border border-white/[0.08] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-base">☕</span>
+                          <span className="text-xs font-bold text-white">Evening Snack</span>
+                        </div>
+                        <input
+                          type="time"
+                          value={profile.schedule?.snackTime || '17:00'}
+                          onChange={(e) => updateSection('schedule', { snackTime: e.target.value })}
+                          className="bg-black/60 border border-white/15 rounded-xl px-2 py-1 text-[11px] font-mono font-bold text-[#00F2FE] focus:outline-none focus:border-[#00F2FE]"
+                        />
+                      </div>
+                      <div className="flex gap-1">
+                        {['16:30', '17:00', '17:30', '18:00'].map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => updateSection('schedule', { snackTime: t })}
+                            className={`flex-1 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                              (profile.schedule?.snackTime || '17:00') === t
+                                ? 'bg-[#00F2FE]/20 border-[#00F2FE] text-[#00F2FE]'
+                                : 'bg-white/5 border-white/10 text-slate-400'
+                            }`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Dinner */}
+                    <div className="p-3 rounded-2xl bg-[#12121A] border border-white/[0.08] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-base">🍽️</span>
+                          <span className="text-xs font-bold text-white">Dinner</span>
+                        </div>
+                        <input
+                          type="time"
+                          value={profile.schedule?.dinnerTime || '20:30'}
+                          onChange={(e) => updateSection('schedule', { dinnerTime: e.target.value })}
+                          className="bg-black/60 border border-white/15 rounded-xl px-2 py-1 text-[11px] font-mono font-bold text-[#FF4E50] focus:outline-none focus:border-[#FF4E50]"
+                        />
+                      </div>
+                      <div className="flex gap-1">
+                        {['19:30', '20:30', '21:00', '21:30'].map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => updateSection('schedule', { dinnerTime: t })}
+                            className={`flex-1 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                              (profile.schedule?.dinnerTime || '20:30') === t
+                                ? 'bg-[#FF4E50]/20 border-[#FF4E50] text-[#FF4E50]'
+                                : 'bg-white/5 border-white/10 text-slate-400'
+                            }`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* 4. SLEEP & WAKE-UP */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    
+                    {/* Wake Up */}
+                    <div className="p-3 rounded-2xl bg-[#12121A] border border-white/[0.08] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Sunrise className="w-4 h-4 text-amber-400" />
+                          <span className="text-xs font-bold text-white">Wake Up</span>
+                        </div>
+                        <input
+                          type="time"
+                          value={profile.schedule?.wakeTime || '06:30'}
+                          onChange={(e) => updateSection('schedule', { wakeTime: e.target.value })}
+                          className="bg-black/60 border border-white/15 rounded-xl px-2 py-1 text-[11px] font-mono font-bold text-amber-400 focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                      <div className="flex gap-1">
+                        {['05:30', '06:30', '07:30'].map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => updateSection('schedule', { wakeTime: t })}
+                            className={`flex-1 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                              (profile.schedule?.wakeTime || '06:30') === t
+                                ? 'bg-amber-400/20 border-amber-400 text-amber-400'
+                                : 'bg-white/5 border-white/10 text-slate-400'
+                            }`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Sleep Time */}
+                    <div className="p-3 rounded-2xl bg-[#12121A] border border-white/[0.08] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Moon className="w-4 h-4 text-indigo-400" />
+                          <span className="text-xs font-bold text-white">Bedtime</span>
+                        </div>
+                        <input
+                          type="time"
+                          value={profile.schedule?.sleepTime || '23:00'}
+                          onChange={(e) => updateSection('schedule', { sleepTime: e.target.value })}
+                          className="bg-black/60 border border-white/15 rounded-xl px-2 py-1 text-[11px] font-mono font-bold text-indigo-400 focus:outline-none focus:border-indigo-400"
+                        />
+                      </div>
+                      <div className="flex gap-1">
+                        {['22:00', '23:00', '23:30'].map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => updateSection('schedule', { sleepTime: t })}
+                            className={`flex-1 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                              (profile.schedule?.sleepTime || '23:00') === t
+                                ? 'bg-indigo-400/20 border-indigo-400 text-indigo-400'
+                                : 'bg-white/5 border-white/10 text-slate-400'
+                            }`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+            {/* SCREEN 08 — LIFESTYLE & RECOVERY */}
             {currentScreen.id === 'lifestyle' && (
               <div className="space-y-4">
                 <div>
@@ -846,62 +1349,156 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
             )}
 
             {/* SCREEN 09 — DEVICE ECOSYSTEM */}
-            {currentScreen.id === 'devices' && (
-              <div className="space-y-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-white tracking-tight">Where does your health data live?</h2>
-                  <p className="text-xs text-slate-400 mt-1">Connect your active wearables or log manually in Calyxo.</p>
-                </div>
+            {currentScreen.id === 'devices' && (() => {
+              const platform = HealthPermissionManager.getPlatform();
+              const isApple = platform === 'ios_apple_health';
+              const isAndroid = platform === 'android_health_connect';
 
-                <div className="space-y-2">
-                  {[
-                    { id: 'appleWatch', label: 'Apple Watch & Apple Health', platform: 'iOS', available: true },
-                    { id: 'boat', label: 'boAt Smartwatch', platform: 'Universal', available: true },
-                    { id: 'bleHeartRate', label: 'Bluetooth Heart Rate (BLE HR)', platform: 'Universal', available: true },
-                    { id: 'bleBloodPressure', label: 'Bluetooth Blood Pressure', platform: 'Universal', available: true },
-                    { id: 'healthConnect', label: 'Android Health Connect', platform: 'Android', available: true }
-                  ].map((dev) => {
-                    const isConnected = Boolean(profile.devices[dev.id]);
-                    const isConnecting = connectingDevice === dev.id;
-                    return (
-                      <div
-                        key={dev.id}
-                        className="p-3.5 rounded-2xl bg-[#12121A] border border-white/[0.06] flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Watch className="w-4 h-4 text-[#A3E635]" />
-                          <div>
-                            <p className="text-xs font-bold text-white">{dev.label}</p>
-                            <p className="text-[10px] text-slate-400">{dev.platform} Integration</p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          disabled={isConnecting}
-                          onClick={() => handleConnectDevice(dev.id)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+              let deviceList = [];
+              if (isApple) {
+                deviceList = [
+                  {
+                    id: 'appleHealth',
+                    label: 'Apple Watch & Apple Health',
+                    platform: 'iOS HealthKit',
+                    desc: 'Automatic sync for steps, active calories, sleep & workouts',
+                    icon: Watch
+                  },
+                  {
+                    id: 'bluetoothWatch',
+                    label: 'Bluetooth Fitness Wearable',
+                    platform: 'BLE Smartwatch',
+                    desc: 'Direct live heart rate & activity telemetry',
+                    icon: Bluetooth
+                  }
+                ];
+              } else if (isAndroid) {
+                deviceList = [
+                  {
+                    id: 'healthConnect',
+                    label: 'Android Health Connect & Wear OS',
+                    platform: 'Google Health Connect',
+                    desc: 'Automatic sync for steps, active calories, sleep & workouts',
+                    icon: Activity
+                  },
+                  {
+                    id: 'bluetoothWatch',
+                    label: 'Bluetooth Fitness Wearable',
+                    platform: 'BLE Smartwatch',
+                    desc: 'Direct live heart rate & activity telemetry',
+                    icon: Bluetooth
+                  }
+                ];
+              } else {
+                const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+                const isMacOrIos = /Mac|iPad|iPhone|iPod/.test(ua);
+                deviceList = [
+                  {
+                    id: isMacOrIos ? 'appleHealth' : 'healthConnect',
+                    label: isMacOrIos ? 'Apple Watch & Apple Health' : 'Android Health Connect & Wear OS',
+                    platform: isMacOrIos ? 'iOS HealthKit' : 'Google Health Connect',
+                    desc: 'Automatic step, calorie, and workout synchronization',
+                    icon: isMacOrIos ? Watch : Activity
+                  },
+                  {
+                    id: 'bluetoothWatch',
+                    label: 'Bluetooth Fitness Wearable',
+                    platform: 'BLE Smartwatch',
+                    desc: 'Direct live heart rate & activity telemetry',
+                    icon: Bluetooth
+                  }
+                ];
+              }
+
+              return (
+                <div className="space-y-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white tracking-tight">Where does your health data live?</h2>
+                    <p className="text-xs text-slate-400 mt-1">Connect your active wearables or log manually in Calyxo.</p>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {deviceList.map((dev) => {
+                      const isConnected = dev.id === 'appleHealth'
+                        ? Boolean(profile.devices?.appleHealth || profile.devices?.appleWatch)
+                        : Boolean(profile.devices?.[dev.id]);
+                      const isConnecting = connectingDevice === dev.id;
+                      const IconComp = dev.icon || Watch;
+
+                      return (
+                        <div
+                          key={dev.id}
+                          onClick={() => !isConnecting && handleConnectDevice(dev.id)}
+                          className={`p-4 rounded-2xl border transition-all cursor-pointer select-none active:scale-[0.99] flex items-center justify-between ${
                             isConnected 
-                              ? 'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/40' 
-                              : 'bg-white/[0.06] text-white hover:bg-white/[0.1] border border-white/[0.08]'
+                              ? 'bg-[#10B981]/10 border-[#10B981]/30' 
+                              : 'bg-[#12121A] border-white/[0.06] hover:bg-white/[0.02]'
                           }`}
                         >
-                          {isConnecting ? (
-                            <span className="animate-spin text-xs">⚡</span>
-                          ) : isConnected ? (
-                            <>
-                              <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981]" />
-                              Connected
-                            </>
+                          <div className="flex items-center gap-3">
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                              isConnected ? 'bg-[#10B981]/20 text-[#10B981]' : 'bg-white/[0.06] text-[#A3E635]'
+                            }`}>
+                              <IconComp className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-white">
+                                {dev.id === 'bluetoothWatch' && profile.devices?.deviceName
+                                  ? profile.devices.deviceName
+                                  : dev.label}
+                              </p>
+                              <p className="text-[10px] text-slate-400">{dev.desc}</p>
+                            </div>
+                          </div>
+                          {dev.id === 'bluetoothWatch' ? (
+                            <button
+                              type="button"
+                              disabled={isConnecting}
+                              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                isConnected 
+                                  ? 'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/40' 
+                                  : 'bg-white/[0.06] text-white hover:bg-white/[0.1] border border-white/[0.08]'
+                              }`}
+                            >
+                              {isConnecting ? (
+                                <span className="animate-spin text-xs">⚡</span>
+                              ) : isConnected ? (
+                                <>
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981]" />
+                                  Connected
+                                </>
+                              ) : (
+                                'Connect'
+                              )}
+                            </button>
                           ) : (
-                            'Connect'
+                            /* Native iOS-style Toggle Switch */
+                            <div
+                              className={`w-12 h-7 rounded-full p-1 transition-colors duration-200 ease-in-out flex items-center shrink-0 ${
+                                isConnected ? 'bg-[#34C759] justify-end' : 'bg-slate-700 justify-start'
+                              }`}
+                            >
+                              <motion.div
+                                layout
+                                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                className="w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center"
+                              >
+                                {isConnecting && <span className="animate-spin text-[8px] text-black">⚡</span>}
+                              </motion.div>
+                            </div>
                           )}
-                        </button>
-                      </div>
-                    );
-                  })}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-[#12121A] border border-white/[0.06] text-slate-400 text-xs flex items-center gap-2.5">
+                    <ShieldCheck className="w-4 h-4 text-[#10B981] shrink-0" />
+                    <span>Calyxo processes biometrics securely on-device. All stats can also be logged manually.</span>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* SCREEN 10 — AI COACH PERSONALITY */}
             {currentScreen.id === 'coaching' && (
@@ -1002,6 +1599,19 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                 </div>
 
                 <div className="p-4 rounded-3xl bg-[#12121A] border border-white/[0.08] space-y-3 shadow-2xl">
+                  {/* Athlete Name Banner */}
+                  <div className="p-3 rounded-2xl bg-[#A3E635]/10 border border-[#A3E635]/20 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] text-[#A3E635] font-mono uppercase font-bold tracking-wider">ATHLETE PROFILE</span>
+                      <p className="text-sm font-black text-white">{profile.identity?.fullName || profile.identity?.firstName || 'Athlete'}</p>
+                    </div>
+                    {profile.identity?.nickname && (
+                      <span className="px-2.5 py-1 rounded-full bg-[#A3E635]/20 text-[#A3E635] text-[11px] font-bold">
+                        Coach: "{profile.identity.nickname}"
+                      </span>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div>
                       <p className="text-slate-500 font-bold text-[10px]">PRIMARY GOAL</p>
@@ -1120,6 +1730,28 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
           onClose={() => setLegalModalType(null)}
         />
       )}
+
+      {/* Wearable & Bluetooth Device Pairing Modal */}
+      <WearablePairingModal
+        isOpen={wearablePairingModalOpen}
+        onClose={() => setWearablePairingModalOpen(false)}
+        onPaired={({ deviceName, brandId }) => {
+          updateSection('devices', { 
+            bluetoothWatch: true, 
+            bleHeartRate: true, 
+            garmin: brandId === 'garmin',
+            deviceName 
+          });
+          if (userId) {
+            saveEcosystemState(userId, {
+              bluetoothWatchConnected: true,
+              bluetoothDeviceName: deviceName,
+              garminConnected: brandId === 'garmin'
+            });
+          }
+        }}
+        onNotification={onNotification}
+      />
     </div>
   );
 }

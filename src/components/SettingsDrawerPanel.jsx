@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Eye, Sparkles, Bell, Shield, Key, CreditCard, Database, Info, 
   ChevronRight, ChevronLeft, X, Check, Moon, Sun, Lock, RefreshCw, Trash2, LogOut,
-  Mail, EyeOff, FileText, CheckCircle, Download, Upload, Send, AlertTriangle
+  Mail, EyeOff, FileText, CheckCircle, Download, Upload, Send, AlertTriangle, LayoutGrid, Clock
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import ThemeToggle from './ThemeToggle';
@@ -13,8 +13,11 @@ import { SubscriptionManager } from '../services/subscription/SubscriptionManage
 import useQuickActionsStore from '../store/useQuickActionsStore';
 
 import PermissionsConnectionsSection from './PermissionsConnectionsSection';
+import WidgetStudioSection from './widgets/WidgetStudioSection';
 
 const SETTINGS_CATEGORIES = [
+  { id: 'routine', label: 'Daily Routine & Timings', icon: Clock, desc: 'Meal, workout, hydration & sleep schedule' },
+  { id: 'widgets', label: 'Home Screen & Widgets', icon: LayoutGrid, desc: 'Quad rings, steps, aesthetic styles & live sync' },
   { id: 'permissions', label: 'Permissions & Connections', icon: Shield, desc: 'PWA, notifications & health integrations' },
   { id: 'appearance', label: 'Appearance & Themes', icon: Eye, desc: 'Themes, dark mode, background effects' },
   { id: 'aicoach', label: 'AI Coach Settings', icon: Sparkles, desc: 'Personality, response style & tone' },
@@ -70,6 +73,23 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
 
   const [pushStatus, setPushStatus] = useState({ status: 'notDetermined', isRegistered: false });
 
+  // Daily Schedule & Timings
+  const [schedule, setSchedule] = useState(userProfile?.schedule || {
+    wakeTime: '06:30',
+    breakfastTime: '08:30',
+    lunchTime: '13:00',
+    snackTime: '17:00',
+    workoutTime: '18:30',
+    dinnerTime: '20:30',
+    sleepTime: '23:00'
+  });
+
+  React.useEffect(() => {
+    if (userProfile?.schedule) {
+      setSchedule(prev => ({ ...prev, ...userProfile.schedule }));
+    }
+  }, [userProfile?.schedule]);
+
   React.useEffect(() => {
     async function loadNotifStatus() {
       const s = await getNotificationStatus();
@@ -88,7 +108,7 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
   const [analyticsTracking, setAnalyticsTracking] = useState(userProfile?.privacy?.analyticsTracking ?? true);
 
   // Security States
-  const [emailInput, setEmailInput] = useState(user?.email || 'supreethkiran25@gmail.com');
+  const [emailInput, setEmailInput] = useState(user?.email || 'athlete@calyxo.app');
   const [passwordInput, setPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [twoFactorCode, setTwoFactorCode] = useState('');
@@ -96,7 +116,7 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
 
   // Feedback State
   const [feedbackCategory, setFeedbackCategory] = useState('Bug / UI Issue');
-  const [feedbackEmail, setFeedbackEmail] = useState(user?.email || 'supreethkiran25@gmail.com');
+  const [feedbackEmail, setFeedbackEmail] = useState(user?.email || 'athlete@calyxo.app');
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [clearingCache, setClearingCache] = useState(false);
 
@@ -117,6 +137,7 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
       aiMemoryEnabled,
       notificationFrequency,
       notifications,
+      schedule,
       appearance: {
         theme: themeMode,
         bgEffectsEnabled,
@@ -140,14 +161,17 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
     if (userId) {
       try {
         await saveUserProfile(userId, updatedProfile);
+        setSaveStatus(`${categoryName} saved successfully!`);
       } catch (err) {
-        console.error('Error saving user profile:', err);
+        console.error("Save profile error", err);
+        setSaveStatus(`Failed to save ${categoryName}`);
       }
+    } else {
+      setSaveStatus(`${categoryName} updated locally.`);
     }
 
     setSaving(false);
-    setSaveStatus(`${categoryName} Saved Successfully!`);
-    setTimeout(() => setSaveStatus(''), 2500);
+    setTimeout(() => setSaveStatus(''), 4000);
   };
 
   const handleExportChatHistory = () => {
@@ -246,6 +270,112 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
 
   const renderActiveCategoryForm = () => {
     switch (activeCategory) {
+      case 'routine':
+        return (
+          <form onSubmit={(e) => handleSaveAll(e, 'Daily Routine Timings')} className="space-y-4 text-xs">
+            <div>
+              <h4 className="text-xs font-bold text-foreground">Daily Routine & Reminder Timings</h4>
+              <p className="text-[11px] text-muted mt-0.5">
+                Set your meal, workout, and sleep hours so Calyxo sends smart notifications at your exact schedule.
+              </p>
+            </div>
+
+            <div className="space-y-2.5">
+              {/* Workout */}
+              <div className="p-3 rounded-xl bg-surface border border-acid-green/40 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-acid-green">🏋️ Workout / Gym Time</span>
+                  <input
+                    type="time"
+                    value={schedule?.workoutTime || '18:30'}
+                    onChange={(e) => setSchedule({ ...schedule, workoutTime: e.target.value })}
+                    className="bg-[var(--input)] text-acid-green border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+                  />
+                </div>
+              </div>
+
+              {/* Breakfast & Lunch */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
+                  <span className="text-[11px] font-bold text-foreground block">🍳 Breakfast</span>
+                  <input
+                    type="time"
+                    value={schedule?.breakfastTime || '08:30'}
+                    onChange={(e) => setSchedule({ ...schedule, breakfastTime: e.target.value })}
+                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+                  />
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
+                  <span className="text-[11px] font-bold text-foreground block">🥗 Lunch</span>
+                  <input
+                    type="time"
+                    value={schedule?.lunchTime || '13:00'}
+                    onChange={(e) => setSchedule({ ...schedule, lunchTime: e.target.value })}
+                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+                  />
+                </div>
+              </div>
+
+              {/* Snack & Dinner */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
+                  <span className="text-[11px] font-bold text-foreground block">☕ Snack</span>
+                  <input
+                    type="time"
+                    value={schedule?.snackTime || '17:00'}
+                    onChange={(e) => setSchedule({ ...schedule, snackTime: e.target.value })}
+                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+                  />
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
+                  <span className="text-[11px] font-bold text-foreground block">🍽️ Dinner</span>
+                  <input
+                    type="time"
+                    value={schedule?.dinnerTime || '20:30'}
+                    onChange={(e) => setSchedule({ ...schedule, dinnerTime: e.target.value })}
+                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+                  />
+                </div>
+              </div>
+
+              {/* Sleep & Wake */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
+                  <span className="text-[11px] font-bold text-foreground block">🌅 Wake Up</span>
+                  <input
+                    type="time"
+                    value={schedule?.wakeTime || '06:30'}
+                    onChange={(e) => setSchedule({ ...schedule, wakeTime: e.target.value })}
+                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+                  />
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
+                  <span className="text-[11px] font-bold text-foreground block">😴 Bedtime</span>
+                  <input
+                    type="time"
+                    value={schedule?.sleepTime || '23:00'}
+                    onChange={(e) => setSchedule({ ...schedule, sleepTime: e.target.value })}
+                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full py-2.5 rounded-xl bg-acid-green text-black font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-lg active:scale-98 transition-transform"
+            >
+              {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+              Save Routine Timings
+            </button>
+          </form>
+        );
+      case 'widgets':
+        return <WidgetStudioSection onNotification={(msg) => { setSaveStatus(msg); setTimeout(() => setSaveStatus(''), 4000); }} />;
       case 'permissions':
         return <PermissionsConnectionsSection onNotification={(msg) => { setSaveStatus(msg); setTimeout(() => setSaveStatus(''), 4000); }} />;
       case 'appearance':

@@ -1,6 +1,16 @@
 import WidgetKit
 import SwiftUI
 
+// MARK: - Number Formatting Helper
+extension Int {
+    var formattedWithSeparator: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 0
+        return formatter.string(from: NSNumber(value: self)) ?? "\(self)"
+    }
+}
+
 // MARK: - Shared Timeline Entry
 struct CalyxoWidgetEntry: TimelineEntry {
     let date: Date
@@ -13,6 +23,7 @@ struct CalyxoWidgetEntry: TimelineEntry {
     let carbs: Int
     let fat: Int
     let steps: Int
+    let stepGoal: Int
     let streak: Int
     let activeWorkoutName: String
     let hasData: Bool
@@ -20,24 +31,40 @@ struct CalyxoWidgetEntry: TimelineEntry {
 
 // MARK: - Modern Container Background Compatibility Modifier
 extension View {
-    func calyxoWidgetBackground(_ color: Color = Color(red: 10/255, green: 10/255, blue: 12/255)) -> some View {
-        if #available(iOS 17.0, *) {
-            return AnyView(self.containerBackground(color, for: .widget))
+    func calyxoWidgetBackground(_ color: Color = Color(red: 12/255, green: 14/255, blue: 18/255)) -> some View {
+        if #available(iOS 17.0, macOS 14.0, *) {
+            return AnyView(
+                self.containerBackground(for: .widget) {
+                    ZStack {
+                        color
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.white.opacity(0.04),
+                                Color.clear
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    }
+                }
+            )
         } else {
             return AnyView(self.background(color))
         }
     }
 }
 
-// MARK: - Timeline Provider (Real App Group Data Only)
+// MARK: - Timeline Provider (Real App Group Data + Proactive Background Refresh)
 struct CalyxoWidgetProvider: TimelineProvider {
     func placeholder(in context: Context) -> CalyxoWidgetEntry {
         CalyxoWidgetEntry(
             date: Date(),
-            calories: 1188, calorieGoal: 2875,
-            water: 2000, waterGoal: 2500,
+            calories: 1971, calorieGoal: 2875,
+            water: 3000, waterGoal: 3000,
             protein: 107, proteinGoal: 124,
-            carbs: 140, fat: 45, steps: 4200, streak: 5,
+            carbs: 160, fat: 48,
+            steps: 2524, stepGoal: 10000,
+            streak: 5,
             activeWorkoutName: "",
             hasData: true
         )
@@ -48,9 +75,14 @@ struct CalyxoWidgetProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<CalyxoWidgetEntry>) -> ()) {
-        let entry = readSharedData()
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date().addingTimeInterval(900)
-        completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
+        let currentEntry = readSharedData()
+        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 5, to: Date()) ?? Date().addingTimeInterval(300)
+
+        // Try proactive background fetch from Supabase if credentials are stored in App Group
+        fetchLatestRemoteDataIfNeeded { updatedEntry in
+            let finalEntry = updatedEntry ?? currentEntry
+            completion(Timeline(entries: [finalEntry], policy: .after(nextUpdate)))
+        }
     }
 
     private func readSharedData() -> CalyxoWidgetEntry {
@@ -65,6 +97,7 @@ struct CalyxoWidgetProvider: TimelineProvider {
         let carbs = d.integer(forKey: "widget_carbs")
         let fat = d.integer(forKey: "widget_fat")
         let steps = d.integer(forKey: "widget_steps")
+        let stepGoal = d.integer(forKey: "widget_step_goal")
         let streak = d.integer(forKey: "widget_streak")
         let workout = d.string(forKey: "widget_active_workout") ?? ""
 
@@ -75,36 +108,106 @@ struct CalyxoWidgetProvider: TimelineProvider {
             calories: calories,
             calorieGoal: calorieGoal > 0 ? calorieGoal : 2000,
             water: water,
-            waterGoal: waterGoal > 0 ? waterGoal : 2500,
+            waterGoal: (waterGoal > 0 && waterGoal != 2500) ? waterGoal : 3000,
             protein: protein,
             proteinGoal: proteinGoal > 0 ? proteinGoal : 150,
             carbs: carbs,
             fat: fat,
             steps: steps,
+            stepGoal: stepGoal > 0 ? stepGoal : 10000,
             streak: streak,
             activeWorkoutName: workout,
             hasData: hasData
         )
     }
+
+    /// Autonomous background fetch directly from Supabase REST API without requiring app launch
+    private func fetchLatestRemoteDataIfNeeded(completion: @escaping (CalyxoWidgetEntry?) -> Void) {
+        let suiteName = "group.com.supreethkiran.calyxo"
+        let d = UserDefaults(suiteName: suiteName) ?? .standard
+        guard let supabaseUrl = d.string(forKey: "supabase_url"), !supabaseUrl.isEmpty,
+              let anonKey = d.string(forKey: "supabase_anon_key"), !anonKey.isEmpty,
+              let userId = d.string(forKey: "supabase_user_id"), !userId.isEmpty else {
+            completion(nil)
+            return
+        }
+
+        let authToken = d.string(forKey: "supabase_auth_token") ?? anonKey
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: Date())
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let startOfDayStr = isoFormatter.string(from: startOfDay)
+
+        guard let encodedStart = startOfDayStr.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "\(supabaseUrl)/rest/v1/food_logs?user_id=eq.\(userId)&created_at=gte.\(encodedStart)&select=calories,protein,carbs,fat") else {
+            completion(nil)
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(anonKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 5.0
+
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            guard let data = data, error == nil,
+                  let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+                completion(nil)
+                return
+            }
+
+            struct SupabaseMeal: Decodable {
+                let calories: Double?
+                let protein: Double?
+                let carbs: Double?
+                let fat: Double?
+            }
+
+            do {
+                let meals = try JSONDecoder().decode([SupabaseMeal].self, from: data)
+                let totalCals = Int(meals.reduce(0) { $0 + ($1.calories ?? 0) })
+                let totalProt = Int(meals.reduce(0) { $0 + ($1.protein ?? 0) })
+                let totalCarbs = Int(meals.reduce(0) { $0 + ($1.carbs ?? 0) })
+                let totalFat = Int(meals.reduce(0) { $0 + ($1.fat ?? 0) })
+
+                if totalCals > 0 || totalProt > 0 {
+                    d.set(totalCals, forKey: "widget_calories")
+                    d.set(totalProt, forKey: "widget_protein")
+                    d.set(totalCarbs, forKey: "widget_carbs")
+                    d.set(totalFat, forKey: "widget_fat")
+                    d.synchronize()
+                }
+
+                let updated = self.readSharedData()
+                completion(updated)
+            } catch {
+                completion(nil)
+            }
+        }
+        task.resume()
+    }
 }
 
-// MARK: - Calyxo Brand Colors
-private let calyxoGreen = Color(red: 16/255, green: 185/255, blue: 129/255)
-private let calyxoAmber = Color(red: 245/255, green: 158/255, blue: 11/255)
-private let calyxoCyan = Color(red: 0/255, green: 242/255, blue: 254/255)
-private let calyxoCoral = Color(red: 255/255, green: 78/255, blue: 80/255)
-private let calyxoBg = Color(red: 10/255, green: 10/255, blue: 12/255)
+// MARK: - Calyxo High-Vibrancy Brand Colors
+private let calyxoEmerald = Color(red: 16/255, green: 185/255, blue: 129/255)  // #10B981
+private let calyxoAmber   = Color(red: 245/255, green: 158/255, blue: 11/255)   // #F59E0B
+private let calyxoCyan    = Color(red: 6/255, green: 182/255, blue: 212/255)    // #06B6D4
+private let calyxoCoral   = Color(red: 244/255, green: 63/255, blue: 94/255)    // #F43F5E
+private let calyxoBg      = Color(red: 12/255, green: 14/255, blue: 18/255)
 
-// MARK: - Circular Progress Ring Component
+// MARK: - Circular Progress Ring Component with Color Preservation
 struct ProgressRing: View {
     var progress: Double
     var color: Color
-    var lineWidth: CGFloat = 6
+    var lineWidth: CGFloat = 5.0
 
     var body: some View {
         ZStack {
             Circle()
-                .stroke(color.opacity(0.18), lineWidth: lineWidth)
+                .stroke(color.opacity(0.20), lineWidth: lineWidth)
             Circle()
                 .trim(from: 0.0, to: CGFloat(min(max(progress, 0.0), 1.0)))
                 .stroke(
@@ -112,11 +215,13 @@ struct ProgressRing: View {
                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
+                .shadow(color: color.opacity(0.3), radius: 2.5, x: 0, y: 0)
         }
+        .widgetAccentable(false)
     }
 }
 
-// MARK: - 1. THREE RINGS WIDGET VIEW (CALORIES, HYDRATION, PROTEIN)
+// MARK: - 1. QUAD RINGS WIDGET VIEW (CALORIES, STEPS, HYDRATION, PROTEIN)
 struct RingsWidgetView: View {
     var entry: CalyxoWidgetEntry
     @Environment(\.widgetFamily) var family
@@ -124,6 +229,11 @@ struct RingsWidgetView: View {
     private var calProgress: Double {
         guard entry.calorieGoal > 0 else { return 0 }
         return Double(entry.calories) / Double(entry.calorieGoal)
+    }
+
+    private var stepProgress: Double {
+        guard entry.stepGoal > 0 else { return 0 }
+        return Double(entry.steps) / Double(entry.stepGoal)
     }
 
     private var waterProgress: Double {
@@ -137,120 +247,281 @@ struct RingsWidgetView: View {
     }
 
     var body: some View {
-        if family == .systemMedium {
-            // Medium Widget: 3 Side-by-Side Rings with exact values & goals matching in-app
-            HStack(spacing: 12) {
-                // Calories Ring
-                VStack(spacing: 4) {
-                    ZStack {
-                        ProgressRing(progress: calProgress, color: calyxoAmber, lineWidth: 7)
-                            .frame(width: 58, height: 58)
-                        Text("\(Int(calProgress * 100))%")
-                            .font(.system(size: 14, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
-                    }
-                    Text("CALORIES")
-                        .font(.system(size: 8, weight: .black))
-                        .foregroundColor(calyxoAmber)
-                    Text("\(entry.calories)/\(entry.calorieGoal)")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundColor(.gray)
-                        .lineLimit(1)
-                }
-                .frame(maxWidth: .infinity)
+        switch family {
+        case .accessoryCircular:
+            // Lock Screen Concentric 4 Rings (Under Clock)
+            ZStack {
+                ProgressRing(progress: calProgress, color: calyxoAmber, lineWidth: 3.5)
+                    .frame(width: 46, height: 46)
+                ProgressRing(progress: stepProgress, color: calyxoEmerald, lineWidth: 3.2)
+                    .frame(width: 37, height: 37)
+                ProgressRing(progress: waterProgress, color: calyxoCyan, lineWidth: 2.8)
+                    .frame(width: 28, height: 28)
+                ProgressRing(progress: protProgress, color: calyxoCoral, lineWidth: 2.5)
+                    .frame(width: 20, height: 20)
+            }
+            .calyxoWidgetBackground(.clear)
 
-                // Hydration Ring
-                VStack(spacing: 4) {
-                    ZStack {
-                        ProgressRing(progress: waterProgress, color: calyxoCyan, lineWidth: 7)
-                            .frame(width: 58, height: 58)
-                        Text("\(Int(waterProgress * 100))%")
-                            .font(.system(size: 14, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
-                    }
-                    Text("HYDRATION")
-                        .font(.system(size: 8, weight: .black))
-                        .foregroundColor(calyxoCyan)
-                    Text("\(entry.water)/\(entry.waterGoal)ml")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundColor(.gray)
-                        .lineLimit(1)
+        case .accessoryRectangular:
+            // Lock Screen Rectangular Widget with Concentric Rings + Stats
+            HStack(spacing: 8) {
+                ZStack {
+                    ProgressRing(progress: calProgress, color: calyxoAmber, lineWidth: 3.0)
+                        .frame(width: 38, height: 38)
+                    ProgressRing(progress: stepProgress, color: calyxoEmerald, lineWidth: 2.7)
+                        .frame(width: 30, height: 30)
+                    ProgressRing(progress: waterProgress, color: calyxoCyan, lineWidth: 2.4)
+                        .frame(width: 22, height: 22)
+                    ProgressRing(progress: protProgress, color: calyxoCoral, lineWidth: 2.0)
+                        .frame(width: 15, height: 15)
                 }
-                .frame(maxWidth: .infinity)
 
-                // Protein Ring
-                VStack(spacing: 4) {
-                    ZStack {
-                        ProgressRing(progress: protProgress, color: calyxoCoral, lineWidth: 7)
-                            .frame(width: 58, height: 58)
-                        Text("\(Int(protProgress * 100))%")
-                            .font(.system(size: 14, weight: .black, design: .rounded))
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text("⚡️ CALYXO")
+                            .font(.system(size: 8.5, weight: .black))
                             .foregroundColor(.white)
+                        Spacer()
+                        if entry.streak > 0 {
+                            Text("🔥\(entry.streak)d")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(.orange)
+                        }
                     }
-                    Text("PROTEIN")
-                        .font(.system(size: 8, weight: .black))
-                        .foregroundColor(calyxoCoral)
-                    Text("\(entry.protein)/\(entry.proteinGoal)g")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundColor(.gray)
-                        .lineLimit(1)
+
+                    HStack(spacing: 6) {
+                        HStack(spacing: 2) {
+                            Circle().fill(calyxoAmber).frame(width: 4, height: 4)
+                            Text("\(entry.calories.formattedWithSeparator)")
+                                .font(.system(size: 10, weight: .black, design: .rounded))
+                                .foregroundColor(.white)
+                        }
+                        HStack(spacing: 2) {
+                            Circle().fill(calyxoEmerald).frame(width: 4, height: 4)
+                            Text("\(entry.steps.formattedWithSeparator)")
+                                .font(.system(size: 10, weight: .black, design: .rounded))
+                                .foregroundColor(.white)
+                        }
+                    }
+
+                    HStack(spacing: 6) {
+                        HStack(spacing: 2) {
+                            Circle().fill(calyxoCyan).frame(width: 4, height: 4)
+                            Text("\(entry.water.formattedWithSeparator)ml")
+                                .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                                .foregroundColor(Color.white.opacity(0.7))
+                        }
+                        HStack(spacing: 2) {
+                            Circle().fill(calyxoCoral).frame(width: 4, height: 4)
+                            Text("\(entry.protein.formattedWithSeparator)g")
+                                .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                                .foregroundColor(Color.white.opacity(0.7))
+                        }
+                    }
                 }
-                .frame(maxWidth: .infinity)
+            }
+            .padding(4)
+            .calyxoWidgetBackground(.clear)
+
+        case .accessoryInline:
+            HStack(spacing: 3) {
+                Text("⚡️ CALYXO: \(entry.steps.formattedWithSeparator) steps • \(entry.calories.formattedWithSeparator) kcal")
+            }
+
+        case .systemMedium:
+            // Medium Widget (Desktop & Home Screen): Spacious 4 Interactive Side-by-Side Rings
+            VStack(alignment: .leading, spacing: 0) {
+                // Header Row
+                HStack(alignment: .center, spacing: 6) {
+                    Text("⚡ CALYXO")
+                        .font(.system(size: 11, weight: .black, design: .rounded))
+                        .foregroundColor(calyxoEmerald)
+                        .widgetAccentable(false)
+                    Text("• QUAD RINGS")
+                        .font(.system(size: 9, weight: .black))
+                        .foregroundColor(Color.white.opacity(0.65))
+                        .tracking(0.5)
+
+                    Spacer()
+
+                    if entry.streak > 0 {
+                        HStack(spacing: 3) {
+                            Text("🔥")
+                                .font(.system(size: 9))
+                            Text("\(entry.streak)d")
+                                .font(.system(size: 9, weight: .black, design: .rounded))
+                                .foregroundColor(.orange)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.orange.opacity(0.15))
+                        .cornerRadius(6)
+                        .widgetAccentable(false)
+                    }
+                }
+                .padding(.horizontal, 4)
+                .padding(.bottom, 6)
+
+                Spacer(minLength: 2)
+
+                // 4 Interactive Rings
+                HStack(spacing: 6) {
+                    // 1. Calories Ring
+                    VStack(spacing: 3.5) {
+                        ZStack {
+                            ProgressRing(progress: calProgress, color: calyxoAmber, lineWidth: 5.0)
+                                .frame(width: 48, height: 48)
+                            Text("\(Int(min(calProgress * 100, 999)))%")
+                                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                                .foregroundColor(.white)
+                        }
+                        Text("CALORIES")
+                            .font(.system(size: 8, weight: .black))
+                            .foregroundColor(calyxoAmber)
+                            .tracking(0.4)
+                            .widgetAccentable(false)
+                        Text("\(entry.calories.formattedWithSeparator)/\(entry.calorieGoal.formattedWithSeparator)")
+                            .font(.system(size: 7.5, weight: .bold, design: .rounded))
+                            .foregroundColor(Color.white.opacity(0.65))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    // 2. Steps Ring
+                    VStack(spacing: 3.5) {
+                        ZStack {
+                            ProgressRing(progress: stepProgress, color: calyxoEmerald, lineWidth: 5.0)
+                                .frame(width: 48, height: 48)
+                            Text("\(Int(min(stepProgress * 100, 999)))%")
+                                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                                .foregroundColor(.white)
+                        }
+                        Text("STEPS")
+                            .font(.system(size: 8, weight: .black))
+                            .foregroundColor(calyxoEmerald)
+                            .tracking(0.4)
+                            .widgetAccentable(false)
+                        Text("\(entry.steps.formattedWithSeparator)/\(entry.stepGoal.formattedWithSeparator)")
+                            .font(.system(size: 7.5, weight: .bold, design: .rounded))
+                            .foregroundColor(Color.white.opacity(0.65))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    // 3. Hydration Ring
+                    VStack(spacing: 3.5) {
+                        ZStack {
+                            ProgressRing(progress: waterProgress, color: calyxoCyan, lineWidth: 5.0)
+                                .frame(width: 48, height: 48)
+                            Text("\(Int(min(waterProgress * 100, 999)))%")
+                                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                                .foregroundColor(.white)
+                        }
+                        Text("HYDRATION")
+                            .font(.system(size: 8, weight: .black))
+                            .foregroundColor(calyxoCyan)
+                            .tracking(0.4)
+                            .widgetAccentable(false)
+                        Text("\(entry.water.formattedWithSeparator)/\(entry.waterGoal.formattedWithSeparator)ml")
+                            .font(.system(size: 7.5, weight: .bold, design: .rounded))
+                            .foregroundColor(Color.white.opacity(0.65))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    // 4. Protein Ring
+                    VStack(spacing: 3.5) {
+                        ZStack {
+                            ProgressRing(progress: protProgress, color: calyxoCoral, lineWidth: 5.0)
+                                .frame(width: 48, height: 48)
+                            Text("\(Int(min(protProgress * 100, 999)))%")
+                                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                                .foregroundColor(.white)
+                        }
+                        Text("PROTEIN")
+                            .font(.system(size: 8, weight: .black))
+                            .foregroundColor(calyxoCoral)
+                            .tracking(0.4)
+                            .widgetAccentable(false)
+                        Text("\(entry.protein.formattedWithSeparator)/\(entry.proteinGoal.formattedWithSeparator)g")
+                            .font(.system(size: 7.5, weight: .bold, design: .rounded))
+                            .foregroundColor(Color.white.opacity(0.65))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+
+                Spacer(minLength: 2)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .calyxoWidgetBackground(calyxoBg)
-        } else {
-            // Small Widget: Concentric 3 Rings with Calorie Summary
-            VStack(alignment: .leading, spacing: 6) {
+
+        default:
+            // Small Widget: Concentric 4 Rings with Stats Summary
+            VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Image(systemName: "flame.fill").foregroundColor(calyxoAmber).font(.system(size: 10))
-                    Text("CALYXO RINGS")
-                        .font(.system(size: 9, weight: .black))
-                        .foregroundColor(.white)
+                    Text("⚡ CALYXO")
+                        .font(.system(size: 9.5, weight: .black, design: .rounded))
+                        .foregroundColor(calyxoEmerald)
+                        .widgetAccentable(false)
                     Spacer()
                     if entry.streak > 0 {
-                        Text("🔥\(entry.streak)d")
-                            .font(.system(size: 9, weight: .black))
+                        Text("🔥 \(entry.streak)d")
+                            .font(.system(size: 8.5, weight: .black))
                             .foregroundColor(.orange)
+                            .widgetAccentable(false)
                     }
                 }
 
                 Spacer()
 
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
+                    // 4 Concentric Rings
                     ZStack {
-                        ProgressRing(progress: calProgress, color: calyxoAmber, lineWidth: 5)
-                            .frame(width: 54, height: 54)
-                        ProgressRing(progress: waterProgress, color: calyxoCyan, lineWidth: 4.5)
-                            .frame(width: 40, height: 40)
-                        ProgressRing(progress: protProgress, color: calyxoCoral, lineWidth: 4)
-                            .frame(width: 27, height: 27)
+                        ProgressRing(progress: calProgress, color: calyxoAmber, lineWidth: 4.5)
+                            .frame(width: 56, height: 56)
+                        ProgressRing(progress: stepProgress, color: calyxoEmerald, lineWidth: 4)
+                            .frame(width: 44, height: 44)
+                        ProgressRing(progress: waterProgress, color: calyxoCyan, lineWidth: 3.5)
+                            .frame(width: 33, height: 33)
+                        ProgressRing(progress: protProgress, color: calyxoCoral, lineWidth: 3)
+                            .frame(width: 23, height: 23)
                     }
 
-                    VStack(alignment: .leading, spacing: 3) {
+                    VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 3) {
-                            Circle().fill(calyxoAmber).frame(width: 5, height: 5)
-                            Text("\(entry.calories) kcal")
-                                .font(.system(size: 9, weight: .bold))
+                            Circle().fill(calyxoAmber).frame(width: 4.5, height: 4.5)
+                            Text("\(entry.calories.formattedWithSeparator) kcal")
+                                .font(.system(size: 8, weight: .bold))
                                 .foregroundColor(.white)
                         }
                         HStack(spacing: 3) {
-                            Circle().fill(calyxoCyan).frame(width: 5, height: 5)
-                            Text("\(entry.water) ml")
-                                .font(.system(size: 9, weight: .bold))
+                            Circle().fill(calyxoEmerald).frame(width: 4.5, height: 4.5)
+                            Text("\(entry.steps.formattedWithSeparator) steps")
+                                .font(.system(size: 8, weight: .bold))
                                 .foregroundColor(.white)
                         }
                         HStack(spacing: 3) {
-                            Circle().fill(calyxoCoral).frame(width: 5, height: 5)
-                            Text("\(entry.protein)g prot")
-                                .font(.system(size: 9, weight: .bold))
+                            Circle().fill(calyxoCyan).frame(width: 4.5, height: 4.5)
+                            Text("\(entry.water.formattedWithSeparator) ml")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        HStack(spacing: 3) {
+                            Circle().fill(calyxoCoral).frame(width: 4.5, height: 4.5)
+                            Text("\(entry.protein.formattedWithSeparator)g prot")
+                                .font(.system(size: 8, weight: .bold))
                                 .foregroundColor(.white)
                         }
                     }
                 }
             }
-            .padding(12)
+            .padding(10)
             .calyxoWidgetBackground(calyxoBg)
         }
     }
@@ -258,13 +529,22 @@ struct RingsWidgetView: View {
 
 struct RingsWidget: Widget {
     let kind = "CalyxoRingsWidget"
+    
+    private var supportedFamiliesList: [WidgetFamily] {
+        if #available(iOS 16.0, *) {
+            return [.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline]
+        } else {
+            return [.systemSmall, .systemMedium]
+        }
+    }
+
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: CalyxoWidgetProvider()) { entry in
             RingsWidgetView(entry: entry)
         }
         .configurationDisplayName("Daily Rings")
-        .description("Track Calories, Hydration, and Protein rings with live progress.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .description("Track Calories, Steps, Hydration, and Protein rings on Home Screen & Lock Screen under clock.")
+        .supportedFamilies(supportedFamiliesList)
     }
 }
 
@@ -280,25 +560,29 @@ struct HydrationWidgetView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Image(systemName: "drop.fill").foregroundColor(calyxoCyan)
-                Text("HYDRATION")
-                    .font(.system(size: 10, weight: .black))
+                Text("💧 CALYXO")
+                    .font(.system(size: 10, weight: .black, design: .rounded))
                     .foregroundColor(calyxoCyan)
+                    .widgetAccentable(false)
+                Text("• WATER")
+                    .font(.system(size: 8.5, weight: .black))
+                    .foregroundColor(.gray)
                 Spacer()
                 if entry.streak > 0 {
                     Text("🔥 \(entry.streak)d")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.system(size: 9.5, weight: .bold))
                         .foregroundColor(.orange)
+                        .widgetAccentable(false)
                 }
             }
             Spacer()
             if entry.water > 0 {
-                Text("\(entry.water) ml")
+                Text("\(entry.water.formattedWithSeparator) ml")
                     .font(.system(size: 20, weight: .black, design: .rounded))
                     .foregroundColor(.white)
                 ProgressView(value: waterProgress)
                     .tint(calyxoCyan)
-                Text("\(max(0, entry.waterGoal - entry.water)) ml remaining")
+                Text("\(max(0, entry.waterGoal - entry.water).formattedWithSeparator) ml remaining")
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundColor(.gray)
             } else {
@@ -307,7 +591,7 @@ struct HydrationWidgetView: View {
                     .foregroundColor(.white)
                 ProgressView(value: 0.0)
                     .tint(calyxoCyan)
-                Text("Goal: \(entry.waterGoal) ml")
+                Text("Goal: \(entry.waterGoal.formattedWithSeparator) ml")
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundColor(.gray)
             }
@@ -336,23 +620,26 @@ struct NutritionWidgetView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Image(systemName: "flame.fill").foregroundColor(calyxoAmber)
-                Text("CALORIES")
-                    .font(.system(size: 10, weight: .black))
+                Text("🔥 CALYXO")
+                    .font(.system(size: 10, weight: .black, design: .rounded))
                     .foregroundColor(calyxoAmber)
+                    .widgetAccentable(false)
+                Text("• NUTRITION")
+                    .font(.system(size: 8.5, weight: .black))
+                    .foregroundColor(.gray)
                 Spacer()
             }
             Spacer()
-            (Text("\(entry.calories)")
+            (Text("\(entry.calories.formattedWithSeparator)")
                 .font(.system(size: 22, weight: .black, design: .rounded))
                 .foregroundColor(.white)
-            + Text(" / \(entry.calorieGoal) kcal")
+            + Text(" / \(entry.calorieGoal.formattedWithSeparator) kcal")
                 .font(.system(size: 11, weight: .bold))
                 .foregroundColor(.gray))
 
             HStack(spacing: 8) {
                 HStack(spacing: 2) {
-                    Circle().fill(calyxoGreen).frame(width: 5, height: 5)
+                    Circle().fill(calyxoEmerald).frame(width: 5, height: 5)
                     Text("\(entry.protein)g P")
                         .font(.system(size: 9, weight: .bold))
                         .foregroundColor(.white)
@@ -370,6 +657,7 @@ struct NutritionWidgetView: View {
                         .foregroundColor(.white)
                 }
             }
+            .widgetAccentable(false)
         }
         .padding(12)
         .calyxoWidgetBackground(calyxoBg)
@@ -388,52 +676,125 @@ struct NutritionWidget: Widget {
     }
 }
 
-// MARK: - 4. ACTIVITY & WORKOUT WIDGET VIEW
+// MARK: - 4. ACTIVITY & STEPS WIDGET VIEW
 struct ActivityWidgetView: View {
     var entry: CalyxoWidgetEntry
+    @Environment(\.widgetFamily) var family
+
+    private var stepProgress: Double {
+        guard entry.stepGoal > 0 else { return 0 }
+        return min(Double(entry.steps) / Double(entry.stepGoal), 1.0)
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Image(systemName: "figure.run").foregroundColor(.orange)
-                Text("ACTIVITY")
-                    .font(.system(size: 10, weight: .black))
-                    .foregroundColor(.orange)
-                Spacer()
-            }
-            Spacer()
-            HStack(alignment: .bottom) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(entry.steps)")
-                        .font(.system(size: 20, weight: .black, design: .rounded))
+        switch family {
+        case .accessoryCircular:
+            ZStack {
+                ProgressRing(progress: stepProgress, color: calyxoEmerald, lineWidth: 3.5)
+                    .frame(width: 42, height: 42)
+                VStack(spacing: 0) {
+                    Image(systemName: "figure.walk")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(calyxoEmerald)
+                    Text("\(entry.steps.formattedWithSeparator)")
+                        .font(.system(size: 8, weight: .heavy, design: .rounded))
                         .foregroundColor(.white)
-                    Text("Steps Today")
+                }
+            }
+            .calyxoWidgetBackground(.clear)
+
+        case .accessoryRectangular:
+            VStack(alignment: .leading, spacing: 2.5) {
+                HStack(spacing: 3) {
+                    Text("👟 CALYXO STEPS")
+                        .font(.system(size: 8.5, weight: .black))
+                        .foregroundColor(.white)
+                    Spacer()
+                    Text("\(Int(stepProgress * 100))%")
                         .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(calyxoEmerald)
+                }
+
+                (Text("\(entry.steps.formattedWithSeparator)")
+                    .font(.system(size: 14, weight: .black, design: .rounded))
+                    .foregroundColor(.white)
+                + Text(" / \(entry.stepGoal.formattedWithSeparator)")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(.gray))
+
+                ProgressView(value: stepProgress)
+                    .tint(calyxoEmerald)
+            }
+            .padding(4)
+            .calyxoWidgetBackground(.clear)
+
+        case .accessoryInline:
+            HStack(spacing: 3) {
+                Text("👟 CALYXO: \(entry.steps.formattedWithSeparator) / \(entry.stepGoal.formattedWithSeparator) steps")
+            }
+
+        default:
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("👟 CALYXO")
+                        .font(.system(size: 10, weight: .black, design: .rounded))
+                        .foregroundColor(calyxoEmerald)
+                        .widgetAccentable(false)
+                    Text("• STEPS")
+                        .font(.system(size: 8.5, weight: .black))
                         .foregroundColor(.gray)
+                    Spacer()
+                    if entry.streak > 0 {
+                        Text("🔥 \(entry.streak)d")
+                            .font(.system(size: 9.5, weight: .bold))
+                            .foregroundColor(.orange)
+                            .widgetAccentable(false)
+                    }
                 }
                 Spacer()
+                HStack(alignment: .bottom) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(entry.steps.formattedWithSeparator)")
+                            .font(.system(size: 22, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                        Text("of \(entry.stepGoal.formattedWithSeparator) steps")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.gray)
+                    }
+                    Spacer()
+                    ProgressRing(progress: stepProgress, color: calyxoEmerald, lineWidth: 5)
+                        .frame(width: 36, height: 36)
+                }
                 if !entry.activeWorkoutName.isEmpty {
                     Text("💪 \(entry.activeWorkoutName)")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(calyxoGreen)
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(calyxoEmerald)
                         .lineLimit(1)
                 }
             }
+            .padding(12)
+            .calyxoWidgetBackground(calyxoBg)
         }
-        .padding(12)
-        .calyxoWidgetBackground(calyxoBg)
     }
 }
 
 struct ActivityWidget: Widget {
     let kind = "CalyxoActivityWidget"
+    
+    private var supportedFamiliesList: [WidgetFamily] {
+        if #available(iOS 16.0, *) {
+            return [.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline]
+        } else {
+            return [.systemSmall, .systemMedium]
+        }
+    }
+
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: CalyxoWidgetProvider()) { entry in
             ActivityWidgetView(entry: entry)
         }
-        .configurationDisplayName("Daily Activity")
-        .description("Track daily steps and active workouts.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .configurationDisplayName("Daily Activity & Steps")
+        .description("Track daily steps and goal progress on Home & Lock Screen under clock.")
+        .supportedFamilies(supportedFamiliesList)
     }
 }
-

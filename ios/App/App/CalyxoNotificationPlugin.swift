@@ -63,8 +63,9 @@ public class CalyxoNotificationPlugin: CAPPlugin, CAPBridgedPlugin {
             print("[CALYXO-PUSH] Permission granted = \(granted)")
             if granted {
                 DispatchQueue.main.async {
+                    // Only request APNs if entitlements allow it, otherwise rely on local UNUserNotificationCenter
                     UIApplication.shared.registerForRemoteNotifications()
-                    print("[CALYXO-PUSH] Calling UIApplication.shared.registerForRemoteNotifications()...")
+                    print("[CALYXO-PUSH] Local notifications active with UNUserNotificationCenter.")
                 }
             }
 
@@ -83,13 +84,30 @@ public class CalyxoNotificationPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    // Native anti-burst throttle: drop rapid duplicate notifications triggered within 10 seconds
+    private static var lastImmediateDispatchTime: TimeInterval = 0
+    private static var lastDispatchedTitle: String = ""
+
     /// Schedule a native UNNotificationRequest with optional deep-link userInfo.
     /// userInfo keys: type, workoutId, exerciseName, setNumber
     @objc public func scheduleLocalNotification(_ call: CAPPluginCall) {
         let title = call.getString("title") ?? "Calyxo"
         let body = call.getString("body") ?? ""
         let delaySeconds = max(1, call.getInt("delaySeconds") ?? 1)
-        let identifier = call.getString("id") ?? UUID().uuidString
+        let identifier = call.getString("id") ?? "calyxo.\(title.lowercased().replacingOccurrences(of: " ", with: "."))"
+
+        let now = Date().timeIntervalSince1970
+
+        // Anti-burst hardware guard: If an immediate notification (<=5s) with identical title or within 10s was dispatched, suppress!
+        if delaySeconds <= 5 {
+            if (now - CalyxoNotificationPlugin.lastImmediateDispatchTime < 10.0) && (CalyxoNotificationPlugin.lastDispatchedTitle == title || now - CalyxoNotificationPlugin.lastImmediateDispatchTime < 3.0) {
+                print("[CALYXO-PUSH] Suppressed burst duplicate native notification: '\(title)' (throttled)")
+                call.resolve(["success": true, "throttled": true, "id": identifier])
+                return
+            }
+            CalyxoNotificationPlugin.lastImmediateDispatchTime = now
+            CalyxoNotificationPlugin.lastDispatchedTitle = title
+        }
 
         let content = UNMutableNotificationContent()
         content.title = title
@@ -120,6 +138,10 @@ public class CalyxoNotificationPlugin: CAPPlugin, CAPBridgedPlugin {
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(delaySeconds), repeats: false)
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+
+        // Strict deduplication: remove any existing pending or delivered notifications with this identifier
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [identifier])
 
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {

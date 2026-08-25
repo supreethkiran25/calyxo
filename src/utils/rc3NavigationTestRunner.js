@@ -45,6 +45,7 @@ const expectedUserRoutes = [
   'nutrition',
   'workout',
   'progress',
+  'challenges',
   'health',
   'ai',
   'profile',
@@ -64,7 +65,7 @@ assert('Catch-all 404 route path="*" is registered',
 
 console.log('\n🛡️ Suite 2: Per-Route PageErrorBoundary Isolation');
 const pageBoundaryCount = (appJsx.match(/<PageErrorBoundary>/g) || []).length;
-assert('All 11 user routes are protected with PageErrorBoundary', pageBoundaryCount >= 11);
+assert('All user routes are protected with PageErrorBoundary', pageBoundaryCount >= 12);
 
 console.log('\n🔐 Suite 3: Route Access Guards');
 assert('User routes are protected with UserGuard', appJsx && appJsx.includes('<UserGuard>'));
@@ -75,6 +76,8 @@ const drawer = read('components/MobileDrawerMenu.js');
 assert('Drawer menu contains dashboard navigation link', drawer && drawer.includes('/user/dashboard'));
 assert('Drawer menu contains workout navigation link', drawer && drawer.includes('/user/workout'));
 assert('Drawer menu contains nutrition navigation link', drawer && drawer.includes('/user/nutrition'));
+assert('Drawer menu contains health hub navigation link', drawer && drawer.includes('/user/health'));
+assert('Drawer menu contains challenges navigation link', drawer && drawer.includes('/user/challenges'));
 
 console.log('\n' + '='.repeat(70));
 console.log(`📊 NAVIGATION RESULTS: ${passed} / ${passed + failed} PASS`);

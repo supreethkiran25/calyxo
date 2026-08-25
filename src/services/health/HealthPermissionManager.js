@@ -30,6 +30,13 @@ export class HealthPermissionManager {
    */
   static getPlatform() {
     if (typeof window === 'undefined') return 'unknown';
+    try {
+      if (window.Capacitor && typeof window.Capacitor.getPlatform === 'function') {
+        const plat = window.Capacitor.getPlatform();
+        if (plat === 'ios') return 'ios_apple_health';
+        if (plat === 'android') return 'android_health_connect';
+      }
+    } catch (e) {}
     const ua = navigator.userAgent || navigator.vendor || window.opera || '';
     if (/iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
       return 'ios_apple_health';
@@ -80,12 +87,15 @@ export class HealthPermissionManager {
             if (CalyxoHealthKit) {
               const result = await CalyxoHealthKit.requestAuthorization();
               console.log('[HealthKit] Native authorization result:', result);
-              if (result && result.authorized !== false) {
+              if (result && result.authorized) {
                 [...REQUIRED_PERMISSIONS, ...requestPayload.optional].forEach(perm => {
                   grantedResults[perm] = true;
                 });
                 localStorage.setItem('calyxo_health_connected_platform', platform);
                 localStorage.setItem('calyxo_health_connected_at', String(Date.now()));
+                if (typeof CalyxoHealthKit.activateHealthKitSource === 'function') {
+                  CalyxoHealthKit.activateHealthKitSource().catch(() => {});
+                }
               }
             } else {
               console.warn('[HealthKit] CalyxoHealthKit plugin not registered. HealthKit will not work.');
@@ -128,18 +138,56 @@ export class HealthPermissionManager {
       console.warn("Health permission request failure:", err);
     }
 
-    // Save granted state locally
+    // Save granted state locally only if permissions actually granted
     try {
       localStorage.setItem(PERMISSION_STORAGE_KEY, JSON.stringify(grantedResults));
-      localStorage.setItem('calyxo_health_connected_platform', platform);
-      localStorage.setItem('calyxo_health_connected_at', String(Date.now()));
+      const hasAnyGranted = REQUIRED_PERMISSIONS.some(p => grantedResults[p] === true);
+      if (hasAnyGranted) {
+        localStorage.setItem('calyxo_health_connected_platform', platform);
+        localStorage.setItem('calyxo_health_connected_at', String(Date.now()));
+      } else {
+        localStorage.removeItem('calyxo_health_connected_platform');
+        localStorage.removeItem('calyxo_health_connected_at');
+      }
     } catch (e) {}
+
+    const isAuthorized = REQUIRED_PERMISSIONS.some(p => grantedResults[p] === true);
 
     return {
       platform,
       granted: grantedResults,
-      hasRequired: REQUIRED_PERMISSIONS.every(p => grantedResults[p])
+      hasRequired: isAuthorized,
+      isConnected: isAuthorized
     };
+  }
+
+  /**
+   * Real-time query to check if user has active permissions in native Apple Health or Android Health Connect
+   */
+  static async checkLiveAuthorization() {
+    const platform = this.getPlatform();
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform() && platform === 'ios_apple_health') {
+        const { CalyxoHealthKit } = Capacitor.Plugins;
+        if (CalyxoHealthKit) {
+          // If already connected locally, verify plugin availability
+          if (this.isConnected()) {
+            return true;
+          }
+          // Test live metrics query to verify active read access
+          if (typeof CalyxoHealthKit.queryTodayMetrics === 'function') {
+            const metrics = await CalyxoHealthKit.queryTodayMetrics().catch(() => null);
+            if (metrics && typeof metrics === 'object') {
+              return true;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Live authorization check note:', e);
+    }
+    return this.isConnected();
   }
 
   /**
@@ -165,6 +213,96 @@ export class HealthPermissionManager {
       lastSync: Number(lastSync || Date.now()),
       recordsCount
     };
+  }
+
+  /**
+   * Open native iOS Settings for Calyxo Health permissions
+   */
+  static async openSettings() {
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        const { CalyxoHealthKit } = Capacitor.Plugins;
+        if (CalyxoHealthKit && typeof CalyxoHealthKit.openSettings === 'function') {
+          return await CalyxoHealthKit.openSettings();
+        }
+      }
+    } catch (e) {
+      console.warn('Open settings error:', e);
+    }
+  }
+
+  /**
+   * Directly open Apple Health / iOS Settings to toggle permissions ON
+   */
+  static async openHealthSettings() {
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        const { CalyxoHealthKit } = Capacitor.Plugins;
+        if (CalyxoHealthKit) {
+          if (typeof CalyxoHealthKit.openHealthSettings === 'function') {
+            return await CalyxoHealthKit.openHealthSettings();
+          }
+          if (typeof CalyxoHealthKit.openSettings === 'function') {
+            return await CalyxoHealthKit.openSettings();
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Open health settings error:', e);
+    }
+  }
+
+  /**
+   * Request native Motion & Fitness sensor access (CMPedometer)
+   */
+  static async requestMotionPermission() {
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        const { CalyxoHealthKit } = Capacitor.Plugins;
+        if (CalyxoHealthKit && typeof CalyxoHealthKit.requestMotionPermission === 'function') {
+          return await CalyxoHealthKit.requestMotionPermission();
+        }
+      }
+    } catch (e) {
+      console.warn('Motion permission note:', e);
+    }
+  }
+
+  /**
+   * Request native App Tracking Transparency (ATT) authorization
+   */
+  static async requestTrackingPermission() {
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        const { CalyxoHealthKit } = Capacitor.Plugins;
+        if (CalyxoHealthKit && typeof CalyxoHealthKit.requestTrackingPermission === 'function') {
+          return await CalyxoHealthKit.requestTrackingPermission();
+        }
+      }
+    } catch (e) {
+      console.warn('Tracking permission note:', e);
+    }
+  }
+
+  /**
+   * Open native iOS Bluetooth settings to pair heart rate straps
+   */
+  static async openBluetoothSettings() {
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        const { CalyxoHealthKit } = Capacitor.Plugins;
+        if (CalyxoHealthKit && typeof CalyxoHealthKit.openBluetoothSettings === 'function') {
+          return await CalyxoHealthKit.openBluetoothSettings();
+        }
+      }
+    } catch (e) {
+      console.warn('Open Bluetooth settings error:', e);
+    }
   }
 
   /**

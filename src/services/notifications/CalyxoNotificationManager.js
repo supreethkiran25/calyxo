@@ -17,6 +17,10 @@ export const NOTIFICATION_CATEGORIES = {
   NUTRITION: 'NUTRITION',
   RECOVERY: 'RECOVERY',
   CHALLENGE: 'CHALLENGE',
+  BRIEFING: 'BRIEFING',
+  MARKETING: 'MARKETING',
+  ENGAGEMENT: 'ENGAGEMENT',
+  STREAK: 'STREAK',
   SYSTEM: 'SYSTEM'
 };
 
@@ -30,6 +34,10 @@ export class CalyxoNotificationManager {
       [NOTIFICATION_CATEGORIES.NUTRITION]: true,
       [NOTIFICATION_CATEGORIES.RECOVERY]: true,
       [NOTIFICATION_CATEGORIES.CHALLENGE]: true,
+      [NOTIFICATION_CATEGORIES.BRIEFING]: true,
+      [NOTIFICATION_CATEGORIES.MARKETING]: true,
+      [NOTIFICATION_CATEGORIES.ENGAGEMENT]: true,
+      [NOTIFICATION_CATEGORIES.STREAK]: true,
       [NOTIFICATION_CATEGORIES.SYSTEM]: true
     };
     this.restorePreferences();
@@ -76,6 +84,19 @@ export class CalyxoNotificationManager {
     }
 
     const dedupeKey = `${category}.${entityId}`;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dailyUniqueKey = `${dedupeKey}_${todayStr}`;
+
+    // Persistent deduplication check: if this notification was already dispatched today and delay <= 60s, suppress duplicates
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const sentLog = JSON.parse(localStorage.getItem('calyxo_sent_notif_log_v2') || '{}');
+        if (sentLog[dailyUniqueKey] && delaySeconds <= 60) {
+          console.log(`[CALYXO-PUSH] Suppressed duplicate notification for key=${dailyUniqueKey} (already sent today)`);
+          return { scheduled: false, reason: 'Duplicate notification suppressed for today', dedupeKey };
+        }
+      } catch (e) {}
+    }
 
     // Cancel existing pending notification for this dedupe key before scheduling a fresh one
     if (this.activeNotifications.has(dedupeKey)) {
@@ -84,8 +105,22 @@ export class CalyxoNotificationManager {
       this.activeNotifications.delete(dedupeKey);
     }
 
-    const notifId = `calyxo.${category.toLowerCase()}.${entityId}.${Date.now()}`;
+    const notifId = `calyxo.${category.toLowerCase()}.${entityId}`;
     this.activeNotifications.set(dedupeKey, notifId);
+
+    // Record persistent delivery for today
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const sentLog = JSON.parse(localStorage.getItem('calyxo_sent_notif_log_v2') || '{}');
+        sentLog[dailyUniqueKey] = Date.now();
+        // Clean entries older than 3 days
+        const cutoff = Date.now() - 3 * 86400000;
+        for (const k in sentLog) {
+          if (sentLog[k] < cutoff) delete sentLog[k];
+        }
+        localStorage.setItem('calyxo_sent_notif_log_v2', JSON.stringify(sentLog));
+      } catch (e) {}
+    }
 
     await scheduleExactNotification({
       id: notifId,

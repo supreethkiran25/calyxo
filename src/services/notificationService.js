@@ -73,7 +73,28 @@ export async function registerServiceWorker() {
   }
 }
 
+// Global In-Memory Rate Limiter & Anti-Spam Pipeline
+const recentNotificationDispatches = new Map();
+
+function isNotificationThrottled(key, cooldownMs = 15000) {
+  const now = Date.now();
+  const lastTime = recentNotificationDispatches.get(key) || 0;
+  if (now - lastTime < cooldownMs) {
+    return true;
+  }
+  recentNotificationDispatches.set(key, now);
+  return false;
+}
+
 export async function triggerOSNotification(title, body, url = '/user/dashboard', tag = null) {
+  const deterministicTag = tag || `calyxo-${(title || 'notif').toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+
+  // Rate Limiter: Drop rapid burst notifications with the exact same content within 15 seconds
+  if (isNotificationThrottled(deterministicTag, 15000)) {
+    console.log(`[NotificationService] Dropped duplicate notification burst: "${title}"`);
+    return;
+  }
+
   if (Capacitor.isNativePlatform()) {
     try {
       const { CalyxoNotification } = Capacitor.Plugins;
@@ -82,7 +103,7 @@ export async function triggerOSNotification(title, body, url = '/user/dashboard'
           title,
           body,
           delaySeconds: 1,
-          id: tag || `notif-${Date.now()}`
+          id: deterministicTag
         });
         return;
       }
@@ -95,7 +116,6 @@ export async function triggerOSNotification(title, body, url = '/user/dashboard'
 
   if (typeof window !== 'undefined' && typeof window.Notification !== 'undefined' && Notification.permission === 'granted') {
     try {
-      const notifTag = tag || `calyxo-${title.replace(/\s+/g, '-').toLowerCase()}`;
       if ('serviceWorker' in navigator) {
         const reg = swRegistration || await navigator.serviceWorker.ready.catch(() => null);
         if (reg && reg.showNotification) {
@@ -104,12 +124,20 @@ export async function triggerOSNotification(title, body, url = '/user/dashboard'
             icon: '/icon-192x192.png',
             badge: '/icon-192x192.png',
             vibrate: [300, 100, 300],
-            tag: notifTag,
-            renotify: true,
+            tag: deterministicTag,
+            renotify: false,
             data: { url: url || '/user/dashboard' }
           });
           return;
         }
+      }
+
+      if (typeof window.Notification === 'function') {
+        new Notification(title, {
+          body,
+          icon: '/icon-192x192.png',
+          tag: deterministicTag
+        });
       }
     } catch (e) {
       console.warn('[NotificationService] OS notification trigger exception:', e);
@@ -117,8 +145,30 @@ export async function triggerOSNotification(title, body, url = '/user/dashboard'
   }
 }
 
+export async function sendTestNotification(options = {}) {
+  const title = options.title || 'Calyxo Quad Rings Synced 🔥';
+  const body = options.body || 'Your daily steps (7,420 / 10,000) and calories (1,450 kcal) have synced to your Home Screen!';
+  const url = options.url || '/user/dashboard';
+  
+  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+    await requestNotificationPermission();
+  }
+
+  await triggerOSNotification(title, body, url, 'calyxo-test-notif');
+  return { success: true, title, body };
+}
+
 export function scheduleExactNotification({ id, title, body, delayMs, tag, type, workoutId, exerciseName, setNumber, isOngoing = false }) {
   const delaySecs = Math.max(1, Math.round((delayMs || 1000) / 1000));
+  const deterministicId = id || tag || `calyxo-${(title || 'notif').toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+
+  // If immediate notification, apply anti-burst throttle
+  if (delaySecs <= 5 && !isOngoing) {
+    if (isNotificationThrottled(deterministicId, 10000)) {
+      console.log(`[NotificationService] Suppressed rapid schedule burst for id=${deterministicId}`);
+      return;
+    }
+  }
 
   if (Capacitor.isNativePlatform()) {
     try {
@@ -128,7 +178,7 @@ export function scheduleExactNotification({ id, title, body, delayMs, tag, type,
           title,
           body,
           delaySeconds: delaySecs,
-          id: id || tag || `notif-${Date.now()}`,
+          id: deterministicId,
           isOngoing: Boolean(isOngoing || (id && id.includes('live')) || (tag && tag.includes('workout'))),
           // Deep-link metadata attached to notification userInfo
           ...(type && { type }),
@@ -136,7 +186,7 @@ export function scheduleExactNotification({ id, title, body, delayMs, tag, type,
           ...(exerciseName && { exerciseName }),
           ...(setNumber !== undefined && { setNumber })
         });
-        console.log(`[CALYXO-PUSH] Scheduled native notification id=${id} in ${delaySecs}s: "${title}"`);
+        console.log(`[CALYXO-PUSH] Scheduled native notification id=${deterministicId} in ${delaySecs}s: "${title}"`);
         return;
       }
     } catch (e) {
@@ -149,11 +199,11 @@ export function scheduleExactNotification({ id, title, body, delayMs, tag, type,
 
   const msg = {
     type: 'SCHEDULE_NOTIFICATION',
-    id: id || `notif-${Date.now()}`,
+    id: deterministicId,
     title,
     body,
     delayMs: Math.max(100, delayMs || 0),
-    tag
+    tag: tag || deterministicId
   };
 
   if (navigator.serviceWorker && navigator.serviceWorker.controller) {
@@ -189,28 +239,11 @@ export async function cancelNotification(id) {
   }
 }
 
+/**
+ * Legacy schedule daily reminders placeholder (Managed by SmartReminderEngine)
+ */
 export function scheduleDailyReminders() {
-  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
-    // Schedule water and workout reminders natively
-    scheduleExactNotification({
-      id: 'reminder-water',
-      title: 'Hydration Check 💧',
-      body: 'Time to drink water! Target: 250-500ml to stay at peak performance.',
-      delayMs: 2 * 60 * 60 * 1000,
-      tag: 'water-reminder'
-    });
-    return;
-  }
-
-  if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
-
-  scheduleExactNotification({
-    id: 'reminder-water',
-    title: 'Hydration Check 💧',
-    body: 'Time to drink water! Target: 250-500ml to stay at peak performance.',
-    delayMs: 2 * 60 * 60 * 1000,
-    tag: 'water-reminder'
-  });
+  // Handled dynamically by SmartReminderEngine.evaluateAndTriggerReminders
 }
 
 import { toValidUuid } from '../lib/dbService.js';

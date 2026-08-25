@@ -28,6 +28,7 @@
 		CA3C00012FE9C00000000001 /* CalyxoLiveActivityPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3C00002FE9C00000000000 /* CalyxoLiveActivityPlugin.swift */; };
 		CA3C00032FE9C00000000003 /* CalyxoWidgetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3C00022FE9C00000000002 /* CalyxoWidgetPlugin.swift */; };
 		CA4D00012FE9D00000000001 /* CalyxoNotificationPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4D00002FE9D00000000000 /* CalyxoNotificationPlugin.swift */; };
+		CA5E00012FE9E00000000001 /* CalyxoBLEPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA5E00002FE9E00000000000 /* CalyxoBLEPlugin.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -114,6 +115,7 @@
 		CA3C00002FE9C00000000000 /* CalyxoLiveActivityPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalyxoLiveActivityPlugin.swift; sourceTree = "<group>"; };
 		CA3C00022FE9C00000000002 /* CalyxoWidgetPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalyxoWidgetPlugin.swift; sourceTree = "<group>"; };
 		CA4D00002FE9D00000000000 /* CalyxoNotificationPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalyxoNotificationPlugin.swift; sourceTree = "<group>"; };
+		CA5E00002FE9E00000000000 /* CalyxoBLEPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalyxoBLEPlugin.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -197,6 +199,7 @@
 				CA2B00002FE9B00000000000 /* CalyxoActivityAttributes.swift */,
 				CA1A00002FE9A00000000001 /* CalyxoLiveActivityBridge.swift */,
 				CA1A00052FE9A00000000005 /* CalyxoHealthKitPlugin.swift */,
+				CA5E00002FE9E00000000000 /* CalyxoBLEPlugin.swift */,
 				CA3C00002FE9C00000000000 /* CalyxoLiveActivityPlugin.swift */,
 				CA3C00022FE9C00000000002 /* CalyxoWidgetPlugin.swift */,
 				CA4D00002FE9D00000000000 /* CalyxoNotificationPlugin.swift */,
@@ -452,6 +455,7 @@
 				CA2B00012FE9B00000000001 /* CalyxoActivityAttributes.swift in Sources */,
 				CA1A00012FE9A00000000001 /* CalyxoLiveActivityBridge.swift in Sources */,
 				CA1A00042FE9A00000000004 /* CalyxoHealthKitPlugin.swift in Sources */,
+				CA5E00012FE9E00000000001 /* CalyxoBLEPlugin.swift in Sources */,
 				CA3C00012FE9C00000000001 /* CalyxoLiveActivityPlugin.swift in Sources */,
 				CA3C00032FE9C00000000003 /* CalyxoWidgetPlugin.swift in Sources */,
 				CA4D00012FE9D00000000001 /* CalyxoNotificationPlugin.swift in Sources */,

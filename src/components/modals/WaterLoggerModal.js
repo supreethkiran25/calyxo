@@ -43,7 +43,7 @@ export default function WaterLoggerModal() {
   };
 
   const handleLogWater = async (amount) => {
-    if (!amount || isNaN(amount) || amount <= 0) return;
+    if (loading || !amount || isNaN(amount) || amount <= 0) return;
     playWaterChime();
     setLoading(true);
     setPouring(true);
@@ -89,7 +89,7 @@ export default function WaterLoggerModal() {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-[calc(1rem+env(safe-area-inset-top,0px))]">
         <motion.div 
           initial={{ opacity: 0 }} 
           animate={{ opacity: 1 }} 
@@ -102,7 +102,11 @@ export default function WaterLoggerModal() {
           initial={{ opacity: 0, scale: 0.95 }} 
           animate={{ opacity: 1, scale: 1 }} 
           exit={{ opacity: 0, scale: 0.95 }} 
-          className="relative w-full max-w-lg bg-surface border border-card-border rounded-3xl shadow-2xl p-6 sm:p-8 flex flex-col overflow-hidden"
+          data-keyboard-scroll="true"
+          style={{
+            maxHeight: 'min(88dvh, calc(100dvh - var(--keyboard-height, 0px) - 20px))'
+          }}
+          className="relative w-full max-w-lg bg-surface border border-card-border rounded-3xl shadow-2xl p-5 sm:p-8 flex flex-col overflow-y-auto scrollbar-thin modal-scroll-body"
         >
           {/* Header */}
           <div className="flex items-center justify-between pb-4 border-b border-card-border mb-6">

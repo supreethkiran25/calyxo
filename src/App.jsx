@@ -16,11 +16,18 @@ const UserLayout = lazyWithRetry(() => import('./layouts/UserLayout'));
 const HomePage = lazyWithRetry(() => import('./pages/HomePage'));
 const NotFoundPage = lazyWithRetry(() => import('./pages/NotFoundPage'));
 
+// Website Dedicated Pages
+const EcosystemPage = lazyWithRetry(() => import('./pages/website/EcosystemPage'));
+const ExperiencePage = lazyWithRetry(() => import('./pages/website/ExperiencePage'));
+const PhilosophyPage = lazyWithRetry(() => import('./pages/website/PhilosophyPage'));
+const VisionPage = lazyWithRetry(() => import('./pages/website/VisionPage'));
+
 // User Pages
 const UserDashboardPage = lazyWithRetry(() => import('./pages/user/DashboardPage'));
 const UserNutritionPage = lazyWithRetry(() => import('./pages/user/NutritionPage'));
 const UserWorkoutPage = lazyWithRetry(() => import('./pages/user/WorkoutPage'));
 const UserProgressPage = lazyWithRetry(() => import('./pages/user/ProgressPage'));
+const UserChallengesPage = lazyWithRetry(() => import('./pages/user/ChallengesPage'));
 const UserHealthPage = lazyWithRetry(() => import('./pages/user/HealthPage'));
 const UserAIPage = lazyWithRetry(() => import('./pages/user/AIPage'));
 const UserProfilePage = lazyWithRetry(() => import('./pages/user/ProfilePage'));
@@ -71,8 +78,12 @@ function App() {
           <UniversalLiveHUD />
           <Suspense fallback={<LaunchScreen isLoading={true} />}>
             <Routes>
-              {/* Root */}
+              {/* Root & Dedicated Website Pages */}
               <Route path="/" element={<HomePage />} />
+              <Route path="/ecosystem" element={<EcosystemPage />} />
+              <Route path="/experience" element={<ExperiencePage />} />
+              <Route path="/philosophy" element={<PhilosophyPage />} />
+              <Route path="/vision" element={<VisionPage />} />
 
               {/* Admin Login Route */}
               <Route path="/admin/login" element={<AdminLoginPage />} />
@@ -83,6 +94,7 @@ function App() {
                 <Route path="nutrition" element={<PageErrorBoundary><UserNutritionPage /></PageErrorBoundary>} />
                 <Route path="workout" element={<PageErrorBoundary><UserWorkoutPage /></PageErrorBoundary>} />
                 <Route path="progress" element={<PageErrorBoundary><UserProgressPage /></PageErrorBoundary>} />
+                <Route path="challenges" element={<PageErrorBoundary><UserChallengesPage /></PageErrorBoundary>} />
                 <Route path="health" element={<PageErrorBoundary><UserHealthPage /></PageErrorBoundary>} />
                 <Route path="ai" element={<PageErrorBoundary><UserAIPage /></PageErrorBoundary>} />
                 <Route path="profile" element={<PageErrorBoundary><UserProfilePage /></PageErrorBoundary>} />

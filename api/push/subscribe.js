@@ -7,6 +7,11 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const authUser = await verifyAuthUser(req);
+  if (!authUser) {
+    return res.status(401).json({ error: 'Unauthorized. Valid bearer token required to manage push subscriptions.' });
+  }
+
+  const userId = authUser.id;
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
@@ -18,17 +23,10 @@ export default async function handler(req, res) {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   if (req.method === 'POST') {
-    const { userId: bodyUserId, subscription, platform = 'web', browser = 'browser' } = req.body || {};
-    // Use authenticated user ID if available; fall back to body only when no auth (legacy web sub flows)
-    const userId = authUser?.id || bodyUserId;
+    const { subscription, platform = 'web', browser = 'browser' } = req.body || {};
 
-    if (!userId || !subscription || !subscription.endpoint) {
-      return res.status(400).json({ error: 'userId and subscription object are required' });
-    }
-
-    // Security: if authenticated, only allow registering for own user ID
-    if (authUser && authUser.id !== userId) {
-      return res.status(403).json({ error: 'Forbidden: cannot register push subscription for another user.' });
+    if (!subscription || !subscription.endpoint) {
+      return res.status(400).json({ error: 'subscription object with valid endpoint is required' });
     }
 
     try {
@@ -50,22 +48,12 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, subscription: data?.[0] });
     } catch (err) {
       console.error('Save push subscription error:', err);
-      return res.status(500).json({ error: err.message || 'Failed to save push subscription' });
+      return res.status(500).json({ error: 'Failed to save push subscription' });
     }
   }
 
   if (req.method === 'DELETE') {
-    const { userId: bodyUserId, endpoint } = req.body || {};
-    const userId = authUser?.id || bodyUserId;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
-
-    // Security: if authenticated, only allow deleting own subscriptions
-    if (authUser && authUser.id !== userId) {
-      return res.status(403).json({ error: 'Forbidden: cannot remove push subscription for another user.' });
-    }
+    const { endpoint } = req.body || {};
 
     try {
       let query = supabase.from('push_subscriptions').delete().eq('user_id', userId);
@@ -77,7 +65,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, message: 'Push subscription removed' });
     } catch (err) {
       console.error('Delete push subscription error:', err);
-      return res.status(500).json({ error: err.message || 'Failed to remove push subscription' });
+      return res.status(500).json({ error: 'Failed to remove push subscription' });
     }
   }
 

@@ -2,6 +2,7 @@ import UIKit
 import Capacitor
 import HealthKit
 import UserNotifications
+import WidgetKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -21,6 +22,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // and interactive actions are captured for deep-linking
         UNUserNotificationCenter.current().delegate = self
         registerNotificationCategories()
+        AppDelegate.startHealthKitBackgroundObserver()
+        AppDelegate.refreshAndSyncWidgets()
         return true
     }
 
@@ -77,10 +80,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         UNUserNotificationCenter.current().setNotificationCategories([hydrationCategory, mealCategory, workoutCategory])
     }
 
-    func applicationWillResignActive(_ application: UIApplication) {}
-    func applicationDidEnterBackground(_ application: UIApplication) {}
+    func applicationWillResignActive(_ application: UIApplication) {
+        AppDelegate.refreshAndSyncWidgets()
+    }
+    func applicationDidEnterBackground(_ application: UIApplication) {
+        AppDelegate.refreshAndSyncWidgets()
+    }
     func applicationWillEnterForeground(_ application: UIApplication) {}
-    func applicationDidBecomeActive(_ application: UIApplication) {}
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        AppDelegate.refreshAndSyncWidgets()
+    }
     func applicationWillTerminate(_ application: UIApplication) {}
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
@@ -112,7 +121,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
-        print("[CALYXO-PUSH] APNs registration FAILED: \(error.localizedDescription)")
+        print("[CALYXO-PUSH] Remote APNs note: \(error.localizedDescription). Local notifications active.")
     }
 
     // MARK: - HealthKit Authorization (called from JS via Capacitor plugin)
@@ -126,7 +135,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             return
         }
 
-        let readTypes: Set<HKObjectType> = [
+        var readTypes: Set<HKObjectType> = [
             HKObjectType.quantityType(forIdentifier: .stepCount)!,
             HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
             HKObjectType.quantityType(forIdentifier: .heartRate)!,
@@ -137,6 +146,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
             HKObjectType.workoutType()
         ]
+
+        // Garmin / Endurance / Recovery Types
+        if let cyclingType = HKQuantityType.quantityType(forIdentifier: .distanceCycling) { readTypes.insert(cyclingType) }
+        if let swimType = HKQuantityType.quantityType(forIdentifier: .distanceSwimming) { readTypes.insert(swimType) }
+        if let vo2Type = HKQuantityType.quantityType(forIdentifier: .vo2Max) { readTypes.insert(vo2Type) }
+        if let hrvType = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN) { readTypes.insert(hrvType) }
+        if let waterType = HKQuantityType.quantityType(forIdentifier: .dietaryWater) { readTypes.insert(waterType) }
 
         let writeTypes: Set<HKSampleType> = [
             HKObjectType.quantityType(forIdentifier: .bodyMass)!,
@@ -150,9 +166,110 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                     print("[CALYXO-HEALTH] Authorization ERROR: \(error.localizedDescription)")
                 } else {
                     print("[CALYXO-HEALTH] Authorization result: \(success ? "GRANTED" : "DENIED")")
+                    if success {
+                        AppDelegate.startHealthKitBackgroundObserver()
+                        AppDelegate.refreshAndSyncWidgets()
+                    }
                 }
                 completion(success, error)
             }
+        }
+    }
+
+    // MARK: - HealthKit Background Observer & Real-Time Widget Sync
+
+    /// Setup background delivery observer queries so steps and calories reload widgets in real time
+    static func startHealthKitBackgroundObserver() {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+
+        if let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount) {
+            let stepObserver = HKObserverQuery(sampleType: stepType, predicate: nil) { query, completionHandler, error in
+                if error == nil {
+                    AppDelegate.refreshAndSyncWidgets {
+                        completionHandler()
+                    }
+                } else {
+                    completionHandler()
+                }
+            }
+            healthStore.execute(stepObserver)
+            healthStore.enableBackgroundDelivery(for: stepType, frequency: .immediate) { success, err in
+                print("[CALYXO-WIDGET] HealthKit step background delivery enabled: \(success)")
+            }
+        }
+
+        if let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
+            let energyObserver = HKObserverQuery(sampleType: energyType, predicate: nil) { query, completionHandler, error in
+                if error == nil {
+                    AppDelegate.refreshAndSyncWidgets {
+                        completionHandler()
+                    }
+                } else {
+                    completionHandler()
+                }
+            }
+            healthStore.execute(energyObserver)
+            healthStore.enableBackgroundDelivery(for: energyType, frequency: .immediate) { success, err in
+                print("[CALYXO-WIDGET] HealthKit energy background delivery enabled: \(success)")
+            }
+        }
+    }
+
+    /// Read today's cumulative steps & active calories directly from HealthKit and push into App Group UserDefaults
+    @objc static func refreshAndSyncWidgets(completion: (() -> Void)? = nil) {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            completion?()
+            return
+        }
+
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfDay = calendar.startOfDay(for: now)
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: now, options: .strictStartDate)
+
+        let suiteName = "group.com.supreethkiran.calyxo"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            completion?()
+            return
+        }
+
+        let group = DispatchGroup()
+
+        if let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount) {
+            group.enter()
+            let stepQuery = HKStatisticsQuery(quantityType: stepType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, stats, _ in
+                if let sum = stats?.sumQuantity() {
+                    let steps = Int(sum.doubleValue(for: HKUnit.count()))
+                    if steps > 0 {
+                        defaults.set(steps, forKey: "widget_steps")
+                    }
+                }
+                group.leave()
+            }
+            healthStore.execute(stepQuery)
+        }
+
+        if let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
+            group.enter()
+            let energyQuery = HKStatisticsQuery(quantityType: energyType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, stats, _ in
+                if let sum = stats?.sumQuantity() {
+                    let kcal = Int(sum.doubleValue(for: HKUnit.kilocalorie()))
+                    if kcal > 0 {
+                        defaults.set(kcal, forKey: "widget_calories")
+                    }
+                }
+                group.leave()
+            }
+            healthStore.execute(energyQuery)
+        }
+
+        group.notify(queue: .main) {
+            defaults.synchronize()
+            if #available(iOS 14.0, *) {
+                WidgetCenter.shared.reloadAllTimelines()
+                print("[CALYXO-WIDGET] WidgetCenter reloaded with real-time data.")
+            }
+            completion?()
         }
     }
 }
@@ -193,7 +310,7 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         if #available(iOS 14.0, *) {
-            completionHandler([.banner, .sound, .badge])
+            completionHandler([.banner, .sound, .badge, .list])
         } else {
             completionHandler([.alert, .sound, .badge])
         }

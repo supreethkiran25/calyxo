@@ -9,11 +9,12 @@ class MainViewController: CAPBridgeViewController {
 
         // Register custom native plugins directly with Capacitor bridge
         bridge?.registerPluginInstance(CalyxoHealthKitPlugin())
+        bridge?.registerPluginInstance(CalyxoBLEPlugin())
         bridge?.registerPluginInstance(CalyxoNotificationPlugin())
         bridge?.registerPluginInstance(CalyxoLiveActivityPlugin())
         bridge?.registerPluginInstance(CalyxoWidgetPlugin())
 
-        print("[CALYXO-INIT] ✅ Registered Calyxo native plugins: CalyxoHealthKit, CalyxoNotification, CalyxoLiveActivity, CalyxoWidget")
+        print("[CALYXO-INIT] ✅ Registered Calyxo native plugins: CalyxoHealthKit, CalyxoBLE, CalyxoNotification, CalyxoLiveActivity, CalyxoWidget")
     }
 }
 

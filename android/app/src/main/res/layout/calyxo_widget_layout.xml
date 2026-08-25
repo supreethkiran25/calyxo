@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="12dp"
+    android:padding="10dp"
     android:background="#0A0A0C">
 
     <!-- Header: Brand & Streak -->
@@ -19,9 +19,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="CALYXO"
+            android:text="⚡ CALYXO"
             android:textColor="#10B981"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <TextView
@@ -30,19 +30,19 @@
             android:layout_height="wrap_content"
             android:text="🔥 0 Day Streak"
             android:textColor="#F59E0B"
-            android:textSize="12sp"
+            android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Metrics Row -->
+    <!-- Metrics Row (3-Column: Calories, Steps, Water) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp">
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp">
 
         <!-- Calories Box -->
         <LinearLayout
@@ -53,8 +53,8 @@
             android:orientation="vertical"
             android:gravity="center"
             android:background="#18181B"
-            android:padding="6dp"
-            android:layout_marginEnd="4dp"
+            android:padding="4dp"
+            android:layout_marginEnd="3dp"
             android:clickable="true"
             android:focusable="true">
 
@@ -63,8 +63,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="0 kcal"
-                android:textColor="#FFFFFF"
-                android:textSize="15sp"
+                android:textColor="#F59E0B"
+                android:textSize="13sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -72,7 +72,39 @@
                 android:layout_height="wrap_content"
                 android:text="Calories"
                 android:textColor="#71717A"
-                android:textSize="10sp" />
+                android:textSize="9sp" />
+        </LinearLayout>
+
+        <!-- Steps Box -->
+        <LinearLayout
+            android:id="@+id/btn_view_steps"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="#18181B"
+            android:padding="4dp"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/widget_steps_val"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="#10B981"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Steps"
+                android:textColor="#71717A"
+                android:textSize="9sp" />
         </LinearLayout>
 
         <!-- Water Box -->
@@ -84,8 +116,8 @@
             android:orientation="vertical"
             android:gravity="center"
             android:background="#18181B"
-            android:padding="6dp"
-            android:layout_marginStart="4dp"
+            android:padding="4dp"
+            android:layout_marginStart="3dp"
             android:clickable="true"
             android:focusable="true">
 
@@ -94,16 +126,16 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="0 ml"
-                android:textColor="#3B82F6"
-                android:textSize="15sp"
+                android:textColor="#00F2FE"
+                android:textSize="13sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="+ Add Water"
+                android:text="+ Water"
                 android:textColor="#60A5FA"
-                android:textSize="10sp"
+                android:textSize="9sp"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
@@ -115,7 +147,7 @@
         android:layout_height="wrap_content"
         android:text="💪 Rest &amp; Recovery"
         android:textColor="#A1A1AA"
-        android:textSize="11sp"
+        android:textSize="10sp"
         android:gravity="center"
         android:clickable="true"
         android:focusable="true" />

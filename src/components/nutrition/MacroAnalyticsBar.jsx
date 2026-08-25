@@ -70,29 +70,31 @@ export default function MacroAnalyticsBar({
   return (
     <div className="glass border border-card-border rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xl space-y-4 sm:space-y-6 relative overflow-hidden">
       {/* Top Header Row with Date Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-card-border/60">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-acid-green/15 border border-acid-green/30 flex items-center justify-center text-acid-green shrink-0">
-            <Flame className="w-5 h-5 animate-pulse" />
+      <div className="flex items-center justify-between gap-2 pb-3 sm:pb-4 border-b border-card-border/60">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-acid-green/15 border border-acid-green/30 flex items-center justify-center text-acid-green shrink-0">
+            <Flame className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
           </div>
-          <div>
-            <h2 className="text-base sm:text-lg font-black tracking-tight text-foreground flex items-center gap-2">
-              <span>Macro Intelligence OS</span>
-              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-muted">
+          <div className="min-w-0">
+            <h2 className="text-sm sm:text-lg font-black tracking-tight text-foreground flex items-center gap-1.5 truncate">
+              <span className="truncate">Macro OS</span>
+              <span className="text-[9.5px] uppercase font-bold px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-muted hidden sm:inline-block">
                 Daily Log
               </span>
             </h2>
-            <p className="text-[11px] font-mono text-muted">
+            <p className="text-[10px] sm:text-[11px] font-mono text-muted truncate">
               {formatDisplayDate(selectedDate)}
             </p>
           </div>
         </div>
 
         {/* Date Selector Segment */}
-        <CalendarDatePicker
-          selectedDate={selectedDate}
-          onSelectDate={(newDate) => setSelectedDate(newDate)}
-        />
+        <div className="shrink-0">
+          <CalendarDatePicker
+            selectedDate={selectedDate}
+            onSelectDate={(newDate) => setSelectedDate(newDate)}
+          />
+        </div>
       </div>
 
       {/* Main Calories & Macro Metrics Row */}

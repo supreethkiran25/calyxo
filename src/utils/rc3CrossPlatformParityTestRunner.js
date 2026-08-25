@@ -60,6 +60,15 @@ assert('CalyxoHealthPlugin.java exists',
 assert('CalyxoAppWidgetProvider.java exists',
   exists('android/app/src/main/java/com/calyxo/app/CalyxoAppWidgetProvider.java'));
 
+assert('CalyxoHydrationWidgetProvider.java exists',
+  exists('android/app/src/main/java/com/calyxo/app/CalyxoHydrationWidgetProvider.java'));
+
+assert('CalyxoNutritionWidgetProvider.java exists',
+  exists('android/app/src/main/java/com/calyxo/app/CalyxoNutritionWidgetProvider.java'));
+
+assert('CalyxoActivityWidgetProvider.java exists',
+  exists('android/app/src/main/java/com/calyxo/app/CalyxoActivityWidgetProvider.java'));
+
 assert('CalyxoNotificationPlugin.java exists',
   exists('android/app/src/main/java/com/calyxo/app/CalyxoNotificationPlugin.java'));
 

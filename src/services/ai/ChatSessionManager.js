@@ -2,31 +2,49 @@
  * Calyxo Persistent Chat Session Manager
  *
  * Handles user chat lifecycle:
+ * - User-scoped persistence (prevents cross-account data leaking).
  * - Creation, Renaming, Pinned status, Archival, Search.
  * - True hard deletion across in-memory state and localStorage.
  * - Separation between System Intelligence Briefings and User Conversations.
  */
 
-const STORAGE_KEY = 'calyxo_ai_sessions_v2';
-const ACTIVE_SESSION_KEY = 'calyxo_ai_active_session_id_v2';
-
 export class ChatSessionManager {
   constructor() {
+    this.currentUserId = 'guest';
     this.sessions = [];
     this.activeSessionId = null;
     this.restoreLocal();
   }
 
+  /**
+   * Scope manager to active logged-in user
+   */
+  setUser(userId) {
+    const normalized = userId || 'guest';
+    if (this.currentUserId !== normalized) {
+      this.currentUserId = normalized;
+      this.restoreLocal();
+    }
+  }
+
+  getStorageKey() {
+    return `calyxo_ai_sessions_v2_${this.currentUserId}`;
+  }
+
+  getActiveSessionKey() {
+    return `calyxo_ai_active_session_id_v2_${this.currentUserId}`;
+  }
+
   restoreLocal() {
     if (typeof localStorage !== 'undefined') {
       try {
-        const saved = localStorage.getItem(STORAGE_KEY);
+        const saved = localStorage.getItem(this.getStorageKey());
         if (saved) {
           this.sessions = JSON.parse(saved);
         } else {
           this.sessions = [];
         }
-        this.activeSessionId = localStorage.getItem(ACTIVE_SESSION_KEY) || (this.sessions[0]?.id || null);
+        this.activeSessionId = localStorage.getItem(this.getActiveSessionKey()) || (this.sessions[0]?.id || null);
       } catch (e) {
         this.sessions = [];
       }
@@ -36,11 +54,11 @@ export class ChatSessionManager {
   persistLocal() {
     if (typeof localStorage !== 'undefined') {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.sessions));
+        localStorage.setItem(this.getStorageKey(), JSON.stringify(this.sessions));
         if (this.activeSessionId) {
-          localStorage.setItem(ACTIVE_SESSION_KEY, this.activeSessionId);
+          localStorage.setItem(this.getActiveSessionKey(), this.activeSessionId);
         } else {
-          localStorage.removeItem(ACTIVE_SESSION_KEY);
+          localStorage.removeItem(this.getActiveSessionKey());
         }
       } catch (e) {}
     }
@@ -49,9 +67,11 @@ export class ChatSessionManager {
   /**
    * Create a new user-owned chat session
    */
-  createSession({ title = 'New Conversation', role = 'USER', initialMessage = null } = {}) {
+  createSession({ title = 'New Conversation', role = 'USER', userName = 'Athlete', initialMessage = null } = {}) {
+    const displayName = userName && userName !== 'Athlete' ? `, ${userName}` : '';
     const newSession = {
       id: `chat_${Date.now()}_${(typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2)).substring(0, 8)}`,
+      userId: this.currentUserId,
       title,
       role,
       isSystemBriefing: false,
@@ -63,7 +83,7 @@ export class ChatSessionManager {
         {
           id: `msg_welcome_${Date.now()}`,
           role: 'assistant',
-          text: "Yo! I'm Calyxo, your health & training intelligence layer. Ask me anything about your recovery, customized workout programming, nutrition targets, or biometrics!",
+          text: `Welcome${displayName}! I'm Calyxo, your health & training intelligence layer. Ask me anything about your recovery, customized workout programming, nutrition targets, or biometrics.`,
           timestamp: Date.now()
         }
       ]
@@ -201,24 +221,36 @@ export class ChatSessionManager {
   }
 
   /**
-   * Clear all messages in a session except welcome message
+   * Clear all messages in a session and reset to welcome state
    */
-  clearConversation(sessionId) {
+  clearConversation(sessionId, userName = 'Athlete') {
     const session = this.sessions.find(s => s.id === sessionId);
+    const displayName = userName && userName !== 'Athlete' ? `, ${userName}` : '';
     if (session) {
       session.messages = [
         {
-          id: `msg_cleared_${Date.now()}`,
+          id: `msg_welcome_${Date.now()}`,
           role: 'assistant',
-          text: "Conversation history cleared. How can I help you today?",
+          text: `Conversation history cleared. Welcome${displayName}! How can I help you today?`,
           timestamp: Date.now()
         }
       ];
+      session.title = 'New Conversation';
       session.updatedAt = Date.now();
       this.persistLocal();
-      return true;
+      return session;
     }
-    return false;
+    return null;
+  }
+
+  /**
+   * Clear ALL conversations and reset to a single fresh session
+   */
+  clearAllSessions(userName = 'Athlete') {
+    this.sessions = [];
+    this.activeSessionId = null;
+    this.persistLocal();
+    return this.createSession({ title: 'New Conversation', userName });
   }
 
   /**

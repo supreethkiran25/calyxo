@@ -106,10 +106,27 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
         if (sessionState === 'REST_SET') {
           sendBrowserNotification("Rest Time Finished! 💪", `Set rest complete! Time to start Set ${setIndex} of ${currentEx?.name || 'Exercise'}`);
           if (onNotification) onNotification(`Rest time complete! Start Set ${setIndex} of ${currentEx?.name || 'Exercise'}`);
+          LiveActivityManager.updateLiveActivity({
+            exerciseName: currentEx?.name || 'Exercise',
+            currentSet: setIndex,
+            totalSets: parsedStats.totalSets,
+            currentReps: parsedStats.targetReps,
+            isResting: false,
+            restDurationSeconds: 0
+          });
           setSessionState('EXERCISING');
         } else if (sessionState === 'REST_EXERCISE') {
-          sendBrowserNotification("Exercise Break Complete! 🏋️‍♂️", `Break over! Next exercise: ${exercises[exIndex + 1]?.name || 'Final Exercise'}`);
-          if (onNotification) onNotification(`Exercise break complete! Starting ${exercises[exIndex + 1]?.name || 'Next Exercise'}`);
+          const nextEx = exercises[exIndex + 1];
+          sendBrowserNotification("Exercise Break Complete! 🏋️‍♂️", `Break over! Next exercise: ${nextEx?.name || 'Final Exercise'}`);
+          if (onNotification) onNotification(`Exercise break complete! Starting ${nextEx?.name || 'Next Exercise'}`);
+          LiveActivityManager.updateLiveActivity({
+            exerciseName: nextEx?.name || 'Exercise',
+            currentSet: 1,
+            totalSets: parsedStats.totalSets,
+            currentReps: parsedStats.targetReps,
+            isResting: false,
+            restDurationSeconds: 0
+          });
           setExIndex(idx => idx + 1);
           setWaterLoggedThisBreak(false);
           setSessionState('EXERCISING');
@@ -333,7 +350,7 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-[calc(1rem+env(safe-area-inset-top,0px))] overflow-y-auto">
         {/* Backdrop */}
         <motion.div 
           initial={{ opacity: 0 }} 
@@ -345,10 +362,10 @@ export default function LiveWorkoutSessionModal({ isOpen, onClose, routine, onNo
 
         {/* Modal Window */}
         <motion.div 
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-xl bg-surface border border-card-border rounded-3xl p-5 sm:p-8 shadow-2xl z-10 overflow-hidden text-foreground my-auto"
+          exit={{ opacity: 0, scale: 0.95, y: 15 }}
+          className="relative w-full max-w-xl bg-surface border border-card-border rounded-3xl p-4 sm:p-7 shadow-2xl z-10 overflow-y-auto text-foreground my-auto max-h-[85dvh] scrollbar-thin"
         >
           {/* Header Bar */}
           <div className="flex justify-between items-center pb-4 border-b border-card-border/60 mb-6">

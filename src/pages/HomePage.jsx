@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useStore } from '../store/useStore';
 import { subscribeToAuth, loadUserData, saveUserProfile } from '../lib/dbService';
 import { useNavigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 
 import LaunchScreen from '../components/LaunchScreen';
 import LandingPage from '../components/LandingPage';
-import OnboardingFlow from '../components/OnboardingFlow';
 
 export default function HomePage() {
   const [loading, setLoading] = useState(true);
@@ -24,41 +24,39 @@ export default function HomePage() {
       setUser(authUser);
       if (authUser) {
         const uid = authUser.uid || authUser.id;
-        const { profile, foods, workouts, weights, water } = await loadUserData(uid);
-        if (profile) setUserProfile(profile);
-        if (foods) useStore.getState().setFoodLogs(foods);
-        if (workouts) useStore.getState().setWorkoutLogs(workouts);
-        if (weights) useStore.getState().setWeightLogs(weights);
-        if (water !== undefined && water !== null) useStore.getState().setWaterIntake(water);
+        try {
+          const { profile, foods, workouts, weights, water } = await loadUserData(uid);
+          if (profile) setUserProfile(profile);
+          if (foods) useStore.getState().setFoodLogs(foods);
+          if (workouts) useStore.getState().setWorkoutLogs(workouts);
+          if (weights) useStore.getState().setWeightLogs(weights);
+          if (water !== undefined && water !== null) useStore.getState().setWaterIntake(water);
+        } catch (err) {
+          console.warn('[HomePage] User data load notice:', err);
+        }
         setLoading(false);
+        // On native mobile app, navigate directly to dashboard
+        if (Capacitor.isNativePlatform()) {
+          navigate('/user/dashboard', { replace: true });
+        }
       } else {
         setLoading(false);
       }
     });
 
     return () => unsubscribe();
-  }, [setUser, initializeTheme, setUserProfile]);
-
-  const handleOnboardingComplete = async (onboardingData) => {
-    try {
-      const updatedProfile = { 
-        ...userProfile, 
-        ...onboardingData, 
-        onboarded: true, 
-        role: 'user' 
-      };
-      await saveUserProfile(user.uid || user.id, updatedProfile);
-      setUserProfile(updatedProfile);
-      navigate('/user/dashboard');
-    } catch (err) {
-      console.error("Failed to save onboarding data:", err);
-    }
-  };
+  }, [setUser, initializeTheme, setUserProfile, navigate]);
 
   if (loading) {
     return <LaunchScreen isLoading={true} />;
   }
 
-  // Navigating to / MUST always stay at / and render LandingPage
+  // If already authenticated on native, navigate to dashboard
+  if (user && Capacitor.isNativePlatform()) {
+    navigate('/user/dashboard', { replace: true });
+    return <LaunchScreen isLoading={true} />;
+  }
+
+  // Web landing page
   return <LandingPage />;
 }

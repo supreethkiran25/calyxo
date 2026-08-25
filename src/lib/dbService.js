@@ -471,9 +471,19 @@ export const signOutUser = async () => {
     localStorage.removeItem("calyxo_health_last_sync");
     localStorage.removeItem("calyxo_health_records_count");
     sessionStorage.clear();
+    try {
+      const { HealthCache } = await import('../services/health/HealthCache');
+      HealthCache.clear();
+    } catch (e) {}
   }
 
-  // 4. Reset in-memory application & ecosystem stores
+  // 4. Reset in-memory application & ecosystem stores and wipe cache
+  invalidateUserDataCache();
+  try {
+    const { LiveActivityManager } = await import('../services/LiveActivityManager');
+    LiveActivityManager.endLiveActivity();
+  } catch (e) {}
+
   try {
     const { useStore } = await import('../store/useStore');
     useStore.getState().resetStore();
@@ -608,6 +618,7 @@ export const getFoodLogs = async (userId) => {
     const state = getLocalState(userId);
     state.foodLogs = mergedLogs;
     saveLocalState(userId, state);
+
     return mergedLogs;
   } catch (err) {
     console.warn("Supabase getFoodLogs error, using local state fallback:", err);
@@ -634,6 +645,7 @@ export const addFoodLog = async (userId, item) => {
   const state = getLocalState(userId);
   state.foodLogs = [logItem, ...state.foodLogs.filter(x => x.id !== logItem.id)];
   saveLocalState(userId, state);
+  import('../services/notifications/SmartReminderEngine.js').then(m => m.smartReminderEngine.suppressDailyNutritionReminder(userId)).catch(() => {});
 
   if (isMockMode || !userId) return logItem;
 
@@ -668,6 +680,7 @@ export const deleteFoodLog = async (userId, logId) => {
   state.foodLogs = state.foodLogs.filter(x => x.id !== logId && x.timestamp !== logId);
   saveLocalState(userId, state);
 
+
   if (isMockMode || !userId || typeof logId === 'number') return;
 
   try {
@@ -683,6 +696,7 @@ export const updateFoodLog = async (userId, logId, updatedItem) => {
   const state = getLocalState(userId);
   state.foodLogs = state.foodLogs.map(x => (x.id === logId || x.timestamp === logId) ? { ...x, ...updatedItem } : x);
   saveLocalState(userId, state);
+
 
   if (isMockMode || !userId || typeof logId === 'number') return;
 
@@ -722,6 +736,7 @@ export const getWorkoutLogs = async (userId) => {
     const state = getLocalState(userId);
     state.workoutLogs = mergedLogs;
     saveLocalState(userId, state);
+
     return mergedLogs;
   } catch (err) {
     console.warn("Supabase getWorkoutLogs error, using local state fallback:", err);
@@ -741,6 +756,7 @@ export const addWorkoutLog = async (userId, workout) => {
   const state = getLocalState(userId);
   state.workoutLogs = [logItem, ...state.workoutLogs.filter(x => x.id !== logItem.id)];
   saveLocalState(userId, state);
+  import('../services/notifications/SmartReminderEngine.js').then(m => m.smartReminderEngine.suppressDailyWorkoutReminder(userId)).catch(() => {});
 
   if (isMockMode || !userId) return logItem;
 
@@ -792,6 +808,7 @@ export const updateWorkoutLog = async (userId, logId, updatedItem) => {
   state.workoutLogs = state.workoutLogs.map(x => (x.id === logId || x.timestamp === logId) ? { ...x, ...updatedItem } : x);
   saveLocalState(userId, state);
 
+
   if (isMockMode || !userId) return;
 
   try {
@@ -811,6 +828,7 @@ export const deleteWorkoutLog = async (userId, logId) => {
   const state = getLocalState(userId);
   state.workoutLogs = state.workoutLogs.filter(x => x.id !== logId && x.timestamp !== logId);
   saveLocalState(userId, state);
+
 
   if (isMockMode || !userId) return;
 
@@ -873,6 +891,9 @@ export const saveWaterIntake = async (userId, amount) => {
     state.waterLogs.push({ date: today, amount, timestamp: Date.now() });
   }
   saveLocalState(userId, state);
+  if (amount >= 250) {
+    import('../services/notifications/SmartReminderEngine.js').then(m => m.smartReminderEngine.suppressDailyWaterReminder(userId)).catch(() => {});
+  }
 
   if (isMockMode || !userId) return;
 
@@ -990,10 +1011,12 @@ export const getUserProfile = async (userId) => {
     if (error && error.code !== 'PGRST116') throw error;
 
     let userEmail = "";
+    let authUser = null;
     try {
       const { data: authUserRes } = await supabase.auth.getUser();
-      if (authUserRes?.user?.email) {
-        userEmail = authUserRes.user.email;
+      authUser = authUserRes?.user || null;
+      if (authUser?.email) {
+        userEmail = authUser.email;
       }
     } catch (e) { }
 
@@ -1014,8 +1037,8 @@ export const getUserProfile = async (userId) => {
     // 1. Query user_profiles table by ID or Email
     let authUserMetadata = {};
     try {
-      if (authUserRes?.user?.user_metadata) {
-        authUserMetadata = authUserRes.user.user_metadata;
+      if (authUser?.user_metadata) {
+        authUserMetadata = authUser.user_metadata;
       }
     } catch (e) {}
 
@@ -1096,7 +1119,7 @@ export const getUserProfile = async (userId) => {
         isSubscribed: isSub,
         healthInterests: Array.isArray(extra.healthInterests)
           ? extra.healthInterests
-          : (Array.isArray(profile?.healthInterests) ? profile.healthInterests : (localState.userProfile?.healthInterests || [])),
+          : (Array.isArray(data?.healthInterests) ? data.healthInterests : (localState.userProfile?.healthInterests || [])),
         fitnessLevel: extra.fitnessLevel || extra.experience || localState.userProfile?.fitnessLevel || 'Intermediate',
         lastPaymentId: extra.lastPaymentId || localState.userProfile?.lastPaymentId || null,
         subscriptionDate: extra.subscriptionDate || localState.userProfile?.subscriptionDate || null,
@@ -1255,11 +1278,11 @@ export const saveUserProfile = async (userId, profile) => {
       const validUid = toValidUuid(userId);
       const photoVal = mergedProfile.photoURL || extraFields.photoURL || existingBio.photoURL || null;
       const nameVal = mergedProfile.displayName || extraFields.displayName || existingBio.displayName || null;
+      // Mass assignment protection: only update safe profile fields, never role or subscription_plan
       await supabase.from("user_profiles").upsert({
         id: validUid,
         display_name: nameVal,
         photo_url: photoVal,
-        subscription_plan: finalSubPlan,
         updated_at: new Date().toISOString()
       }, { onConflict: 'id' }).catch(() => { });
     }

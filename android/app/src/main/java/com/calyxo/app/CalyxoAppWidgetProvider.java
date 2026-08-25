@@ -30,6 +30,8 @@ public class CalyxoAppWidgetProvider extends AppWidgetProvider {
 
         int calories = 0;
         int calorieGoal = 2000;
+        int steps = 0;
+        int stepGoal = 10000;
         int water = 0;
         int streak = 0;
         String workoutName = "Rest & Recovery";
@@ -39,6 +41,8 @@ public class CalyxoAppWidgetProvider extends AppWidgetProvider {
                 JSONObject json = new JSONObject(rawData);
                 calories = json.optInt("calories", 0);
                 calorieGoal = json.optInt("calorieGoal", 2000);
+                steps = json.optInt("steps", 0);
+                stepGoal = json.optInt("stepGoal", 10000);
                 water = json.optInt("water", 0);
                 streak = json.optInt("streak", 0);
                 workoutName = json.optString("activeWorkoutName", "Rest & Recovery");
@@ -49,7 +53,8 @@ public class CalyxoAppWidgetProvider extends AppWidgetProvider {
 
         // Update RemoteViews
         views.setTextViewText(R.id.widget_streak, "🔥 " + streak + " Day Streak");
-        views.setTextViewText(R.id.widget_calories_val, calories + " / " + calorieGoal + " kcal");
+        views.setTextViewText(R.id.widget_calories_val, calories + " kcal");
+        views.setTextViewText(R.id.widget_steps_val, steps + " steps");
         views.setTextViewText(R.id.widget_water_val, water + " ml");
         views.setTextViewText(R.id.widget_workout_status, "💪 " + workoutName);
 
@@ -82,6 +87,16 @@ public class CalyxoAppWidgetProvider extends AppWidgetProvider {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
         views.setOnClickPendingIntent(R.id.btn_view_calories, caloriesPendingIntent);
+
+        // View Steps Action PendingIntent
+        Intent stepsIntent = new Intent(context, MainActivity.class);
+        stepsIntent.setAction(Intent.ACTION_VIEW);
+        stepsIntent.setData(Uri.parse("calyxo://activity/steps"));
+        PendingIntent stepsPendingIntent = PendingIntent.getActivity(
+                context, 4, stepsIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+        views.setOnClickPendingIntent(R.id.btn_view_steps, stepsPendingIntent);
 
         // Start Workout Action PendingIntent
         Intent workoutIntent = new Intent(context, MainActivity.class);

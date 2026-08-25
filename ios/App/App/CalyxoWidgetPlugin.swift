@@ -47,11 +47,26 @@ public class CalyxoWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
         if let steps = call.getInt("steps") {
             defaults.set(steps, forKey: "widget_steps")
         }
+        if let stepGoal = call.getInt("stepGoal") {
+            defaults.set(stepGoal, forKey: "widget_step_goal")
+        }
         if let streak = call.getInt("streak") {
             defaults.set(streak, forKey: "widget_streak")
         }
         if let activeWorkoutName = call.getString("activeWorkoutName") {
             defaults.set(activeWorkoutName, forKey: "widget_active_workout")
+        }
+        if let supabaseUrl = call.getString("supabaseUrl") {
+            defaults.set(supabaseUrl, forKey: "supabase_url")
+        }
+        if let supabaseAnonKey = call.getString("supabaseAnonKey") {
+            defaults.set(supabaseAnonKey, forKey: "supabase_anon_key")
+        }
+        if let userId = call.getString("userId") {
+            defaults.set(userId, forKey: "supabase_user_id")
+        }
+        if let authToken = call.getString("authToken") {
+            defaults.set(authToken, forKey: "supabase_auth_token")
         }
 
         defaults.synchronize()
@@ -75,6 +90,7 @@ public class CalyxoWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
             defaults.removeObject(forKey: "widget_carbs")
             defaults.removeObject(forKey: "widget_fat")
             defaults.removeObject(forKey: "widget_steps")
+            defaults.removeObject(forKey: "widget_step_goal")
             defaults.removeObject(forKey: "widget_streak")
             defaults.removeObject(forKey: "widget_active_workout")
             defaults.synchronize()

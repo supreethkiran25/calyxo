@@ -177,7 +177,11 @@ export default function GlobalSearch({ isOpen, onClose }) {
         </div>
 
         {/* Content Body: Suggestions vs Live Search Results */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 pb-safe max-w-3xl mx-auto w-full space-y-6 scrollbar-none">
+        <div 
+          data-keyboard-scroll="true"
+          style={{ paddingBottom: 'calc(var(--keyboard-height, 0px) + 48px)' }}
+          className="flex-1 overflow-y-auto px-4 py-4 max-w-3xl mx-auto w-full space-y-6 scrollbar-none modal-scroll-body"
+        >
           {!query ? (
             <div className="space-y-6">
               {/* Suggested Search Chips */}

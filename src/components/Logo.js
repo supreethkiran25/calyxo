@@ -3,7 +3,7 @@ import React from 'react';
 export default function Logo({ className = "w-8 h-8", glow = false, color, showText = false, textClassName = "" }) {
   // If className doesn't specify a text color, default to text-foreground
   const hasTextColor = /\btext-/.test(className);
-  const colorClass = hasTextColor ? '' : 'text-foreground';
+  const colorClass = hasTextColor ? '' : 'text-accent';
 
   const iconElement = (
     <div 
@@ -40,7 +40,7 @@ export default function Logo({ className = "w-8 h-8", glow = false, color, showT
     return (
       <div className="inline-flex items-center gap-2.5 shrink-0 leading-none">
         {iconElement}
-        <span className={`brand-name text-lg tracking-wider text-foreground select-none ${textClassName}`}>CALYXO</span>
+        <span className={`brand-name text-lg tracking-wider text-accent select-none ${textClassName}`}>CALYXO</span>
       </div>
     );
   }

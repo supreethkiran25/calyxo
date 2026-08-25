@@ -1,62 +1,89 @@
 /**
  * Universal Central Streak Engine for Calyxo
- * Computes exact consecutive-day streaks from authoritative database log timestamps:
- * - Login Streak
- * - Workout Streak
- * - Nutrition Streak
- * - Water Streak
+ * Pure Mathematical Reduction of Consecutive-Day Streaks:
+ * - Login Streak: Consecutive days opening/logging into the app
+ * - Workout Streak: Consecutive days with >= 1 completed workout
+ * - Nutrition Streak: Consecutive days with >= 1 logged meal
+ * - Water Streak: Consecutive days meeting daily hydration target
  */
 import { getTodayDateString, parseSafeDate } from './dateUtils.js';
 
 /**
- * Calculates consecutive-day streak from a list of log timestamps or date objects.
- * @param {Array<number|string|Date>} timestampsList 
+ * Shifts a calendar date string (YYYY-MM-DD) by N days mathematically.
+ * Handles month boundaries, leap years, and year rollovers accurately.
+ * @param {string} dateStr - Format YYYY-MM-DD
+ * @param {number} offsetDays - Integer (+1 for tomorrow, -1 for yesterday)
+ * @returns {string} - Shifted YYYY-MM-DD
+ */
+export function shiftDays(dateStr, offsetDays = 0) {
+  if (!dateStr || typeof dateStr !== 'string') dateStr = getTodayDateString();
+  const parts = dateStr.split('-').map(Number);
+  const y = parts[0];
+  const m = parts[1] || 1;
+  const d = parts[2] || 1;
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + offsetDays);
+  const resY = dt.getFullYear();
+  const resM = String(dt.getMonth() + 1).padStart(2, '0');
+  const resD = String(dt.getDate()).padStart(2, '0');
+  return `${resY}-${resM}-${resD}`;
+}
+
+/**
+ * Pure Mathematical Consecutive-Day Streak Algorithm.
+ * 
+ * Mathematical Definition:
+ * Given a set of activity dates D and today's date T:
+ * 1. If T in D: streak is consecutive days counting backward starting from T: T, T-1, T-2, ...
+ * 2. If T not in D, but T-1 in D: streak is still active for today; count backward from T-1: T-1, T-2, ...
+ * 3. If neither T nor T-1 in D: streak is 0 (broken).
+ * 
+ * @param {Array<number|string|Date|Object>} timestampsList 
  * @param {string} [todayStr=getTodayDateString()] 
- * @returns {number}
+ * @returns {number} Strict consecutive day streak count
  */
 export function calculateConsecutiveDaysStreak(timestampsList = [], todayStr = getTodayDateString()) {
   if (!Array.isArray(timestampsList) || timestampsList.length === 0) return 0;
 
-  // Collect unique local date strings (YYYY-MM-DD)
+  // 1. Build distinct local date set up to today
   const dateSet = new Set();
-  timestampsList.forEach(ts => {
-    if (!ts) return;
-    const d = parseSafeDate(ts);
-    if (d && !isNaN(d.getTime())) {
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      dateSet.add(`${year}-${month}-${day}`);
+  for (const item of timestampsList) {
+    if (!item) continue;
+    let dateStr = null;
+    if (typeof item === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(item.trim())) {
+      dateStr = item.trim();
+    } else {
+      const rawVal = typeof item === 'object' ? (item.timestamp || item.created_at || item.logged_at || item.date) : item;
+      const d = parseSafeDate(rawVal);
+      if (d && !isNaN(d.getTime())) {
+        dateStr = getTodayDateString(d);
+      }
     }
-  });
-
-  const sortedDates = Array.from(dateSet).sort().reverse();
-  if (sortedDates.length === 0) return 0;
-
-  const today = parseSafeDate(todayStr + 'T00:00:00');
-  const yesterday = new Date(today.getTime() - 86400000);
-  const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
-
-  // Check if today or yesterday is present in sorted dates
-  let curr = null;
-  if (sortedDates.includes(todayStr)) {
-    curr = new Date(today.getTime());
-  } else if (sortedDates.includes(yesterdayStr)) {
-    curr = new Date(yesterday.getTime());
+    if (dateStr && dateStr <= todayStr) {
+      dateSet.add(dateStr);
+    }
   }
 
-  if (!curr) return 0; // Streak broken if neither today nor yesterday has a log
+  if (dateSet.size === 0) return 0;
+
+  const yesterdayStr = shiftDays(todayStr, -1);
+
+  let startOffset = 0;
+  if (dateSet.has(todayStr)) {
+    startOffset = 0;
+  } else if (dateSet.has(yesterdayStr)) {
+    startOffset = -1;
+  } else {
+    return 0; // Streak broken
+  }
 
   let streak = 0;
+  let offset = startOffset;
   while (true) {
-    const year = curr.getFullYear();
-    const month = String(curr.getMonth() + 1).padStart(2, '0');
-    const day = String(curr.getDate()).padStart(2, '0');
-    const expectedStr = `${year}-${month}-${day}`;
-
-    if (sortedDates.includes(expectedStr)) {
+    const targetDate = shiftDays(todayStr, offset);
+    if (dateSet.has(targetDate)) {
       streak++;
-      curr.setDate(curr.getDate() - 1);
+      offset--;
     } else {
       break;
     }
@@ -66,7 +93,7 @@ export function calculateConsecutiveDaysStreak(timestampsList = [], todayStr = g
 }
 
 /**
- * Calculates consecutive-day water streak based on completing daily water target.
+ * Calculates consecutive-day water streak based on achieving daily water target.
  * @param {Array<Object>} waterLogs 
  * @param {number} [waterTarget=2500] 
  * @param {string} [todayStr=getTodayDateString()] 
@@ -78,13 +105,10 @@ export function calculateWaterGoalStreak(waterLogs = [], waterTarget = 2500, tod
   const dayTotals = new Map();
   waterLogs.forEach(w => {
     if (!w) return;
-    const ts = w.timestamp || w.created_at || w.date;
-    const d = parseSafeDate(ts);
+    const rawTs = w.timestamp || w.created_at || w.date;
+    const d = parseSafeDate(rawTs);
     if (d && !isNaN(d.getTime())) {
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const dateKey = `${year}-${month}-${day}`;
+      const dateKey = getTodayDateString(d);
       const amount = Number(w.amount || w.water || w.volume || 0);
       dayTotals.set(dateKey, (dayTotals.get(dateKey) || 0) + amount);
     }

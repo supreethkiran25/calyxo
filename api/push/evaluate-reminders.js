@@ -9,13 +9,15 @@ import {
   PRIVACY_LEVELS
 } from '../../src/services/notifications/SmartReminderEngine.js';
 
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY || 'BJEqrp7IotPHK2FR8qvgATPii4lV3KY3jirYWe1b6X9vRdY6rwbsnyCQiOR2J4VUHuP-eWLfX4cHAmhFqnWSBWs';
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '3AASSWF8bDu3EJG5_GHSbBozW_OvI--jfYlJoJyUByg';
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:support@calyxo.app';
 
-try {
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-} catch (e) {}
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  } catch (e) {}
+}
 
 /**
  * Serverless Cron / Webhook handler to evaluate smart user reminders
@@ -23,6 +25,21 @@ try {
 export default async function handler(req, res) {
   if (req.method !== 'POST' && req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // SECURITY: Require CRON_SECRET or Vercel Cron header
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.authorization;
+  const isVercelCron = req.headers['x-vercel-cron'] === '1';
+
+  if (!isVercelCron) {
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+      return res.status(401).json({ error: 'Unauthorized. Valid CRON bearer token required.' });
+    }
+  }
+
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    return res.status(500).json({ error: 'VAPID credentials not configured on server' });
   }
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;

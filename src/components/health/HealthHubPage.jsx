@@ -27,11 +27,13 @@ export default function HealthHubPage({ onNotification }) {
   const userProfile = useStore(state => state.userProfile);
   const plan = userProfile?.subscriptionPlan;
   const email = (user?.email || userProfile?.email || "").toLowerCase().trim();
+  const hasAdminSession = typeof window !== 'undefined' && Boolean(localStorage.getItem('calyxo_admin_session'));
+  const isSuperAdmin = email === 'supreethkiran25@gmail.com' || email === 'admin@calyxo.com' || hasAdminSession;
 
   const isSubscribed = Boolean(
     userProfile?.isSubscribed || 
     (plan && plan !== 'FREE' && plan !== 'DEFAULT') ||
-    email === 'supreethkiran25@gmail.com'
+    isSuperAdmin
   );
 
   const [isConnected, setIsConnected] = useState(HealthPermissionManager.isConnected());

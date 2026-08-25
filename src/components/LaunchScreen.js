@@ -45,7 +45,7 @@ export default function LaunchScreen({ isLoading }) {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: [0.8, 1.2, 1], opacity: [0.2, 0.4, 0.25] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              className="w-[450px] h-[450px] sm:w-[600px] sm:h-[600px] rounded-full bg-radial from-[#10B981]/25 via-[#00F0FF]/10 to-transparent blur-[120px]"
+              className="w-[450px] h-[450px] sm:w-[600px] sm:h-[600px] rounded-full bg-radial from-[#d4ff00]/25 via-[#ccff00]/10 to-transparent blur-[120px]"
             />
           </div>
 
@@ -58,7 +58,7 @@ export default function LaunchScreen({ isLoading }) {
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               className="relative flex items-center justify-center mb-6 group cursor-default"
             >
-              <Logo className="w-16 h-16 sm:w-20 sm:h-20 text-[#10B981]" glow={false} />
+              <Logo className="w-16 h-16 sm:w-20 sm:h-20 text-[#d4ff00]" glow={false} />
             </motion.div>
 
             {/* Bold Premium Brand Typography */}
@@ -93,7 +93,7 @@ export default function LaunchScreen({ isLoading }) {
             {/* Ultra-thin Minimalist Neon Progress Line */}
             <div className="w-full h-[2px] bg-white/10 rounded-full overflow-hidden relative">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-[#10B981] via-[#00F0FF] to-[#10B981] shadow-[0_0_12px_rgba(16,185,129,0.8)]"
+                className="h-full rounded-full bg-gradient-to-r from-[#d4ff00] via-[#ccff00] to-[#d4ff00] shadow-[0_0_12px_rgba(212,255,0,0.8)]"
                 initial={{ width: '0%' }}
                 animate={{ width: `${progress}%` }}
                 transition={{ ease: "easeOut", duration: 0.2 }}

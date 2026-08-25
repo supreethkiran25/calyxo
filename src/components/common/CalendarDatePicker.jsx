@@ -1,16 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ChevronDown, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ChevronDown } from 'lucide-react';
 
 /**
  * Calyxo Interactive Calendar Date Picker
  *
- * Provides a month calendar dropdown & date navigator matching the sleek iOS dark mode design.
- * Supports quick day jumps, month paging, today indicator, and customizable accent highlights.
+ * Provides a month calendar dropdown & date navigator matching the sleek mobile theme system.
+ * Supports quick day jumps, month paging, today indicator, and theme-adaptive styling.
  */
 export default function CalendarDatePicker({
   selectedDate, // 'YYYY-MM-DD'
   onSelectDate,
-  accentColor = '#0088ff', // Or #b5f23d (Acid Green) / iOS Blue
   className = ''
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -142,48 +141,56 @@ export default function CalendarDatePicker({
   return (
     <div className={`relative inline-block ${className}`} ref={containerRef}>
       {/* Date Navigation Trigger Bar */}
-      <div className="flex items-center gap-1.5 bg-[#141419] border border-white/10 p-1 rounded-2xl shadow-md">
+      <div className="flex items-center gap-1 bg-surface border border-card-border p-1 rounded-2xl shadow-xs select-none">
         {/* Left Arrow (Previous Day) */}
         <button
           type="button"
           onClick={handlePrevDay}
-          className="p-1.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer border-none bg-transparent"
+          className="p-1.5 rounded-xl text-secondary hover:text-foreground hover:bg-surface-subtle transition-all cursor-pointer border-none bg-transparent"
           title="Previous Day"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4 text-foreground" />
         </button>
 
         {/* Date Button Dropdown Toggle */}
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-white transition-all cursor-pointer border-none"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-subtle hover:bg-surface-interactive text-foreground transition-all cursor-pointer border border-card-border/60"
         >
-          <CalendarIcon className="w-3.5 h-3.5 text-[var(--color-acid-green)]" />
-          <span className="text-xs font-black uppercase tracking-wider">
+          <CalendarIcon className="w-3.5 h-3.5 text-accent" />
+          <span className="text-xs font-black uppercase tracking-wider text-foreground">
             {getDisplayLabel()}
           </span>
-          <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-white' : ''}`} />
+          <ChevronDown className={`w-3.5 h-3.5 text-secondary transition-transform duration-200 ${isOpen ? 'rotate-180 text-accent' : ''}`} />
         </button>
 
         {/* Right Arrow (Next Day) */}
         <button
           type="button"
           onClick={handleNextDay}
-          className="p-1.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer border-none bg-transparent"
+          className="p-1.5 rounded-xl text-secondary hover:text-foreground hover:bg-surface-subtle transition-all cursor-pointer border-none bg-transparent"
           title="Next Day"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4 text-foreground" />
         </button>
       </div>
 
-      {/* Dropdown Calendar Popover (Matches Screenshot 3) */}
+      {/* Mobile Backdrop Overlay */}
       {isOpen && (
-        <div className="absolute top-full mt-2 left-0 sm:left-auto sm:right-0 z-50 w-72 sm:w-80 p-4 rounded-3xl bg-[#111116] border border-white/15 shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div 
+          className="fixed inset-0 bg-black/40 z-[9998] sm:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Dropdown Calendar Popover */}
+      {isOpen && (
+        <div className="absolute top-full mt-2 right-0 z-[9999] w-[calc(100vw-32px)] max-w-[320px] sm:w-80 p-4 rounded-3xl bg-surface border border-card-border shadow-2xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150">
           {/* Calendar Header: Month Year + Paging */}
-          <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
+          <div className="flex items-center justify-between mb-4 pb-2 border-b border-card-border/60">
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-black text-white tracking-wide">
+              <span className="text-sm font-black text-foreground tracking-wide">
                 {monthNames[viewMonth]} {viewYear}
               </span>
             </div>
@@ -192,18 +199,18 @@ export default function CalendarDatePicker({
               <button
                 type="button"
                 onClick={handlePrevMonth}
-                className="p-1.5 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-all border-none bg-transparent cursor-pointer"
+                className="p-1.5 rounded-xl hover:bg-surface-subtle text-secondary hover:text-foreground transition-all border-none bg-transparent cursor-pointer"
                 title="Previous Month"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-4 h-4 text-foreground" />
               </button>
               <button
                 type="button"
                 onClick={handleNextMonth}
-                className="p-1.5 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-all border-none bg-transparent cursor-pointer"
+                className="p-1.5 rounded-xl hover:bg-surface-subtle text-secondary hover:text-foreground transition-all border-none bg-transparent cursor-pointer"
                 title="Next Month"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 text-foreground" />
               </button>
             </div>
           </div>
@@ -211,7 +218,7 @@ export default function CalendarDatePicker({
           {/* Weekday Row */}
           <div className="grid grid-cols-7 gap-1 text-center mb-2">
             {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((w, idx) => (
-              <span key={idx} className="text-[9px] font-black uppercase text-gray-500 tracking-wider">
+              <span key={idx} className="text-[9px] font-black uppercase text-muted tracking-wider">
                 {w}
               </span>
             ))}
@@ -234,10 +241,10 @@ export default function CalendarDatePicker({
                   onClick={() => handleSelectDay(item.dateStr)}
                   className={`w-8 h-8 sm:w-9 sm:h-9 mx-auto rounded-full flex items-center justify-center text-xs font-bold transition-all cursor-pointer border-none ${
                     isSelected
-                      ? 'bg-[#0088ff] text-white shadow-lg shadow-[#0088ff]/30 scale-105 font-black'
+                      ? 'bg-accent text-accent-foreground font-black shadow-md scale-105'
                       : isToday
-                      ? 'bg-white/10 text-[var(--color-acid-green)] border border-[var(--color-acid-green)]/40 hover:bg-white/20'
-                      : 'text-gray-300 hover:bg-white/10 hover:text-white'
+                      ? 'bg-surface-subtle text-accent border border-accent/40 font-black'
+                      : 'text-foreground hover:bg-surface-subtle'
                   }`}
                 >
                   {item.day}
@@ -247,15 +254,15 @@ export default function CalendarDatePicker({
           </div>
 
           {/* Footer Quick Actions */}
-          <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+          <div className="mt-4 pt-3 border-t border-card-border/60 flex items-center justify-between">
             <button
               type="button"
               onClick={handleJumpToday}
-              className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-[11px] font-bold uppercase tracking-wider transition-all border border-white/10 cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-surface-subtle hover:bg-accent hover:text-accent-foreground text-foreground text-[11px] font-black uppercase tracking-wider transition-all border border-card-border cursor-pointer"
             >
-              Today
+              Jump to Today
             </button>
-            <span className="text-[10px] text-gray-500 font-mono">
+            <span className="text-[10px] text-muted font-mono">
               {selectedDate}
             </span>
           </div>

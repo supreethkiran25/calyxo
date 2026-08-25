@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import PermissionsConnectionsSection from './PermissionsConnectionsSection';
+import ProfileIdentityHero from '../design-system/components/ProfileIdentityHero';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
@@ -24,7 +25,7 @@ import {
   User, Users, Mail, Lock, ShieldAlert, ShieldCheck, Award, RefreshCw, LogOut, CheckCircle, 
   Settings, Heart, Sparkles, Bell, Database, Trash2, Download, Eye, EyeOff,
   Shield, FileText, Info, HelpCircle, Key, Cpu, Activity, CreditCard,
-  MoreVertical, X, Target, Zap, ChevronRight, TrendingUp, Star
+  MoreVertical, X, Target, Zap, ChevronRight, TrendingUp, Star, Clock
 } from 'lucide-react';
 
 const HEALTH_INTERESTS_OPTIONS = [
@@ -57,7 +58,7 @@ export default function UserProfile({ onNotification }) {
   const userProfile = useStore(state => state.userProfile);
   const updateUserProfile = useStore(state => state.updateUserProfile);
   const resetStore = useStore(state => state.resetStore);
-  const userId = user?.uid;
+  const userId = user?.uid || user?.id || '';
   const ecoStore = useEcosystemStore();
 
   const [activePanel, setActivePanel] = useState('account');
@@ -101,6 +102,17 @@ export default function UserProfile({ onNotification }) {
   const [notifications, setNotifications] = useState({
     workout: true, meal: true, hydration: true, checkins: true, challenges: true, achievements: true
   });
+
+  // Daily Schedule & Reminder Timings
+  const [schedule, setSchedule] = useState({
+    wakeTime: '06:30',
+    breakfastTime: '08:30',
+    lunchTime: '13:00',
+    snackTime: '17:00',
+    workoutTime: '18:30',
+    dinnerTime: '20:30',
+    sleepTime: '23:00'
+  });
   
   // Privacy
   const [analyticsTracking, setAnalyticsTracking] = useState(true);
@@ -131,7 +143,7 @@ export default function UserProfile({ onNotification }) {
 
   // Health Settings
   const [dailyCalories, setDailyCalories] = useState(2000);
-  const [waterTarget, setWaterTarget] = useState(2500);
+  const [waterTarget, setWaterTarget] = useState(3000);
   const [proteinTarget, setProteinTarget] = useState(120);
   const [carbsTarget, setCarbsTarget] = useState(230);
   const [fatTarget, setFatTarget] = useState(65);
@@ -205,6 +217,9 @@ export default function UserProfile({ onNotification }) {
         setNotifications(userProfile.notifications || {
           workout: true, meal: true, hydration: true, checkins: true, challenges: true, achievements: true, weeklyReports: true, monthlyReports: true
         });
+        if (userProfile.schedule) {
+          setSchedule(prev => ({ ...prev, ...userProfile.schedule }));
+        }
         setAnalyticsTracking(userProfile.analyticsTracking !== false);
         const appState = userProfile.appearance || {};
         setBgEffectsEnabled(!!appState.bgEffectsEnabled);
@@ -221,7 +236,7 @@ export default function UserProfile({ onNotification }) {
         setNotificationFrequency(userProfile.notificationFrequency || 'daily');
         
         setDailyCalories(userProfile.dailyCalories || userProfile.calorieGoal || 2000);
-        setWaterTarget(userProfile.waterTarget || 2500);
+        setWaterTarget(userProfile.waterTarget || userProfile.waterGoal || 3000);
         setProteinTarget(userProfile.proteinTarget || userProfile.protein || 120);
         setCarbsTarget(userProfile.carbs || userProfile.targetMacros?.carbs || 230);
         setFatTarget(userProfile.fat || userProfile.targetMacros?.fat || 65);
@@ -432,6 +447,7 @@ export default function UserProfile({ onNotification }) {
       motivationLevel,
       reminderFrequency,
       notifications,
+      schedule,
       analyticsTracking,
       photoURL: userProfile?.photoURL || '',
       bio,
@@ -471,15 +487,32 @@ export default function UserProfile({ onNotification }) {
 
     updateUserProfile(updatedProfile);
     try {
-      await saveUserProfile(userId, updatedProfile);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('calyxo_user_profile', JSON.stringify(updatedProfile));
+      }
+      const validUid = user?.uid || user?.id || userId;
+      await saveUserProfile(validUid, updatedProfile);
       
+      // Update display name in user object and auth profile if modified
+      const newDisplayName = (username || nickname || `${firstName} ${lastName}`.trim() || user?.displayName);
+      if (newDisplayName && newDisplayName !== user?.displayName) {
+        await updateUserAuthProfile(newDisplayName, userProfile?.photoURL || '').catch(() => {});
+        useStore.getState().setUser({ ...(user || {}), displayName: newDisplayName, uid: validUid, id: validUid });
+      }
+
+      // Update email if modified
+      if (emailInput && emailInput.trim() !== (user?.email || '').trim() && emailInput.includes('@')) {
+        await updateUserEmail(emailInput.trim()).catch(e => console.warn('Email update exception:', e));
+        useStore.getState().setUser({ ...(user || {}), email: emailInput.trim(), uid: validUid, id: validUid });
+      }
+
       ecoStore.setPersonality(coachPersonality);
       try {
-        await saveEcosystemState(userId, useEcosystemStore.getState());
+        await saveEcosystemState(validUid, useEcosystemStore.getState());
       } catch (ecoErr) {
         console.error("Failed to save personality state", ecoErr);
       }
-      if (onNotification) onNotification("Settings saved successfully!");
+      if (onNotification) onNotification("Settings and Profile saved successfully!");
     } catch (err) {
       console.error("Save profile details failed", err);
       if (onNotification) onNotification("Failed to save settings. Please try again.");
@@ -984,6 +1017,110 @@ export default function UserProfile({ onNotification }) {
     setOpenAccordion(prev => prev === id ? null : id);
   };
 
+  const renderRoutineForm = () => (
+    <form onSubmit={handleSaveAllDetails} className="space-y-4">
+      <div>
+        <h4 className="text-xs font-bold text-foreground">Daily Routine & Reminder Timings</h4>
+        <p className="text-[10px] text-muted mt-0.5">
+          Set when you eat, train, and sleep so Calyxo sends smart notifications at your exact hours.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {/* Workout */}
+        <div className="p-3 rounded-xl bg-surface border border-acid-green/40 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-acid-green flex items-center gap-1.5">🏋️ Workout / Gym Time</span>
+            <input
+              type="time"
+              value={schedule?.workoutTime || '18:30'}
+              onChange={(e) => setSchedule({ ...schedule, workoutTime: e.target.value })}
+              className="bg-[var(--input)] text-acid-green border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+            />
+          </div>
+        </div>
+
+        {/* Breakfast & Lunch */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
+            <span className="text-[11px] font-bold text-foreground block">🍳 Breakfast</span>
+            <input
+              type="time"
+              value={schedule?.breakfastTime || '08:30'}
+              onChange={(e) => setSchedule({ ...schedule, breakfastTime: e.target.value })}
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+            />
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
+            <span className="text-[11px] font-bold text-foreground block">🥗 Lunch</span>
+            <input
+              type="time"
+              value={schedule?.lunchTime || '13:00'}
+              onChange={(e) => setSchedule({ ...schedule, lunchTime: e.target.value })}
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+            />
+          </div>
+        </div>
+
+        {/* Snack & Dinner */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
+            <span className="text-[11px] font-bold text-foreground block">☕ Snack</span>
+            <input
+              type="time"
+              value={schedule?.snackTime || '17:00'}
+              onChange={(e) => setSchedule({ ...schedule, snackTime: e.target.value })}
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+            />
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
+            <span className="text-[11px] font-bold text-foreground block">🍽️ Dinner</span>
+            <input
+              type="time"
+              value={schedule?.dinnerTime || '20:30'}
+              onChange={(e) => setSchedule({ ...schedule, dinnerTime: e.target.value })}
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+            />
+          </div>
+        </div>
+
+        {/* Sleep & Wake */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
+            <span className="text-[11px] font-bold text-foreground block">🌅 Wake Up</span>
+            <input
+              type="time"
+              value={schedule?.wakeTime || '06:30'}
+              onChange={(e) => setSchedule({ ...schedule, wakeTime: e.target.value })}
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+            />
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
+            <span className="text-[11px] font-bold text-foreground block">😴 Bedtime</span>
+            <input
+              type="time"
+              value={schedule?.sleepTime || '23:00'}
+              onChange={(e) => setSchedule({ ...schedule, sleepTime: e.target.value })}
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+            />
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        disabled={saving}
+        className="w-full btn-primary py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider border-none flex items-center justify-center gap-1.5 cursor-pointer shadow-lg active:scale-98"
+      >
+        {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+        Save Routine Timings
+      </button>
+    </form>
+  );
+
   const renderCoachingForm = () => (
     renderAIForm()
   );
@@ -1238,6 +1375,77 @@ export default function UserProfile({ onNotification }) {
               />
             </label>
           ))}
+        </div>
+      </div>
+
+      {/* Daily Routine & Timings Configuration */}
+      <div className="space-y-2 pt-2 border-t border-card-border">
+        <div className="flex justify-between items-center">
+          <h4 className="text-[10px] font-bold text-foreground uppercase tracking-wider">Daily Routine Timings</h4>
+          <span className="text-[9px] text-acid-green font-bold uppercase">Personalized Alerts</span>
+        </div>
+        <p className="text-[10px] text-muted">Calyxo delivers your meal, workout, and sleep reminders based on these exact hours.</p>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+          <div className="p-2 rounded-xl bg-surface border border-card-border space-y-1">
+            <span className="text-[10px] font-bold text-foreground flex items-center gap-1">🍳 Breakfast</span>
+            <input
+              type="time"
+              value={schedule.breakfastTime || '08:30'}
+              onChange={(e) => setSchedule({ ...schedule, breakfastTime: e.target.value })}
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-acid-green"
+            />
+          </div>
+
+          <div className="p-2 rounded-xl bg-surface border border-card-border space-y-1">
+            <span className="text-[10px] font-bold text-foreground flex items-center gap-1">🥗 Lunch</span>
+            <input
+              type="time"
+              value={schedule.lunchTime || '13:00'}
+              onChange={(e) => setSchedule({ ...schedule, lunchTime: e.target.value })}
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-acid-green"
+            />
+          </div>
+
+          <div className="p-2 rounded-xl bg-surface border border-card-border space-y-1">
+            <span className="text-[10px] font-bold text-foreground flex items-center gap-1">☕ Snack</span>
+            <input
+              type="time"
+              value={schedule.snackTime || '17:00'}
+              onChange={(e) => setSchedule({ ...schedule, snackTime: e.target.value })}
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-acid-green"
+            />
+          </div>
+
+          <div className="p-2 rounded-xl bg-surface border border-acid-green/40 space-y-1">
+            <span className="text-[10px] font-bold text-acid-green flex items-center gap-1">🏋️ Workout</span>
+            <input
+              type="time"
+              value={schedule.workoutTime || '18:30'}
+              onChange={(e) => setSchedule({ ...schedule, workoutTime: e.target.value })}
+              className="w-full bg-[var(--input)] text-acid-green border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-acid-green"
+            />
+          </div>
+
+          <div className="p-2 rounded-xl bg-surface border border-card-border space-y-1">
+            <span className="text-[10px] font-bold text-foreground flex items-center gap-1">🍽️ Dinner</span>
+            <input
+              type="time"
+              value={schedule.dinnerTime || '20:30'}
+              onChange={(e) => setSchedule({ ...schedule, dinnerTime: e.target.value })}
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-acid-green"
+            />
+          </div>
+
+          <div className="p-2 rounded-xl bg-surface border border-card-border space-y-1">
+            <span className="text-[10px] font-bold text-foreground flex items-center gap-1">😴 Bedtime</span>
+            <input
+              type="time"
+              value={schedule.sleepTime || '23:00'}
+              onChange={(e) => setSchedule({ ...schedule, sleepTime: e.target.value })}
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-acid-green"
+            />
+          </div>
         </div>
       </div>
 
@@ -1853,86 +2061,31 @@ export default function UserProfile({ onNotification }) {
   );
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-4 md:gap-6 pb-20 select-text px-2 md:px-4 pt-4">
+    <div 
+      data-keyboard-scroll="true"
+      style={{ paddingBottom: 'calc(var(--keyboard-height, 0px) + 6rem)' }}
+      className="max-w-6xl mx-auto flex flex-col md:flex-row gap-4 md:gap-6 select-text px-2 md:px-4 pt-4"
+    >
       {/* ─── SIDEBAR (Mobile: Top, Desktop: Left) ─── */}
       <div className="w-full md:w-72 lg:w-80 shrink-0 space-y-4">
         
-        {/* Hero / Profile Header Card */}
-        <div className="glass rounded-xl border border-card-border p-4 md:p-6 relative overflow-hidden flex flex-col items-center text-center">
-          <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at top right, rgba(204,255,0,0.03) 0%, transparent 60%)' }} />
-          
-          {/* Avatar */}
-          <div id="setup-field-profile_photo" className="relative w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-acid-green/30 bg-surface flex items-center justify-center overflow-hidden shadow-xl shrink-0 mb-3">
-              {photoLoading ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-muted" />
-              ) : userProfile?.photoURL ? (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={userProfile.photoURL} className="object-cover w-full h-full" alt="User profile avatar image" />
-                </>
-              ) : (
-                <span className="text-xl font-black text-acid-green">{getInitials()}</span>
-              )}
-            <label className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
-              <span className="text-[10px] text-white font-bold uppercase tracking-wider">Edit</span>
-              <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-            </label>
-          </div>
-
-          {/* Name/Email */}
-          <div className="min-w-0 w-full">
-            <h2 className="text-base md:text-xl font-black text-foreground uppercase tracking-wider truncate">
-              {firstName ? `${firstName} ${lastName}`.trim() : (username || nickname || 'Athlete')}
-            </h2>
-            <p className="text-[10px] md:text-xs text-muted font-medium truncate">{user?.email}</p>
-            <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-              {isAccountVerified && (
-                <span className="inline-flex items-center gap-1 text-[9px] text-acid-green font-black uppercase tracking-wider">
-                  <CheckCircle className="w-3 h-3" /> Verified
-                </span>
-              )}
-              <span className="inline-flex items-center gap-1 text-[9px] text-muted font-bold uppercase tracking-wider">
-                BMI: <strong className="text-foreground">{mobileBmi}</strong>
-              </span>
-              <span className="inline-flex items-center gap-1 bg-acid-green/10 border border-acid-green/20 text-acid-green text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
-                <Target className="w-2.5 h-2.5" />
-                {goalLabel}
-              </span>
-            </div>
-          </div>
-
-          {/* Level & Streak Quick Stats */}
-          <div className="w-full grid grid-cols-2 gap-2 mt-4">
-            {[
-              { label: 'Level', value: level, icon: Zap, color: 'text-acid-green' },
-              { label: 'Health', value: `${fitnessScore}%`, icon: Activity, color: 'text-acid-green' },
-              { label: 'Streak', value: `${ecoStore.streaks?.loginStreak || 1}d`, icon: TrendingUp, color: 'text-blue-400' },
-              { label: 'Badges', value: unlockedAchievements, icon: Award, color: 'text-yellow-400' }
-            ].map(s => (
-              <div key={s.label} className="bg-surface/50 border border-card-border rounded-xl p-2 flex flex-col items-center justify-center text-center">
-                <s.icon className={`w-4 h-4 mb-1.5 ${s.color}`} />
-                <span className="text-sm font-black text-foreground leading-none">{s.value}</span>
-                <span className="text-[9px] text-muted font-bold uppercase tracking-wider mt-1">{s.label}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Level XP Progress Bar */}
-          <div className="w-full mt-4 border-t border-card-border/60 pt-3">
-            <div className="flex justify-between text-[9px] font-bold text-muted uppercase tracking-wider mb-1.5">
-            <span>XP Progress</span>
-            <span>{xp} / {xpToNext} XP</span>
-          </div>
-          <div className="w-full bg-surface border border-card-border rounded-full h-1.5 overflow-hidden">
-            <motion.div
-              className="h-full rounded-full bg-acid-green"
-              initial={{ width: 0 }}
-              animate={{ width: `${xpPercent}%` }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-            />
-            </div>
-          </div>
-        </div>
+        {/* Hero / Profile Health Identity Component */}
+        <ProfileIdentityHero
+          name={firstName ? `${firstName} ${lastName}`.trim() : (username || nickname || 'Athlete')}
+          email={user?.email || ''}
+          photoURL={userProfile?.photoURL || ''}
+          level={level}
+          xp={xp}
+          xpToNext={xpToNext}
+          healthScore={fitnessScore}
+          streak={ecoStore.streaks?.loginStreak || 1}
+          badgesCount={unlockedAchievements}
+          bmi={mobileBmi}
+          goalLabel={goalLabel}
+          isVerified={isAccountVerified}
+          onPhotoUpload={handlePhotoUpload}
+          photoLoading={photoLoading}
+        />
 
         {/* Navigation Sidebar (Desktop Only) */}
         <div className="hidden md:flex flex-col gap-1 glass rounded-xl border border-card-border p-2">
@@ -2331,6 +2484,123 @@ export default function UserProfile({ onNotification }) {
         </div>
       </div>
 
+        {/* ─── Daily Routine & Scheduled Timings Card ─── */}
+        <div className="glass rounded-xl border border-card-border p-4">
+          <div className="flex items-center justify-between mb-3 border-b border-card-border pb-2">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-acid-green" />
+              <h3 className="text-xs font-black text-foreground uppercase tracking-wider">Daily Routine & Reminder Timings</h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditSection(editSection === 'routine' ? null : 'routine')}
+              className="text-[10px] font-bold text-acid-green hover:underline cursor-pointer bg-transparent border-none"
+            >
+              {editSection === 'routine' ? 'Cancel' : 'Edit Timings'}
+            </button>
+          </div>
+
+          {editSection === 'routine' ? (
+            <form onSubmit={(e) => { handleSaveAllDetails(e); setEditSection(null); }} className="space-y-3">
+              <p className="text-[10px] text-muted">Set when you eat, train, and sleep so Calyxo sends smart notifications at your exact hours.</p>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
+                  <label className="text-[10px] font-bold text-foreground block">🍳 Breakfast</label>
+                  <input
+                    type="time"
+                    value={schedule?.breakfastTime || '08:30'}
+                    onChange={(e) => setSchedule({ ...schedule, breakfastTime: e.target.value })}
+                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+                  />
+                </div>
+
+                <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
+                  <label className="text-[10px] font-bold text-foreground block">🥗 Lunch</label>
+                  <input
+                    type="time"
+                    value={schedule?.lunchTime || '13:00'}
+                    onChange={(e) => setSchedule({ ...schedule, lunchTime: e.target.value })}
+                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+                  />
+                </div>
+
+                <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
+                  <label className="text-[10px] font-bold text-foreground block">☕ Evening Snack</label>
+                  <input
+                    type="time"
+                    value={schedule?.snackTime || '17:00'}
+                    onChange={(e) => setSchedule({ ...schedule, snackTime: e.target.value })}
+                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+                  />
+                </div>
+
+                <div className="bg-surface border border-acid-green/40 rounded-lg p-2.5 space-y-1">
+                  <label className="text-[10px] font-bold text-acid-green block">🏋️ Workout / Gym</label>
+                  <input
+                    type="time"
+                    value={schedule?.workoutTime || '18:30'}
+                    onChange={(e) => setSchedule({ ...schedule, workoutTime: e.target.value })}
+                    className="w-full bg-[var(--input)] text-acid-green border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+                  />
+                </div>
+
+                <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
+                  <label className="text-[10px] font-bold text-foreground block">🍽️ Dinner</label>
+                  <input
+                    type="time"
+                    value={schedule?.dinnerTime || '20:30'}
+                    onChange={(e) => setSchedule({ ...schedule, dinnerTime: e.target.value })}
+                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+                  />
+                </div>
+
+                <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
+                  <label className="text-[10px] font-bold text-foreground block">😴 Bedtime</label>
+                  <input
+                    type="time"
+                    value={schedule?.sleepTime || '23:00'}
+                    onChange={(e) => setSchedule({ ...schedule, sleepTime: e.target.value })}
+                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+                  />
+                </div>
+              </div>
+
+              <button type="submit" disabled={saving} className="w-full btn-primary py-2 rounded-lg font-bold text-[10px] uppercase tracking-wider border-none flex items-center justify-center gap-1 cursor-pointer">
+                {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                Save Timings
+              </button>
+            </form>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
+                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">🍳 Breakfast</span>
+                <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.breakfastTime || '08:30'}</span>
+              </div>
+              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
+                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">🥗 Lunch</span>
+                <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.lunchTime || '13:00'}</span>
+              </div>
+              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
+                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">☕ Snack</span>
+                <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.snackTime || '17:00'}</span>
+              </div>
+              <div className="bg-surface/50 border border-acid-green/30 rounded-lg p-2.5">
+                <span className="text-[8px] text-acid-green font-bold uppercase tracking-wider block">🏋️ Workout</span>
+                <span className="text-xs font-black text-acid-green mt-0.5 block">{schedule?.workoutTime || '18:30'}</span>
+              </div>
+              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
+                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">🍽️ Dinner</span>
+                <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.dinnerTime || '20:30'}</span>
+              </div>
+              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
+                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">😴 Bedtime</span>
+                <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.sleepTime || '23:00'}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* ─── Achievements Row (Horizontal list) ─── */}
         {ecoStore.achievements && ecoStore.achievements.some(a => a.unlocked) && (
           <div className="glass rounded-xl border border-card-border p-4">
@@ -2368,6 +2638,7 @@ export default function UserProfile({ onNotification }) {
           <div className="space-y-2 border border-card-border/60 p-2.5 rounded-xl bg-surface/20">
             {/* On desktop, show the active panel without accordion wrapper if possible, but keeping accordion is safer to avoid breaking state */}
             {[
+              { id: 'routine', label: 'Daily Routine & Timings', icon: Clock },
               { id: 'permissions', label: 'Permissions & Connections', icon: ShieldCheck },
               { id: 'coaching', label: 'My Coaching', icon: Users },
               { id: 'appearance', label: 'Appearance & Themes', icon: Eye },
@@ -2379,7 +2650,7 @@ export default function UserProfile({ onNotification }) {
               { id: 'data', label: 'Data & Storage', icon: Database },
               { id: 'about', label: 'About & Legal Policies', icon: Info },
             ].map(acc => {
-              const isOpen = openAccordion === acc.id || (!openAccordion && acc.id === 'permissions'); // default open permissions on desktop
+              const isOpen = openAccordion === acc.id || (!openAccordion && acc.id === 'routine'); // default open routine on desktop
               
               // Only render if it's the open one on desktop, or render all as accordion on mobile
               return (
@@ -2403,6 +2674,7 @@ export default function UserProfile({ onNotification }) {
 
                   {isOpen && (
                     <div className="p-4 bg-[var(--card-bg)] space-y-4">
+                      {acc.id === 'routine' && renderRoutineForm()}
                       {acc.id === 'permissions' && <PermissionsConnectionsSection onNotification={onNotification} />}
                       {acc.id === 'coaching' && renderCoachingForm()}
                       {acc.id === 'appearance' && renderAppearanceForm()}
