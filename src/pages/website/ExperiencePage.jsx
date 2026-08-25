@@ -14,7 +14,6 @@ import PageTransition from '../../components/website/PageTransition';
 import { RevealHeading, FadeUp } from '../../components/website/MotionText';
 import ScrollToTopButton from '../../components/website/ScrollToTopButton';
 import { AppStoreBadge, GooglePlayBadge, CALYXO_APP_STORE_URL } from '../../components/website/StoreBadges';
-import ShaderButton from '../../components/website/ShaderButton';
 
 export default function ExperiencePage() {
   const navigate = useNavigate();
@@ -94,14 +93,12 @@ export default function ExperiencePage() {
               <AppStoreBadge />
               <GooglePlayBadge />
 
-              <ShaderButton
+              <button
                 onClick={() => openAuth('signup')}
-                variant="star-portal"
-                size="md"
-                className="h-[48px]"
+                className="px-6 py-3.5 border border-white/20 rounded-xl text-white font-mono text-xs font-medium hover:bg-white/5 transition-colors cursor-pointer active:scale-95"
               >
                 Launch Web Companion
-              </ShaderButton>
+              </button>
             </div>
           </FadeUp>
         </section>

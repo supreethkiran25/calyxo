@@ -10,7 +10,6 @@ import CinematicNavbar from './CinematicNavbar';
 import Cinematic3DCore from './Cinematic3DCore';
 import CinematicPhone from './CinematicPhone';
 import ScrollDimensionShowcase from './ScrollDimensionShowcase';
-import ShaderButton from './ShaderButton';
 import BetaAccessModal from './BetaAccessModal';
 import WebFooter from './WebFooter';
 import PageTransition from './PageTransition';
@@ -171,18 +170,17 @@ export default function CinematicExperience() {
             </p>
           </FadeUp>
 
-          {/* Action Hub: Official Apple App Store + Google Play Badges + Shader Star Portal Button */}
+          {/* Action Hub: Official Apple App Store + Google Play Badges + Clean Web App Button */}
           <FadeUp delay={0.5}>
             <div className="flex flex-wrap items-center gap-4 pt-4">
               {user ? (
-                <ShaderButton
+                <button
                   onClick={handleNavigateDashboard}
-                  variant="neon-portal"
-                  size="lg"
-                  icon={<ArrowRight className="w-4 h-4" />}
+                  className="px-8 py-4 bg-white hover:bg-gray-200 text-black rounded-xl font-mono font-bold text-xs tracking-wider transition-all cursor-pointer shadow-xl active:scale-95 border-none flex items-center justify-center gap-2"
                 >
-                  Open Your Dashboard
-                </ShaderButton>
+                  <span>Open Your Dashboard</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               ) : (
                 <>
                   {/* Official Apple App Store Badge */}
@@ -191,15 +189,13 @@ export default function CinematicExperience() {
                   {/* Official Google Play Badge */}
                   <GooglePlayBadge />
 
-                  {/* ThreeUI Star Portal Shader Button */}
-                  <ShaderButton
+                  {/* Clean Instant Web App Ghost Button */}
+                  <button
                     onClick={() => openAuth('signup')}
-                    variant="star-portal"
-                    size="md"
-                    className="h-[48px]"
+                    className="px-6 py-3.5 border border-white/20 rounded-xl text-white font-mono text-xs font-medium hover:bg-white/5 transition-colors cursor-pointer text-center active:scale-95"
                   >
                     Launch Web App
-                  </ShaderButton>
+                  </button>
                 </>
               )}
             </div>
@@ -417,31 +413,28 @@ export default function CinematicExperience() {
             Experience Calyxo today on iOS, Android, and Web.
           </p>
 
-          {/* Official App Store & Google Play Badges + Shader Star Portal Button */}
+          {/* Official App Store & Google Play Badges + Clean Web App Button */}
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
             {user ? (
-              <ShaderButton
+              <button
                 onClick={handleNavigateDashboard}
-                variant="neon-portal"
-                size="lg"
-                icon={<ArrowRight className="w-4 h-4" />}
+                className="px-8 py-4 rounded-xl bg-white hover:bg-gray-100 text-black font-semibold text-xs tracking-wider transition-all cursor-pointer shadow-xl active:scale-95 border-none flex items-center gap-2"
               >
-                Open Calyxo Dashboard
-              </ShaderButton>
+                <span>Open Calyxo Dashboard</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
             ) : (
               <>
                 <AppStoreBadge />
                 <GooglePlayBadge />
 
-                <ShaderButton
+                <button
                   onClick={() => openAuth('signup')}
-                  variant="star-portal"
-                  size="md"
-                  className="h-[48px]"
-                  icon={<ArrowRight className="w-3.5 h-3.5 text-[#CCFF00]" />}
+                  className="px-6 py-3.5 rounded-xl bg-white/[0.06] hover:bg-white/10 text-white font-medium text-xs tracking-wider transition-all cursor-pointer border border-white/10 active:scale-95 flex items-center gap-2"
                 >
-                  Launch Web App
-                </ShaderButton>
+                  <span>Launch Web App</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-[#CCFF00]" />
+                </button>
               </>
             )}
           </div>

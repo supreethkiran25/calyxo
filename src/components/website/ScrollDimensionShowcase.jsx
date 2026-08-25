@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import CinematicPhone from './CinematicPhone';
 import { FadeUp, RevealHeading } from './MotionText';
-import ShaderButton from './ShaderButton';
 
 export const DIMENSIONS_DATA = [
   {
