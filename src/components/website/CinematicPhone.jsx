@@ -9,12 +9,14 @@ import Logo from '../Logo';
 
 export default function CinematicPhone({ currentStep = 0, className = "" }) {
   const screens = [
+    // 01: COMMAND CENTER (TODAY)
     {
       id: 'today',
       name: 'Today',
       eyebrow: '01 · COMMAND CENTER',
+      accentColor: '#CCFF00',
       content: (
-        <div className="space-y-3.5 pt-1 text-left font-sans">
+        <div className="space-y-3 pt-1 text-left font-sans">
           
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -53,11 +55,11 @@ export default function CinematicPhone({ currentStep = 0, className = "" }) {
 
           {/* Active Workout Routine Preview with Real Exercise Thumbnail */}
           <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between gap-2.5">
-            <div className="w-11 h-11 rounded-xl bg-black overflow-hidden border border-white/10 shrink-0">
+            <div className="w-12 h-12 rounded-xl bg-black overflow-hidden border border-white/15 shrink-0 shadow-md">
               <img 
                 src="/exercises/images/0001-2gPfomN.jpg" 
                 alt="Barbell Workout" 
-                className="w-full h-full object-cover opacity-80"
+                className="w-full h-full object-cover opacity-90"
               />
             </div>
             <div className="min-w-0 flex-1">
@@ -88,25 +90,30 @@ export default function CinematicPhone({ currentStep = 0, className = "" }) {
         </div>
       )
     },
+
+    // 02: NUTRITION OS (MACRO TRACKING & INDIAN FOODS)
     {
       id: 'nutrition',
       name: 'Nutrition OS',
       eyebrow: '02 · MACRO TRACKING',
+      accentColor: '#F59E0B',
       content: (
-        <div className="space-y-3.5 pt-1 text-left font-sans">
+        <div className="space-y-3 pt-1 text-left font-sans">
           
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[9px] font-mono tracking-widest text-[#F59E0B] uppercase font-bold">NUTRITION OS</span>
               <h4 className="text-sm font-bold text-white font-outfit">8,000+ Regional Foods</h4>
             </div>
-            <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 font-bold">Verified</span>
+            <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 font-bold border border-amber-500/30">
+              Verified DB
+            </span>
           </div>
 
           {/* Live Dynamic Macro Bars */}
           <div className="space-y-2 p-3 rounded-2xl bg-white/[0.04] border border-white/10 font-mono text-xs">
             <div>
-              <div className="flex justify-between text-[10px] text-gray-400">
+              <div className="flex justify-between text-[10px] text-gray-300">
                 <span>Protein (152g / 160g)</span>
                 <span className="text-[#CCFF00] font-bold">95%</span>
               </div>
@@ -115,7 +122,7 @@ export default function CinematicPhone({ currentStep = 0, className = "" }) {
               </div>
             </div>
             <div>
-              <div className="flex justify-between text-[10px] text-gray-400">
+              <div className="flex justify-between text-[10px] text-gray-300">
                 <span>Carbs (210g / 240g)</span>
                 <span className="text-white font-bold">88%</span>
               </div>
@@ -124,7 +131,7 @@ export default function CinematicPhone({ currentStep = 0, className = "" }) {
               </div>
             </div>
             <div>
-              <div className="flex justify-between text-[10px] text-gray-400">
+              <div className="flex justify-between text-[10px] text-gray-300">
                 <span>Fats (58g / 65g)</span>
                 <span className="text-white font-bold">89%</span>
               </div>
@@ -139,17 +146,27 @@ export default function CinematicPhone({ currentStep = 0, className = "" }) {
             <span className="text-[9px] font-mono uppercase tracking-widest text-[#8E8E93] font-bold">Logged Meals Today</span>
             
             <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex justify-between items-center text-xs">
-              <div>
-                <span className="text-white font-bold block">Paneer Bhurji (200g)</span>
-                <span className="text-[9px] text-gray-400 font-mono">Lunch · ₹75 market cost</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center font-black text-amber-300 text-xs">
+                  PB
+                </div>
+                <div>
+                  <span className="text-white font-bold block">Paneer Bhurji (200g)</span>
+                  <span className="text-[9px] text-gray-400 font-mono">Lunch · ₹75 cost</span>
+                </div>
               </div>
               <span className="text-[#CCFF00] font-mono font-bold">28g P</span>
             </div>
 
             <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex justify-between items-center text-xs">
-              <div>
-                <span className="text-white font-bold block">Soya Chunks Curry (100g)</span>
-                <span className="text-[9px] text-gray-400 font-mono">Dinner · ₹35 market cost</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center font-black text-amber-300 text-xs">
+                  SC
+                </div>
+                <div>
+                  <span className="text-white font-bold block">Soya Chunks Curry (100g)</span>
+                  <span className="text-[9px] text-gray-400 font-mono">Dinner · ₹35 cost</span>
+                </div>
               </div>
               <span className="text-[#CCFF00] font-mono font-bold">52g P</span>
             </div>
@@ -158,29 +175,34 @@ export default function CinematicPhone({ currentStep = 0, className = "" }) {
         </div>
       )
     },
+
+    // 03: HYDRATION OS (3D VESSEL)
     {
       id: 'hydration',
       name: 'Hydration OS',
       eyebrow: '03 · 3D FLUID VESSEL',
+      accentColor: '#00F0FF',
       content: (
-        <div className="space-y-3.5 pt-1 text-left font-sans">
+        <div className="space-y-3 pt-1 text-left font-sans">
           
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[9px] font-mono tracking-widest text-[#00F0FF] uppercase font-bold">HYDRATION OS</span>
               <h4 className="text-sm font-bold text-white font-outfit">Dynamic 3D Vessel</h4>
             </div>
-            <span className="text-[10px] font-mono text-[#CCFF00] font-bold">82% of Goal</span>
+            <span className="text-[10px] font-mono text-[#00F0FF] bg-cyan-500/15 border border-cyan-500/30 px-2 py-0.5 rounded font-bold">
+              82% of Goal
+            </span>
           </div>
 
           {/* 3D Water Simulation Container */}
-          <div className="p-5 rounded-2xl bg-black/60 border border-white/10 flex flex-col items-center justify-center space-y-2">
-            <div className="w-16 h-28 rounded-2xl bg-[#09151e] border border-cyan-500/30 relative overflow-hidden flex flex-col justify-end shadow-inner">
+          <div className="p-4 rounded-2xl bg-black/70 border border-cyan-500/30 flex flex-col items-center justify-center space-y-2 relative overflow-hidden shadow-xl">
+            <div className="w-20 h-28 rounded-2xl bg-[#09151e] border border-cyan-400/40 relative overflow-hidden flex flex-col justify-end shadow-inner">
               <div className="w-full h-4/5 bg-gradient-to-t from-cyan-500 via-cyan-400/80 to-[#CCFF00]/50 relative">
-                <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                <div className="absolute inset-0 bg-white/25 animate-pulse" />
               </div>
             </div>
-            <span className="text-xl font-black text-white font-mono">2,450 <span className="text-xs text-gray-400 font-normal">ml</span></span>
+            <span className="text-2xl font-black text-white font-mono">2,450 <span className="text-xs text-cyan-300 font-normal">ml</span></span>
             <span className="text-[9px] font-mono text-[#8E8E93]">Daily Target: 3,000 ml</span>
           </div>
 
@@ -188,75 +210,92 @@ export default function CinematicPhone({ currentStep = 0, className = "" }) {
           <div className="grid grid-cols-3 gap-2 font-mono text-center">
             <div className="p-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-bold text-white">+250ml</div>
             <div className="p-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-bold text-white">+500ml</div>
-            <div className="p-2 rounded-xl bg-[#CCFF00]/15 border border-[#CCFF00]/30 text-xs font-bold text-[#CCFF00]">+750ml</div>
+            <div className="p-2 rounded-xl bg-[#00F0FF]/15 border border-[#00F0FF]/30 text-xs font-bold text-[#00F0FF]">+750ml</div>
           </div>
 
         </div>
       )
     },
+
+    // 04: LIVE WORKOUT (DYNAMIC ISLAND & TELEMETRY)
     {
       id: 'workout',
       name: 'Live Workout',
       eyebrow: '04 · LIVE GUIDED SESSION',
+      accentColor: '#10B981',
       content: (
-        <div className="space-y-3.5 pt-1 text-left font-sans">
+        <div className="space-y-3 pt-1 text-left font-sans">
           
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-[9px] font-mono tracking-widest text-[#CCFF00] uppercase font-bold">LIVE TELEMETRY</span>
+              <span className="text-[9px] font-mono tracking-widest text-[#10B981] uppercase font-bold">LIVE TELEMETRY</span>
               <h4 className="text-sm font-bold text-white font-outfit">Barbell Back Squat</h4>
             </div>
-            <span className="text-[10px] font-mono text-[#CCFF00] bg-[#CCFF00]/15 px-2 py-0.5 rounded font-bold">
+            <span className="text-[10px] font-mono text-[#10B981] bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded font-bold">
               Set 3 of 4
             </span>
           </div>
 
-          {/* Rest Timer Synced to Dynamic Island */}
-          <div className="p-3.5 rounded-2xl bg-black/70 border border-white/10 text-center space-y-0.5 shadow-xl">
-            <span className="text-[8px] font-mono text-[#8E8E93] uppercase tracking-widest block">Rest Countdown</span>
-            <div className="text-3xl font-black text-[#CCFF00] font-mono tracking-tight">00:45</div>
-            <span className="text-[9px] font-mono text-cyan-300">Live on iOS Dynamic Island</span>
+          {/* Real Exercise Thumbnail & Live Island Rest Countdown */}
+          <div className="p-3 rounded-2xl bg-black/70 border border-emerald-500/30 flex items-center justify-between gap-3 shadow-xl">
+            <div className="w-12 h-12 rounded-xl bg-black overflow-hidden border border-white/10 shrink-0">
+              <img 
+                src="/exercises/images/0514-LIlE5Tn.jpg" 
+                alt="Barbell Squat" 
+                className="w-full h-full object-cover opacity-90"
+              />
+            </div>
+            <div className="flex-1 text-center">
+              <span className="text-[8px] font-mono text-[#8E8E93] uppercase tracking-widest block">Rest Countdown</span>
+              <div className="text-2xl font-black text-[#10B981] font-mono tracking-tight">00:45</div>
+              <span className="text-[8.5px] font-mono text-cyan-300">Live on Dynamic Island</span>
+            </div>
           </div>
 
-          {/* Real Exercise Demonstation Thumbnail & Sets Table */}
+          {/* Sets Progression Table */}
           <div className="space-y-1.5 font-mono text-xs">
             <div className="flex justify-between p-2 rounded-xl bg-white/[0.03] border border-white/10 text-[#8E8E93]">
               <span>Set 1: 100 kg × 8 reps</span>
-              <span className="text-[#CCFF00]">✓</span>
+              <span className="text-[#10B981]">✓</span>
             </div>
             <div className="flex justify-between p-2 rounded-xl bg-white/[0.03] border border-white/10 text-[#8E8E93]">
               <span>Set 2: 110 kg × 6 reps</span>
-              <span className="text-[#CCFF00]">✓</span>
+              <span className="text-[#10B981]">✓</span>
             </div>
-            <div className="flex justify-between p-2 rounded-xl bg-white/[0.08] border border-[#CCFF00]/40 text-white font-bold">
+            <div className="flex justify-between p-2 rounded-xl bg-white/[0.08] border border-[#10B981]/40 text-white font-bold">
               <span>Set 3: 120 kg × 5 reps</span>
-              <span className="text-[#CCFF00]">Current</span>
+              <span className="text-[#10B981]">Active</span>
             </div>
           </div>
 
         </div>
       )
     },
+
+    // 05: RECOVERY MODEL (VITALITY SCORE)
     {
       id: 'recovery',
       name: 'Recovery Model',
       eyebrow: '05 · VITALITY SCORE',
+      accentColor: '#8B5CF6',
       content: (
-        <div className="space-y-3.5 pt-1 text-left font-sans">
+        <div className="space-y-3 pt-1 text-left font-sans">
           
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-[9px] font-mono tracking-widest text-emerald-400 uppercase font-bold">RECOVERY ENGINE</span>
+              <span className="text-[9px] font-mono tracking-widest text-purple-400 uppercase font-bold">RECOVERY ENGINE</span>
               <h4 className="text-sm font-bold text-white font-outfit">Vitality & Readiness</h4>
             </div>
-            <span className="text-[10px] font-mono text-[#CCFF00] font-black">92%</span>
+            <span className="text-[10px] font-mono text-purple-300 bg-purple-500/20 border border-purple-500/30 px-2.5 py-0.5 rounded font-black">
+              92% Score
+            </span>
           </div>
 
           {/* Biometric Vitality Matrix */}
-          <div className="grid grid-cols-3 gap-2 p-3 rounded-2xl bg-black/60 border border-white/10 font-mono text-center">
+          <div className="grid grid-cols-3 gap-2 p-3 rounded-2xl bg-black/60 border border-purple-500/30 font-mono text-center shadow-lg">
             <div className="p-1.5 rounded-xl bg-white/[0.02]">
-              <span className="text-[8px] text-[#8E8E93] block">CNS READINESS</span>
-              <span className="text-xs font-black text-[#CCFF00]">Optimal</span>
+              <span className="text-[8px] text-[#8E8E93] block">CNS READY</span>
+              <span className="text-xs font-black text-purple-300">Optimal</span>
             </div>
             <div className="p-1.5 rounded-xl bg-white/[0.02]">
               <span className="text-[8px] text-[#8E8E93] block">SLEEP TIME</span>
@@ -269,7 +308,7 @@ export default function CinematicPhone({ currentStep = 0, className = "" }) {
           </div>
 
           <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1 text-xs">
-            <span className="text-[9px] font-mono text-[#CCFF00] uppercase tracking-wider block font-bold">Deterministic Balance</span>
+            <span className="text-[9px] font-mono text-purple-400 uppercase tracking-wider block font-bold">Deterministic Balance</span>
             <p className="text-[#8E8E93] font-light text-[11px] leading-relaxed">
               Sleep deficit and training volume are mathematically balanced against metabolic calorie burn.
             </p>
@@ -278,29 +317,34 @@ export default function CinematicPhone({ currentStep = 0, className = "" }) {
         </div>
       )
     },
+
+    // 06: AI INTELLIGENCE (PROACTIVE COACH)
     {
       id: 'coach',
       name: 'AI Intelligence',
       eyebrow: '06 · PROACTIVE AI',
+      accentColor: '#D946EF',
       content: (
-        <div className="space-y-3.5 pt-1 text-left font-sans">
+        <div className="space-y-3 pt-1 text-left font-sans">
           
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-[9px] font-mono tracking-widest text-purple-400 uppercase font-bold">PROACTIVE AI</span>
+              <span className="text-[9px] font-mono tracking-widest text-fuchsia-400 uppercase font-bold">PROACTIVE AI</span>
               <h4 className="text-sm font-bold text-white font-outfit">Morning Briefing</h4>
             </div>
-            <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold">Gemini AI</span>
+            <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-fuchsia-500/20 text-fuchsia-300 font-bold border border-fuchsia-500/30">
+              Gemini AI
+            </span>
           </div>
 
           {/* Real AI Coach Card */}
-          <div className="p-3.5 rounded-2xl bg-purple-950/20 border border-purple-500/30 space-y-2">
+          <div className="p-3.5 rounded-2xl bg-fuchsia-950/20 border border-fuchsia-500/30 space-y-2 shadow-lg">
             <p className="text-xs text-gray-200 leading-relaxed font-light">
               "Your sleep recovery is high at <strong>92%</strong> today. You hit 152g protein yesterday. Today is your scheduled <strong>Push Session</strong>. Target 4 sets on Incline Dumbbell Bench."
             </p>
             <div className="flex justify-between text-[9px] font-mono text-[#8E8E93] pt-1.5 border-t border-white/10">
               <span>CNS Readiness: High</span>
-              <span className="text-[#CCFF00] font-bold">Optimal Training Window</span>
+              <span className="text-fuchsia-300 font-bold">Optimal Window</span>
             </div>
           </div>
 
@@ -325,13 +369,13 @@ export default function CinematicPhone({ currentStep = 0, className = "" }) {
       <div className="p-3 rounded-[3.2rem] bg-gradient-to-b from-[#2c2c2e] via-[#1c1c1e] to-[#0c0c0e] border border-white/[0.15] shadow-[0_30px_90px_rgba(0,0,0,0.95)]">
         
         {/* Inner OLED Display */}
-        <div className="relative w-full rounded-[2.6rem] bg-[#020203] border border-white/[0.08] overflow-hidden flex flex-col min-h-[530px] sm:min-h-[570px] justify-between p-4 sm:p-5">
+        <div className="relative w-full rounded-[2.6rem] bg-[#020203] border border-white/[0.08] overflow-hidden flex flex-col min-h-[530px] sm:min-h-[560px] justify-between p-4 sm:p-5">
           
           {/* Dynamic Island Safe-Area Status Bar */}
           <div className="pt-2 px-3 flex justify-between items-center z-20">
             <span className="text-[10px] font-mono font-bold text-[#8E8E93]">09:41</span>
-            <div className="w-20 h-4 rounded-full bg-black border border-white/[0.15] flex items-center justify-center gap-1.5 px-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#CCFF00] opacity-80" />
+            <div className="w-20 h-4 rounded-full bg-black border border-white/[0.15] flex items-center justify-center gap-1.5 px-2 shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full opacity-80" style={{ backgroundColor: currentScreen.accentColor }} />
               <span className="text-[7.5px] font-mono font-black text-white">CALYXO</span>
             </div>
             <div className="flex items-center gap-1 text-[10px] font-mono text-[#8E8E93]">
@@ -339,15 +383,15 @@ export default function CinematicPhone({ currentStep = 0, className = "" }) {
             </div>
           </div>
 
-          {/* Screen Content Container with Crossfade Transitions */}
+          {/* Screen Content Container with Fluid Spring Crossfades */}
           <div className="flex-1 flex flex-col justify-center my-2">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentScreen.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+                initial={{ opacity: 0, scale: 0.94, y: 16, filter: 'blur(6px)' }}
+                animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, scale: 0.94, y: -16, filter: 'blur(6px)' }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               >
                 {currentScreen.content}
               </motion.div>

@@ -112,7 +112,6 @@ export default function WebFooter({ onOpenBetaModal }) {
                 </li>
                 <li><Link to="/user/about" className="text-[#8E8E93] hover:text-white transition-colors">About Calyxo</Link></li>
                 <li><Link to="/user/support" className="text-[#8E8E93] hover:text-white transition-colors">Support & Help Center</Link></li>
-                <li><Link to="/admin/login" className="text-gray-600 hover:text-gray-400 transition-colors">Admin Gateway</Link></li>
               </ul>
             </div>
 

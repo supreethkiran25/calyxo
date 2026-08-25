@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import CinematicPhone from './CinematicPhone';
 import { FadeUp, RevealHeading } from './MotionText';
+import ShaderButton from './ShaderButton';
 
 export const DIMENSIONS_DATA = [
   {
@@ -116,24 +117,44 @@ export default function ScrollDimensionShowcase() {
   const [activeStep, setActiveStep] = useState(0);
   const cardRefs = useRef([]);
 
-  // Scroll observer to update active step as user scrolls past each card
+  // Hardware-accelerated continuous distance calculation on scroll
   useEffect(() => {
+    let ticking = false;
+
     const handleScroll = () => {
-      const viewportCenter = window.innerHeight * 0.45;
-      
-      cardRefs.current.forEach((el, idx) => {
-        if (!el) return;
-        const rect = el.getBoundingClientRect();
-        // If element overlaps the middle viewport band
-        if (rect.top <= viewportCenter && rect.bottom >= viewportCenter) {
-          setActiveStep(idx);
-        }
-      });
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const viewportCenter = window.innerHeight * 0.45;
+          let closestIdx = 0;
+          let minDistance = Infinity;
+
+          cardRefs.current.forEach((el, idx) => {
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            const cardCenter = rect.top + rect.height * 0.5;
+            const distance = Math.abs(cardCenter - viewportCenter);
+
+            if (distance < minDistance) {
+              minDistance = distance;
+              closestIdx = idx;
+            }
+          });
+
+          setActiveStep(closestIdx);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+    document.addEventListener('scroll', handleScroll, { passive: true, capture: true });
     handleScroll(); // Initial run
-    return () => window.removeEventListener('scroll', handleScroll);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll, { capture: true });
+      document.removeEventListener('scroll', handleScroll, { capture: true });
+    };
   }, []);
 
   const scrollToStep = (idx) => {
@@ -177,16 +198,16 @@ export default function ScrollDimensionShowcase() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start relative">
         
         {/* LEFT: Pinned / Sticky Phone Container */}
-        <div className="lg:col-span-6 lg:sticky lg:top-28 lg:h-[calc(100vh-8rem)] flex flex-col items-center justify-center relative py-6">
+        <div className="lg:col-span-6 lg:sticky lg:top-24 lg:h-[calc(100vh-6rem)] flex flex-col items-center justify-center relative py-4">
           
           {/* Dynamic Ambient Background Glow that morphs with active dimension */}
           <div 
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[380px] sm:w-[480px] h-[380px] sm:h-[480px] rounded-full blur-[140px] opacity-20 transition-colors duration-700 pointer-events-none"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[380px] sm:w-[460px] h-[380px] sm:h-[460px] rounded-full blur-[140px] opacity-25 transition-colors duration-500 pointer-events-none"
             style={{ backgroundColor: currentDimension.accentColor }}
           />
 
           {/* Active Step Pill Indicator */}
-          <div className="mb-4 flex items-center gap-3 px-4 py-1.5 rounded-full bg-black/60 border border-white/10 backdrop-blur-xl z-20 shadow-lg">
+          <div className="mb-3 flex items-center gap-3 px-4 py-1.5 rounded-full bg-black/75 border border-white/15 backdrop-blur-xl z-20 shadow-lg">
             <span className="text-xs font-mono font-bold" style={{ color: currentDimension.accentColor }}>
               {currentDimension.stepNumber} / 06
             </span>
@@ -200,7 +221,7 @@ export default function ScrollDimensionShowcase() {
           <CinematicPhone currentStep={activeStep} />
 
           {/* Quick Progress Bar Under Phone */}
-          <div className="mt-4 flex items-center gap-1.5 z-20">
+          <div className="mt-3 flex items-center gap-1.5 z-20">
             {DIMENSIONS_DATA.map((_, idx) => (
               <button
                 key={idx}
@@ -208,7 +229,7 @@ export default function ScrollDimensionShowcase() {
                 aria-label={`Jump to dimension ${idx + 1}`}
                 className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer border-none p-0 ${
                   activeStep === idx 
-                    ? 'w-8 bg-white shadow-[0_0_10px_rgba(255,255,255,0.6)]' 
+                    ? 'w-8 bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]' 
                     : 'w-2 bg-white/20 hover:bg-white/40'
                 }`}
               />
@@ -231,7 +252,7 @@ export default function ScrollDimensionShowcase() {
                 onClick={() => scrollToStep(idx)}
                 className={`min-h-[50vh] sm:min-h-[60vh] flex flex-col justify-center p-6 sm:p-10 rounded-3xl transition-all duration-500 cursor-pointer ${
                   isActive 
-                    ? 'bg-white/[0.04] border border-white/20 shadow-2xl scale-[1.02] opacity-100' 
+                    ? 'bg-white/[0.05] border border-white/20 shadow-2xl scale-[1.02] opacity-100' 
                     : 'bg-transparent border border-white/5 opacity-35 hover:opacity-75 scale-100'
                 }`}
               >

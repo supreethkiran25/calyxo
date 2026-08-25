@@ -10,6 +10,7 @@ import CinematicNavbar from './CinematicNavbar';
 import Cinematic3DCore from './Cinematic3DCore';
 import CinematicPhone from './CinematicPhone';
 import ScrollDimensionShowcase from './ScrollDimensionShowcase';
+import ShaderButton from './ShaderButton';
 import BetaAccessModal from './BetaAccessModal';
 import WebFooter from './WebFooter';
 import PageTransition from './PageTransition';
@@ -170,32 +171,35 @@ export default function CinematicExperience() {
             </p>
           </FadeUp>
 
-          {/* Action Hub: Official Apple App Store + Google Play Badges */}
+          {/* Action Hub: Official Apple App Store + Google Play Badges + Shader Star Portal Button */}
           <FadeUp delay={0.5}>
             <div className="flex flex-wrap items-center gap-4 pt-4">
               {user ? (
-                <button
+                <ShaderButton
                   onClick={handleNavigateDashboard}
-                  className="px-8 py-4 bg-white hover:bg-gray-200 text-black rounded-xl font-mono font-bold text-xs tracking-wider transition-all cursor-pointer shadow-xl active:scale-95 border-none flex items-center justify-center gap-2"
+                  variant="neon-portal"
+                  size="lg"
+                  icon={<ArrowRight className="w-4 h-4" />}
                 >
-                  <span>Open Your Dashboard</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                  Open Your Dashboard
+                </ShaderButton>
               ) : (
                 <>
-                  {/* Official Apple App Store Badge (Black matching screenshot) */}
+                  {/* Official Apple App Store Badge */}
                   <AppStoreBadge />
 
-                  {/* Official Google Play Badge (Black matching screenshot) */}
+                  {/* Official Google Play Badge */}
                   <GooglePlayBadge />
 
-                  {/* Instant Web App Ghost Button */}
-                  <button
+                  {/* ThreeUI Star Portal Shader Button */}
+                  <ShaderButton
                     onClick={() => openAuth('signup')}
-                    className="px-6 py-3.5 border border-white/20 rounded-xl text-white font-mono text-xs font-medium hover:bg-white/5 transition-colors cursor-pointer text-center active:scale-95"
+                    variant="star-portal"
+                    size="md"
+                    className="h-[48px]"
                   >
                     Launch Web App
-                  </button>
+                  </ShaderButton>
                 </>
               )}
             </div>
@@ -413,28 +417,31 @@ export default function CinematicExperience() {
             Experience Calyxo today on iOS, Android, and Web.
           </p>
 
-          {/* Official App Store & Google Play Badges */}
+          {/* Official App Store & Google Play Badges + Shader Star Portal Button */}
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
             {user ? (
-              <button
+              <ShaderButton
                 onClick={handleNavigateDashboard}
-                className="px-8 py-4 rounded-xl bg-white hover:bg-gray-100 text-black font-semibold text-xs tracking-wider transition-all cursor-pointer shadow-xl active:scale-95 border-none flex items-center gap-2"
+                variant="neon-portal"
+                size="lg"
+                icon={<ArrowRight className="w-4 h-4" />}
               >
-                <span>Open Calyxo Dashboard</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+                Open Calyxo Dashboard
+              </ShaderButton>
             ) : (
               <>
                 <AppStoreBadge />
                 <GooglePlayBadge />
 
-                <button
+                <ShaderButton
                   onClick={() => openAuth('signup')}
-                  className="px-6 py-3.5 rounded-xl bg-white/[0.06] hover:bg-white/10 text-white font-medium text-xs tracking-wider transition-all cursor-pointer border border-white/10 active:scale-95 flex items-center gap-2"
+                  variant="star-portal"
+                  size="md"
+                  className="h-[48px]"
+                  icon={<ArrowRight className="w-3.5 h-3.5 text-[#CCFF00]" />}
                 >
-                  <span>Launch Web App</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-[#CCFF00]" />
-                </button>
+                  Launch Web App
+                </ShaderButton>
               </>
             )}
           </div>

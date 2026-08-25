@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ArrowRight, Download } from 'lucide-react';
+import { Menu, X, ArrowRight, Download, Sparkles } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import Logo from '../Logo';
+import ShaderButton from './ShaderButton';
 
 export default function CinematicNavbar({ onOpenAuth, onOpenBetaModal, onNavigateDashboard }) {
   const navigate = useNavigate();
@@ -81,32 +82,36 @@ export default function CinematicNavbar({ onOpenAuth, onOpenBetaModal, onNavigat
             })}
           </nav>
 
-          {/* Right Actions: Clean & Balanced */}
+          {/* Right Actions: ThreeUI Star Portal Shader Buttons */}
           <div className="flex items-center space-x-3">
             {user ? (
-              <button
+              <ShaderButton
                 onClick={onNavigateDashboard}
-                className="px-5 py-2 rounded-full bg-white text-black text-xs font-bold tracking-tight hover:bg-gray-200 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-md border-none"
+                variant="neon-portal"
+                size="sm"
+                icon={<ArrowRight className="w-3.5 h-3.5" />}
               >
-                <span>Dashboard</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+                Dashboard
+              </ShaderButton>
             ) : (
               <>
-                <button
+                <ShaderButton
                   onClick={() => onOpenAuth('signup')}
-                  className="hidden sm:block px-4 py-2 text-xs font-mono text-gray-300 hover:text-white transition-colors cursor-pointer bg-transparent border-none"
+                  variant="ghost-portal"
+                  size="sm"
+                  className="hidden sm:inline-flex"
                 >
                   Launch Web
-                </button>
+                </ShaderButton>
 
-                <button
+                <ShaderButton
                   onClick={onOpenBetaModal}
-                  className="px-4 py-2 rounded-full bg-white text-black text-xs font-bold font-sans tracking-tight hover:bg-gray-100 transition-all cursor-pointer flex items-center gap-2 active:scale-95 shadow-md border-none"
+                  variant="star-portal"
+                  size="sm"
+                  icon={<Download className="w-3.5 h-3.5 text-white" />}
                 >
-                  <Download className="w-3.5 h-3.5 text-black" />
-                  <span>Get App</span>
-                </button>
+                  Get App
+                </ShaderButton>
               </>
             )}
 
@@ -167,26 +172,30 @@ export default function CinematicNavbar({ onOpenAuth, onOpenBetaModal, onNavigat
 
             {/* Mobile Actions */}
             <div className="space-y-3 pt-6 border-t border-white/10 flex flex-col items-center">
-              <button
+              <ShaderButton
                 onClick={() => {
                   setMobileOpen(false);
                   onOpenBetaModal();
                 }}
-                className="w-full py-3.5 rounded-xl bg-white text-black font-bold text-xs flex items-center justify-center gap-2 active:scale-95 shadow-xl border-none cursor-pointer"
+                variant="star-portal"
+                size="lg"
+                className="w-full"
+                icon={<Download className="w-4 h-4 text-white" />}
               >
-                <Download className="w-4 h-4 text-black" />
-                <span>Get App for iOS & Android</span>
-              </button>
+                Get App for iOS & Android
+              </ShaderButton>
 
-              <button
+              <ShaderButton
                 onClick={() => {
                   setMobileOpen(false);
                   onOpenAuth('signup');
                 }}
-                className="w-full py-3.5 rounded-xl bg-white/5 border border-white/15 text-white font-medium text-xs flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+                variant="ghost-portal"
+                size="lg"
+                className="w-full"
               >
-                <span>Launch Web App</span>
-              </button>
+                Launch Web App
+              </ShaderButton>
             </div>
           </motion.div>
         )}

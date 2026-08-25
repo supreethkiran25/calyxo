@@ -11,6 +11,7 @@ import PageTransition from '../../components/website/PageTransition';
 import { RevealHeading, FadeUp } from '../../components/website/MotionText';
 import ScrollToTopButton from '../../components/website/ScrollToTopButton';
 import { AppStoreBadge, GooglePlayBadge, CALYXO_APP_STORE_URL } from '../../components/website/StoreBadges';
+import ShaderButton from '../../components/website/ShaderButton';
 
 export default function VisionPage() {
   const navigate = useNavigate();
@@ -132,12 +133,14 @@ export default function VisionPage() {
               <AppStoreBadge />
               <GooglePlayBadge />
 
-              <button
+              <ShaderButton
                 onClick={() => openAuth('signup')}
-                className="px-6 py-3.5 border border-white/20 rounded-xl text-white font-mono text-xs font-medium hover:bg-white/5 transition-colors cursor-pointer active:scale-95"
+                variant="star-portal"
+                size="md"
+                className="h-[48px]"
               >
                 Launch Web Companion
-              </button>
+              </ShaderButton>
             </div>
           </FadeUp>
         </section>
@@ -207,13 +210,15 @@ export default function VisionPage() {
             <AppStoreBadge />
             <GooglePlayBadge />
 
-            <button
+            <ShaderButton
               onClick={() => openAuth('signup')}
-              className="px-6 py-3.5 rounded-xl bg-white/[0.06] hover:bg-white/10 text-white font-medium text-xs tracking-wider transition-all cursor-pointer border border-white/10 active:scale-95 flex items-center gap-2"
+              variant="star-portal"
+              size="md"
+              className="h-[48px]"
+              icon={<ArrowRight className="w-3.5 h-3.5 text-[#CCFF00]" />}
             >
-              <span>Launch Web App</span>
-              <ArrowRight className="w-3.5 h-3.5 text-[#CCFF00]" />
-            </button>
+              Launch Web App
+            </ShaderButton>
           </div>
         </FadeUp>
 
