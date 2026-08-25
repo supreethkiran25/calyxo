@@ -23,6 +23,7 @@ const PhilosophyPage = lazyWithRetry(() => import('./pages/website/PhilosophyPag
 const VisionPage = lazyWithRetry(() => import('./pages/website/VisionPage'));
 const WebPrivacyPage = lazyWithRetry(() => import('./pages/website/WebPrivacyPage'));
 const WebTermsPage = lazyWithRetry(() => import('./pages/website/WebTermsPage'));
+const AppHeroLanding = lazyWithRetry(() => import('./components/AppHeroLanding'));
 
 // User Pages
 const UserDashboardPage = lazyWithRetry(() => import('./pages/user/DashboardPage'));
@@ -88,6 +89,8 @@ function App() {
               <Route path="/vision" element={<VisionPage />} />
               <Route path="/privacy" element={<WebPrivacyPage />} />
               <Route path="/terms" element={<WebTermsPage />} />
+              <Route path="/app" element={<AppHeroLanding />} />
+              <Route path="/welcome" element={<AppHeroLanding />} />
 
               {/* Admin Login Route */}
               <Route path="/admin/login" element={<AdminLoginPage />} />
