@@ -5,7 +5,7 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { Capacitor } from '@capacitor/core';
 import React, { useState, useEffect, useRef, Suspense, lazy, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home as HomeIcon, BookOpen, BarChart2, User, Users, LogOut, Bot, X, TrendingUp, Heart, Search, Menu, Plus, Crown, Lock, Bell, CheckCheck, Trash, Flame } from 'lucide-react';
+import { Home as HomeIcon, Utensils, Dumbbell, User, Users, LogOut, Bot, X, TrendingUp, Heart, Search, Menu, Plus, Crown, Lock, Bell, CheckCheck, Trash, Flame } from 'lucide-react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
@@ -41,8 +41,8 @@ const DESKTOP_NAV = [
     group: 'EXPERIENCES',
     items: [
       { id: 'dashboard', href: '/user/dashboard', label: 'Home', icon: HomeIcon },
-      { id: 'nutrition', href: '/user/nutrition', label: 'Nutrition', icon: BookOpen },
-      { id: 'workout', href: '/user/workout', label: 'Workout', icon: BarChart2 },
+      { id: 'nutrition', href: '/user/nutrition', label: 'Nutrition', icon: Utensils },
+      { id: 'workout', href: '/user/workout', label: 'Workout', icon: Dumbbell },
       { id: 'health', href: '/user/health', label: 'Health Hub', icon: Heart },
       { id: 'challenges', href: '/user/challenges', label: 'Challenges', icon: Flame },
       { id: 'progress', href: '/user/progress', label: 'Progress Hub', icon: TrendingUp },
@@ -642,7 +642,7 @@ export default function UserLayout() {
                 pathname === '/user/nutrition' ? 'text-accent font-black drop-shadow-[0_0_10px_rgba(204,255,0,0.3)]' : 'text-[var(--text-secondary)] hover:text-foreground'
               }`}
             >
-              <BookOpen className="w-5 h-5 pointer-events-none" />
+              <Utensils className="w-5 h-5 pointer-events-none" />
               <span className="text-[9.5px] tracking-wide pointer-events-none">Nutrition</span>
             </Link>
             
@@ -668,7 +668,7 @@ export default function UserLayout() {
                 pathname === '/user/workout' ? 'text-accent font-black drop-shadow-[0_0_10px_rgba(204,255,0,0.3)]' : 'text-[var(--text-secondary)] hover:text-foreground'
               }`}
             >
-              <BarChart2 className="w-5 h-5 pointer-events-none" />
+              <Dumbbell className="w-5 h-5 pointer-events-none" />
               <span className="text-[9.5px] tracking-wide pointer-events-none">Workout</span>
             </Link>
             <Link

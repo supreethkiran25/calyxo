@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home as HomeIcon, BookOpen, BarChart2, User, Users, Plus, LogOut, Bot, Sparkles, X, TrendingUp, Heart, Grid, ChevronRight, Search, Menu, Dumbbell } from 'lucide-react';
+import { Home as HomeIcon, Utensils, Dumbbell, User, Users, Plus, LogOut, Bot, Sparkles, X, TrendingUp, Heart, Grid, ChevronRight, Search, Menu } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { 
   subscribeToAuth, 
@@ -70,8 +70,8 @@ const DESKTOP_NAV = [
   {
     group: 'HEALTH',
     items: [
-      { id: 'nutrition', label: 'Nutrition', icon: BookOpen },
-      { id: 'workout', label: 'Workouts', icon: BarChart2 },
+      { id: 'nutrition', label: 'Nutrition', icon: Utensils },
+      { id: 'workout', label: 'Workouts', icon: Dumbbell },
     ]
   },
 
@@ -93,7 +93,7 @@ const DESKTOP_NAV = [
 
 const MOBILE_NAV = [
   { id: 'dashboard', label: 'Home', icon: HomeIcon },
-  { id: 'nutrition', label: 'Nutrition', icon: BookOpen },
+  { id: 'nutrition', label: 'Nutrition', icon: Utensils },
   { id: 'create', label: 'Create', icon: Plus, isCreate: true },
   { id: 'workout', label: 'Workout', icon: Dumbbell },
   { id: 'profile', label: 'Profile', icon: User },

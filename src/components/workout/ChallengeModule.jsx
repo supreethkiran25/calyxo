@@ -184,13 +184,16 @@ export default function ChallengeModule({ onNotification }) {
       (activeName.length > 3 && c.title && c.title.toLowerCase().includes(activeName.substring(0, 8)))
     ) || CURATED_CHALLENGES[0];
 
+    const rawTargetDays = match?.durationDays || (activeChallengeItem.unit === 'days' ? Number(activeChallengeItem.targetVal || activeChallengeItem.target) : 21) || 21;
+    const safeTargetDays = Math.min(30, Math.max(1, isNaN(rawTargetDays) ? 21 : rawTargetDays));
+
     return {
       ...CURATED_CHALLENGES[0],
       ...(match || {}),
       id: activeChallengeItem.id || match?.id || 'ch_5x5_strength',
       title: activeChallengeItem.name || activeChallengeItem.title || match?.title || CURATED_CHALLENGES[0].title,
       progressDays: Number(activeChallengeItem.progress) || 0,
-      targetDays: Number(activeChallengeItem.targetVal || activeChallengeItem.target) || match?.durationDays || 21,
+      targetDays: safeTargetDays,
       dailyPlan: match?.dailyPlan || CURATED_CHALLENGES[0].dailyPlan
     };
   }, [activeChallengeItem]);
@@ -438,7 +441,7 @@ export default function ChallengeModule({ onNotification }) {
 
                 {/* Day-by-Day Progress Dots Grid */}
                 <div className="flex items-center justify-between gap-1 pt-1 overflow-x-auto scrollbar-none">
-                  {Array.from({ length: currentChallenge.targetDays }, (_, i) => {
+                  {Array.from({ length: Math.min(currentChallenge.targetDays || 21, 30) }, (_, i) => {
                     const dayNum = i + 1;
                     const isDone = dayNum <= (currentChallenge.progressDays || 0);
                     const isCurrent = dayNum === (currentChallenge.progressDays || 0) + 1;

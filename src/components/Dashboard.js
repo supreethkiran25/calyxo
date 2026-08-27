@@ -370,7 +370,7 @@ export default function Dashboard({ onNotification }) {
 
   const QUICK_ACCESS = [
     { label: 'Workout', icon: Dumbbell, color: 'text-accent', bg: 'bg-accent/10', action: () => navigate('/user/workout') },
-    { label: 'Nutrition', icon: BookOpen, color: 'text-emerald-400', bg: 'bg-emerald-500/10', action: () => navigate('/user/nutrition') },
+    { label: 'Nutrition', icon: Utensils, color: 'text-emerald-400', bg: 'bg-emerald-500/10', action: () => navigate('/user/nutrition') },
     { label: 'AI Coach', icon: Bot, color: 'text-accent', bg: 'bg-accent/15', action: () => navigate('/user/ai') },
     { label: 'Progress', icon: TrendingUp, color: 'text-indigo-400', bg: 'bg-indigo-500/10', action: () => navigate('/user/progress') },
     { label: 'Hydration', icon: Droplets, color: 'text-cyan-400', bg: 'bg-cyan-500/10', action: () => document.getElementById('hydration-card')?.scrollIntoView({ behavior: 'smooth' }) },
@@ -456,25 +456,7 @@ export default function Dashboard({ onNotification }) {
         })}
       </div>
 
-      {/* Daily Morning AI Briefing Card */}
-      <DailyAIBriefingCard
-        userProfile={userProfile}
-        foodLogs={todaysFoodLogs}
-        workoutLogs={todaysWorkoutLogs}
-        waterIntake={waterIntake}
-        healthLogs={{
-          sleep: Number(cachedHealthMetrics.sleepHours || ecoStore?.healthLogs?.sleep || 0),
-          restingHeartRate: Number(cachedHealthMetrics.restingHeartRateBpm || ecoStore?.healthLogs?.restingHeartRate || 0),
-          soreness: Number(ecoStore?.healthLogs?.soreness || 1),
-          fatigue: Number(ecoStore?.healthLogs?.fatigue || 1)
-        }}
-        onOpenUpgradeModal={(feature) => {
-          setPremiumFeatureName(feature);
-          setPremiumModalOpen(true);
-        }}
-      />
-
-      {/* Core Grid: Nutrition + Hydration + Health Twin */}
+      {/* Core Grid: Nutrition + Hydration */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Nutrition Energy Summary Card (2 Cols on lg) */}
         <div className="lg:col-span-2 p-6 sm:p-7 rounded-3xl bg-surface border border-card-border shadow-sm flex flex-col justify-between">
@@ -600,42 +582,42 @@ export default function Dashboard({ onNotification }) {
       </div>
 
       {/* Recent Activity: Meals & Workouts Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Recent Meals */}
-        <div className="p-6 rounded-3xl bg-surface border border-card-border shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">
+        <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-surface border border-card-border shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
               Recent Meals
             </h3>
             <button
               onClick={() => navigate('/user/nutrition')}
-              className="text-xs font-bold text-accent hover:underline bg-transparent border-none cursor-pointer"
+              className="text-[11px] font-bold text-accent hover:underline bg-transparent border-none cursor-pointer"
             >
               See all
             </button>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {recentMeals.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground space-y-1">
-                <Utensils className="w-7 h-7 mx-auto opacity-40" />
-                <p className="text-xs font-medium">No meals logged today yet.</p>
+              <div className="py-5 text-center text-muted-foreground space-y-1">
+                <Utensils className="w-5 h-5 mx-auto opacity-40" />
+                <p className="text-[11px] font-medium">No meals logged today yet.</p>
               </div>
             ) : (
-              recentMeals.map((meal, i) => (
-                <div key={i} className="p-3 rounded-2xl bg-surface-elevated border border-card-border/50 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-orange-500/15 text-orange-400 flex items-center justify-center shrink-0">
-                      <Utensils className="w-4 h-4" />
+              recentMeals.slice(0, 3).map((meal, i) => (
+                <div key={i} className="p-2.5 rounded-xl bg-surface-elevated border border-card-border/50 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="w-7 h-7 rounded-lg bg-orange-500/15 text-orange-400 flex items-center justify-center shrink-0">
+                      <Utensils className="w-3.5 h-3.5" />
                     </div>
-                    <div>
-                      <div className="text-xs font-bold text-foreground">{meal.name}</div>
-                      <span className="text-[10px] text-muted-foreground font-mono">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-bold text-foreground truncate">{meal.name}</div>
+                      <span className="text-[9px] text-muted-foreground font-mono truncate block">
                         {(Number(meal.protein) || 0).toFixed(0)}g P · {(Number(meal.carbs) || 0).toFixed(0)}g C
                       </span>
                     </div>
                   </div>
-                  <span className="text-xs font-mono font-bold text-foreground">
+                  <span className="text-xs font-mono font-bold text-foreground ml-2 shrink-0">
                     {meal.calories} kcal
                   </span>
                 </div>
@@ -645,41 +627,41 @@ export default function Dashboard({ onNotification }) {
         </div>
 
         {/* Recent Workouts */}
-        <div className="p-6 rounded-3xl bg-surface border border-card-border shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">
+        <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-surface border border-card-border shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
               Recent Workouts
             </h3>
             <button
               onClick={() => navigate('/user/workout')}
-              className="text-xs font-bold text-accent hover:underline bg-transparent border-none cursor-pointer"
+              className="text-[11px] font-bold text-accent hover:underline bg-transparent border-none cursor-pointer"
             >
               See all
             </button>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {recentWorkouts.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground space-y-1">
-                <Dumbbell className="w-7 h-7 mx-auto opacity-40" />
-                <p className="text-xs font-medium">No workouts logged today yet.</p>
+              <div className="py-5 text-center text-muted-foreground space-y-1">
+                <Dumbbell className="w-5 h-5 mx-auto opacity-40" />
+                <p className="text-[11px] font-medium">No workouts logged today yet.</p>
               </div>
             ) : (
-              recentWorkouts.map((w, i) => (
-                <div key={i} className="p-3 rounded-2xl bg-surface-elevated border border-card-border/50 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-accent/15 text-accent flex items-center justify-center shrink-0">
-                      <Dumbbell className="w-4 h-4" />
+              recentWorkouts.slice(0, 3).map((w, i) => (
+                <div key={i} className="p-2.5 rounded-xl bg-surface-elevated border border-card-border/50 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="w-7 h-7 rounded-lg bg-accent/15 text-accent flex items-center justify-center shrink-0">
+                      <Dumbbell className="w-3.5 h-3.5" />
                     </div>
-                    <div>
-                      <div className="text-xs font-bold text-foreground">{w.name || 'Workout'}</div>
-                      <span className="text-[10px] text-muted-foreground">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-bold text-foreground truncate">{w.name || 'Workout'}</div>
+                      <span className="text-[9px] text-muted-foreground truncate block">
                         {w.category === 'Cardio' ? `${w.duration} mins` : `${w.sets || 3} sets`}
                       </span>
                     </div>
                   </div>
-                  <span className="text-xs font-mono font-bold text-accent">
-                    {w.caloriesBurned ? `${w.caloriesBurned} kcal` : 'Completed'}
+                  <span className="text-xs font-mono font-bold text-accent ml-2 shrink-0">
+                    {w.caloriesBurned ? `${w.caloriesBurned} kcal` : 'Done'}
                   </span>
                 </div>
               ))
@@ -688,49 +670,73 @@ export default function Dashboard({ onNotification }) {
         </div>
       </div>
 
-      {/* Biometric Summary Indices Grid */}
-      <div className="p-6 rounded-3xl bg-surface border border-card-border shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between pb-4 border-b border-card-border/60 mb-4">
+      {/* Compact Daily Energy & Metabolic Profile */}
+      <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-surface border border-card-border shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between pb-3 border-b border-card-border/60 mb-3">
           <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-accent" />
-            <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider">
-              Your Daily Energy & Metabolic Profile
+            <Activity className="w-3.5 h-3.5 text-accent" />
+            <h3 className="text-[11px] font-extrabold text-foreground uppercase tracking-wider">
+              Daily Energy & Metabolic Profile
             </h3>
           </div>
           <button
             onClick={() => navigate('/user/profile')}
-            className="text-xs font-bold text-accent hover:underline bg-transparent border-none cursor-pointer"
+            className="text-[11px] font-bold text-accent hover:underline bg-transparent border-none cursor-pointer"
           >
-            Adjust Biometrics
+            Adjust
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-4 rounded-2xl bg-surface-elevated border border-card-border/50">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Body Mass Index</span>
-            <div className="text-xl font-black text-foreground font-mono mt-1">{metrics.bmi}</div>
-            <span className="text-[10px] text-muted-foreground mt-0.5 block">{metrics.bmiStatus} · Height to weight ratio</span>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div className="p-3 rounded-xl bg-surface-elevated border border-card-border/50">
+            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">BMI</span>
+            <div className="text-base sm:text-lg font-black text-foreground font-mono mt-0.5">{metrics.bmi}</div>
+            <span className="text-[9px] text-muted-foreground block truncate">{metrics.bmiStatus}</span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-surface-elevated border border-card-border/50">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Resting Metabolism</span>
-            <div className="text-xl font-black text-foreground font-mono mt-1">{metrics.bmr.toLocaleString()} <span className="text-xs font-sans text-muted-foreground">kcal</span></div>
-            <span className="text-[10px] text-muted-foreground mt-0.5 block">Calories burned at rest (BMR)</span>
+          <div className="p-3 rounded-xl bg-surface-elevated border border-card-border/50">
+            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">BMR (Rest)</span>
+            <div className="text-base sm:text-lg font-black text-foreground font-mono mt-0.5">
+              {metrics.bmr.toLocaleString()} <span className="text-[10px] font-sans text-muted-foreground font-normal">kcal</span>
+            </div>
+            <span className="text-[9px] text-muted-foreground block">Basal rate</span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-surface-elevated border border-card-border/50">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Maintenance Energy</span>
-            <div className="text-xl font-black text-foreground font-mono mt-1">{metrics.tdee.toLocaleString()} <span className="text-xs font-sans text-muted-foreground">kcal</span></div>
-            <span className="text-[10px] text-muted-foreground mt-0.5 block">Estimated daily energy need (TDEE)</span>
+          <div className="p-3 rounded-xl bg-surface-elevated border border-card-border/50">
+            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">TDEE</span>
+            <div className="text-base sm:text-lg font-black text-foreground font-mono mt-0.5">
+              {metrics.tdee.toLocaleString()} <span className="text-[10px] font-sans text-muted-foreground font-normal">kcal</span>
+            </div>
+            <span className="text-[9px] text-muted-foreground block">Maintenance</span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-surface-elevated border border-card-border/50">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Daily Target</span>
-            <div className="text-xl font-black text-accent font-mono mt-1">{metrics.calorieGoal.toLocaleString()} <span className="text-xs font-sans text-accent/80">kcal</span></div>
-            <span className="text-[10px] text-muted-foreground mt-0.5 block">Calorie goal for your active plan</span>
+          <div className="p-3 rounded-xl bg-surface-elevated border border-card-border/50">
+            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Target</span>
+            <div className="text-base sm:text-lg font-black text-accent font-mono mt-0.5">
+              {metrics.calorieGoal.toLocaleString()} <span className="text-[10px] font-sans text-accent/80 font-normal">kcal</span>
+            </div>
+            <span className="text-[9px] text-muted-foreground block">Active plan</span>
           </div>
         </div>
       </div>
+
+      {/* Daily Morning AI Briefing Card (Positioned at bottom) */}
+      <DailyAIBriefingCard
+        userProfile={userProfile}
+        foodLogs={todaysFoodLogs}
+        workoutLogs={todaysWorkoutLogs}
+        waterIntake={waterIntake}
+        healthLogs={{
+          sleep: Number(cachedHealthMetrics.sleepHours || ecoStore?.healthLogs?.sleep || 0),
+          restingHeartRate: Number(cachedHealthMetrics.restingHeartRateBpm || ecoStore?.healthLogs?.restingHeartRate || 0),
+          soreness: Number(ecoStore?.healthLogs?.soreness || 1),
+          fatigue: Number(ecoStore?.healthLogs?.fatigue || 1)
+        }}
+        onOpenUpgradeModal={(feature) => {
+          setPremiumFeatureName(feature);
+          setPremiumModalOpen(true);
+        }}
+      />
 
       <PremiumFeatureModal
         isOpen={premiumModalOpen}

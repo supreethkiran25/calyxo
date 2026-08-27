@@ -8,16 +8,16 @@ export default function LaunchScreen({ isLoading }) {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    // Smooth minimalist progress animation (0 -> 100 in ~1 second)
+    // Fast high-speed progress animation (0 -> 100 in ~300ms)
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 98) {
           clearInterval(interval);
           return 100;
         }
-        return prev + 12;
+        return prev + 25;
       });
-    }, 40);
+    }, 25);
 
     return () => clearInterval(interval);
   }, []);
@@ -25,7 +25,7 @@ export default function LaunchScreen({ isLoading }) {
   useEffect(() => {
     if (!isLoading) {
       setProgress(100);
-      const timer = setTimeout(() => setVisible(false), 150);
+      const timer = setTimeout(() => setVisible(false), 50);
       return () => clearTimeout(timer);
     }
   }, [isLoading]);
