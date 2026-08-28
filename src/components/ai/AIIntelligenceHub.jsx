@@ -225,7 +225,7 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
       console.error('AI Query Exception:', err);
       chatSessionManager.appendMessage({
         role: 'assistant',
-        text: '### ⚠️ AI Service Temporarily Unavailable\n\nUnable to process the query. Please retry in a few moments.',
+        text: '### AI Service Temporarily Unavailable\n\nUnable to process the query. Please retry in a few moments.',
         sourceProvenance: 'System Error'
       }, activeSession?.id);
       refreshSessions();

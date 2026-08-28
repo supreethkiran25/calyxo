@@ -18,6 +18,7 @@ import useQuickActionsStore from '../store/useQuickActionsStore';
 import LiveWorkoutSessionModal from './modals/LiveWorkoutSessionModal';
 import LiveWorkoutDashboard from './liveWorkout/LiveWorkoutDashboard.jsx';
 import AIWorkoutCoachCard from './workout/AIWorkoutCoachCard.jsx';
+import WorkoutMuscleAnalyticsView from './analytics/WorkoutMuscleAnalyticsView.jsx';
 import PremiumFeatureModal from './modals/PremiumFeatureModal.jsx';
 import CalendarDatePicker from './common/CalendarDatePicker.jsx';
 import NumberWheelPicker from './common/NumberWheelPicker.jsx';
@@ -588,7 +589,7 @@ export default function WorkoutLogger({ onNotification }) {
     } catch (e) {
       console.warn("AudioContext chime failed", e);
     }
-    sendBrowserNotification("Rest Time Finished! 💪", "Rest period complete! Time to start your next set.");
+    sendBrowserNotification("Rest Time Finished", "Rest period complete! Time to start your next set.");
     if (onNotification) onNotification("Rest time complete! Set starts now.");
     // Clear persisted rest state now that it has completed
     clearActiveRest();
@@ -671,7 +672,7 @@ export default function WorkoutLogger({ onNotification }) {
 
     scheduleExactNotification({
       id: notifId,
-      title: 'Rest Time Finished! 💪',
+      title: 'Rest Time Finished',
       body: exerciseName ? `Rest complete! ${exerciseName} — Set ${setNumber + 1} starts now.` : 'Rest period complete! Time to start your next set.',
       delayMs: secs * 1000,
       tag: 'workout-rest-timer',
@@ -1079,7 +1080,7 @@ export default function WorkoutLogger({ onNotification }) {
       ecoStore.addXP(200);
       ecoStore.updateStreaks({ workoutStreak: (ecoStore.streaks?.workoutStreak || 0) + 1 });
       if (onNotification) {
-        onNotification(`🎉 Marked "${challenge.name}" as DONE! Logged +${estBurned} kcal burned (-${estBurned} net calories today). +200 XP earned!`);
+        onNotification(`Marked "${challenge.name}" as DONE! Logged +${estBurned} kcal burned (-${estBurned} net calories today). +200 XP earned!`);
       }
     }
   };
@@ -1541,7 +1542,7 @@ export default function WorkoutLogger({ onNotification }) {
                           : 'bg-surface-subtle border-card-border/60 text-secondary hover:text-foreground'
                       }`}
                     >
-                      📅 Weekly Splits Blueprint {extraToolsView === 'split_planner' ? '▲' : '▼'}
+                      Weekly Splits Blueprint {extraToolsView === 'split_planner' ? '▲' : '▼'}
                     </button>
                     <button
                       type="button"
@@ -1552,7 +1553,7 @@ export default function WorkoutLogger({ onNotification }) {
                           : 'bg-surface-subtle border-card-border/60 text-secondary hover:text-foreground'
                       }`}
                     >
-                      ⚡ Inline Set Form {extraToolsView === 'inline_form' ? '▲' : '▼'}
+                      Inline Set Form {extraToolsView === 'inline_form' ? '▲' : '▼'}
                     </button>
                   </div>
 
@@ -2127,54 +2128,22 @@ export default function WorkoutLogger({ onNotification }) {
 
           {/* ANALYTICS TAB VIEW */}
           {activeSubTab === 'analytics' && (
-            <div className="space-y-6">
-              {/* Analytics Header Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="glass p-4 rounded-2xl border border-card-border shadow-md">
-                  <div className="flex items-center justify-between text-muted mb-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider">Total Volume</span>
-                    <Dumbbell className="w-4 h-4 text-acid-green" />
-                  </div>
-                  <div className="text-xl sm:text-2xl font-black text-foreground">{totalVolumeKg.toLocaleString()} <span className="text-xs text-acid-green font-bold">kg</span></div>
-                  <p className="text-[9.5px] text-muted mt-1">Cumulative weight moved</p>
-                </div>
+            <div className="space-y-8">
+              {/* Flagship Interactive Muscle Analytics & Anatomical Body Map */}
+              <WorkoutMuscleAnalyticsView
+                workoutLogs={workoutLogs}
+                userProfile={userProfile}
+                onLogWorkoutClick={() => setActiveSubTab('log')}
+              />
 
-                <div className="glass p-4 rounded-2xl border border-card-border shadow-md">
-                  <div className="flex items-center justify-between text-muted mb-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider">Total Sets</span>
-                    <Activity className="w-4 h-4 text-blue-400" />
-                  </div>
-                  <div className="text-xl sm:text-2xl font-black text-foreground">{totalSetsLogged}</div>
-                  <p className="text-[9.5px] text-muted mt-1">Completed exercise sets</p>
-                </div>
-
-                <div className="glass p-4 rounded-2xl border border-card-border shadow-md">
-                  <div className="flex items-center justify-between text-muted mb-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider">Workouts Logged</span>
-                    <Trophy className="w-4 h-4 text-amber-400" />
-                  </div>
-                  <div className="text-xl sm:text-2xl font-black text-foreground">{workoutLogs.length}</div>
-                  <p className="text-[9.5px] text-muted mt-1">Recorded training sessions</p>
-                </div>
-
-                <div className="glass p-4 rounded-2xl border border-card-border shadow-md">
-                  <div className="flex items-center justify-between text-muted mb-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider">Est. Burned</span>
-                    <Flame className="w-4 h-4 text-red-400" />
-                  </div>
-                  <div className="text-xl sm:text-2xl font-black text-foreground">{totalCaloriesBurned.toLocaleString()} <span className="text-xs text-red-400 font-bold">kcal</span></div>
-                  <p className="text-[9.5px] text-muted mt-1">Active energy expenditure</p>
-                </div>
-              </div>
-
-              {/* Personal Records & Category Distribution */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Personal Records & Lifetime Category Distribution */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t border-card-border/60">
                 {/* Personal Records */}
-                <div className="glass p-5 rounded-2xl border border-card-border shadow-md space-y-4">
+                <div className="glass p-5 rounded-3xl border border-card-border shadow-md space-y-4">
                   <div className="flex items-center justify-between border-b border-card-border pb-3">
                     <div className="flex items-center gap-2">
                       <Trophy className="w-4 h-4 text-amber-400" />
-                      <h3 className="text-xs font-black uppercase tracking-wider text-foreground">Personal Records (PRs)</h3>
+                      <h3 className="text-xs font-black uppercase tracking-wider text-foreground">Lifetime Personal Records</h3>
                     </div>
                     <span className="text-[10px] font-bold text-acid-green uppercase">{personalRecords.length} Max Records</span>
                   </div>
@@ -2182,7 +2151,7 @@ export default function WorkoutLogger({ onNotification }) {
                   {personalRecords.length > 0 ? (
                     <div className="space-y-2.5">
                       {personalRecords.map((pr, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-surface/50 border border-card-border/60 hover:border-acid-green/40 transition-colors">
+                        <div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-surface/50 border border-card-border/60 hover:border-acid-green/40 transition-colors">
                           <div className="min-w-0">
                             <span className="text-xs font-bold text-foreground block truncate">{pr.name}</span>
                             <span className="text-[10px] text-muted font-medium block">{pr.sets} sets × {pr.reps} reps • {pr.date}</span>
@@ -2203,11 +2172,11 @@ export default function WorkoutLogger({ onNotification }) {
                 </div>
 
                 {/* Training Discipline Breakdown */}
-                <div className="glass p-5 rounded-2xl border border-card-border shadow-md space-y-4">
+                <div className="glass p-5 rounded-3xl border border-card-border shadow-md space-y-4">
                   <div className="flex items-center justify-between border-b border-card-border pb-3">
                     <div className="flex items-center gap-2">
                       <BarChart2 className="w-4 h-4 text-acid-green" />
-                      <h3 className="text-xs font-black uppercase tracking-wider text-foreground">Training Category Breakdown</h3>
+                      <h3 className="text-xs font-black uppercase tracking-wider text-foreground">Lifetime Category Breakdown</h3>
                     </div>
                   </div>
 

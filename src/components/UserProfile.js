@@ -1030,7 +1030,7 @@ export default function UserProfile({ onNotification }) {
         {/* Workout */}
         <div className="p-3 rounded-xl bg-surface border border-acid-green/40 space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-acid-green flex items-center gap-1.5">🏋️ Workout / Gym Time</span>
+            <span className="text-xs font-bold text-acid-green flex items-center gap-1.5">Workout / Gym Time</span>
             <input
               type="time"
               value={schedule?.workoutTime || '18:30'}
@@ -1043,7 +1043,7 @@ export default function UserProfile({ onNotification }) {
         {/* Breakfast & Lunch */}
         <div className="grid grid-cols-2 gap-2">
           <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
-            <span className="text-[11px] font-bold text-foreground block">🍳 Breakfast</span>
+            <span className="text-[11px] font-bold text-foreground block">Breakfast</span>
             <input
               type="time"
               value={schedule?.breakfastTime || '08:30'}
@@ -1053,7 +1053,7 @@ export default function UserProfile({ onNotification }) {
           </div>
 
           <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
-            <span className="text-[11px] font-bold text-foreground block">🥗 Lunch</span>
+            <span className="text-[11px] font-bold text-foreground block">Lunch</span>
             <input
               type="time"
               value={schedule?.lunchTime || '13:00'}
@@ -1066,7 +1066,7 @@ export default function UserProfile({ onNotification }) {
         {/* Snack & Dinner */}
         <div className="grid grid-cols-2 gap-2">
           <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
-            <span className="text-[11px] font-bold text-foreground block">☕ Snack</span>
+            <span className="text-[11px] font-bold text-foreground block">Snack</span>
             <input
               type="time"
               value={schedule?.snackTime || '17:00'}
@@ -1076,7 +1076,7 @@ export default function UserProfile({ onNotification }) {
           </div>
 
           <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
-            <span className="text-[11px] font-bold text-foreground block">🍽️ Dinner</span>
+            <span className="text-[11px] font-bold text-foreground block">Dinner</span>
             <input
               type="time"
               value={schedule?.dinnerTime || '20:30'}
@@ -1089,7 +1089,7 @@ export default function UserProfile({ onNotification }) {
         {/* Sleep & Wake */}
         <div className="grid grid-cols-2 gap-2">
           <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
-            <span className="text-[11px] font-bold text-foreground block">🌅 Wake Up</span>
+            <span className="text-[11px] font-bold text-foreground block">Wake Up</span>
             <input
               type="time"
               value={schedule?.wakeTime || '06:30'}
@@ -1099,7 +1099,7 @@ export default function UserProfile({ onNotification }) {
           </div>
 
           <div className="p-2.5 rounded-xl bg-surface border border-card-border space-y-1">
-            <span className="text-[11px] font-bold text-foreground block">😴 Bedtime</span>
+            <span className="text-[11px] font-bold text-foreground block">Bedtime</span>
             <input
               type="time"
               value={schedule?.sleepTime || '23:00'}
@@ -1388,7 +1388,7 @@ export default function UserProfile({ onNotification }) {
         
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
           <div className="p-2 rounded-xl bg-surface border border-card-border space-y-1">
-            <span className="text-[10px] font-bold text-foreground flex items-center gap-1">🍳 Breakfast</span>
+            <span className="text-[10px] font-bold text-foreground flex items-center gap-1">Breakfast</span>
             <input
               type="time"
               value={schedule.breakfastTime || '08:30'}
@@ -1398,7 +1398,7 @@ export default function UserProfile({ onNotification }) {
           </div>
 
           <div className="p-2 rounded-xl bg-surface border border-card-border space-y-1">
-            <span className="text-[10px] font-bold text-foreground flex items-center gap-1">🥗 Lunch</span>
+            <span className="text-[10px] font-bold text-foreground flex items-center gap-1">Lunch</span>
             <input
               type="time"
               value={schedule.lunchTime || '13:00'}
@@ -1408,7 +1408,7 @@ export default function UserProfile({ onNotification }) {
           </div>
 
           <div className="p-2 rounded-xl bg-surface border border-card-border space-y-1">
-            <span className="text-[10px] font-bold text-foreground flex items-center gap-1">☕ Snack</span>
+            <span className="text-[10px] font-bold text-foreground flex items-center gap-1">Snack</span>
             <input
               type="time"
               value={schedule.snackTime || '17:00'}
@@ -1418,7 +1418,7 @@ export default function UserProfile({ onNotification }) {
           </div>
 
           <div className="p-2 rounded-xl bg-surface border border-acid-green/40 space-y-1">
-            <span className="text-[10px] font-bold text-acid-green flex items-center gap-1">🏋️ Workout</span>
+            <span className="text-[10px] font-bold text-acid-green flex items-center gap-1">Workout</span>
             <input
               type="time"
               value={schedule.workoutTime || '18:30'}
@@ -1428,7 +1428,7 @@ export default function UserProfile({ onNotification }) {
           </div>
 
           <div className="p-2 rounded-xl bg-surface border border-card-border space-y-1">
-            <span className="text-[10px] font-bold text-foreground flex items-center gap-1">🍽️ Dinner</span>
+            <span className="text-[10px] font-bold text-foreground flex items-center gap-1">Dinner</span>
             <input
               type="time"
               value={schedule.dinnerTime || '20:30'}
@@ -1438,7 +1438,7 @@ export default function UserProfile({ onNotification }) {
           </div>
 
           <div className="p-2 rounded-xl bg-surface border border-card-border space-y-1">
-            <span className="text-[10px] font-bold text-foreground flex items-center gap-1">😴 Bedtime</span>
+            <span className="text-[10px] font-bold text-foreground flex items-center gap-1">Bedtime</span>
             <input
               type="time"
               value={schedule.sleepTime || '23:00'}
@@ -2506,7 +2506,7 @@ export default function UserProfile({ onNotification }) {
               
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-foreground block">🍳 Breakfast</label>
+                  <label className="text-[10px] font-bold text-foreground block">Breakfast</label>
                   <input
                     type="time"
                     value={schedule?.breakfastTime || '08:30'}
@@ -2516,7 +2516,7 @@ export default function UserProfile({ onNotification }) {
                 </div>
 
                 <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-foreground block">🥗 Lunch</label>
+                  <label className="text-[10px] font-bold text-foreground block">Lunch</label>
                   <input
                     type="time"
                     value={schedule?.lunchTime || '13:00'}
@@ -2526,7 +2526,7 @@ export default function UserProfile({ onNotification }) {
                 </div>
 
                 <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-foreground block">☕ Evening Snack</label>
+                  <label className="text-[10px] font-bold text-foreground block">Evening Snack</label>
                   <input
                     type="time"
                     value={schedule?.snackTime || '17:00'}
@@ -2536,7 +2536,7 @@ export default function UserProfile({ onNotification }) {
                 </div>
 
                 <div className="bg-surface border border-acid-green/40 rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-acid-green block">🏋️ Workout / Gym</label>
+                  <label className="text-[10px] font-bold text-acid-green block">Workout / Gym</label>
                   <input
                     type="time"
                     value={schedule?.workoutTime || '18:30'}
@@ -2546,7 +2546,7 @@ export default function UserProfile({ onNotification }) {
                 </div>
 
                 <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-foreground block">🍽️ Dinner</label>
+                  <label className="text-[10px] font-bold text-foreground block">Dinner</label>
                   <input
                     type="time"
                     value={schedule?.dinnerTime || '20:30'}
@@ -2556,7 +2556,7 @@ export default function UserProfile({ onNotification }) {
                 </div>
 
                 <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-foreground block">😴 Bedtime</label>
+                  <label className="text-[10px] font-bold text-foreground block">Bedtime</label>
                   <input
                     type="time"
                     value={schedule?.sleepTime || '23:00'}
@@ -2574,27 +2574,27 @@ export default function UserProfile({ onNotification }) {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
               <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">🍳 Breakfast</span>
+                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Breakfast</span>
                 <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.breakfastTime || '08:30'}</span>
               </div>
               <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">🥗 Lunch</span>
+                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Lunch</span>
                 <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.lunchTime || '13:00'}</span>
               </div>
               <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">☕ Snack</span>
+                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Snack</span>
                 <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.snackTime || '17:00'}</span>
               </div>
               <div className="bg-surface/50 border border-acid-green/30 rounded-lg p-2.5">
-                <span className="text-[8px] text-acid-green font-bold uppercase tracking-wider block">🏋️ Workout</span>
+                <span className="text-[8px] text-acid-green font-bold uppercase tracking-wider block">Workout</span>
                 <span className="text-xs font-black text-acid-green mt-0.5 block">{schedule?.workoutTime || '18:30'}</span>
               </div>
               <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">🍽️ Dinner</span>
+                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Dinner</span>
                 <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.dinnerTime || '20:30'}</span>
               </div>
               <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">😴 Bedtime</span>
+                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Bedtime</span>
                 <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.sleepTime || '23:00'}</span>
               </div>
             </div>

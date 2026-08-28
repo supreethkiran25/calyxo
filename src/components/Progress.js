@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import { addWeightLog, saveEcosystemState } from '../lib/dbService';
-import { Trophy, Activity, Lock, Sparkles, Share2, Download, TrendingUp, RefreshCw, Scale, Minus, Plus, CheckCircle2 } from 'lucide-react';
+import { Trophy, Activity, Lock, Sparkles, Share2, Download, TrendingUp, RefreshCw, Scale, Minus, Plus, CheckCircle2, Flame } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
@@ -673,7 +673,7 @@ export default function Progress({ onNotification }) {
                         <span className="text-[10px] text-muted font-medium block mt-0.5">{s.desc}</span>
                       </div>
                       <div className="text-xl font-black text-foreground font-mono flex items-center gap-1.5 mt-2">
-                        <span>🔥</span>
+                        <Flame className="w-4 h-4 text-orange-400 fill-orange-400 shrink-0" />
                         <span>{s.val} {s.val === 1 ? 'day' : 'days'}</span>
                       </div>
                     </div>

@@ -429,7 +429,7 @@ export default function HealthHubPage({ onNotification }) {
           </div>
           <span className="text-[10px] font-bold text-emerald-400 block truncate">
             {metrics?.bedTime && metrics?.bedTime !== '--:--' && metrics?.wakeTime && metrics?.wakeTime !== '--:--'
-              ? `🌙 ${metrics.bedTime} → ☀️ ${metrics.wakeTime}`
+              ? `${metrics.bedTime} → ${metrics.wakeTime}`
               : (metrics?.sleepHours > 0 ? `${metrics?.sleepQualityPct || 85}% Quality` : 'Connect Watch/Health to track')}
           </span>
         </div>

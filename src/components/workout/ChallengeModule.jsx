@@ -1,10 +1,9 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play, CheckCircle2, Flame, Clock, Dumbbell, Trophy, ArrowLeft,
   ChevronDown, ChevronUp, Sparkles, Check, HeartPulse, ShieldCheck,
-  CheckSquare, Square, Info, Download, Award, RotateCcw, Pause
+  CheckSquare, Square, Info, Download, Award, RotateCcw, Pause, Zap
 } from 'lucide-react';
 import { useEcosystemStore } from '../../store/useEcosystemStore';
 import { useStore } from '../../store/useStore';
@@ -475,7 +474,7 @@ export default function ChallengeModule({ onNotification }) {
             ) : (
               <section className="bg-surface border border-card-border rounded-3xl p-6 text-center space-y-3 shadow-md">
                 <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-xl font-bold">
-                  ⚡
+                  <Zap className="w-6 h-6 text-emerald-400" />
                 </div>
                 <h2 className="text-lg font-black uppercase text-foreground">No Active Challenge</h2>
                 <p className="text-xs text-muted max-w-sm mx-auto">Pick a simple program below to build consistency and reach your daily target.</p>
@@ -495,7 +494,7 @@ export default function ChallengeModule({ onNotification }) {
             <section className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-4 flex items-center gap-3">
               <Sparkles className="w-5 h-5 text-emerald-400 shrink-0 animate-pulse" />
               <div className="text-xs">
-                <span className="font-black text-emerald-400 uppercase tracking-wider block">AI Bio-Metric Insight</span>
+                <span className="font-black text-emerald-400 uppercase tracking-wider block">Bio-Metric Training Insight</span>
                 <span className="text-muted font-medium">Your recovery score is {ecoStore.healthTwin?.recoveryScore || 85}%. Optimal condition to conquer today's session!</span>
               </div>
             </section>
@@ -515,7 +514,10 @@ export default function ChallengeModule({ onNotification }) {
                   </div>
                   <div className="p-3 rounded-2xl bg-card-bg border border-card-border">
                     <span className="text-muted block text-[10px] uppercase font-bold">Daily Streak</span>
-                    <span className="text-sm font-black text-emerald-400">🔥 {ecoStore.streaks?.workoutStreak || 1} Days</span>
+                    <span className="text-sm font-black text-emerald-400 flex items-center gap-1">
+                      <Flame className="w-3.5 h-3.5 fill-orange-400 text-orange-400" />
+                      {ecoStore.streaks?.workoutStreak || 1} Days
+                    </span>
                   </div>
                 </div>
               </section>
@@ -616,7 +618,10 @@ export default function ChallengeModule({ onNotification }) {
                   <span className="text-[9px] font-bold text-muted uppercase block">Remaining</span>
                 </div>
                 <div className="p-3 rounded-2xl bg-card-bg border border-card-border">
-                  <span className="text-lg font-black text-emerald-400">🔥 {ecoStore.streaks?.workoutStreak || 0}</span>
+                  <span className="text-lg font-black text-emerald-400 flex items-center justify-center gap-1">
+                    <Flame className="w-4 h-4 fill-orange-400 text-orange-400" />
+                    {ecoStore.streaks?.workoutStreak || 0}
+                  </span>
                   <span className="text-[9px] font-bold text-muted uppercase block">Streak</span>
                 </div>
               </div>
@@ -884,7 +889,7 @@ export default function ChallengeModule({ onNotification }) {
             className="bg-surface border border-emerald-500/40 rounded-3xl p-8 text-center space-y-6 shadow-2xl my-4"
           >
             <div className="w-20 h-20 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto text-4xl shadow-inner">
-              🏆
+              <Trophy className="w-10 h-10 text-emerald-400" />
             </div>
 
             <div className="space-y-1">
@@ -892,7 +897,7 @@ export default function ChallengeModule({ onNotification }) {
                 Day {completedWorkoutStats.dayNumber} of {completedWorkoutStats.totalDays} Completed
               </span>
               <h2 className="text-2xl font-black text-foreground uppercase tracking-wide mt-2">
-                Great Work Today!
+                Session Completed
               </h2>
               <p className="text-xs text-muted font-medium">{completedWorkoutStats.programTitle}</p>
             </div>
@@ -908,13 +913,16 @@ export default function ChallengeModule({ onNotification }) {
               </div>
               <div className="p-3.5 rounded-2xl bg-card-bg border border-card-border">
                 <span className="text-[10px] font-bold text-muted uppercase block">Streak</span>
-                <span className="text-base font-black text-emerald-400">🔥 {completedWorkoutStats.streak} Days</span>
+                <span className="text-base font-black text-emerald-400 flex items-center justify-center gap-1">
+                  <Flame className="w-4 h-4 fill-orange-400 text-orange-400" />
+                  {completedWorkoutStats.streak} Days
+                </span>
               </div>
             </div>
 
             {/* Encouraging AI Message */}
             <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium leading-relaxed">
-              🤖 "Fantastic effort! Your body is adapting nicely. Rest up and hydrate—tomorrow's session is locked and loaded."
+              Consistent stimulus applied. Neuromuscular recovery underway. Prioritize protein synthesis and restorative sleep tonight.
             </div>
 
             <div className="space-y-2">

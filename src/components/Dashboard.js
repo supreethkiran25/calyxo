@@ -383,7 +383,7 @@ export default function Dashboard({ onNotification }) {
       <div className="flex items-center justify-between gap-3 border-b border-card-border pb-4">
         <div className="min-w-0 flex-1">
           <h1 className="text-lg sm:text-2xl font-extrabold text-foreground tracking-tight truncate">
-            {getGreeting()}, {userProfile?.nickname || userProfile?.firstName || user?.displayName || 'Athlete'} 👋
+            {getGreeting()}, {userProfile?.nickname || userProfile?.firstName || user?.displayName || 'Athlete'}
           </h1>
           <p className="text-[11px] sm:text-xs text-muted-foreground font-medium mt-0.5 truncate">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })} · Ready for today&apos;s targets
