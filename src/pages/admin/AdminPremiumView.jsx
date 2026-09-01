@@ -1,9 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Crown, CheckCircle2, RefreshCw, Plus, Users, DollarSign, ArrowUpRight, Search } from 'lucide-react';
+import { Crown, Plus, Users, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminUsers, updateUserSubscription, CALYXO_PRIMARY_PLAN } from '../../services/adminService';
 import GrantPremiumModal from '../../components/admin/GrantPremiumModal';
-import { AdminStatCard, AdminStatusBadge, AdminLoadingSkeleton, AdminEmptyState } from '../../components/admin/AdminUIPrimitives';
+import {
+  AdminPageHeader,
+  AdminStatCard,
+  AdminStatusBadge,
+  AdminLoadingSkeleton,
+  AdminEmptyState,
+  AdminSearchInput
+} from '../../components/admin/AdminUIPrimitives';
 import { useAdminRealtime } from '../../hooks/useAdminRealtime';
 
 const AdminPremiumView = () => {
@@ -30,7 +37,7 @@ const AdminPremiumView = () => {
     fetchMembers();
   }, [fetchMembers]);
 
-  // Real-time listener for subscriptions and profiles
+  // Real-time updates
   useAdminRealtime(['subscriptions', 'user_profiles', 'admin_audit_logs'], () => {
     fetchMembers();
   });
@@ -39,7 +46,7 @@ const AdminPremiumView = () => {
   const freeUsers = members.filter(u => u.subscription_plan === 'FREE' || !u.subscription_plan);
 
   const filteredList = (activeTab === 'ACTIVE' ? highPlanUsers : activeTab === 'EXPIRED' ? freeUsers : members).filter(u => 
-    !search || u.full_name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())
+    !search || u.full_name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleRevoke = async (user) => {
@@ -54,25 +61,23 @@ const AdminPremiumView = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header Context */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-neutral-800/80">
-        <div>
-          <h2 className="text-xl font-bold text-white tracking-tight">Subscriptions & High Plan Hub</h2>
-          <p className="text-xs text-neutral-400 font-mono mt-0.5">
-            Manage athlete plan entitlements, active passes, and manual admin grants
-          </p>
-        </div>
+      {/* 1. Header */}
+      <AdminPageHeader
+        title="Subscriptions"
+        description="Athlete plan entitlements, active passes, and manual admin grants"
+        badge={`${highPlanUsers.length} High active`}
+        actions={
+          <button
+            onClick={() => setGrantModalUser({ email: '', full_name: 'New Athlete' })}
+            className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Grant Access</span>
+          </button>
+        }
+      />
 
-        <button
-          onClick={() => setGrantModalUser({ email: '', full_name: 'New Athlete' })}
-          className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold shadow-lg shadow-amber-500/20 transition-all flex items-center gap-2 cursor-pointer border border-amber-400/40"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Grant Premium Access</span>
-        </button>
-      </div>
-
-      {/* KPI Cards Row */}
+      {/* 2. Top KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <AdminStatCard
           title="Active High Subscribers"
@@ -96,49 +101,45 @@ const AdminPremiumView = () => {
         />
       </div>
 
-      {/* Tabs & Search */}
-      <div className="p-4 bg-neutral-900/90 border border-neutral-800/80 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="inline-flex p-1 rounded-xl bg-neutral-950 border border-neutral-800">
+      {/* 3. Filter Bar & Tabs */}
+      <div className="p-3 bg-neutral-900/90 border border-neutral-800/80 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="inline-flex p-1 rounded-lg bg-neutral-950 border border-neutral-800 font-mono text-xs">
           <button
             onClick={() => setActiveTab('ALL')}
-            className={`px-3 py-1.5 text-xs font-mono font-medium rounded-lg transition-colors cursor-pointer ${
-              activeTab === 'ALL' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:text-white'
+            className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${
+              activeTab === 'ALL' ? 'bg-neutral-800 text-white font-semibold' : 'text-neutral-400 hover:text-neutral-200'
             }`}
           >
-            All Members ({members.length})
+            All ({members.length})
           </button>
           <button
             onClick={() => setActiveTab('ACTIVE')}
-            className={`px-3 py-1.5 text-xs font-mono font-medium rounded-lg transition-colors cursor-pointer ${
-              activeTab === 'ACTIVE' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:text-white'
+            className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${
+              activeTab === 'ACTIVE' ? 'bg-neutral-800 text-white font-semibold' : 'text-neutral-400 hover:text-neutral-200'
             }`}
           >
-            Active High ({highPlanUsers.length})
+            High Plan ({highPlanUsers.length})
           </button>
           <button
             onClick={() => setActiveTab('EXPIRED')}
-            className={`px-3 py-1.5 text-xs font-mono font-medium rounded-lg transition-colors cursor-pointer ${
-              activeTab === 'EXPIRED' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:text-white'
+            className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${
+              activeTab === 'EXPIRED' ? 'bg-neutral-800 text-white font-semibold' : 'text-neutral-400 hover:text-neutral-200'
             }`}
           >
             Free Tier ({freeUsers.length})
           </button>
         </div>
 
-        <div className="relative w-full md:w-64">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search subscriber..."
-            className="w-full pl-10 pr-4 py-1.5 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 font-mono"
-          />
-        </div>
+        <AdminSearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Filter subscribers..."
+          onClear={() => setSearch('')}
+        />
       </div>
 
-      {/* Subscriptions Table */}
-      <div className="bg-neutral-900/90 border border-neutral-800/80 rounded-xl overflow-hidden shadow-xl">
+      {/* 4. Subscriptions Table */}
+      <div className="bg-neutral-900/90 border border-neutral-800/80 rounded-xl overflow-hidden">
         {loading ? (
           <AdminLoadingSkeleton rows={6} />
         ) : filteredList.length === 0 ? (
@@ -151,30 +152,24 @@ const AdminPremiumView = () => {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-neutral-800 bg-neutral-950/60 text-neutral-400 font-mono uppercase text-[10px]">
-                  <th className="p-3.5">Subscriber</th>
-                  <th className="p-3.5">Active Plan</th>
-                  <th className="p-3.5">Expiry Date</th>
-                  <th className="p-3.5">Granted By</th>
-                  <th className="p-3.5">Payment Source</th>
-                  <th className="p-3.5 text-right">Actions</th>
+                  <th className="p-3.5 font-bold">Subscriber</th>
+                  <th className="p-3.5 font-bold">Active Plan</th>
+                  <th className="p-3.5 font-bold">Expiry Date</th>
+                  <th className="p-3.5 font-bold">Granted By</th>
+                  <th className="p-3.5 font-bold">Provider</th>
+                  <th className="p-3.5 text-right font-bold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-800/60 font-sans">
                 {filteredList.map(u => (
-                  <tr key={u.id} className="hover:bg-neutral-800/50 transition-colors">
+                  <tr key={u.id} className="hover:bg-neutral-800/40 transition-colors">
                     <td className="p-3.5">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name)}&background=1a1a2e&color=3B82F6&bold=true`}
-                          alt={u.full_name}
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name)}&background=1a1a2e&color=3B82F6`;
-                          }}
-                          className="w-8 h-8 rounded-xl object-cover border border-neutral-800 shrink-0"
-                        />
+                        <div className="w-7 h-7 rounded-lg bg-neutral-800 text-neutral-300 flex items-center justify-center font-mono font-bold text-xs shrink-0 border border-neutral-700">
+                          {u.full_name ? u.full_name.substring(0, 2).toUpperCase() : 'U'}
+                        </div>
                         <div>
-                          <span className="font-bold text-white block">{u.full_name}</span>
+                          <span className="font-semibold text-white block">{u.full_name || 'Athlete'}</span>
                           <span className="text-[10px] text-neutral-400 font-mono">{u.email}</span>
                         </div>
                       </div>
@@ -183,7 +178,7 @@ const AdminPremiumView = () => {
                       <AdminStatusBadge status={u.subscription_plan || 'FREE'} />
                     </td>
                     <td className="p-3.5 font-mono text-[11px] text-neutral-400">
-                      {u.subscription_expiry || 'N/A'}
+                      {u.subscription_expiry || 'Ongoing'}
                     </td>
                     <td className="p-3.5 font-mono text-[11px] text-neutral-300">
                       {u.granted_by || 'Razorpay'}
@@ -192,17 +187,17 @@ const AdminPremiumView = () => {
                       {u.payment_source || 'Razorpay Direct'}
                     </td>
                     <td className="p-3.5 text-right">
-                      {u.subscription_plan === 'HIGH' ? (
+                      {u.subscription_plan === 'HIGH' || u.subscription_plan === 'HIGH_ANNUAL' ? (
                         <button
                           onClick={() => handleRevoke(u)}
-                          className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold transition-colors cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-neutral-900 hover:bg-rose-950/30 text-rose-400 border border-rose-900/40 text-xs font-medium transition-colors cursor-pointer"
                         >
                           Revoke Pass
                         </button>
                       ) : (
                         <button
                           onClick={() => setGrantModalUser(u)}
-                          className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 text-xs font-semibold transition-colors cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-amber-400 border border-neutral-800 text-xs font-medium transition-colors cursor-pointer"
                         >
                           Grant High
                         </button>
@@ -231,3 +226,4 @@ const AdminPremiumView = () => {
 };
 
 export default AdminPremiumView;
+

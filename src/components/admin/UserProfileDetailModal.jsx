@@ -2,23 +2,14 @@ import React, { useState } from 'react';
 import { toast } from 'sonner';
 import {
   X,
-  User,
-  Shield,
   Crown,
-  Ban,
-  Trash2,
   Bell,
-  Download,
-  Flame,
-  Smartphone,
-  Utensils,
-  Dumbbell,
-  MessageSquare,
-  Clock,
+  Trash2,
+  Ban,
+  CheckCircle2,
   Calendar,
-  CreditCard,
   Activity,
-  CheckCircle2
+  CreditCard
 } from 'lucide-react';
 import { updateUserStatus, updateUserSubscription, deleteUserAdmin, sendAdminNotification } from '../../services/adminService';
 import { AdminStatusBadge } from './AdminUIPrimitives';
@@ -47,6 +38,7 @@ const UserProfileDetailModal = ({ user, onClose, onRefresh }) => {
   };
 
   const handleDelete = async () => {
+    if (!window.confirm(`Permanently delete account for ${user.full_name}?`)) return;
     setLoading(true);
     await deleteUserAdmin(user.id);
     setLoading(false);
@@ -56,7 +48,7 @@ const UserProfileDetailModal = ({ user, onClose, onRefresh }) => {
   };
 
   const handleSendDirectNotif = async () => {
-    if (!notificationMsg) return;
+    if (!notificationMsg.trim()) return;
     setLoading(true);
     try {
       await sendAdminNotification({
@@ -81,9 +73,9 @@ const UserProfileDetailModal = ({ user, onClose, onRefresh }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="w-full max-w-xl bg-neutral-950 border-l border-neutral-800/80 h-full flex flex-col shadow-2xl overflow-hidden font-sans text-neutral-100">
-        {/* Header Profile Banner */}
-        <div className="p-6 border-b border-neutral-800/80 bg-gradient-to-b from-neutral-900 to-neutral-950 space-y-4">
+      <div className="w-full max-w-lg bg-neutral-950 border-l border-neutral-800 h-full flex flex-col shadow-2xl overflow-hidden font-sans text-neutral-100">
+        {/* Header Profile Info */}
+        <div className="p-5 border-b border-neutral-800 bg-neutral-900/90 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <AdminStatusBadge status={user.subscription_plan || 'FREE'} />
@@ -91,32 +83,30 @@ const UserProfileDetailModal = ({ user, onClose, onRefresh }) => {
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800 border border-neutral-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 border border-neutral-800 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="flex items-center gap-4">
-            <img
-              src={user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=1a1a2e&color=3B82F6&bold=true`}
-              alt={user.full_name}
-              className="w-14 h-14 rounded-2xl object-cover border-2 border-blue-500/30 shadow-lg shrink-0"
-            />
-            <div>
-              <h3 className="text-lg font-bold text-white tracking-tight">{user.full_name}</h3>
-              <p className="text-xs text-neutral-400 font-mono">{user.email}</p>
-              <p className="text-[11px] text-neutral-500 font-mono mt-0.5">UUID: {user.id}</p>
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-neutral-800 text-neutral-200 border border-neutral-700 flex items-center justify-center font-mono font-bold text-base shrink-0">
+              {user.full_name ? user.full_name.substring(0, 2).toUpperCase() : 'U'}
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-base font-bold text-white truncate">{user.full_name || 'Athlete'}</h3>
+              <p className="text-xs text-neutral-400 font-mono truncate">{user.email}</p>
+              <p className="text-[10px] text-neutral-500 font-mono mt-0.5 truncate">ID: {user.id}</p>
             </div>
           </div>
 
-          {/* Action Quick Bar */}
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-neutral-800/60">
+          {/* Action Toolbar */}
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-neutral-800">
             {isHigh ? (
               <button
                 onClick={() => handleGrantPremium('FREE')}
                 disabled={loading}
-                className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold font-mono transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-rose-950/30 text-rose-400 border border-rose-900/40 text-xs font-semibold font-mono transition-colors cursor-pointer"
               >
                 Revoke High Pass
               </button>
@@ -124,7 +114,7 @@ const UserProfileDetailModal = ({ user, onClose, onRefresh }) => {
               <button
                 onClick={() => handleGrantPremium('HIGH')}
                 disabled={loading}
-                className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold font-mono transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold font-mono transition-colors cursor-pointer"
               >
                 Grant High Pass
               </button>
@@ -133,37 +123,46 @@ const UserProfileDetailModal = ({ user, onClose, onRefresh }) => {
             <button
               onClick={handleStatusToggle}
               disabled={loading}
-              className="px-3 py-1.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-300 text-xs font-semibold font-mono border border-neutral-800 transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-300 text-xs font-medium font-mono border border-neutral-800 transition-colors cursor-pointer"
             >
               {user.status === 'Suspended' ? 'Activate Account' : 'Suspend Account'}
             </button>
 
             <button
               onClick={() => setShowNotifInput(!showNotifInput)}
-              className="p-1.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 transition-colors cursor-pointer"
               title="Send Direct Notification"
             >
               <Bell className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={handleDelete}
+              disabled={loading}
+              className="p-1.5 rounded-lg bg-neutral-900 hover:bg-rose-950/30 text-rose-400 border border-rose-900/40 transition-colors cursor-pointer ml-auto"
+              title="Delete User"
+            >
+              <Trash2 className="w-4 h-4" />
             </button>
           </div>
 
           {/* Direct Notification Box */}
           {showNotifInput && (
-            <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800 space-y-2">
+            <div className="p-3 rounded-lg bg-neutral-950 border border-neutral-800 space-y-2">
               <input
                 type="text"
                 value={notificationMsg}
                 onChange={(e) => setNotificationMsg(e.target.value)}
-                placeholder="Message body..."
-                className="w-full px-3 py-1.5 bg-neutral-950 border border-neutral-800 rounded-lg text-xs text-white placeholder-neutral-500 font-mono"
+                placeholder="Notification message..."
+                className="w-full px-3 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-xs text-white placeholder-neutral-500 font-mono focus:outline-none focus:border-neutral-700"
               />
               <div className="flex justify-end gap-2">
                 <button
                   onClick={handleSendDirectNotif}
                   disabled={loading}
-                  className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                  className="px-3 py-1 bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
                 >
-                  Send Broadcast
+                  Send Message
                 </button>
               </div>
             </div>
@@ -171,13 +170,13 @@ const UserProfileDetailModal = ({ user, onClose, onRefresh }) => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-1 p-2 bg-neutral-950 border-b border-neutral-800/80 font-mono text-xs overflow-x-auto">
+        <div className="flex items-center gap-1 p-2 bg-neutral-950 border-b border-neutral-800 font-mono text-xs overflow-x-auto">
           {['overview', 'subscription', 'activity', 'payments'].map(t => (
             <button
               key={t}
               onClick={() => setActiveTab(t)}
               className={`px-3 py-1.5 rounded-lg uppercase transition-colors cursor-pointer ${
-                activeTab === t ? 'bg-blue-600 text-white font-bold' : 'text-neutral-400 hover:text-white'
+                activeTab === t ? 'bg-neutral-800 text-white font-bold' : 'text-neutral-400 hover:text-neutral-200'
               }`}
             >
               {t}
@@ -186,40 +185,39 @@ const UserProfileDetailModal = ({ user, onClose, onRefresh }) => {
         </div>
 
         {/* Tab Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar font-mono text-xs">
+        <div className="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar font-mono text-xs">
           {activeTab === 'overview' && (
-            <div className="space-y-4">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider text-blue-400">Account Overview</h4>
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Account Baseline</h4>
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800">
-                  <span className="text-[10px] text-neutral-500 block">SIGNUP DATE</span>
-                  <span className="font-bold text-white">{user.signup_date || '2026-07-25'}</span>
+                <div className="p-3 rounded-lg bg-neutral-900 border border-neutral-800">
+                  <span className="text-[10px] text-neutral-500 block uppercase">SIGNUP DATE</span>
+                  <span className="font-bold text-white mt-0.5 block">{user.signup_date || 'N/A'}</span>
                 </div>
-                <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800">
-                  <span className="text-[10px] text-neutral-500 block">ACTIVE PASS</span>
-                  <span className="font-bold text-amber-400">{user.subscription_plan || 'FREE'}</span>
+                <div className="p-3 rounded-lg bg-neutral-900 border border-neutral-800">
+                  <span className="text-[10px] text-neutral-500 block uppercase">ACTIVE PLAN</span>
+                  <span className="font-bold text-white mt-0.5 block">{user.subscription_plan || 'FREE'}</span>
                 </div>
-                <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800">
-                  <span className="text-[10px] text-neutral-500 block">DAYS REMAINING</span>
-                  <span className="font-bold text-white">{user.days_remaining || '0'} Days</span>
+                <div className="p-3 rounded-lg bg-neutral-900 border border-neutral-800">
+                  <span className="text-[10px] text-neutral-500 block uppercase">DAYS REMAINING</span>
+                  <span className="font-bold text-white mt-0.5 block">{user.days_remaining || '0'} Days</span>
                 </div>
-                <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800">
-                  <span className="text-[10px] text-neutral-500 block">GRANTED BY</span>
-                  <span className="font-bold text-neutral-300">{user.granted_by || 'Razorpay'}</span>
+                <div className="p-3 rounded-lg bg-neutral-900 border border-neutral-800">
+                  <span className="text-[10px] text-neutral-500 block uppercase">ENTITLEMENT SOURCE</span>
+                  <span className="font-bold text-neutral-300 mt-0.5 block">{user.granted_by || 'Razorpay'}</span>
                 </div>
               </div>
             </div>
           )}
 
           {activeTab === 'subscription' && (
-            <div className="space-y-4">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider text-amber-400">Visual Subscription Timeline</h4>
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Subscription Timeline</h4>
               
-              {/* Visual Timeline Bar */}
-              <div className="p-4 rounded-xl bg-neutral-900 border border-neutral-800 space-y-3">
+              <div className="p-4 rounded-lg bg-neutral-900 border border-neutral-800 space-y-3">
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-neutral-400">Started: {user.signup_date || '2026-07-25'}</span>
-                  <span className="text-amber-400 font-bold">Expires: {user.subscription_expiry || '2027-07-25'}</span>
+                  <span className="text-neutral-400">Started: {user.signup_date || 'N/A'}</span>
+                  <span className="text-neutral-200 font-bold">Expires: {user.subscription_expiry || 'Ongoing'}</span>
                 </div>
                 <div className="h-2 w-full bg-neutral-950 rounded-full overflow-hidden flex border border-neutral-800">
                   <div className="bg-amber-500 h-full w-3/4 rounded-full" />
@@ -234,32 +232,32 @@ const UserProfileDetailModal = ({ user, onClose, onRefresh }) => {
           )}
 
           {activeTab === 'activity' && (
-            <div className="space-y-4">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider text-emerald-400">Fitness Activity Telemetry</h4>
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Telemetry Logs</h4>
               <div className="space-y-2">
-                <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800 flex justify-between">
+                <div className="p-3 rounded-lg bg-neutral-900 border border-neutral-800 flex justify-between">
                   <span className="text-neutral-400">Total Workouts Completed:</span>
                   <span className="font-bold text-white">{user.total_workouts || 0}</span>
                 </div>
-                <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800 flex justify-between">
+                <div className="p-3 rounded-lg bg-neutral-900 border border-neutral-800 flex justify-between">
                   <span className="text-neutral-400">Total Meals Logged:</span>
                   <span className="font-bold text-white">{user.total_meals || 0}</span>
                 </div>
-                <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800 flex justify-between">
+                <div className="p-3 rounded-lg bg-neutral-900 border border-neutral-800 flex justify-between">
                   <span className="text-neutral-400">Streak Record:</span>
-                  <span className="font-bold text-amber-400">{user.streak || 0} Days</span>
+                  <span className="font-bold text-white">{user.streak || 0} Days</span>
                 </div>
               </div>
             </div>
           )}
 
           {activeTab === 'payments' && (
-            <div className="space-y-4">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider text-purple-400">Payment Audit Logs</h4>
-              <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800 space-y-1">
-                <span className="text-[10px] text-neutral-500 block">LAST PAYMENT ID</span>
-                <span className="font-bold text-blue-400">{user.last_payment_id || 'pay_TlEl9QNm2AuW7I'}</span>
-                <span className="text-[10px] text-neutral-400 block pt-1">Source: {user.payment_source || 'Razorpay Direct'}</span>
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Transaction Record</h4>
+              <div className="p-3 rounded-lg bg-neutral-900 border border-neutral-800 space-y-1">
+                <span className="text-[10px] text-neutral-500 block uppercase">LAST PAYMENT ID</span>
+                <span className="font-bold text-neutral-200">{user.last_payment_id || 'N/A'}</span>
+                <span className="text-[10px] text-neutral-400 block pt-1">Provider: {user.payment_source || 'Razorpay'}</span>
               </div>
             </div>
           )}
@@ -270,3 +268,4 @@ const UserProfileDetailModal = ({ user, onClose, onRefresh }) => {
 };
 
 export default UserProfileDetailModal;
+

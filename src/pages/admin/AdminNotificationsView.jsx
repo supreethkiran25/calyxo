@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Plus, Send, Search, Trash2, Smartphone, Users } from 'lucide-react';
+import { Bell, Plus, Send, Smartphone, Users, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminNotifications, deleteAdminNotification } from '../../services/adminService';
 import { supabase } from '../../lib/supabaseClient';
 import NotificationComposerModal from '../../components/admin/NotificationComposerModal';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
+import {
+  AdminPageHeader,
+  AdminStatCard,
+  AdminSearchInput,
+  AdminStatusBadge,
+  AdminLoadingSkeleton,
+  AdminEmptyState
+} from '../../components/admin/AdminUIPrimitives';
 
 const AdminNotificationsView = () => {
   const [notifications, setNotifications] = useState([]);
@@ -52,7 +60,7 @@ const AdminNotificationsView = () => {
     setDeleteTarget(null);
     try {
       await deleteAdminNotification(targetId);
-      toast.success('Campaign deleted successfully.');
+      toast.success('Campaign deleted.');
     } catch (err) {
       toast.error('Failed to delete campaign.');
       fetchNotifs();
@@ -71,151 +79,120 @@ const AdminNotificationsView = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold text-white tracking-tight">Push notifications</h1>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            Broadcast campaigns and delivery analytics
-          </p>
-        </div>
+      {/* 1. Header */}
+      <AdminPageHeader
+        title="Notifications"
+        description="Push broadcast campaigns, recipient segmentation, and engagement rates"
+        badge={`${pushDevicesCount} devices`}
+        actions={
+          <button
+            onClick={() => setComposerOpen(true)}
+            className="px-3.5 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold flex items-center gap-1.5 border border-neutral-800 transition-colors cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>New Broadcast</span>
+          </button>
+        }
+      />
 
-        <button
-          onClick={() => setComposerOpen(true)}
-          className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-3.5 h-3.5" /> New broadcast
-        </button>
-      </div>
-
-      {/* KPI Cards */}
+      {/* 2. Top KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
-              Push devices
-            </span>
-            <Smartphone className="w-4 h-4 text-neutral-600" />
-          </div>
-          <div className="text-2xl font-semibold text-white">{pushDevicesCount.toLocaleString()}</div>
-          <div className="text-[11px] text-neutral-500">Registered devices</div>
-        </div>
-
-        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
-              Campaigns sent
-            </span>
-            <Send className="w-4 h-4 text-neutral-600" />
-          </div>
-          <div className="text-2xl font-semibold text-white">{notifications.length}</div>
-          <div className="text-[11px] text-neutral-500">Broadcast history</div>
-        </div>
-
-        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
-              Total delivered
-            </span>
-            <Bell className="w-4 h-4 text-neutral-600" />
-          </div>
-          <div className="text-2xl font-semibold text-emerald-400">{totalDelivered.toLocaleString()}</div>
-          <div className="text-[11px] text-neutral-500">Delivered popups</div>
-        </div>
-
-        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
-              Engagement rate
-            </span>
-            <Users className="w-4 h-4 text-neutral-600" />
-          </div>
-          <div className="text-2xl font-semibold text-amber-400">{avgClickRate}%</div>
-          <div className="text-[11px] text-neutral-500">{totalClicks} total clicks</div>
-        </div>
+        <AdminStatCard
+          title="Push Devices"
+          value={pushDevicesCount.toLocaleString()}
+          icon={Smartphone}
+          subtitle="Registered tokens"
+        />
+        <AdminStatCard
+          title="Campaigns Sent"
+          value={notifications.length.toString()}
+          icon={Send}
+          subtitle="Total broadcasts"
+        />
+        <AdminStatCard
+          title="Total Delivered"
+          value={totalDelivered.toLocaleString()}
+          icon={Bell}
+          subtitle="In-app & push notices"
+        />
+        <AdminStatCard
+          title="Engagement Rate"
+          value={`${avgClickRate}%`}
+          icon={Users}
+          subtitle={`${totalClicks} total clicks`}
+        />
       </div>
 
-      {/* Controls & Search */}
-      <div className="p-4 rounded-xl bg-neutral-900 border border-neutral-800 flex flex-col md:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search campaigns..."
-            className="w-full bg-neutral-950 border border-neutral-800 rounded-lg pl-9 pr-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
-          />
-        </div>
+      {/* 3. Filter Controls */}
+      <div className="p-3 bg-neutral-900/90 border border-neutral-800/80 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <AdminSearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Filter campaigns..."
+          onClear={() => setSearch('')}
+        />
 
         <select
           value={audienceFilter}
           onChange={(e) => setAudienceFilter(e.target.value)}
-          className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none w-full md:w-auto"
+          className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs font-mono rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-neutral-700 cursor-pointer"
         >
-          <option value="ALL">All audiences</option>
+          <option value="ALL">All Audiences</option>
           <option value="Everyone">Everyone</option>
-          <option value="Premium Users">Premium users</option>
-          <option value="Free Users">Free users</option>
-          <option value="Direct User">Direct user</option>
+          <option value="Premium Users">Premium Users</option>
+          <option value="Free Users">Free Users</option>
+          <option value="Direct User">Direct User</option>
         </select>
       </div>
 
-      {/* Broadcast History Table */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-            <Send className="w-4 h-4 text-neutral-500" /> Broadcast history ({filteredNotifs.length})
-          </h3>
-        </div>
-
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="p-12 flex justify-center">
-              <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-            </div>
-          ) : filteredNotifs.length === 0 ? (
-            <div className="p-8 text-center text-xs text-neutral-600 font-mono">
-              No broadcast campaigns found
-            </div>
-          ) : (
-            <table className="w-full text-left text-xs">
-              <thead className="bg-neutral-950 border-b border-neutral-800 text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
-                <tr>
-                  <th className="p-4">Notification</th>
-                  <th className="p-4">Audience</th>
-                  <th className="p-4">Sent</th>
-                  <th className="p-4">Delivered</th>
-                  <th className="p-4">Clicks</th>
-                  <th className="p-4 text-right">Actions</th>
+      {/* 4. Broadcast History Table */}
+      <div className="bg-neutral-900/90 border border-neutral-800/80 rounded-xl overflow-hidden">
+        {loading ? (
+          <AdminLoadingSkeleton rows={5} />
+        ) : filteredNotifs.length === 0 ? (
+          <AdminEmptyState
+            title="No broadcast campaigns found"
+            description="Create a new notification broadcast to announce platform updates."
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-neutral-800 bg-neutral-950/60 text-neutral-400 font-mono uppercase text-[10px]">
+                  <th className="p-3.5 font-bold">Campaign</th>
+                  <th className="p-3.5 font-bold">Audience</th>
+                  <th className="p-3.5 font-bold">Delivered</th>
+                  <th className="p-3.5 font-bold">Clicks (CTR)</th>
+                  <th className="p-3.5 font-bold">Sent</th>
+                  <th className="p-3.5 text-right font-bold">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-800">
+              <tbody className="divide-y divide-neutral-800/60 font-sans">
                 {filteredNotifs.map(n => {
                   const ctr = n.delivered > 0 ? (((n.clicks || 0) / n.delivered) * 100).toFixed(1) : '0.0';
                   return (
-                    <tr key={n.id} className="hover:bg-neutral-800/50 transition-colors">
-                      <td className="p-4">
-                        <span className="font-medium text-white block text-sm">{n.title}</span>
-                        <span className="text-neutral-400 text-[11px] mt-0.5 block">{n.body}</span>
+                    <tr key={n.id} className="hover:bg-neutral-800/40 transition-colors">
+                      <td className="p-3.5">
+                        <span className="font-semibold text-white block">{n.title}</span>
+                        <span className="text-neutral-400 text-[11px] mt-0.5 block truncate max-w-sm">{n.body}</span>
                       </td>
-                      <td className="p-4">
-                        <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[11px] font-medium px-2 py-0.5 rounded">
+                      <td className="p-3.5">
+                        <span className="bg-neutral-800 text-neutral-300 border border-neutral-700 text-[10px] font-mono px-2 py-0.5 rounded">
                           {n.audience}
                         </span>
                       </td>
-                      <td className="p-4 text-neutral-400 font-mono text-[11px]">
-                        {n.sent_at ? (n.sent_at.length > 16 ? n.sent_at.replace('T', ' ').substring(0, 16) : n.sent_at) : 'N/A'}
-                      </td>
-                      <td className="p-4 text-white font-mono text-xs">{n.delivered}</td>
-                      <td className="p-4 text-neutral-300 font-mono text-xs">
+                      <td className="p-3.5 text-neutral-300 font-mono text-xs">{n.delivered || 0}</td>
+                      <td className="p-3.5 text-neutral-300 font-mono text-xs">
                         {n.clicks || 0} ({ctr}%)
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-3.5 text-neutral-400 font-mono text-[11px]">
+                        {n.sent_at ? (n.sent_at.length > 16 ? n.sent_at.replace('T', ' ').substring(0, 16) : n.sent_at) : 'N/A'}
+                      </td>
+                      <td className="p-3.5 text-right">
                         <button
                           onClick={() => setDeleteTarget(n)}
-                          className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors cursor-pointer"
-                          title="Delete"
+                          className="p-1.5 rounded-lg text-neutral-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                          title="Delete Campaign"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -225,8 +202,8 @@ const AdminNotificationsView = () => {
                 })}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <NotificationComposerModal
@@ -238,7 +215,7 @@ const AdminNotificationsView = () => {
       <ConfirmDialog
         isOpen={!!deleteTarget}
         title="Delete campaign"
-        description={`Are you sure you want to delete the campaign "${deleteTarget?.title}"?`}
+        description={`Are you sure you want to delete the broadcast campaign "${deleteTarget?.title}"?`}
         confirmLabel="Delete"
         variant="danger"
         onConfirm={confirmDeleteNotif}
@@ -249,3 +226,4 @@ const AdminNotificationsView = () => {
 };
 
 export default AdminNotificationsView;
+

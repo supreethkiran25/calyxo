@@ -150,45 +150,45 @@ const AdminSettingsView = () => {
 
   const tabs = [
     { id: 'general', label: 'General', icon: Globe },
-    { id: 'operations', label: 'Feature flags', icon: SlidersHorizontal },
+    { id: 'operations', label: 'Feature Flags', icon: SlidersHorizontal },
     { id: 'billing', label: 'Billing & Gateway', icon: CreditCard },
     { id: 'ai', label: 'AI Engine', icon: Cpu },
-    { id: 'security', label: 'Security', icon: Lock },
+    { id: 'security', label: 'Security & Auth', icon: Lock },
     { id: 'push', label: 'Web Push', icon: Bell }
   ];
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* 1. Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-neutral-800/80">
         <div>
-          <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">
-            Platform settings
-          </h1>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            Feature flags, pricing and system configuration
+          <h2 className="text-xl font-bold text-white tracking-tight">Platform Settings</h2>
+          <p className="text-xs text-neutral-400 font-mono mt-0.5">
+            Feature flags, subscription pricing, AI models, and system configuration
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2">
           <button
             onClick={handleExportBackup}
-            className="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-3.5 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
           >
-            <Download className="w-3.5 h-3.5 text-neutral-400" /> Export JSON
+            <Download className="w-3.5 h-3.5 text-neutral-400" />
+            <span>Export JSON</span>
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+            className="px-3.5 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
           >
-            <Save className="w-3.5 h-3.5" /> {saving ? 'Saving...' : 'Save settings'}
+            <Save className="w-3.5 h-3.5 text-neutral-400" />
+            <span>{saving ? 'Saving...' : 'Save Settings'}</span>
           </button>
         </div>
       </div>
 
-      {/* Tabs Navigation */}
-      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-neutral-900 border border-neutral-800 overflow-x-auto text-xs custom-scrollbar">
+      {/* 2. Tabs Navigation */}
+      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-neutral-900 border border-neutral-800 overflow-x-auto text-xs font-mono">
         {tabs.map(t => {
           const Icon = t.icon;
           const active = activeTab === t.id;
@@ -198,8 +198,8 @@ const AdminSettingsView = () => {
               onClick={() => setActiveTab(t.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 whitespace-nowrap cursor-pointer ${
                 active
-                  ? 'bg-blue-600 text-white'
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                  ? 'bg-neutral-800 text-white font-bold'
+                  : 'text-neutral-400 hover:text-neutral-200'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -208,6 +208,7 @@ const AdminSettingsView = () => {
           );
         })}
       </div>
+
 
       {/* Tab 1: General */}
       {activeTab === 'general' && (

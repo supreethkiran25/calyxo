@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { DollarSign, Download, ArrowUpRight, CheckCircle2, CreditCard, Search, Calendar, RefreshCw } from 'lucide-react';
+import { DollarSign, Download, ArrowUpRight, CreditCard, RefreshCw } from 'lucide-react';
 import { getAdminTransactions, getAdminDashboardMetrics } from '../../services/adminService';
-import { AdminStatCard, AdminStatusBadge, AdminLoadingSkeleton } from '../../components/admin/AdminUIPrimitives';
+import {
+  AdminPageHeader,
+  AdminStatCard,
+  AdminStatusBadge,
+  AdminLoadingSkeleton,
+  AdminEmptyState,
+  AdminSearchInput
+} from '../../components/admin/AdminUIPrimitives';
 import { useAdminRealtime } from '../../hooks/useAdminRealtime';
 
 const AdminRevenueView = () => {
@@ -9,6 +16,7 @@ const AdminRevenueView = () => {
   const [transactions, setTransactions] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -22,6 +30,7 @@ const AdminRevenueView = () => {
       console.error('[AdminRevenueView] Error loading data:', e);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -29,7 +38,7 @@ const AdminRevenueView = () => {
     loadData();
   }, [loadData]);
 
-  // Real-time listener for subscriptions & payments from Supabase
+  // Real-time updates
   useAdminRealtime(['subscriptions', 'admin_audit_logs', 'user_profiles'], () => {
     loadData();
   });
@@ -56,6 +65,11 @@ const AdminRevenueView = () => {
     a.click();
   };
 
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
+
   if (loading || !metrics) {
     return <AdminLoadingSkeleton rows={5} />;
   }
@@ -64,121 +78,122 @@ const AdminRevenueView = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header Context */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-neutral-800/80">
-        <div>
-          <h2 className="text-xl font-bold text-white tracking-tight">Financial Revenue & Transaction Ledger</h2>
-          <p className="text-xs text-neutral-400 font-mono mt-0.5">
-            Realtime Supabase & Razorpay payment audit stream and subscription financial metrics
-          </p>
-        </div>
+      {/* 1. Header */}
+      <AdminPageHeader
+        title="Revenue"
+        description="Captured payments, monthly recurring run-rates, and financial audit ledger"
+        badge={`₹${totalGrossRevenue.toLocaleString()} Total`}
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white border border-neutral-800 transition-colors cursor-pointer"
+              title="Refresh Ledger"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={exportCSV}
+              className="px-3.5 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white text-xs font-semibold border border-neutral-800 transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export Ledger</span>
+            </button>
+          </div>
+        }
+      />
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={loadData}
-            className="p-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white border border-neutral-800 transition-colors cursor-pointer"
-            title="Refresh Ledger"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-          <button
-            onClick={exportCSV}
-            className="px-4 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold border border-neutral-800 transition-colors flex items-center gap-2 cursor-pointer"
-          >
-            <Download className="w-4 h-4" />
-            <span>Export Financial Ledger</span>
-          </button>
-        </div>
-      </div>
-
-      {/* KPI Cards Row */}
+      {/* 2. Top KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <AdminStatCard
-          title="Total Verified Revenue"
+          title="Total Captured Revenue"
           value={`₹${totalGrossRevenue.toLocaleString()}`}
           icon={DollarSign}
-          change="Razorpay Live"
-          changeType="positive"
-          subtitle="Gross captured transactions"
+          subtitle="Gross transactions"
         />
         <AdminStatCard
-          title="Monthly Recurring Revenue (MRR)"
-          value={`₹${kpis.mrr_inr.toLocaleString()}`}
+          title="Monthly Recurring (MRR)"
+          value={`₹${(kpis.mrr_inr || 0).toLocaleString()}`}
           icon={CreditCard}
-          subtitle="Current active high plan subscribers"
+          subtitle="Active High Plan accounts"
         />
         <AdminStatCard
           title="Annualized Run Rate (ARR)"
-          value={`₹${(kpis.mrr_inr * 12).toLocaleString()}`}
+          value={`₹${((kpis.mrr_inr || 0) * 12).toLocaleString()}`}
           icon={ArrowUpRight}
-          subtitle="Projected annualized ARR"
+          subtitle="Annualized projection"
         />
       </div>
 
-      {/* Filter Bar */}
-      <div className="p-4 bg-neutral-900/90 border border-neutral-800/80 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search payment ID, email, or customer name..."
-            className="w-full pl-10 pr-4 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 font-mono"
-          />
-        </div>
+      {/* 3. Filter Bar */}
+      <div className="p-3 bg-neutral-900/90 border border-neutral-800/80 rounded-xl flex items-center justify-between">
+        <AdminSearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Filter by payment ID, email, or customer..."
+          onClear={() => setSearch('')}
+        />
       </div>
 
-      {/* Transactions Table */}
-      <div className="bg-neutral-900/90 border border-neutral-800/80 rounded-xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-neutral-800 bg-neutral-950/60 text-neutral-400 font-mono uppercase text-[10px]">
-                <th className="p-3.5">Payment ID</th>
-                <th className="p-3.5">Customer</th>
-                <th className="p-3.5">Plan</th>
-                <th className="p-3.5">Amount</th>
-                <th className="p-3.5">Status</th>
-                <th className="p-3.5">Provider / Source</th>
-                <th className="p-3.5 text-right">Timestamp</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-800/60 font-sans">
-              {filteredTx.map((tx, idx) => (
-                <tr key={tx.payment_id || idx} className="hover:bg-neutral-800/50 transition-colors">
-                  <td className="p-3.5 font-mono text-xs font-bold text-blue-400">
-                    {tx.payment_id}
-                  </td>
-                  <td className="p-3.5">
-                    <div>
-                      <span className="font-bold text-white block">{tx.customer_name}</span>
-                      <span className="text-[10px] text-neutral-400 font-mono">{tx.customer_email}</span>
-                    </div>
-                  </td>
-                  <td className="p-3.5 font-mono font-bold text-amber-300">
-                    {tx.plan}
-                  </td>
-                  <td className="p-3.5 font-mono font-bold text-white">
-                    ₹{Number(tx.amount).toLocaleString()} {tx.currency || 'INR'}
-                  </td>
-                  <td className="p-3.5">
-                    <AdminStatusBadge status={tx.status} />
-                  </td>
-                  <td className="p-3.5 font-mono text-[11px] text-neutral-400">
-                    {tx.payment_provider || 'Razorpay Gateway'}
-                  </td>
-                  <td className="p-3.5 text-right font-mono text-[11px] text-neutral-400">
-                    {tx.purchase_date}
-                  </td>
+      {/* 4. Transactions Table */}
+      <div className="bg-neutral-900/90 border border-neutral-800/80 rounded-xl overflow-hidden">
+        {filteredTx.length === 0 ? (
+          <AdminEmptyState
+            title="No transactions found"
+            description="Try searching with a different payment ID or customer email."
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-neutral-800 bg-neutral-950/60 text-neutral-400 font-mono uppercase text-[10px]">
+                  <th className="p-3.5 font-bold">Payment ID</th>
+                  <th className="p-3.5 font-bold">Customer</th>
+                  <th className="p-3.5 font-bold">Plan</th>
+                  <th className="p-3.5 font-bold">Amount</th>
+                  <th className="p-3.5 font-bold">Status</th>
+                  <th className="p-3.5 font-bold">Provider</th>
+                  <th className="p-3.5 text-right font-bold">Timestamp</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-neutral-800/60 font-sans">
+                {filteredTx.map((tx, idx) => (
+                  <tr key={tx.payment_id || idx} className="hover:bg-neutral-800/40 transition-colors">
+                    <td className="p-3.5 font-mono text-xs font-semibold text-neutral-300">
+                      {tx.payment_id}
+                    </td>
+                    <td className="p-3.5">
+                      <div>
+                        <span className="font-semibold text-white block">{tx.customer_name}</span>
+                        <span className="text-[10px] text-neutral-400 font-mono">{tx.customer_email}</span>
+                      </div>
+                    </td>
+                    <td className="p-3.5 font-mono font-semibold text-amber-400">
+                      {tx.plan}
+                    </td>
+                    <td className="p-3.5 font-mono font-bold text-white">
+                      ₹{Number(tx.amount).toLocaleString()} {tx.currency || 'INR'}
+                    </td>
+                    <td className="p-3.5">
+                      <AdminStatusBadge status={tx.status} />
+                    </td>
+                    <td className="p-3.5 font-mono text-[11px] text-neutral-400">
+                      {tx.payment_provider || 'Razorpay Gateway'}
+                    </td>
+                    <td className="p-3.5 text-right font-mono text-[11px] text-neutral-400">
+                      {tx.purchase_date}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 export default AdminRevenueView;
+

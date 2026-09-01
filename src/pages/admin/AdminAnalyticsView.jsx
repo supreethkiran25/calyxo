@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { TrendingUp, Activity, Users, Utensils, Dumbbell, Bot } from 'lucide-react';
+import { TrendingUp, Activity, Users, Utensils, Dumbbell } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { getAdminDashboardMetrics } from '../../services/adminService';
-import { AdminStatCard, AdminDateRangePicker, AdminLoadingSkeleton } from '../../components/admin/AdminUIPrimitives';
+import {
+  AdminPageHeader,
+  AdminStatCard,
+  AdminDateRangePicker,
+  AdminLoadingSkeleton
+} from '../../components/admin/AdminUIPrimitives';
 import { useAdminRealtime } from '../../hooks/useAdminRealtime';
 
 const AdminAnalyticsView = () => {
@@ -38,19 +43,16 @@ const AdminAnalyticsView = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header Context */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-neutral-800/80">
-        <div>
-          <h2 className="text-xl font-bold text-white tracking-tight">Platform Analytics & Insights</h2>
-          <p className="text-xs text-neutral-400 font-mono mt-0.5">
-            Aggregated user engagement telemetry, workout volume, and food logging intensity
-          </p>
-        </div>
+      {/* 1. Header Context */}
+      <AdminPageHeader
+        title="Platform Analytics"
+        description="Aggregated athlete retention, workout completion rates, and nutrition tracking trends"
+        actions={
+          <AdminDateRangePicker selectedRange={dateRange} onSelectRange={setDateRange} />
+        }
+      />
 
-        <AdminDateRangePicker selectedRange={dateRange} onSelectRange={setDateRange} />
-      </div>
-
-      {/* KPI Cards Row */}
+      {/* 2. KPI Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <AdminStatCard
           title="Daily Active Users (DAU)"
@@ -71,27 +73,30 @@ const AdminAnalyticsView = () => {
           subtitle="Total nutrition entries"
         />
         <AdminStatCard
-          title="Workout Sessions Logged"
+          title="Workouts Logged"
           value={kpis.workout_sessions_today.toLocaleString()}
           icon={Dumbbell}
-          subtitle="Completed gym workouts"
+          subtitle="Completed gym sessions"
         />
       </div>
 
-      {/* Analytics Charts */}
+      {/* 3. Analytics Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Engagement Growth Chart */}
         <div className="bg-neutral-900/90 border border-neutral-800/80 rounded-xl p-5 space-y-4">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-blue-400" /> User Trajectory & Retention
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-mono font-semibold text-white tracking-tight flex items-center gap-2 uppercase">
+              <TrendingUp className="w-3.5 h-3.5 text-neutral-400" /> Athlete Trajectory & Growth
+            </h3>
+            <span className="text-[10px] font-mono text-neutral-500">Cumulative Registered</span>
+          </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={user_growth_chart}>
-                <XAxis dataKey="date" stroke="#525252" fontSize={11} />
-                <YAxis stroke="#525252" fontSize={11} />
-                <Tooltip contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '12px', fontSize: '12px' }} />
-                <Area type="monotone" dataKey="total" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.2} name="Total Athletes" />
+                <XAxis dataKey="date" stroke="#525252" fontSize={10} fontStyle="mono" tickLine={false} />
+                <YAxis stroke="#525252" fontSize={10} fontStyle="mono" tickLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace' }} />
+                <Area type="monotone" dataKey="total" stroke="#e5e5e5" fill="#525252" fillOpacity={0.15} name="Total Athletes" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -99,19 +104,22 @@ const AdminAnalyticsView = () => {
 
         {/* Financial Growth Chart */}
         <div className="bg-neutral-900/90 border border-neutral-800/80 rounded-xl p-5 space-y-4">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Activity className="w-4 h-4 text-emerald-400" /> Subscription Revenue Trend
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-mono font-semibold text-white tracking-tight flex items-center gap-2 uppercase">
+              <Activity className="w-3.5 h-3.5 text-neutral-400" /> Subscription Revenue Trend
+            </h3>
+            <span className="text-[10px] font-mono text-neutral-500">Gross Monthly (INR)</span>
+          </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={revenue_chart}>
-                <XAxis dataKey="month" stroke="#525252" fontSize={11} />
-                <YAxis stroke="#525252" fontSize={11} />
+                <XAxis dataKey="month" stroke="#525252" fontSize={10} fontStyle="mono" tickLine={false} />
+                <YAxis stroke="#525252" fontSize={10} fontStyle="mono" tickLine={false} />
                 <Tooltip 
                   formatter={(val) => [`₹${Number(val).toLocaleString()}`, 'Revenue']}
-                  contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '12px', fontSize: '12px' }} 
+                  contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace' }} 
                 />
-                <Bar dataKey="revenue_inr" fill="#10B981" radius={[4, 4, 0, 0]} name="Revenue (₹)" />
+                <Bar dataKey="revenue_inr" fill="#ffffff" radius={[3, 3, 0, 0]} name="Revenue (₹)" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -122,3 +130,4 @@ const AdminAnalyticsView = () => {
 };
 
 export default AdminAnalyticsView;
+

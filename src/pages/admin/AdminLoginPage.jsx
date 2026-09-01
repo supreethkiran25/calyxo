@@ -119,33 +119,47 @@ const AdminLoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center p-4 selection:bg-blue-500/30 selection:text-blue-200">
-      <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-xl p-8 space-y-6 shadow-2xl">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center mx-auto shadow-lg shadow-blue-600/30">
-            {authMode === 'reset' ? <KeyRound className="w-6 h-6 text-white" /> : <Shield className="w-6 h-6 text-white" />}
+    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center p-4 selection:bg-neutral-800 selection:text-white font-sans">
+      <div className="w-full max-w-sm bg-neutral-900/90 border border-neutral-800/80 rounded-2xl p-7 space-y-6 shadow-2xl backdrop-blur-md">
+        {/* Header Branding */}
+        <div className="text-center space-y-2.5">
+          <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center mx-auto shadow-md">
+            <div
+              className="w-7 h-7 bg-black"
+              style={{
+                maskImage: 'url(/calyxo-removebg-preview.png)',
+                WebkitMaskImage: 'url(/calyxo-removebg-preview.png)',
+                maskSize: 'contain',
+                WebkitMaskSize: 'contain',
+                maskRepeat: 'no-repeat',
+                WebkitMaskRepeat: 'no-repeat',
+                maskPosition: 'center',
+                WebkitMaskPosition: 'center'
+              }}
+            />
           </div>
-          <h1 className="text-xl font-semibold text-white tracking-tight flex items-center justify-center gap-2">
-            Calyxo <span className="text-xs font-mono font-medium px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">ADMIN</span>
-          </h1>
-          <p className="text-xs text-neutral-400">
-            {authMode === 'forgot' && 'Reset Super Admin Password'}
-            {authMode === 'reset' && 'Set New Super Admin Password'}
-            {authMode === 'login' && 'Master Administrator Portal'}
-          </p>
+          <div>
+            <h1 className="text-lg font-bold text-white tracking-tight flex items-center justify-center gap-2">
+              Calyxo <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-neutral-800 text-neutral-300 border border-neutral-700">SUPER ADMIN</span>
+            </h1>
+            <p className="text-xs text-neutral-400 font-mono mt-1">
+              {authMode === 'forgot' && 'Reset Super Admin Password'}
+              {authMode === 'reset' && 'Set New Super Admin Password'}
+              {authMode === 'login' && 'Restricted Operations Console'}
+            </p>
+          </div>
         </div>
 
         {errorMsg && (
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+          <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-900/50 text-rose-300 text-xs font-mono flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <div className="p-3 rounded-lg bg-emerald-950/40 border border-emerald-900/50 text-emerald-300 text-xs font-mono flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
             <span>{successMsg}</span>
           </div>
         )}
@@ -154,9 +168,9 @@ const AdminLoginPage = () => {
         {authMode === 'login' && (
           <form onSubmit={handleAdminSignIn} className="space-y-4 text-xs" autoComplete="off">
             <div>
-              <label className="text-neutral-400 font-medium block mb-1">Super Admin Email</label>
+              <label className="text-neutral-400 font-mono text-[11px] block mb-1">Super Admin Account</label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Mail className="w-3.5 h-3.5 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
                   required
@@ -164,14 +178,14 @@ const AdminLoginPage = () => {
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
                   placeholder="supreethkiran25@gmail.com"
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg pl-9 pr-3 py-2.5 text-white font-mono focus:border-blue-500 focus:outline-none"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg pl-8 pr-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-neutral-600"
                 />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-neutral-400 font-medium">Master Password</label>
+                <label className="text-neutral-400 font-mono text-[11px]">Master Password</label>
                 <button
                   type="button"
                   onClick={() => {
@@ -179,13 +193,13 @@ const AdminLoginPage = () => {
                     setSuccessMsg('');
                     setAuthMode('forgot');
                   }}
-                  className="text-[11px] text-blue-400 hover:text-blue-300 font-medium cursor-pointer"
+                  className="text-[11px] font-mono text-neutral-400 hover:text-white cursor-pointer transition-colors"
                 >
                   Forgot password?
                 </button>
               </div>
               <div className="relative">
-                <Lock className="w-4 h-4 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Lock className="w-3.5 h-3.5 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type={showPassword ? "text" : "password"}
                   required
@@ -193,16 +207,16 @@ const AdminLoginPage = () => {
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg pl-9 pr-10 py-2.5 text-white font-mono focus:border-blue-500 focus:outline-none"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg pl-8 pr-9 py-2 text-white font-mono text-xs focus:outline-none focus:border-neutral-600"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 focus:outline-none bg-transparent border-none cursor-pointer p-1 flex items-center justify-center"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 focus:outline-none bg-transparent border-none cursor-pointer p-1 flex items-center justify-center"
                   title={showPassword ? "Hide password" : "Show password"}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
               </div>
             </div>
@@ -210,9 +224,9 @@ const AdminLoginPage = () => {
             <button
               type="submit"
               disabled={loading || !emailInput || !passwordInput}
-              className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-50 shadow-lg shadow-blue-600/20"
+              className="w-full py-2.5 rounded-lg bg-white hover:bg-neutral-200 text-black font-semibold transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-50 shadow-md"
             >
-              {loading ? 'Authenticating...' : 'Sign in as Super Admin'} <ArrowRight className="w-4 h-4" />
+              {loading ? 'Authenticating...' : 'Sign in as Super Admin'} <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </form>
         )}
@@ -220,13 +234,13 @@ const AdminLoginPage = () => {
         {/* 2. FORGOT PASSWORD (REQUEST RESET LINK) */}
         {authMode === 'forgot' && (
           <form onSubmit={handleSendResetEmail} className="space-y-4 text-xs" autoComplete="off">
-            <p className="text-neutral-400 text-xs leading-relaxed">
+            <p className="text-neutral-400 text-xs leading-relaxed font-mono">
               Enter your authorized admin email. We will send a secure password reset link to your inbox.
             </p>
             <div>
-              <label className="text-neutral-400 font-medium block mb-1">Super Admin Email</label>
+              <label className="text-neutral-400 font-mono text-[11px] block mb-1">Super Admin Account</label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Mail className="w-3.5 h-3.5 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
                   required
@@ -234,7 +248,7 @@ const AdminLoginPage = () => {
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
                   placeholder="supreethkiran25@gmail.com"
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg pl-9 pr-3 py-2.5 text-white font-mono focus:border-blue-500 focus:outline-none"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg pl-8 pr-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-neutral-600"
                 />
               </div>
             </div>
@@ -242,9 +256,9 @@ const AdminLoginPage = () => {
             <button
               type="submit"
               disabled={loading || !emailInput}
-              className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-50"
+              className="w-full py-2.5 rounded-lg bg-white hover:bg-neutral-200 text-black font-semibold transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-50"
             >
-              {loading ? 'Sending Link...' : 'Send Password Reset Link'} <ArrowRight className="w-4 h-4" />
+              {loading ? 'Sending Link...' : 'Send Password Reset Link'} <ArrowRight className="w-3.5 h-3.5" />
             </button>
 
             <button
@@ -254,9 +268,9 @@ const AdminLoginPage = () => {
                 setSuccessMsg('');
                 setAuthMode('login');
               }}
-              className="w-full py-2 text-neutral-400 hover:text-neutral-200 text-xs flex items-center justify-center gap-1 cursor-pointer transition-colors"
+              className="w-full py-2 text-neutral-400 hover:text-neutral-200 text-xs font-mono flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Sign In
+              <ArrowLeft className="w-3 h-3" /> Back to Sign In
             </button>
           </form>
         )}
@@ -265,31 +279,31 @@ const AdminLoginPage = () => {
         {authMode === 'reset' && (
           <form onSubmit={handleSetNewPassword} className="space-y-4 text-xs" autoComplete="off">
             <div>
-              <label className="text-neutral-400 font-medium block mb-1">New Master Password</label>
+              <label className="text-neutral-400 font-mono text-[11px] block mb-1">New Master Password</label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Lock className="w-3.5 h-3.5 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type={showPassword ? "text" : "password"}
                   required
                   value={newPasswordInput}
                   onChange={(e) => setNewPasswordInput(e.target.value)}
                   placeholder="At least 6 characters"
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg pl-9 pr-10 py-2.5 text-white font-mono focus:border-blue-500 focus:outline-none"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg pl-8 pr-9 py-2 text-white font-mono text-xs focus:outline-none focus:border-neutral-600"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-neutral-400 font-medium block mb-1">Confirm New Password</label>
+              <label className="text-neutral-400 font-mono text-[11px] block mb-1">Confirm New Password</label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Lock className="w-3.5 h-3.5 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type={showPassword ? "text" : "password"}
                   required
                   value={confirmPasswordInput}
                   onChange={(e) => setConfirmPasswordInput(e.target.value)}
                   placeholder="Re-enter new password"
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg pl-9 pr-10 py-2.5 text-white font-mono focus:border-blue-500 focus:outline-none"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg pl-8 pr-9 py-2 text-white font-mono text-xs focus:outline-none focus:border-neutral-600"
                 />
               </div>
             </div>
@@ -297,9 +311,9 @@ const AdminLoginPage = () => {
             <button
               type="submit"
               disabled={loading || !newPasswordInput || !confirmPasswordInput}
-              className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-50"
+              className="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-black font-semibold transition-colors flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-50"
             >
-              {loading ? 'Updating Password...' : 'Save New Password & Enter'} <ArrowRight className="w-4 h-4" />
+              {loading ? 'Updating Password...' : 'Save New Password & Enter'} <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </form>
         )}
@@ -307,7 +321,4 @@ const AdminLoginPage = () => {
     </div>
   );
 };
-
 export default AdminLoginPage;
-
-

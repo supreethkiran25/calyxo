@@ -231,57 +231,52 @@ const AdminWorkoutDbView = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">
-            Exercise database
-          </h1>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            Master exercise library and training content — {exercises.length} items
-          </p>
-        </div>
+      {/* 1. Header */}
+      <AdminPageHeader
+        title="Workout Library"
+        description="Master database of exercises, muscle biomechanics, and multimedia assets"
+        badge={`${exercises.length} items`}
+        actions={
+          <div className="flex items-center gap-2">
+            <label className="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors">
+              <Upload className="w-3.5 h-3.5 text-neutral-400" />
+              <span>Import JSON</span>
+              <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
+            </label>
+            <button
+              onClick={handleExportJSON}
+              className="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              <Download className="w-3.5 h-3.5 text-neutral-400" />
+              <span>Export JSON</span>
+            </button>
+            <button
+              onClick={() => { setModalData(null); setIsModalOpen(true); }}
+              className="px-3.5 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold flex items-center gap-1.5 border border-neutral-700 transition-colors cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Exercise</span>
+            </button>
+          </div>
+        }
+      />
 
-        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
-          <label className="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors">
-            <Upload className="w-3.5 h-3.5 text-neutral-400" /> Import JSON
-            <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
-          </label>
-          <button
-            onClick={handleExportJSON}
-            className="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
-          >
-            <Download className="w-3.5 h-3.5 text-neutral-400" /> Export JSON
-          </button>
-          <button
-            onClick={() => { setModalData(null); setIsModalOpen(true); }}
-            className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" /> Add exercise
-          </button>
-        </div>
-      </div>
+      {/* 2. Search and Multi-Select Filters */}
+      <div className="p-3 bg-neutral-900/90 border border-neutral-800/80 rounded-xl space-y-3">
+        <AdminSearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search exercises by title or muscle..."
+          onClear={() => setSearch('')}
+        />
 
-      {/* Control & Search Bar */}
-      <div className="p-4 rounded-xl bg-neutral-900 border border-neutral-800 space-y-3">
-        <div className="relative w-full">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search exercises..."
-            className="w-full bg-neutral-950 border border-neutral-800 rounded-lg pl-9 pr-4 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs font-mono">
           <select
             value={bodyPartFilter}
             onChange={(e) => setBodyPartFilter(e.target.value)}
-            className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none capitalize"
+            className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-neutral-700 capitalize cursor-pointer"
           >
-            <option value="">All body parts</option>
+            <option value="">All Body Parts</option>
             {BODY_PARTS_LIST.map(bp => (
               <option key={bp} value={bp} className="capitalize">{bp}</option>
             ))}
@@ -290,9 +285,9 @@ const AdminWorkoutDbView = () => {
           <select
             value={targetMuscleFilter}
             onChange={(e) => setTargetMuscleFilter(e.target.value)}
-            className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none capitalize"
+            className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-neutral-700 capitalize cursor-pointer"
           >
-            <option value="">All muscles</option>
+            <option value="">All Muscles</option>
             {TARGET_MUSCLES_LIST.map(tm => (
               <option key={tm} value={tm} className="capitalize">{tm}</option>
             ))}
@@ -301,9 +296,9 @@ const AdminWorkoutDbView = () => {
           <select
             value={equipmentFilter}
             onChange={(e) => setEquipmentFilter(e.target.value)}
-            className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none capitalize"
+            className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-neutral-700 capitalize cursor-pointer"
           >
-            <option value="">All equipment</option>
+            <option value="">All Equipment</option>
             {EQUIPMENT_LIST.map(eq => (
               <option key={eq} value={eq} className="capitalize">{eq}</option>
             ))}
@@ -312,9 +307,9 @@ const AdminWorkoutDbView = () => {
           <select
             value={difficultyFilter}
             onChange={(e) => setDifficultyFilter(e.target.value)}
-            className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none capitalize"
+            className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-neutral-700 capitalize cursor-pointer"
           >
-            <option value="">All difficulties</option>
+            <option value="">All Difficulties</option>
             <option value="beginner">Beginner</option>
             <option value="intermediate">Intermediate</option>
             <option value="advanced">Advanced</option>
@@ -322,20 +317,20 @@ const AdminWorkoutDbView = () => {
         </div>
       </div>
 
-      {/* Bulk Action Bar */}
+      {/* 3. Bulk Action Floating Toolbar */}
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-3 flex items-center gap-3 text-xs text-white z-40">
-          <span className="font-medium">{selectedIds.length} selected</span>
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 flex items-center gap-3 text-xs text-white z-40 shadow-2xl">
+          <span className="font-mono">{selectedIds.length} selected</span>
           <button
             onClick={handleBulkDelete}
-            className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 font-semibold cursor-pointer"
+            className="px-3 py-1 rounded-lg bg-rose-950/40 text-rose-400 border border-rose-900/50 hover:bg-rose-900/60 font-semibold cursor-pointer transition-colors"
           >
-            Delete selected
+            Delete Selected
           </button>
         </div>
       )}
 
-      {/* Exercise Cards Grid */}
+      {/* 4. Exercise Cards Grid */}
       {loading ? (
         <div className="p-12 text-center text-xs font-mono text-neutral-500">
           Loading exercises...
@@ -351,13 +346,13 @@ const AdminWorkoutDbView = () => {
             return (
               <div
                 key={ex.id}
-                className={`bg-neutral-900 border rounded-xl p-4 flex flex-col justify-between group transition-colors relative ${
-                  isSelected ? 'border-blue-500 bg-blue-500/5' : 'border-neutral-800 hover:border-neutral-700'
+                className={`bg-neutral-900/90 border rounded-xl p-3.5 flex flex-col justify-between group transition-colors relative ${
+                  isSelected ? 'border-neutral-500 bg-neutral-800/40' : 'border-neutral-800/80 hover:border-neutral-700'
                 }`}
               >
                 <div>
                   {/* Image Container */}
-                  <div className="h-40 rounded-lg overflow-hidden bg-neutral-950 relative mb-3 border border-neutral-800 flex items-center justify-center p-2">
+                  <div className="h-36 rounded-lg overflow-hidden bg-neutral-950 relative mb-3 border border-neutral-800 flex items-center justify-center p-2">
                     <img
                       src={ex.gif_url || ex.image_url}
                       alt={ex.name || ex.title}
@@ -368,19 +363,19 @@ const AdminWorkoutDbView = () => {
                       className="w-full h-full object-contain"
                     />
 
-                    {/* Category Badge top-left */}
-                    <span className="absolute top-2 left-2 bg-black/60 text-blue-300 border border-blue-500/20 text-[10px] font-mono rounded px-2 py-0.5 capitalize">
-                      {ex.body_part || ex.category || 'general'}
+                    {/* Category Badge */}
+                    <span className="absolute top-2 left-2 bg-neutral-900/90 text-neutral-300 border border-neutral-700 text-[10px] font-mono rounded px-1.5 py-0.5 capitalize">
+                      {ex.body_part || ex.category || 'General'}
                     </span>
 
-                    {/* Difficulty Badge top-right */}
-                    <span className={`absolute top-2 right-2 text-[10px] font-medium px-2 py-0.5 rounded border capitalize ${getDifficultyBadge(ex.difficulty)}`}>
+                    {/* Difficulty Badge */}
+                    <span className={`absolute top-2 right-2 text-[10px] font-mono px-1.5 py-0.5 rounded border capitalize ${getDifficultyBadge(ex.difficulty)}`}>
                       {ex.difficulty || 'beginner'}
                     </span>
                   </div>
 
                   {/* Exercise Title */}
-                  <h3 className="text-sm font-semibold text-white group-hover:text-blue-400 transition-colors capitalize line-clamp-1">
+                  <h3 className="text-xs font-bold text-white group-hover:text-neutral-200 transition-colors capitalize line-clamp-1">
                     {ex.name || ex.title}
                   </h3>
 
@@ -391,25 +386,25 @@ const AdminWorkoutDbView = () => {
 
                   {/* Instructions snippet */}
                   {ex.instructions && (
-                    <p className="text-xs text-neutral-500 line-clamp-2 leading-relaxed mt-1.5">
+                    <p className="text-xs text-neutral-500 line-clamp-2 leading-relaxed mt-1.5 font-sans">
                       {ex.instructions}
                     </p>
                   )}
                 </div>
 
                 {/* Card Actions Footer */}
-                <div className="pt-3 mt-3 border-t border-neutral-800 flex items-center justify-between text-xs">
+                <div className="pt-2.5 mt-2.5 border-t border-neutral-800/80 flex items-center justify-between text-xs">
                   <button
                     onClick={() => handleToggleSelect(ex.id)}
                     className="text-neutral-500 hover:text-white cursor-pointer"
                   >
-                    {isSelected ? <CheckSquare className="w-4 h-4 text-blue-400" /> : <Square className="w-4 h-4" />}
+                    {isSelected ? <CheckSquare className="w-3.5 h-3.5 text-neutral-200" /> : <Square className="w-3.5 h-3.5" />}
                   </button>
 
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => setPreviewExercise(ex)}
-                      className="text-blue-400 hover:text-blue-300 text-[11px] font-medium cursor-pointer px-1.5 py-0.5"
+                      className="text-neutral-300 hover:text-white text-[11px] font-mono font-medium cursor-pointer px-1.5 py-0.5"
                     >
                       Preview
                     </button>
@@ -429,7 +424,7 @@ const AdminWorkoutDbView = () => {
                     </button>
                     <button
                       onClick={() => setDeleteTarget(ex)}
-                      className="p-1 rounded text-neutral-400 hover:text-red-400 cursor-pointer"
+                      className="p-1 rounded text-neutral-400 hover:text-rose-400 cursor-pointer"
                       title="Delete"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -443,7 +438,7 @@ const AdminWorkoutDbView = () => {
       )}
 
       {/* Pagination Controls */}
-      <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-4 flex items-center justify-between text-[11px] text-neutral-500 font-mono">
+      <div className="bg-neutral-950/60 border border-neutral-800 rounded-xl p-3.5 flex items-center justify-between text-xs text-neutral-400 font-mono">
         <span>
           Showing {(page - 1) * ITEMS_PER_PAGE + 1} - {Math.min(page * ITEMS_PER_PAGE, exercises.length)} of {exercises.length} exercises
         </span>
@@ -451,7 +446,7 @@ const AdminWorkoutDbView = () => {
           <button
             disabled={page <= 1}
             onClick={() => setPage(p => p - 1)}
-            className="p-1 rounded bg-neutral-900 border border-neutral-800 text-neutral-300 disabled:opacity-30 cursor-pointer"
+            className="p-1.5 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-300 disabled:opacity-30 cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -459,7 +454,7 @@ const AdminWorkoutDbView = () => {
           <button
             disabled={page >= totalPages}
             onClick={() => setPage(p => p + 1)}
-            className="p-1 rounded bg-neutral-900 border border-neutral-800 text-neutral-300 disabled:opacity-30 cursor-pointer"
+            className="p-1.5 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-300 disabled:opacity-30 cursor-pointer"
           >
             <ChevronRight className="w-4 h-4" />
           </button>

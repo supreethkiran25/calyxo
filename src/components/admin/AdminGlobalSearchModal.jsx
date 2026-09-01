@@ -57,17 +57,17 @@ const AdminGlobalSearchModal = ({ isOpen, onClose, onSelectUser }) => {
   const matchedFoods = q ? foods.filter(f => f.name?.toLowerCase().includes(q) || f.category?.toLowerCase().includes(q)) : foods.slice(0, 3);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/70">
-      <div className="w-full max-w-2xl rounded-xl bg-neutral-900 border border-neutral-800 overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+      <div className="w-full max-w-2xl rounded-xl bg-neutral-900 border border-neutral-800 overflow-hidden flex flex-col shadow-2xl">
         {/* Search Header */}
-        <div className="flex items-center px-4 py-3 border-b border-neutral-800 bg-neutral-950">
-          <Search className="w-4 h-4 text-blue-400 shrink-0 mr-3" />
+        <div className="flex items-center px-4 py-3 border-b border-neutral-800 bg-neutral-950/80">
+          <Search className="w-4 h-4 text-neutral-400 shrink-0 mr-3" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search users, exercises, foods..."
-            className="w-full bg-transparent text-white placeholder-neutral-500 text-xs focus:outline-none font-medium"
+            placeholder="Search athletes, exercises, nutrition catalog..."
+            className="w-full bg-transparent text-white placeholder-neutral-500 text-xs focus:outline-none font-mono"
             autoFocus
           />
           <button
@@ -79,12 +79,12 @@ const AdminGlobalSearchModal = ({ isOpen, onClose, onSelectUser }) => {
         </div>
 
         {/* Search Results */}
-        <div className="p-3 max-h-[60vh] overflow-y-auto space-y-4 custom-scrollbar text-xs">
+        <div className="p-3 max-h-[60vh] overflow-y-auto space-y-4 text-xs font-sans">
           {/* Users Category */}
           {matchedUsers.length > 0 && (
             <div>
-              <div className="px-2 py-1 text-[11px] font-medium text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5 text-blue-400" /> Users ({matchedUsers.length})
+              <div className="px-2 py-1 text-[10px] font-mono text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-neutral-400" /> Athletes ({matchedUsers.length})
               </div>
               <div className="space-y-1 mt-1">
                 {matchedUsers.map(u => (
@@ -98,16 +98,16 @@ const AdminGlobalSearchModal = ({ isOpen, onClose, onSelectUser }) => {
                     className="w-full flex items-center justify-between p-2.5 rounded-lg bg-neutral-950/50 hover:bg-neutral-800 border border-neutral-800/60 transition-colors group text-left cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
-                      <img src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'U')}&background=1a1a2e&color=3B82F6&size=80`} alt="" className="w-7 h-7 rounded-full object-cover" />
+                      <img src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'U')}&background=171717&color=ffffff&size=80`} alt="" className="w-7 h-7 rounded-full object-cover border border-neutral-700" />
                       <div>
                         <div className="text-white font-medium flex items-center gap-1.5">
                           {u.full_name}
-                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400 border border-neutral-700">{u.subscription_plan}</span>
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-neutral-800 text-neutral-300 border border-neutral-700">{u.subscription_plan}</span>
                         </div>
                         <div className="text-neutral-500 text-[11px] font-mono">{u.email}</div>
                       </div>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-neutral-500 group-hover:text-blue-400 transition-colors" />
+                    <ArrowRight className="w-3.5 h-3.5 text-neutral-500 group-hover:text-white transition-colors" />
                   </button>
                 ))}
               </div>
@@ -117,8 +117,8 @@ const AdminGlobalSearchModal = ({ isOpen, onClose, onSelectUser }) => {
           {/* Exercises Category */}
           {matchedExercises.length > 0 && (
             <div>
-              <div className="px-2 py-1 text-[11px] font-medium text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Dumbbell className="w-3.5 h-3.5 text-blue-400" /> Exercises ({matchedExercises.length})
+              <div className="px-2 py-1 text-[10px] font-mono text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Dumbbell className="w-3.5 h-3.5 text-neutral-400" /> Exercises ({matchedExercises.length})
               </div>
               <div className="space-y-1 mt-1">
                 {matchedExercises.map(e => (
@@ -131,7 +131,7 @@ const AdminGlobalSearchModal = ({ isOpen, onClose, onSelectUser }) => {
                       <span className="font-medium text-white">{e.title}</span>
                       <span className="text-[11px] text-neutral-500 font-mono">({e.muscle})</span>
                     </div>
-                    <span className="text-[10px] text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">{e.category}</span>
+                    <span className="text-[10px] font-mono text-neutral-400 bg-neutral-800 px-2 py-0.5 rounded border border-neutral-700 capitalize">{e.category}</span>
                   </button>
                 ))}
               </div>
@@ -141,8 +141,8 @@ const AdminGlobalSearchModal = ({ isOpen, onClose, onSelectUser }) => {
           {/* Foods Category */}
           {matchedFoods.length > 0 && (
             <div>
-              <div className="px-2 py-1 text-[11px] font-medium text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Utensils className="w-3.5 h-3.5 text-amber-400" /> Nutrition Database ({matchedFoods.length})
+              <div className="px-2 py-1 text-[10px] font-mono text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Utensils className="w-3.5 h-3.5 text-neutral-400" /> Nutrition Catalog ({matchedFoods.length})
               </div>
               <div className="space-y-1 mt-1">
                 {matchedFoods.map(f => (
@@ -153,9 +153,9 @@ const AdminGlobalSearchModal = ({ isOpen, onClose, onSelectUser }) => {
                   >
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-white">{f.name}</span>
-                      <span className="text-[11px] text-neutral-500">({f.serving_size})</span>
+                      <span className="text-[11px] text-neutral-500 font-mono">({f.serving_size})</span>
                     </div>
-                    <span className="text-[10px] text-amber-400 font-mono">{f.calories} kcal | P: {f.protein}g</span>
+                    <span className="text-[10px] text-neutral-300 font-mono">{f.calories} kcal | P: {f.protein}g</span>
                   </button>
                 ))}
               </div>
@@ -163,16 +163,16 @@ const AdminGlobalSearchModal = ({ isOpen, onClose, onSelectUser }) => {
           )}
 
           {matchedUsers.length === 0 && matchedExercises.length === 0 && matchedFoods.length === 0 && (
-            <div className="py-8 text-center text-neutral-500 font-mono">
+            <div className="py-8 text-center text-neutral-500 font-mono text-xs">
               No matching records found.
             </div>
           )}
         </div>
 
         {/* Footer info */}
-        <div className="p-2.5 bg-neutral-950 border-t border-neutral-800 text-[11px] text-neutral-500 flex items-center justify-between font-mono">
-          <span>Press <kbd className="px-1 bg-neutral-800 rounded">Esc</kbd> to exit</span>
-          <span>Calyxo Admin Search</span>
+        <div className="p-2.5 bg-neutral-950/90 border-t border-neutral-800 text-[11px] text-neutral-500 flex items-center justify-between font-mono">
+          <span>Press <kbd className="px-1 py-0.5 bg-neutral-800 border border-neutral-700 text-neutral-400 rounded text-[10px]">Esc</kbd> to dismiss</span>
+          <span>Calyxo Command Search</span>
         </div>
       </div>
     </div>
@@ -180,3 +180,4 @@ const AdminGlobalSearchModal = ({ isOpen, onClose, onSelectUser }) => {
 };
 
 export default AdminGlobalSearchModal;
+

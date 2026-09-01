@@ -1,20 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
-  Search,
   Download,
   Crown,
   ChevronLeft,
   ChevronRight,
   Ban,
   Trash2,
-  Edit,
   ArrowUpDown,
-  Filter,
-  CheckSquare,
-  Shield,
-  UserCheck,
-  Bell
+  Bell,
+  MoreVertical
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminUsers, updateUserStatus, deleteUserAdmin, updateUserSubscription } from '../../services/adminService';
@@ -23,7 +18,13 @@ import NotificationComposerModal from '../../components/admin/NotificationCompos
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import useDebounce from '../../hooks/useDebounce';
 import { useAdminRealtime } from '../../hooks/useAdminRealtime';
-import { AdminStatusBadge, AdminLoadingSkeleton, AdminEmptyState } from '../../components/admin/AdminUIPrimitives';
+import {
+  AdminPageHeader,
+  AdminStatusBadge,
+  AdminLoadingSkeleton,
+  AdminEmptyState,
+  AdminSearchInput
+} from '../../components/admin/AdminUIPrimitives';
 
 const AdminUsersView = () => {
   const [users, setUsers] = useState([]);
@@ -124,7 +125,7 @@ const AdminUsersView = () => {
   const handleSingleDelete = (user) => {
     setConfirmDialog({
       title: `Delete ${user.full_name || 'user'}?`,
-      description: `This action will permanently delete ${user.email} and all associated records. This cannot be undone.`,
+      description: `This action will permanently delete ${user.email} and all associated records from database. This action cannot be undone.`,
       confirmLabel: 'Delete user',
       variant: 'danger',
       onConfirm: async () => {
@@ -143,7 +144,7 @@ const AdminUsersView = () => {
     const count = selectedIds.size;
     setConfirmDialog({
       title: `Grant High plan to ${count} user(s)`,
-      description: `Are you sure you want to grant High plan access to ${count} selected user account(s)?`,
+      description: `Are you sure you want to grant High plan entitlements to ${count} selected athlete accounts for 12 months?`,
       confirmLabel: `Grant access (${count})`,
       onConfirm: async () => {
         try {
@@ -169,63 +170,55 @@ const AdminUsersView = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `calyxo_users_export_page_${page}.csv`;
+    a.download = `calyxo_users_page_${page}.csv`;
     a.click();
   };
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-neutral-800/80">
-        <div>
-          <h2 className="text-xl font-bold text-white tracking-tight">Registered Athletes Directory</h2>
-          <p className="text-xs text-neutral-400 font-mono mt-0.5">
-            Manage user accounts, roles, and premium subscription access ({total.toLocaleString()} total members)
-          </p>
-        </div>
+      {/* 1. Page Header */}
+      <AdminPageHeader
+        title="Users"
+        description="Athlete directory, roles, account status, and subscription entitlements"
+        badge={`${total} total`}
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setNotifyTargetUser(null);
+                setNotifyTargetUserIds([]);
+                setNotifyModalOpen(true);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              <span>Broadcast</span>
+            </button>
+            <button
+              onClick={exportCSV}
+              className="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white text-xs font-semibold border border-neutral-800 transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export CSV</span>
+            </button>
+          </div>
+        }
+      />
+
+      {/* 2. Filter Bar */}
+      <div className="p-3 bg-neutral-900/90 border border-neutral-800/80 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <AdminSearchInput
+          value={search}
+          onChange={(val) => { setSearch(val); setPage(1); }}
+          placeholder="Search by name, email, or ID..."
+          onClear={() => { setSearch(''); setPage(1); }}
+        />
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              setNotifyTargetUser(null);
-              setNotifyTargetUserIds([]);
-              setNotifyModalOpen(true);
-            }}
-            className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-600/20"
-          >
-            <Bell className="w-3.5 h-3.5" />
-            <span>Broadcast Notification</span>
-          </button>
-          <button
-            onClick={exportCSV}
-            className="px-3 py-1.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white text-xs font-semibold border border-neutral-800 transition-colors flex items-center gap-1.5 cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export CSV</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Filter Bar */}
-      <div className="p-4 bg-neutral-900/90 border border-neutral-800/80 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
-        {/* Search Input */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search by name, email, or user ID..."
-            className="w-full pl-10 pr-4 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition-colors font-mono"
-          />
-        </div>
-
-        {/* Dropdown Filters */}
-        <div className="flex flex-wrap items-center gap-2">
           <select
             value={planFilter}
             onChange={(e) => { setPlanFilter(e.target.value); setPage(1); }}
-            className="bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-300 focus:outline-none focus:border-blue-500 font-mono cursor-pointer"
+            className="bg-neutral-950 border border-neutral-800 rounded-lg px-2.5 py-1.5 text-xs text-neutral-300 focus:outline-none focus:border-neutral-700 font-mono cursor-pointer"
           >
             <option value="">All Plans</option>
             <option value="HIGH">High Plan</option>
@@ -235,7 +228,7 @@ const AdminUsersView = () => {
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-300 focus:outline-none focus:border-blue-500 font-mono cursor-pointer"
+            className="bg-neutral-950 border border-neutral-800 rounded-lg px-2.5 py-1.5 text-xs text-neutral-300 focus:outline-none focus:border-neutral-700 font-mono cursor-pointer"
           >
             <option value="">All Statuses</option>
             <option value="Active">Active</option>
@@ -244,10 +237,10 @@ const AdminUsersView = () => {
         </div>
       </div>
 
-      {/* Bulk Selection Actions Toolbar */}
+      {/* 3. Bulk Actions Toolbar */}
       {selectedIds.size > 0 && (
-        <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl flex items-center justify-between text-xs text-blue-300">
-          <span className="font-mono font-semibold">
+        <div className="p-3 bg-neutral-800/90 border border-neutral-700 rounded-xl flex items-center justify-between text-xs text-neutral-200">
+          <span className="font-mono font-medium">
             {selectedIds.size} user(s) selected
           </span>
           <div className="flex items-center gap-2">
@@ -257,24 +250,24 @@ const AdminUsersView = () => {
                 setNotifyTargetUserIds(Array.from(selectedIds));
                 setNotifyModalOpen(true);
               }}
-              className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+              className="px-3 py-1 bg-neutral-900 hover:bg-neutral-950 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1 border border-neutral-700"
             >
               <Bell className="w-3.5 h-3.5" />
-              <span>Notify Selected ({selectedIds.size})</span>
+              <span>Notify ({selectedIds.size})</span>
             </button>
             <button
               onClick={handleBulkGrantHigh}
-              className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+              className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1"
             >
               <Crown className="w-3.5 h-3.5" />
-              <span>Grant High plan</span>
+              <span>Grant High Plan</span>
             </button>
           </div>
         </div>
       )}
 
-      {/* Data Table */}
-      <div className="bg-neutral-900/90 border border-neutral-800/80 rounded-xl overflow-hidden shadow-xl">
+      {/* 4. Data Table */}
+      <div className="bg-neutral-900/90 border border-neutral-800/80 rounded-xl overflow-hidden">
         {loading ? (
           <AdminLoadingSkeleton rows={10} />
         ) : users.length === 0 ? (
@@ -294,7 +287,7 @@ const AdminUsersView = () => {
                       type="checkbox"
                       checked={selectedIds.size === users.length && users.length > 0}
                       onChange={toggleSelectAll}
-                      className="rounded border-neutral-700 text-blue-600 focus:ring-0 cursor-pointer"
+                      className="rounded border-neutral-700 bg-neutral-900 text-neutral-400 focus:ring-0 cursor-pointer"
                     />
                   </th>
                   <th className="p-3.5 font-bold cursor-pointer hover:text-white" onClick={() => handleSort('full_name')}>
@@ -314,8 +307,8 @@ const AdminUsersView = () => {
                   return (
                     <tr
                       key={u.id}
-                      className={`hover:bg-neutral-800/50 transition-colors ${
-                        isSelected ? 'bg-blue-500/5' : ''
+                      className={`hover:bg-neutral-800/40 transition-colors ${
+                        isSelected ? 'bg-neutral-800/30' : ''
                       }`}
                     >
                       <td className="p-3.5 text-center">
@@ -323,7 +316,7 @@ const AdminUsersView = () => {
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleSelectUser(u.id)}
-                          className="rounded border-neutral-700 text-blue-600 focus:ring-0 cursor-pointer"
+                          className="rounded border-neutral-700 bg-neutral-900 text-neutral-400 focus:ring-0 cursor-pointer"
                         />
                       </td>
                       <td className="p-3.5">
@@ -331,18 +324,12 @@ const AdminUsersView = () => {
                           onClick={() => onSelectUser && onSelectUser(u)}
                           className="flex items-center gap-3 cursor-pointer group"
                         >
-                          <img
-                            src={u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'User')}&background=1a1a2e&color=3B82F6&bold=true`}
-                            alt={u.full_name}
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'U')}&background=1a1a2e&color=3B82F6`;
-                            }}
-                            className="w-8 h-8 rounded-xl object-cover border border-neutral-800 shrink-0"
-                          />
+                          <div className="w-7 h-7 rounded-lg bg-neutral-800 text-neutral-300 flex items-center justify-center font-mono font-bold text-xs shrink-0 border border-neutral-700">
+                            {u.full_name ? u.full_name.substring(0, 2).toUpperCase() : 'U'}
+                          </div>
                           <div>
-                            <span className="font-bold text-white group-hover:text-blue-400 transition-colors block">
-                              {u.full_name}
+                            <span className="font-semibold text-white group-hover:text-neutral-200 transition-colors block">
+                              {u.full_name || 'Athlete'}
                             </span>
                             <span className="text-[10px] text-neutral-400 font-mono">{u.email}</span>
                           </div>
@@ -358,38 +345,38 @@ const AdminUsersView = () => {
                         {u.signup_date}
                       </td>
                       <td className="p-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                        <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => {
                               setNotifyTargetUser(u);
                               setNotifyTargetUserIds([]);
                               setNotifyModalOpen(true);
                             }}
-                            className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-500/10 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
                             title={`Send Notification to ${u.full_name || 'User'}`}
                           >
-                            <Bell className="w-4 h-4" />
+                            <Bell className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setGrantModalUser(u)}
-                            className="p-1.5 rounded-lg text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-neutral-400 hover:text-amber-400 hover:bg-neutral-800 transition-colors cursor-pointer"
                             title="Grant High Plan"
                           >
-                            <Crown className="w-4 h-4" />
+                            <Crown className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleSingleStatusChange(u.id, u.status)}
                             className="p-1.5 rounded-lg text-neutral-400 hover:text-amber-400 hover:bg-neutral-800 transition-colors cursor-pointer"
                             title={u.status === 'Suspended' ? 'Activate' : 'Suspend'}
                           >
-                            <Ban className="w-4 h-4" />
+                            <Ban className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleSingleDelete(u)}
                             className="p-1.5 rounded-lg text-neutral-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                             title="Delete User"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -401,9 +388,9 @@ const AdminUsersView = () => {
           </div>
         )}
 
-        {/* Server Pagination Controls */}
-        <div className="p-4 border-t border-neutral-800 bg-neutral-950/60 flex items-center justify-between text-xs text-neutral-400 font-mono">
-          <span>Page {page} of {totalPages} ({total} members)</span>
+        {/* Server Pagination */}
+        <div className="p-3.5 border-t border-neutral-800 bg-neutral-950/60 flex items-center justify-between text-xs text-neutral-400 font-mono">
+          <span>Page {page} of {totalPages} ({total} athletes)</span>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
@@ -469,3 +456,4 @@ const AdminUsersView = () => {
 };
 
 export default AdminUsersView;
+
