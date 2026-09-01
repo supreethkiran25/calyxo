@@ -4,6 +4,7 @@
  */
 
 const STORAGE_KEY_PREFIX = 'calyxo_pedometer_steps_';
+const HISTORY_LEDGER_KEY = 'calyxo_daily_step_history';
 
 export class PWAPedometerService {
   static isTracking = false;
@@ -17,30 +18,77 @@ export class PWAPedometerService {
     return `${STORAGE_KEY_PREFIX}${today}`;
   }
 
+  static getDateKey(dateStr) {
+    if (!dateStr) return this.getTodayKey();
+    return `${STORAGE_KEY_PREFIX}${dateStr}`;
+  }
+
+  /**
+   * Get historical step records across all recorded dates (persistent background ledger)
+   */
+  static getDailyStepHistory() {
+    if (typeof localStorage === 'undefined') return {};
+    try {
+      const raw = localStorage.getItem(HISTORY_LEDGER_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  /**
+   * Save step count for a specific date into daily key and background history ledger
+   */
+  static setStepsForDate(dateStr, steps) {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      const cleanSteps = Math.max(0, parseInt(steps, 10) || 0);
+      const key = this.getDateKey(dateStr);
+      localStorage.setItem(key, String(cleanSteps));
+
+      // Persist to historical ledger
+      const history = this.getDailyStepHistory();
+      history[dateStr] = cleanSteps;
+      localStorage.setItem(HISTORY_LEDGER_KEY, JSON.stringify(history));
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (dateStr === todayStr) {
+        this.notify(cleanSteps);
+      }
+    } catch (e) {}
+  }
+
+  /**
+   * Get stored step count for a specific calendar date (e.g. YYYY-MM-DD)
+   */
+  static getStepsForDate(dateStr) {
+    if (typeof localStorage === 'undefined') return 0;
+    try {
+      const key = this.getDateKey(dateStr);
+      const val = localStorage.getItem(key);
+      if (val !== null) return parseInt(val, 10) || 0;
+      const history = this.getDailyStepHistory();
+      return history[dateStr] || 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+
   /**
    * Get current stored step count for today
    */
   static getTodaySteps() {
-    if (typeof window === 'undefined') return 0;
-    try {
-      const key = this.getTodayKey();
-      const val = localStorage.getItem(key);
-      return val ? parseInt(val, 10) : 0;
-    } catch (e) {
-      return 0;
-    }
+    const today = new Date().toISOString().split('T')[0];
+    return this.getStepsForDate(today);
   }
 
   /**
    * Save today's updated step count
    */
   static setTodaySteps(steps) {
-    if (typeof window === 'undefined') return;
-    try {
-      const key = this.getTodayKey();
-      localStorage.setItem(key, String(steps));
-      this.notify(steps);
-    } catch (e) {}
+    const today = new Date().toISOString().split('T')[0];
+    this.setStepsForDate(today, steps);
   }
 
   /**
@@ -52,6 +100,7 @@ export class PWAPedometerService {
     this.setTodaySteps(next);
     return next;
   }
+
 
   static subscribe(callback) {
     this.listeners.add(callback);

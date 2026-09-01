@@ -1,15 +1,20 @@
 /**
  * Calyxo Universal Health Data Integration - Auto-Sync Engine
  * Manages periodic sync, app opening sync, and humanized "Last synced X ago"
+ *
+ * Implements deterministic sync state machine:
+ * 'checking' | 'reading' | 'syncing' | 'synced' | 'sync_failed' | 'permission_denied' | 'idle'
  */
 
 import { HealthDataService } from './HealthDataService.js';
 import { HealthPermissionManager } from './HealthPermissionManager.js';
+import { supabase } from '../../lib/supabaseClient.js';
 
 export class HealthSyncEngine {
   static listeners = new Set();
   static isSyncing = false;
-  static lastSyncTime = Date.now();
+  static lastSyncTime = null;
+  static currentStatus = 'idle';
 
   /**
    * Register listener for live sync updates
@@ -31,15 +36,25 @@ export class HealthSyncEngine {
   static async triggerSync() {
     if (this.isSyncing) return null;
     this.isSyncing = true;
+    this.currentStatus = 'syncing';
     this.notifyListeners({ status: 'syncing' });
 
     try {
+      const authState = await HealthPermissionManager.getAuthorizationState();
+      if (authState.status === 'DENIED') {
+        this.currentStatus = 'permission_denied';
+        this.notifyListeners({ status: 'permission_denied', error: 'Permission denied in system settings.' });
+        return null;
+      }
+
+      this.notifyListeners({ status: 'reading' });
       const metrics = await HealthDataService.fetchTodayMetrics();
       const workouts = await HealthDataService.fetchRecentWorkouts();
       this.lastSyncTime = Date.now();
+      this.currentStatus = 'synced';
 
       const syncResult = {
-        status: 'idle',
+        status: 'synced',
         lastSyncTimestamp: this.lastSyncTime,
         metrics,
         workouts,
@@ -49,9 +64,88 @@ export class HealthSyncEngine {
       this.notifyListeners(syncResult);
       return syncResult;
     } catch (err) {
-      console.warn("HealthSyncEngine sync error:", err);
-      this.notifyListeners({ status: 'error', error: err.message });
+      console.warn("[HealthSyncEngine] sync error:", err);
+      this.currentStatus = 'sync_failed';
+      this.notifyListeners({ status: 'sync_failed', error: err.message });
       return null;
+    } finally {
+      this.isSyncing = false;
+    }
+  }
+
+  /**
+   * Verified Reconnect & Backend Sync State Machine
+   */
+  static async reconnectAndSync(userId = null) {
+    if (this.isSyncing) return { success: false, status: 'already_syncing' };
+    this.isSyncing = true;
+
+    try {
+      // 1. Checking Health Access
+      this.notifyListeners({ status: 'checking', message: 'Checking Health Access...' });
+      const authState = await HealthPermissionManager.getAuthorizationState();
+
+      if (authState.status === 'DENIED') {
+        this.notifyListeners({ status: 'permission_denied', message: 'Permission Denied' });
+        return { success: false, status: 'permission_denied' };
+      }
+
+      if (authState.status === 'NOT_DETERMINED') {
+        const reqResult = await HealthPermissionManager.requestPermissions({ includeOptional: true });
+        if (reqResult.status !== 'AUTHORIZED' && !reqResult.authorized) {
+          this.notifyListeners({ status: 'permission_denied', message: 'Permission Required' });
+          return { success: false, status: 'permission_denied' };
+        }
+      }
+
+      // 2. Reading Health Data
+      this.notifyListeners({ status: 'reading', message: 'Reading Health Data...' });
+      const metrics = await HealthDataService.fetchTodayMetrics();
+      const workouts = await HealthDataService.fetchRecentWorkouts();
+
+      // 3. Backend Synchronization to Supabase (if authenticated)
+      if (userId && supabase) {
+        this.notifyListeners({ status: 'syncing', message: 'Syncing to Calyxo Cloud...' });
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session?.user?.id) {
+          const snapshotPayload = {
+            id: userId,
+            data: {
+              todayMetrics: metrics,
+              workouts,
+              lastSyncedAt: new Date().toISOString(),
+              syncSource: authState.platform
+            },
+            updated_at: new Date().toISOString()
+          };
+
+          const { error: upsertError, status } = await supabase
+            .from('users_ecosystem')
+            .upsert(snapshotPayload, { onConflict: 'id' });
+
+          if (upsertError || (status && (status < 200 || status >= 300))) {
+            console.error('[HealthSync] Supabase sync error:', upsertError || status);
+            this.notifyListeners({ status: 'sync_failed', message: 'Sync Failed' });
+            return { success: false, status: 'sync_failed' };
+          }
+        }
+      }
+
+      // 4. Successful Synced state
+      this.lastSyncTime = Date.now();
+      this.notifyListeners({
+        status: 'synced',
+        message: 'Synced',
+        metrics,
+        workouts,
+        lastSyncTimestamp: this.lastSyncTime
+      });
+
+      return { success: true, status: 'synced', metrics, workouts };
+    } catch (err) {
+      console.error('[HealthSync] Reconnect sync exception:', err);
+      this.notifyListeners({ status: 'sync_failed', message: 'Sync Failed', error: err.message });
+      return { success: false, status: 'sync_failed' };
     } finally {
       this.isSyncing = false;
     }
@@ -80,12 +174,10 @@ export class HealthSyncEngine {
   static startAutoSync(intervalMs = 60000) {
     if (typeof window === 'undefined') return;
 
-    // Sync on page load / tab focus
     window.addEventListener('focus', () => {
       this.triggerSync();
     });
 
-    // Periodic interval
     const timer = setInterval(() => {
       if (HealthPermissionManager.isConnected()) {
         this.triggerSync();
@@ -95,3 +187,5 @@ export class HealthSyncEngine {
     return () => clearInterval(timer);
   }
 }
+
+export default HealthSyncEngine;

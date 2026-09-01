@@ -18,7 +18,8 @@ import {
   exportAccountData, 
   clearChatHistory, 
   clearAIMemory,
-  saveEcosystemState
+  saveEcosystemState,
+  cancelUserSubscription
 } from '../lib/dbService';
 import useQuickActionsStore from '../store/useQuickActionsStore';
 import { 
@@ -779,6 +780,7 @@ export default function UserProfile({ onNotification }) {
 
       updateUserProfile(updatedProfile);
       if (userId) {
+        await cancelUserSubscription(userId);
         await saveUserProfile(userId, updatedProfile);
       }
 

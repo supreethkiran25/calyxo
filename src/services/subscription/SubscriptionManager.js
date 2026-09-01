@@ -176,6 +176,49 @@ export class SubscriptionManager {
     const status = this.getSubscriptionStatus(userProfile, user);
     return status.isActive && status.tier !== SUBSCRIPTION_TIERS.FREE;
   }
+
+  /**
+   * Return canonical subscription timeline with verified dates (Zero date fabrication)
+   */
+  static getSubscriptionTimeline(userProfile = {}, user = {}) {
+    const status = this.getSubscriptionStatus(userProfile, user);
+    const isCancelled = Boolean(userProfile?.is_cancelled || userProfile?.isCancelled);
+    const isAutoRenew = userProfile?.auto_renew !== false && userProfile?.autoRenew !== false && !isCancelled;
+    const startedAt = userProfile?.subscription_created_at || userProfile?.subscriptionCreatedAt || userProfile?.created_at || null;
+    const expiresAt = userProfile?.subscriptionExpiresAt || userProfile?.subscription_expiry || userProfile?.expiryDate || userProfile?.subscriptionPeriodEnd || userProfile?.subscription_period_end || status.expiresAt || null;
+    const nextBillingDate = userProfile?.next_billing_date || userProfile?.nextBillingDate || (isAutoRenew ? expiresAt : null);
+
+    let timelineLabel = null;
+    let timelineDate = null;
+
+    if (status.state === SUBSCRIPTION_STATES.EXPIRED) {
+      timelineLabel = 'Expired';
+      timelineDate = expiresAt;
+    } else if (isCancelled && expiresAt) {
+      timelineLabel = 'Active until';
+      timelineDate = expiresAt;
+    } else if (status.isActive && isAutoRenew && nextBillingDate) {
+      timelineLabel = 'Next billing';
+      timelineDate = nextBillingDate;
+    } else if (status.isActive && expiresAt) {
+      timelineLabel = 'Expires';
+      timelineDate = expiresAt;
+    }
+
+    return {
+      planName: status.planName,
+      status: status.state,
+      tier: status.tier,
+      isActive: status.isActive,
+      isSubscribed: status.isSubscribed,
+      isCancelled,
+      startedAt,
+      nextBillingDate: isCancelled ? null : nextBillingDate,
+      expiresAt,
+      timelineLabel,
+      timelineDate
+    };
+  }
 }
 
 export const subscriptionManager = SubscriptionManager;

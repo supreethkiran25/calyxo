@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import ThemeToggle from './ThemeToggle';
-import { saveUserProfile, signOutUser, updateUserPassword, updateUserEmail } from '../lib/dbService';
+import { saveUserProfile, signOutUser, updateUserPassword, updateUserEmail, cancelUserSubscription } from '../lib/dbService';
 import { subscribeToPushNotifications, unsubscribeFromPushNotifications, getNotificationStatus } from '../services/notificationService';
 import { startRazorpayCheckout, restoreSubscription, PAYMENT_STATUS } from '../utils/razorpay';
 import { SubscriptionManager } from '../services/subscription/SubscriptionManager';
@@ -246,7 +246,10 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
         updatedAt: new Date().toISOString()
       };
       setUserProfile(updated);
-      if (userId) await saveUserProfile(userId, updated);
+      if (userId) {
+        await cancelUserSubscription(userId);
+        await saveUserProfile(userId, updated);
+      }
       setSaveStatus('Subscription Cancelled.');
       setTimeout(() => setSaveStatus(''), 3000);
     }
@@ -986,6 +989,7 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
         const annualPriceINR = Number((!rawAnnual || rawAnnual === '2' || rawAnnual === '7999') ? 199 : rawAnnual);
 
         const subStatus = SubscriptionManager.getSubscriptionStatus(userProfile, user);
+        const subTimeline = SubscriptionManager.getSubscriptionTimeline(userProfile, user);
         const activeTier = subStatus.tier;
         const isUserSubscribed = subStatus.isActive && subStatus.tier !== 'FREE';
 
@@ -1063,17 +1067,17 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
                     ? 'bg-[var(--color-acid-green)]/20 text-[var(--color-acid-green)] border-[var(--color-acid-green)]/30' 
                     : 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20'
                 }`}>
-                  {isUserSubscribed ? 'Active Subscription' : 'Free Tier'}
+                  {subTimeline.isCancelled ? 'Cancelled (Active)' : isUserSubscribed ? 'Active Subscription' : 'Free Tier'}
                 </span>
               </div>
-              <div className="flex items-center justify-between pt-1">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                 <div>
                   <p className="text-[11px] text-[var(--muted-foreground)]">
-                    Active Tier: <strong className="text-[var(--color-acid-green)] font-bold uppercase">{subStatus.planName}</strong>
+                    Active Tier: <strong className="text-[var(--color-acid-green)] font-bold uppercase">{subTimeline.planName}</strong>
                   </p>
-                  {subStatus.expiresAt && (
-                    <p className="text-[9px] text-[var(--muted-foreground)] mt-0.5">
-                      Period End: {new Date(subStatus.expiresAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {subTimeline.timelineLabel && subTimeline.timelineDate && (
+                    <p className="text-[10px] font-medium text-[var(--foreground)] mt-0.5">
+                      {subTimeline.timelineLabel}: <span className="font-bold text-[var(--color-acid-green)]">{new Date(subTimeline.timelineDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     </p>
                   )}
                 </div>
@@ -1086,7 +1090,7 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
                   >
                     Restore
                   </button>
-                  {isUserSubscribed && (
+                  {isUserSubscribed && !subTimeline.isCancelled && (
                     <button
                       type="button"
                       onClick={handleCancelSubscription}

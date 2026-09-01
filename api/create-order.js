@@ -28,14 +28,24 @@ export default async function handler(req, res) {
     });
   }
 
-  const { amount, currency = 'INR', receipt } = req.body || {};
+  const AUTHORITATIVE_PLANS = {
+    HIGH: { amount: 200, currency: 'INR', name: 'High Monthly' },
+    HIGH_MONTHLY: { amount: 200, currency: 'INR', name: 'High Monthly' },
+    HIGH_ANNUAL: { amount: 19900, currency: 'INR', name: 'High Annual' }
+  };
 
-  const numAmount = Number(amount);
-  if (isNaN(numAmount) || numAmount < 100) {
+  const { planId, receipt } = req.body || {};
+  const planKey = (planId || 'HIGH').toUpperCase();
+  const planConfig = AUTHORITATIVE_PLANS[planKey];
+
+  if (!planConfig) {
     return res.status(400).json({
-      error: { message: 'Invalid order amount. Minimum required amount is 100 paise (₹1.00).' }
+      error: { message: `Invalid subscription plan "${planId}". Supported plans: HIGH, HIGH_MONTHLY, HIGH_ANNUAL.` }
     });
   }
+
+  const authoritativeAmount = planConfig.amount;
+  const authoritativeCurrency = planConfig.currency;
 
   try {
     const razorpay = new Razorpay({
@@ -48,8 +58,8 @@ export default async function handler(req, res) {
       : `rcpt_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`;
 
     const orderOptions = {
-      amount: Math.round(numAmount),
-      currency: currency.toUpperCase(),
+      amount: authoritativeAmount,
+      currency: authoritativeCurrency,
       receipt: safeReceipt
     };
 

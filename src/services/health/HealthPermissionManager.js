@@ -1,9 +1,19 @@
 /**
  * Calyxo Universal Health Data Integration - Permission Manager
  * Platform Support: Apple Health (iOS) & Android Health Connect (Android)
+ *
+ * Enforces native iOS HealthKit as the absolute source of truth.
+ * Canonical states: NOT_AVAILABLE | NOT_DETERMINED | DENIED | AUTHORIZED
  */
 
 import { PWAPedometerService } from './PWAPedometerService.js';
+
+export const HEALTH_CANONICAL_STATE = {
+  NOT_AVAILABLE: 'NOT_AVAILABLE',
+  NOT_DETERMINED: 'NOT_DETERMINED',
+  DENIED: 'DENIED',
+  AUTHORIZED: 'AUTHORIZED'
+};
 
 export const REQUIRED_PERMISSIONS = [
   'steps',
@@ -51,9 +61,10 @@ export class HealthPermissionManager {
    * Get current granted permissions state
    */
   static getGrantedPermissions() {
-    if (typeof window === 'undefined') return {};
+    if (typeof window === 'undefined' && typeof localStorage === 'undefined') return {};
+    const storage = typeof localStorage !== 'undefined' ? localStorage : (typeof window !== 'undefined' ? window.localStorage : null);
     try {
-      const stored = localStorage.getItem(PERMISSION_STORAGE_KEY);
+      const stored = storage?.getItem(PERMISSION_STORAGE_KEY);
       return stored ? JSON.parse(stored) : {};
     } catch (e) {
       return {};
@@ -61,33 +72,98 @@ export class HealthPermissionManager {
   }
 
   /**
+   * Query native authoritative HealthKit status directly without relying on local cache
+   */
+  static async getAuthorizationState() {
+    const platform = this.getPlatform();
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform() && platform === 'ios_apple_health') {
+        const { CalyxoHealthKit } = Capacitor.Plugins;
+        if (CalyxoHealthKit && typeof CalyxoHealthKit.checkAuthorizationStatus === 'function') {
+          const statusResult = await CalyxoHealthKit.checkAuthorizationStatus().catch(() => null);
+          if (statusResult) {
+            let canonical = HEALTH_CANONICAL_STATE.NOT_DETERMINED;
+            if (statusResult.available === false || statusResult.status === 'NOT_AVAILABLE' || statusResult.status === 'unavailable') {
+              canonical = HEALTH_CANONICAL_STATE.NOT_AVAILABLE;
+            } else if (statusResult.status === 'AUTHORIZED' || statusResult.statusString === 'authorized' || statusResult.authorized === true) {
+              canonical = HEALTH_CANONICAL_STATE.AUTHORIZED;
+            } else if (statusResult.status === 'DENIED' || statusResult.statusString === 'denied') {
+              canonical = HEALTH_CANONICAL_STATE.DENIED;
+            } else {
+              canonical = HEALTH_CANONICAL_STATE.NOT_DETERMINED;
+            }
+
+            if (canonical !== HEALTH_CANONICAL_STATE.AUTHORIZED) {
+              this.disconnect();
+            }
+
+            return {
+              platform,
+              status: canonical,
+              authorized: canonical === HEALTH_CANONICAL_STATE.AUTHORIZED,
+              available: canonical !== HEALTH_CANONICAL_STATE.NOT_AVAILABLE
+            };
+          }
+        }
+      } else if (Capacitor.isNativePlatform() && platform === 'android_health_connect') {
+        const { CalyxoHealthPlugin } = Capacitor.Plugins;
+        if (CalyxoHealthPlugin && typeof CalyxoHealthPlugin.checkPermissions === 'function') {
+          const statusResult = await CalyxoHealthPlugin.checkPermissions().catch(() => null);
+          const isGranted = statusResult && statusResult.health === 'granted';
+          const canonical = isGranted ? HEALTH_CANONICAL_STATE.AUTHORIZED : HEALTH_CANONICAL_STATE.NOT_DETERMINED;
+          if (!isGranted) this.disconnect();
+          return {
+            platform,
+            status: canonical,
+            authorized: isGranted,
+            available: true
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('[Health] Failed to query native authorization state:', e);
+    }
+
+    const isConn = this.isConnected();
+    return {
+      platform,
+      status: isConn ? HEALTH_CANONICAL_STATE.AUTHORIZED : HEALTH_CANONICAL_STATE.NOT_DETERMINED,
+      authorized: isConn,
+      available: true
+    };
+  }
+
+  /**
    * Request Health permissions (Apple Health or Android Health Connect)
    */
   static async requestPermissions(customOptions = {}) {
     const platform = this.getPlatform();
-    const currentGranted = this.getGrantedPermissions();
-
     const requestPayload = {
       required: REQUIRED_PERMISSIONS,
       optional: customOptions.includeOptional ? OPTIONAL_PERMISSIONS : ['heart_rate', 'sleep', 'weight', 'resting_heart_rate']
     };
 
-    let grantedResults = { ...currentGranted };
+    let grantedResults = {};
+    let canonicalStatus = HEALTH_CANONICAL_STATE.NOT_DETERMINED;
+    let isAuthorized = false;
 
     // Trigger PWA Accelerometer Motion Sensor Tracking
     await PWAPedometerService.requestAndStartTracking();
 
     try {
       if (platform === 'ios_apple_health') {
-        // Call the REAL native CalyxoHealthKit Capacitor plugin
         try {
           const { Capacitor } = await import('@capacitor/core');
           if (Capacitor.isNativePlatform()) {
             const { CalyxoHealthKit } = Capacitor.Plugins;
             if (CalyxoHealthKit) {
               const result = await CalyxoHealthKit.requestAuthorization();
-              console.log('[HealthKit] Native authorization result:', result);
-              if (result && result.authorized) {
+              console.log('[HealthKit] Native authorization response:', result);
+              
+              if (result && (result.status === 'AUTHORIZED' || result.authorized === true)) {
+                canonicalStatus = HEALTH_CANONICAL_STATE.AUTHORIZED;
+                isAuthorized = true;
                 [...REQUIRED_PERMISSIONS, ...requestPayload.optional].forEach(perm => {
                   grantedResults[perm] = true;
                 });
@@ -96,16 +172,30 @@ export class HealthPermissionManager {
                 if (typeof CalyxoHealthKit.activateHealthKitSource === 'function') {
                   CalyxoHealthKit.activateHealthKitSource().catch(() => {});
                 }
+              } else if (result && (result.status === 'DENIED' || result.statusString === 'denied')) {
+                canonicalStatus = HEALTH_CANONICAL_STATE.DENIED;
+                isAuthorized = false;
+                this.disconnect();
+              } else if (result && (result.status === 'NOT_AVAILABLE' || result.available === false)) {
+                canonicalStatus = HEALTH_CANONICAL_STATE.NOT_AVAILABLE;
+                isAuthorized = false;
+                this.disconnect();
+              } else {
+                canonicalStatus = HEALTH_CANONICAL_STATE.NOT_DETERMINED;
+                isAuthorized = false;
+                this.disconnect();
               }
             } else {
-              console.warn('[HealthKit] CalyxoHealthKit plugin not registered. HealthKit will not work.');
+              console.warn('[HealthKit] CalyxoHealthKit plugin not registered.');
+              this.disconnect();
             }
           } else {
-            // Web fallback — no real HealthKit available
-            console.log('[HealthKit] Running on web, using PWA sensor fallback only.');
+            console.log('[HealthKit] Running in web environment.');
           }
         } catch (nativeErr) {
           console.error('[HealthKit] Native authorization failed:', nativeErr);
+          canonicalStatus = HEALTH_CANONICAL_STATE.DENIED;
+          this.disconnect();
         }
       } else if (platform === 'android_health_connect') {
         try {
@@ -114,50 +204,54 @@ export class HealthPermissionManager {
             const { CalyxoHealthPlugin } = Capacitor.Plugins;
             if (CalyxoHealthPlugin) {
               const result = await CalyxoHealthPlugin.requestPermissions();
-              console.log('[AndroidHealth] Native sensor authorization result:', result);
               if (result && result.granted) {
+                canonicalStatus = HEALTH_CANONICAL_STATE.AUTHORIZED;
+                isAuthorized = true;
                 [...REQUIRED_PERMISSIONS, ...requestPayload.optional].forEach(perm => {
                   grantedResults[perm] = true;
                 });
                 localStorage.setItem('calyxo_health_connected_platform', platform);
                 localStorage.setItem('calyxo_health_connected_at', String(Date.now()));
+              } else {
+                canonicalStatus = HEALTH_CANONICAL_STATE.DENIED;
+                this.disconnect();
               }
             }
           } else if (window.AndroidHealthConnect?.requestPermissions) {
             const res = await window.AndroidHealthConnect.requestPermissions(JSON.stringify(requestPayload));
-            grantedResults = { ...grantedResults, ...(typeof res === 'string' ? JSON.parse(res) : res) };
+            grantedResults = { ...(typeof res === 'string' ? JSON.parse(res) : res) };
+            isAuthorized = REQUIRED_PERMISSIONS.some(p => grantedResults[p] === true);
+            canonicalStatus = isAuthorized ? HEALTH_CANONICAL_STATE.AUTHORIZED : HEALTH_CANONICAL_STATE.DENIED;
+            if (isAuthorized) {
+              localStorage.setItem('calyxo_health_connected_platform', platform);
+              localStorage.setItem('calyxo_health_connected_at', String(Date.now()));
+            } else {
+              this.disconnect();
+            }
           }
         } catch (androidErr) {
-          console.warn('[AndroidHealth] Android authorization exception:', androidErr);
+          console.warn('[AndroidHealth] Authorization exception:', androidErr);
+          this.disconnect();
         }
-      } else {
-        // Web Health API — PWA sensor tracking only, no fake permissions
-        console.log('[Health] Web platform, using PWA pedometer only.');
       }
     } catch (err) {
       console.warn("Health permission request failure:", err);
+      this.disconnect();
     }
 
-    // Save granted state locally only if permissions actually granted
-    try {
-      localStorage.setItem(PERMISSION_STORAGE_KEY, JSON.stringify(grantedResults));
-      const hasAnyGranted = REQUIRED_PERMISSIONS.some(p => grantedResults[p] === true);
-      if (hasAnyGranted) {
-        localStorage.setItem('calyxo_health_connected_platform', platform);
-        localStorage.setItem('calyxo_health_connected_at', String(Date.now()));
-      } else {
-        localStorage.removeItem('calyxo_health_connected_platform');
-        localStorage.removeItem('calyxo_health_connected_at');
-      }
-    } catch (e) {}
-
-    const isAuthorized = REQUIRED_PERMISSIONS.some(p => grantedResults[p] === true);
+    if (isAuthorized) {
+      try {
+        localStorage.setItem(PERMISSION_STORAGE_KEY, JSON.stringify(grantedResults));
+      } catch (e) {}
+    }
 
     return {
       platform,
+      status: canonicalStatus,
       granted: grantedResults,
       hasRequired: isAuthorized,
-      isConnected: isAuthorized
+      isConnected: isAuthorized,
+      authorized: isAuthorized
     };
   }
 
@@ -165,47 +259,35 @@ export class HealthPermissionManager {
    * Real-time query to check if user has active permissions in native Apple Health or Android Health Connect
    */
   static async checkLiveAuthorization() {
-    const platform = this.getPlatform();
-    try {
-      const { Capacitor } = await import('@capacitor/core');
-      if (Capacitor.isNativePlatform() && platform === 'ios_apple_health') {
-        const { CalyxoHealthKit } = Capacitor.Plugins;
-        if (CalyxoHealthKit) {
-          // If already connected locally, verify plugin availability
-          if (this.isConnected()) {
-            return true;
-          }
-          // Test live metrics query to verify active read access
-          if (typeof CalyxoHealthKit.queryTodayMetrics === 'function') {
-            const metrics = await CalyxoHealthKit.queryTodayMetrics().catch(() => null);
-            if (metrics && typeof metrics === 'object') {
-              return true;
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('Live authorization check note:', e);
-    }
-    return this.isConnected();
+    const authState = await this.getAuthorizationState();
+    return authState.authorized === true;
+  }
+
+  /**
+   * Get detailed canonical health connection status
+   */
+  static async getDetailedStatus() {
+    return this.getAuthorizationState();
   }
 
   /**
    * Check if Health platform is currently connected and authorized by user
    */
   static isConnected() {
-    if (typeof window === 'undefined') return false;
-    const connectedAt = localStorage.getItem('calyxo_health_connected_at');
+    if (typeof window === 'undefined' && typeof localStorage === 'undefined') return false;
+    const storage = typeof localStorage !== 'undefined' ? localStorage : (typeof window !== 'undefined' ? window.localStorage : null);
+    const connectedAt = storage?.getItem('calyxo_health_connected_at');
     if (!connectedAt) return false;
     const permissions = this.getGrantedPermissions();
     return REQUIRED_PERMISSIONS.some(p => permissions[p] === true);
   }
 
   static getSyncDetails() {
-    if (typeof window === 'undefined') return null;
-    const connectedAt = localStorage.getItem('calyxo_health_connected_at');
-    const lastSync = localStorage.getItem('calyxo_health_last_sync') || connectedAt;
-    const recordsCount = localStorage.getItem('calyxo_health_records_count') || '0';
+    if (typeof window === 'undefined' && typeof localStorage === 'undefined') return null;
+    const storage = typeof localStorage !== 'undefined' ? localStorage : (typeof window !== 'undefined' ? window.localStorage : null);
+    const connectedAt = storage?.getItem('calyxo_health_connected_at');
+    const lastSync = storage?.getItem('calyxo_health_last_sync') || connectedAt;
+    const recordsCount = storage?.getItem('calyxo_health_records_count') || '0';
     if (!connectedAt) return null;
 
     return {
@@ -309,12 +391,16 @@ export class HealthPermissionManager {
    * Disconnect Health platform and clear permissions
    */
   static disconnect() {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' && typeof localStorage === 'undefined') return;
+    const storage = typeof localStorage !== 'undefined' ? localStorage : (typeof window !== 'undefined' ? window.localStorage : null);
     try {
-      localStorage.removeItem(PERMISSION_STORAGE_KEY);
-      localStorage.removeItem('calyxo_health_connected_platform');
-      localStorage.removeItem('calyxo_health_connected_at');
-      localStorage.removeItem('calyxo_health_last_sync');
+      storage?.removeItem(PERMISSION_STORAGE_KEY);
+      storage?.removeItem('calyxo_health_connected_platform');
+      storage?.removeItem('calyxo_health_connected_at');
+      storage?.removeItem('calyxo_health_last_sync');
+      storage?.removeItem('calyxo_health_records_count');
     } catch (e) {}
   }
 }
+
+export default HealthPermissionManager;

@@ -65,6 +65,8 @@ export default function HealthHubPage({ onNotification }) {
   // Initial Load & Subscription to Sync Engine + PWA Pedometer
   useEffect(() => {
     async function loadInitialHealthData() {
+      await HealthPermissionManager.checkLiveAuthorization();
+      setIsConnected(HealthPermissionManager.isConnected());
       const today = await HealthDataService.fetchTodayMetrics();
       const recentWorkouts = await HealthDataService.fetchRecentWorkouts();
       const initialTrends = await HealthDataService.fetchTrends('7d');
@@ -105,10 +107,24 @@ export default function HealthHubPage({ onNotification }) {
 
     const cleanupAuto = HealthSyncEngine.startAutoSync(30000);
 
+    const syncLiveState = async () => {
+      await HealthPermissionManager.checkLiveAuthorization();
+      setIsConnected(HealthPermissionManager.isConnected());
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', syncLiveState);
+      document.addEventListener('visibilitychange', syncLiveState);
+    }
+
     return () => {
       unsubscribePedometer();
       unsubscribeSync();
       if (cleanupAuto) cleanupAuto();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', syncLiveState);
+        document.removeEventListener('visibilitychange', syncLiveState);
+      }
     };
   }, []);
 
@@ -124,15 +140,22 @@ export default function HealthHubPage({ onNotification }) {
   // Refresh Data Action
   const handleRefreshData = async () => {
     setIsSyncing(true);
-    await HealthSyncEngine.triggerSync();
-    const updated = await HealthDataService.fetchTodayMetrics();
-    const recentWorkouts = await HealthDataService.fetchRecentWorkouts();
-    const updatedTrends = await HealthDataService.fetchTrends(selectedTimeframe);
-    setMetrics(updated);
-    setWorkouts(recentWorkouts);
-    setTrends(updatedTrends);
+    await HealthPermissionManager.checkLiveAuthorization();
+    const isConn = HealthPermissionManager.isConnected();
+    setIsConnected(isConn);
+    if (isConn) {
+      await HealthSyncEngine.triggerSync();
+      const updated = await HealthDataService.fetchTodayMetrics();
+      const recentWorkouts = await HealthDataService.fetchRecentWorkouts();
+      const updatedTrends = await HealthDataService.fetchTrends(selectedTimeframe);
+      setMetrics(updated);
+      setWorkouts(recentWorkouts);
+      setTrends(updatedTrends);
+      if (onNotification) onNotification("Health metrics updated from device!");
+    } else {
+      if (onNotification) onNotification(`${platformLabel} is not connected.`);
+    }
     setIsSyncing(false);
-    if (onNotification) onNotification("Health metrics updated from device!");
   };
 
   // AI Coaching Insights
@@ -220,7 +243,7 @@ export default function HealthHubPage({ onNotification }) {
             </span>
             {isConnected && (
               <span className="text-xs font-bold text-muted">
-                Last sync: {HealthSyncEngine.formatLastSyncTime(metrics?.lastSyncTimestamp)} • 1,247 records synced
+                Last sync: {HealthSyncEngine.formatLastSyncTime(metrics?.lastSyncTimestamp)}
               </span>
             )}
           </div>
@@ -229,7 +252,7 @@ export default function HealthHubPage({ onNotification }) {
           </h1>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setIsWearableModalOpen(true)}
             className="px-3.5 py-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 text-xs font-black uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all shadow-sm"
@@ -262,9 +285,9 @@ export default function HealthHubPage({ onNotification }) {
       <div className="space-y-6">
         <UnifiedHealthModelCard
           userProfile={userProfile}
-          appleWatchData={{ hr: metrics?.heartRate || 68, hrv: 54, workouts, activeCalories: metrics?.activeCalories || 450 }}
-          boatData={{ sleepMinutes: (metrics?.sleepHours || 7.5) * 60, steps: metrics?.steps || 8420, deepSleepMinutes: 110 }}
-          bpMonitorData={{ systolic: 118, diastolic: 78, pulse: metrics?.heartRate || 64 }}
+          appleWatchData={(metrics?.heartRate || metrics?.activeCalories || workouts?.length) ? { hr: metrics?.heartRate || null, hrv: metrics?.hrv || null, workouts: workouts || [], activeCalories: metrics?.activeCalories || 0 } : null}
+          boatData={null}
+          bpMonitorData={null}
           onOpenUpgradeModal={(feature) => {
             setPremiumFeatureName(feature);
             setPremiumModalOpen(true);
@@ -273,6 +296,7 @@ export default function HealthHubPage({ onNotification }) {
 
         <WeeklyHealthReportCard
           userProfile={userProfile}
+          weeklyMetrics={trends?.weeklyMetrics || null}
           onOpenUpgradeModal={(feature) => {
             setPremiumFeatureName(feature);
             setPremiumModalOpen(true);

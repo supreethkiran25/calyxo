@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowUp, ShieldCheck, FileText } from 'lucide-react';
+import { ArrowUp, ShieldCheck, FileText, Eye } from 'lucide-react';
 import Logo from '../Logo';
 import { CALYXO_APP_STORE_URL, CALYXO_PLAY_STORE_URL } from './StoreBadges';
 import LegalModal from '../modals/LegalModal';
@@ -108,6 +108,15 @@ export default function WebFooter({ onOpenBetaModal }) {
                   >
                     <FileText className="w-3.5 h-3.5 text-[#CCFF00]" />
                     <span>Terms & Conditions</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => handleNav('/accessibility')} 
+                    className="text-[#8E8E93] hover:text-emerald-300 transition-colors cursor-pointer bg-none border-none p-0 text-left flex items-center gap-1.5"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Accessibility Statement</span>
                   </button>
                 </li>
                 <li><Link to="/user/about" className="text-[#8E8E93] hover:text-white transition-colors">About Calyxo</Link></li>

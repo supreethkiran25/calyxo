@@ -86,12 +86,12 @@ export function calculateDeterministicRecovery({
     }
   }
 
-  // 7. Active Energy & Workout Load impact (-5 to -10 points based on calorie burn vs refuel)
-  let metabolicBurnDeduction = 0;
-  if (activeCaloriesBurned > 600) {
-    metabolicBurnDeduction = 6;
-  } else if (activeCaloriesBurned > 300 || hasLoggedWorkoutToday) {
-    metabolicBurnDeduction = 4;
+  // 7. Active Energy & Workout Load impact (-3 to -5 points based on calorie burn vs refuel)
+  let workoutLoadDeduction = 0;
+  if (hasLoggedWorkoutToday || activeCaloriesBurned > 600) {
+    workoutLoadDeduction = 5;
+  } else if (activeCaloriesBurned > 300) {
+    workoutLoadDeduction = 3;
   }
 
   // Aggregate final recovery score
@@ -106,7 +106,7 @@ export function calculateDeterministicRecovery({
         hrModifier -
         sorenessDeduction -
         fatigueDeduction -
-        metabolicBurnDeduction
+        workoutLoadDeduction
     )
   );
 

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { getSecureItem, setSecureItem, getCurrentUserIdSync, saveEcosystemState } from '../lib/dbService.js';
-import { calculateConsecutiveDaysStreak, calculateWaterGoalStreak, shiftDays } from '../utils/streakEngine.js';
+import { calculateConsecutiveDaysStreak, calculateWaterGoalStreak, shiftDays, isStreakActive } from '../utils/streakEngine.js';
 import { getTodayDateString } from '../utils/dateUtils.js';
 
 const LOCAL_ECOSYSTEM_KEY = "calyxo_ecosystem_state";
@@ -54,7 +54,21 @@ const getLocalEcosystemState = (userId = null) => {
   if (uid) {
     const key = LOCAL_ECOSYSTEM_KEY + '_' + uid;
     const saved = getSecureItem(key, uid);
-    if (saved) return saved;
+    if (saved) {
+      const todayStr = getTodayDateString();
+      const lastCheck = saved.streaks?.lastCheckInDate || saved.streaks?.lastCheckIn;
+      // If user missed a day (last check-in was before yesterday), reset broken streaks
+      if (lastCheck && !isStreakActive(lastCheck, todayStr)) {
+        saved.streaks = {
+          ...(saved.streaks || {}),
+          loginStreak: 0,
+          workoutStreak: 0,
+          nutritionStreak: 0,
+          waterStreak: 0
+        };
+      }
+      return saved;
+    }
   }
   // Clear any stale global un-scoped key to prevent cross-account pollution
   if (typeof window !== 'undefined') {
@@ -89,16 +103,23 @@ export const useEcosystemStore = create((set, get) => ({
     if (data) {
       const uid = getCurrentUserIdSync();
       const currentState = get();
+      const todayStr = getTodayDateString();
+
+      const incomingLastCheck = data.streaks?.lastCheckInDate || data.streaks?.lastCheckIn || currentState.streaks?.lastCheckInDate || todayStr;
+      const streakStillActive = isStreakActive(incomingLastCheck, todayStr);
+
+      const rawLoginStreak = Number(data.streaks?.loginStreak ?? currentState.streaks?.loginStreak ?? 1);
+      const sanitizedLoginStreak = streakStillActive ? rawLoginStreak : (incomingLastCheck === todayStr ? 1 : 0);
 
       const mergedStreaks = {
         ...(currentState.streaks || {}),
         ...(data.streaks || {}),
-        loginStreak: Number(data.streaks?.loginStreak ?? currentState.streaks?.loginStreak ?? 1),
-        workoutStreak: Number(data.streaks?.workoutStreak ?? currentState.streaks?.workoutStreak ?? 0),
-        nutritionStreak: Number(data.streaks?.nutritionStreak ?? currentState.streaks?.nutritionStreak ?? 0),
-        waterStreak: Number(data.streaks?.waterStreak ?? currentState.streaks?.waterStreak ?? 0),
-        lastCheckInDate: data.streaks?.lastCheckInDate || currentState.streaks?.lastCheckInDate || getTodayDateString(),
-        lastCheckIn: data.streaks?.lastCheckIn || currentState.streaks?.lastCheckIn || getTodayDateString(),
+        loginStreak: sanitizedLoginStreak,
+        workoutStreak: streakStillActive ? Number(data.streaks?.workoutStreak ?? currentState.streaks?.workoutStreak ?? 0) : 0,
+        nutritionStreak: streakStillActive ? Number(data.streaks?.nutritionStreak ?? currentState.streaks?.nutritionStreak ?? 0) : 0,
+        waterStreak: streakStillActive ? Number(data.streaks?.waterStreak ?? currentState.streaks?.waterStreak ?? 0) : 0,
+        lastCheckInDate: incomingLastCheck,
+        lastCheckIn: incomingLastCheck,
         loginDates: Array.isArray(data.streaks?.loginDates) ? data.streaks.loginDates : (currentState.streaks?.loginDates || [])
       };
 
@@ -113,20 +134,45 @@ export const useEcosystemStore = create((set, get) => ({
     }
   },
 
-  // Streaks actions — Pure Mathematical Streak Synchronization
+  // Evaluate daily streak integrity: reset broken streaks if user did not open the app for a day
+  evaluateDailyStreakReset: () => set((state) => {
+    const uid = getCurrentUserIdSync();
+    const todayStr = getTodayDateString();
+    const lastCheck = state.streaks?.lastCheckInDate || state.streaks?.lastCheckIn;
+
+    if (lastCheck && !isStreakActive(lastCheck, todayStr)) {
+      // User missed 1+ days: reset streak engine
+      const nextStreaks = {
+        ...(state.streaks || {}),
+        loginStreak: 0,
+        workoutStreak: 0,
+        nutritionStreak: 0,
+        waterStreak: 0
+      };
+      const nextState = { ...state, streaks: nextStreaks };
+      saveLocalEcosystemState(nextState, uid);
+      if (uid) saveEcosystemState(uid, nextState).catch(() => {});
+      return { streaks: nextStreaks };
+    }
+    return {};
+  }),
+
+  // Streaks actions — Pure Mathematical Streak Synchronization with Missed-Day Reset
   checkDailyLoginStreak: () => set((state) => {
     const uid = getCurrentUserIdSync();
     const todayStr = getTodayDateString(); // Authoritative local calendar date YYYY-MM-DD
+    const lastCheck = state.streaks?.lastCheckInDate || state.streaks?.lastCheckIn;
+    const isConsecutive = isStreakActive(lastCheck, todayStr);
 
     // Existing login history dates (YYYY-MM-DD)
     const existingDates = Array.isArray(state.streaks?.loginDates) ? state.streaks.loginDates : [];
     const dateSet = new Set(existingDates);
 
-    // If user has a previous login streak but empty loginDates array, reconstruct historical dates
-    const priorStreak = Number(state.streaks?.loginStreak) || 1;
-    if (dateSet.size === 0 && priorStreak > 0) {
+    // If user has a previous login streak but empty loginDates array, reconstruct historical dates ONLY IF active
+    const priorStreak = Number(state.streaks?.loginStreak) || 0;
+    if (dateSet.size === 0 && priorStreak > 0 && isConsecutive && lastCheck) {
       for (let i = 0; i < priorStreak; i++) {
-        dateSet.add(shiftDays(todayStr, -i));
+        dateSet.add(shiftDays(lastCheck, -i));
       }
     }
 
@@ -135,6 +181,7 @@ export const useEcosystemStore = create((set, get) => ({
     const updatedDates = Array.from(dateSet).sort();
 
     // Mathematically calculate the exact consecutive days streak
+    // If the user skipped a day, calculateConsecutiveDaysStreak will automatically reduce to 1
     const exactLoginStreak = calculateConsecutiveDaysStreak(updatedDates, todayStr);
 
     const nextStreaks = {
@@ -162,15 +209,16 @@ export const useEcosystemStore = create((set, get) => ({
 
   recalculateDynamicStreaks: (foodLogs = [], workoutLogs = [], waterLogs = [], waterTarget = 3000) => set((state) => {
     const uid = getCurrentUserIdSync();
+    const todayStr = getTodayDateString();
     const nutritionTimestamps = (foodLogs || []).map(f => f.timestamp || f.created_at);
     // Count ONLY completed workout sessions (not abandoned or in-progress)
     const completedWorkoutTimestamps = (workoutLogs || [])
       .filter(w => w && w.completed !== false && w.status !== 'abandoned' && w.status !== 'started')
       .map(w => w.timestamp || w.created_at);
 
-    const nutritionStreak = calculateConsecutiveDaysStreak(nutritionTimestamps);
-    const workoutStreak = calculateConsecutiveDaysStreak(completedWorkoutTimestamps);
-    const waterStreak = calculateWaterGoalStreak(waterLogs, waterTarget);
+    const nutritionStreak = calculateConsecutiveDaysStreak(nutritionTimestamps, todayStr);
+    const workoutStreak = calculateConsecutiveDaysStreak(completedWorkoutTimestamps, todayStr);
+    const waterStreak = calculateWaterGoalStreak(waterLogs, waterTarget, todayStr);
 
     const nextStreaks = {
       ...(state.streaks || {}),
@@ -184,6 +232,7 @@ export const useEcosystemStore = create((set, get) => ({
     if (uid) saveEcosystemState(uid, nextState).catch(() => {});
     return { streaks: nextStreaks };
   }),
+
 
 
   // Unlock Achievements

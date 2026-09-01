@@ -424,7 +424,8 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
                   const userName = userProfile?.name || userProfile?.fullName || user?.displayName || 'Athlete';
                   const cleared = chatSessionManager.clearConversation(activeSession.id, userName);
                   if (cleared) {
-                    setActiveSession({ ...cleared });
+                    const active = chatSessionManager.getActiveSession();
+                    if (active) setActiveSession({ ...active });
                     refreshSessions();
                     if (onNotification) onNotification('Conversation cleared ✓');
                   }
@@ -502,7 +503,8 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
                           const userName = userProfile?.name || userProfile?.fullName || user?.displayName || 'Athlete';
                           const cleared = chatSessionManager.clearConversation(activeSession.id, userName);
                           if (cleared) {
-                            setActiveSession({ ...cleared });
+                            const active = chatSessionManager.getActiveSession();
+                            if (active) setActiveSession({ ...active });
                             refreshSessions();
                             if (onNotification) onNotification('Chat messages cleared ✓');
                           }

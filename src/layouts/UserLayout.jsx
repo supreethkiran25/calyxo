@@ -224,6 +224,7 @@ export default function UserLayout() {
 
   useEffect(() => {
     useStore.getState().checkDailyReset();
+    useEcosystemStore.getState().evaluateDailyStreakReset();
     useEcosystemStore.getState().checkDailyLoginStreak();
     const setUser = useStore.getState().setUser;
     const setUserProfile = useStore.getState().setUserProfile;
@@ -254,6 +255,7 @@ export default function UserLayout() {
         store.setWeightLogs(weights || []);
         if (water !== undefined && water !== null) setWaterIntake(water);
         if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
+        useEcosystemStore.getState().evaluateDailyStreakReset();
         useEcosystemStore.getState().checkDailyLoginStreak();
         const waterTarget = Number(profile?.waterGoal || profile?.waterTarget || store.userProfile?.waterTarget || 3000);
         useEcosystemStore.getState().recalculateDynamicStreaks(foods || [], workouts || [], waterLogs || [], waterTarget);
@@ -267,9 +269,12 @@ export default function UserLayout() {
     return () => unsubscribeAuth();
   }, []);
 
-  // Auto-sync widgets on focus, visibility change, and online reconnect
+  // Auto-sync widgets and evaluate streak freshness on focus, visibility change, and online reconnect
   useEffect(() => {
     const handleSync = () => {
+      useStore.getState().checkDailyReset();
+      useEcosystemStore.getState().evaluateDailyStreakReset();
+      useEcosystemStore.getState().checkDailyLoginStreak();
       syncWidgetData();
     };
 
@@ -278,6 +283,7 @@ export default function UserLayout() {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') handleSync();
     };
+
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {

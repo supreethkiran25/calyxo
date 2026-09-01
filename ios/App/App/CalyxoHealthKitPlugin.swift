@@ -39,33 +39,93 @@ public class CalyxoHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func checkAuthorizationStatus(_ call: CAPPluginCall) {
         guard HKHealthStore.isHealthDataAvailable() else {
-            call.resolve(["authorized": false, "available": false])
+            call.resolve([
+                "authorized": false,
+                "available": false,
+                "status": "NOT_AVAILABLE",
+                "statusString": "NOT_AVAILABLE"
+            ])
             return
         }
         if let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
             let status = healthStore.authorizationStatus(for: energyType)
             let isAuth = (status == .sharingAuthorized)
+            let statusString: String
+            switch status {
+            case .notDetermined:
+                statusString = "NOT_DETERMINED"
+            case .sharingDenied:
+                statusString = "DENIED"
+            case .sharingAuthorized:
+                statusString = "AUTHORIZED"
+            @unknown default:
+                statusString = "NOT_DETERMINED"
+            }
             call.resolve([
                 "authorized": isAuth,
-                "status": status.rawValue,
+                "status": statusString,
+                "statusString": statusString,
+                "rawStatus": status.rawValue,
                 "available": true
             ])
         } else {
-            call.resolve(["authorized": true, "available": true])
+            call.resolve([
+                "authorized": false,
+                "available": false,
+                "status": "NOT_AVAILABLE",
+                "statusString": "NOT_AVAILABLE"
+            ])
         }
     }
 
     @objc func requestAuthorization(_ call: CAPPluginCall) {
-        AppDelegate.requestHealthKitAuthorization { success, error in
+        guard HKHealthStore.isHealthDataAvailable() else {
+            call.resolve([
+                "authorized": false,
+                "available": false,
+                "status": "NOT_AVAILABLE",
+                "statusString": "NOT_AVAILABLE"
+            ])
+            return
+        }
+
+        AppDelegate.requestHealthKitAuthorization { [weak self] success, error in
+            guard let self = self else { return }
             if let error = error {
                 print("[CALYXO-HEALTH] Authorization error: \(error.localizedDescription)")
                 call.reject(error.localizedDescription)
-            } else {
-                call.resolve([
-                    "authorized": success,
-                    "timestamp": ISO8601DateFormatter().string(from: Date())
-                ])
+                return
             }
+            
+            // Explicitly re-query native authorization status after prompt completion
+            var statusString = "NOT_DETERMINED"
+            var isActuallyAuthorized = false
+            
+            if let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
+                let status = self.healthStore.authorizationStatus(for: energyType)
+                switch status {
+                case .sharingAuthorized:
+                    isActuallyAuthorized = true
+                    statusString = "AUTHORIZED"
+                case .sharingDenied:
+                    isActuallyAuthorized = false
+                    statusString = "DENIED"
+                case .notDetermined:
+                    isActuallyAuthorized = false
+                    statusString = "NOT_DETERMINED"
+                @unknown default:
+                    isActuallyAuthorized = false
+                    statusString = "NOT_DETERMINED"
+                }
+            }
+            
+            call.resolve([
+                "authorized": isActuallyAuthorized,
+                "status": statusString,
+                "statusString": statusString,
+                "available": true,
+                "timestamp": ISO8601DateFormatter().string(from: Date())
+            ])
         }
     }
 

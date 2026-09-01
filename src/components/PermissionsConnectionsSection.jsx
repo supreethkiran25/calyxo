@@ -29,12 +29,22 @@ export default function PermissionsConnectionsSection({ onNotification }) {
     const notifRes = await getNotificationStatus();
     setNativeNotif(notifRes || { status: 'notDetermined', isRegistered: false });
 
+    await HealthPermissionManager.checkLiveAuthorization();
     const isConn = HealthPermissionManager.isConnected();
     setHealthConn(isConn);
   };
 
   useEffect(() => {
     loadAllStatuses();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', loadAllStatuses);
+      document.addEventListener('visibilitychange', loadAllStatuses);
+      return () => {
+        window.removeEventListener('focus', loadAllStatuses);
+        document.removeEventListener('visibilitychange', loadAllStatuses);
+      };
+    }
   }, []);
 
   const handleConnectOrSyncHealth = async () => {

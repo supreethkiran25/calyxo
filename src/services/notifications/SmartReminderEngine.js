@@ -20,6 +20,7 @@ import {
   filterAvailableThemes,
   pickThemeVariant
 } from './NotificationThemeLibrary.js';
+import { getUserTimezone } from '../../utils/dateUtils.js';
 
 export const PRIVACY_LEVELS = {
   STANDARD: 'STANDARD',
@@ -1687,16 +1688,21 @@ export class SmartReminderEngine {
   async scheduleDailyPlan(context = {}) {
     const {
       userId = 'user_default',
-      timeZone = getUserTimezone ? getUserTimezone() : 'Asia/Kolkata',
+      timeZone = getUserTimezone(),
       currentTimestamp = Date.now(),
       foodLogs = [],
       workoutLogs = [],
       waterIntake = 0,
+      stepsToday = 0,
+      workoutCompletedToday = false,
       streak = 1,
       userName = 'Athlete',
       preferences = {},
       schedule = {}
     } = context;
+
+    const resolvedSteps = Number(stepsToday || context.steps || 0);
+    const resolvedWorkoutDone = Boolean(workoutCompletedToday || (workoutLogs || []).some(isQualifyingWorkoutLog));
 
     // Helper to parse 'HH:MM' string to integers
     const parseTime = (timeStr, defH, defM) => {
@@ -1811,7 +1817,7 @@ export class SmartReminderEngine {
         category: NOTIFICATION_CATEGORIES.WORKOUT,
         targetHour: (lunch.hour + 2) % 24,
         targetMinute: 30,
-        isSuppressed: () => stepsToday >= 6000,
+        isSuppressed: () => resolvedSteps >= 6000,
         generateCopy: (dow) => {
           const themes = [
             { title: `Post-lunch slump breaker! 🚶‍♂️`, body: `Take a brisk 5-minute walk to aid digestion and boost focus, ${userName}.` },
@@ -1828,7 +1834,7 @@ export class SmartReminderEngine {
         category: NOTIFICATION_CATEGORIES.WORKOUT,
         targetHour: (workout.hour - 1 + 24) % 24,
         targetMinute: 30,
-        isSuppressed: () => Boolean(workoutCompletedToday),
+        isSuppressed: () => resolvedWorkoutDone,
         generateCopy: (dow) => {
           const themes = [
             { title: `Workout window opening soon! 🏋️‍♂️`, body: `Prep your hydration and get ready to crush today's session, ${userName}.` },
@@ -1845,7 +1851,7 @@ export class SmartReminderEngine {
         category: NOTIFICATION_CATEGORIES.WORKOUT,
         targetHour: (workout.hour + 1) % 24,
         targetMinute: 15,
-        isSuppressed: () => Boolean(workoutCompletedToday),
+        isSuppressed: () => resolvedWorkoutDone,
         generateCopy: (dow) => {
           const themes = [
             { title: `How was today's training? 🏅`, body: `Log your workout sets & volume to keep your progressive overload streak alive, ${userName}!` },
@@ -1955,7 +1961,7 @@ export class SmartReminderEngine {
     this.persistState();
     this.logAnalyticsEvent(NOTIFICATION_ANALYTICS_EVENTS.CANCELLED, `nutrition_group_${userId}_${localDate}`, { reason: 'User logged meal before reminder' });
 
-    return { suppressed: true };
+    return { suppressed: true, dedupeKey: keysToCancel[0], localDate };
   }
 
   /**
@@ -1978,7 +1984,7 @@ export class SmartReminderEngine {
     this.persistState();
     this.logAnalyticsEvent(NOTIFICATION_ANALYTICS_EVENTS.CANCELLED, `water_group_${userId}_${localDate}`, { reason: 'User logged water before reminder' });
 
-    return { suppressed: true };
+    return { suppressed: true, dedupeKey: keysToCancel[0], localDate };
   }
 
   /**

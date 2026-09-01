@@ -246,12 +246,12 @@ select:focus,
   --border: #E2E8F0;
   --border-subtle: #F1F5F9;
   --border-strong: #CBD5E1;
-  --accent: #A3E635;
-  --accent-dim: #84CC16;
-  --accent-soft: rgba(163, 230, 53, 0.18);
-  --accent-foreground: #000000;
-  --primary: #A3E635;
-  --primary-foreground: #000000;
+  --accent: #16A34A;
+  --accent-dim: #15803D;
+  --accent-soft: rgba(22, 163, 74, 0.14);
+  --accent-foreground: #FFFFFF;
+  --primary: #16A34A;
+  --primary-foreground: #FFFFFF;
   --secondary: #F1F5F9;
   --secondary-foreground: #0F172A;
   --muted: #F1F5F9;

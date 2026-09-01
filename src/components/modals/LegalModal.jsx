@@ -200,10 +200,11 @@ export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
                 {/* 7 to 10 */}
                 <section className="space-y-2">
                   <h3 className="text-sm font-black uppercase tracking-widest text-cyan-400 flex items-center gap-2">
-                    <Lock className="w-4 h-4" /> 7–10. Security, Retention & Your Choices
+                    <Lock className="w-4 h-4" /> 7–10. Security, Retention, Storage & Your Choices
                   </h3>
                   <ul className="list-disc pl-5 space-y-1 text-gray-400 text-xs">
                     <li><strong>Security:</strong> TLS 1.3 in transit, AES-256 at rest, Row Level Security (RLS) database isolation.</li>
+                    <li><strong>Zero-Ad Cookies:</strong> Zero 3rd-party advertising cookies; session tokens & sync states stored locally in localStorage / IndexedDB.</li>
                     <li><strong>Retention:</strong> Retained during active account lifecycle; permanently purged upon deletion.</li>
                     <li><strong>User Rights:</strong> Full access, CSV/JSON export, correction, consent revocation, and 48-hour permanent account erasure.</li>
                   </ul>

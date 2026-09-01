@@ -93,6 +93,19 @@ export function calculateConsecutiveDaysStreak(timestampsList = [], todayStr = g
 }
 
 /**
+ * Checks if a streak is mathematically still active (checked in today or yesterday).
+ * If the user did not open/check in yesterday or today, the streak is broken.
+ * @param {string} lastActiveDate - Format YYYY-MM-DD
+ * @param {string} [todayStr=getTodayDateString()] - Format YYYY-MM-DD
+ * @returns {boolean}
+ */
+export function isStreakActive(lastActiveDate, todayStr = getTodayDateString()) {
+  if (!lastActiveDate || typeof lastActiveDate !== 'string') return false;
+  const yesterdayStr = shiftDays(todayStr, -1);
+  return lastActiveDate === todayStr || lastActiveDate === yesterdayStr;
+}
+
+/**
  * Calculates consecutive-day water streak based on achieving daily water target.
  * @param {Array<Object>} waterLogs 
  * @param {number} [waterTarget=2500] 
@@ -123,3 +136,4 @@ export function calculateWaterGoalStreak(waterLogs = [], waterTarget = 2500, tod
 
   return calculateConsecutiveDaysStreak(completedGoalDates, todayStr);
 }
+

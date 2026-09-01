@@ -7,7 +7,7 @@ import PremiumLockBadge from '../common/PremiumLockBadge.jsx';
 export default function AIWorkoutCoachCard({
   userProfile = {},
   historicalWorkoutLogs = [],
-  recoveryScore = 82,
+  recoveryScore = null,
   onStartSession = () => {},
   onOpenUpgradeModal = () => {}
 }) {
@@ -23,11 +23,11 @@ export default function AIWorkoutCoachCard({
         goal: userProfile?.goal || 'hypertrophy',
         muscleGroup: 'chest_triceps',
         equipment: 'gym',
-        recoveryScore: recoveryScore || 82,
+        recoveryScore: recoveryScore || null,
         variationIndex: 0
       });
     } catch (e) {
-      return { title: 'Adaptive Daily Routine', recoveryScore: 82, exercises: [] };
+      return { title: 'Adaptive Daily Routine', recoveryScore: recoveryScore || null, exercises: [] };
     }
   });
 
@@ -51,7 +51,7 @@ export default function AIWorkoutCoachCard({
         muscleGroup: split,
         equipment: eq,
         injuryRestrictions: injury ? [injury] : [],
-        recoveryScore: recoveryScore || 82,
+        recoveryScore: recoveryScore || null,
         variationIndex: nextSeed
       });
       setWorkout(w);
@@ -75,7 +75,7 @@ export default function AIWorkoutCoachCard({
             {workout?.title || "Today's Adaptive Workout"}
           </h3>
           <p className="text-xs text-secondary mt-0.5">
-            Autoregulated by CNS recovery ({workout?.recoveryScore || 82}%) with progressive overload targets.
+            Autoregulated by CNS recovery ({workout?.recoveryScore ? `${workout.recoveryScore}%` : '--'}) with progressive overload targets.
           </p>
         </div>
 
@@ -101,7 +101,7 @@ export default function AIWorkoutCoachCard({
           <div className="space-y-1.5 max-w-md mx-auto">
             <h4 className="text-base sm:text-lg font-black text-white">Unlock Adaptive AI Workout Coach</h4>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Autoregulate your sets and volume dynamically with CNS readiness ({workout?.recoveryScore || 82}%), 4-week progressive overload curve tracking, and biomechanical injury substitutions.
+              Autoregulate your sets and volume dynamically with CNS readiness ({workout?.recoveryScore ? `${workout.recoveryScore}%` : '--'}), 4-week progressive overload curve tracking, and biomechanical injury substitutions.
             </p>
           </div>
           <div className="pt-2">
@@ -168,7 +168,7 @@ export default function AIWorkoutCoachCard({
             title="Recalculate set volume and intensity based on recovery"
           >
             <RefreshCw className="w-3.5 h-3.5 text-accent" />
-            <span>⚡ Re-calc Volume (CNS {workout?.recoveryScore || 82}%)</span>
+            <span>⚡ Re-calc Volume (CNS {workout?.recoveryScore ? `${workout.recoveryScore}%` : '--'})</span>
           </button>
         </div>
 

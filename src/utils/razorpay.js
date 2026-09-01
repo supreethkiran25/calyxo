@@ -200,6 +200,7 @@ export const startRazorpayCheckout = async (options = {}) => {
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
+          planId: plan.id,
           amount: finalAmountPaise,
           currency: 'INR',
           receipt: `rcpt_${(user?.uid || user?.id || 'usr').substring(0, 8)}_${Date.now()}`

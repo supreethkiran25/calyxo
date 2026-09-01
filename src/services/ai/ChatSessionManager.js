@@ -238,9 +238,9 @@ export class ChatSessionManager {
       session.title = 'New Conversation';
       session.updatedAt = Date.now();
       this.persistLocal();
-      return session;
+      return true;
     }
-    return null;
+    return false;
   }
 
   /**

@@ -172,13 +172,16 @@ export default function PrivacyPage() {
           </ul>
         </section>
 
-        {/* 7. Third-Party Services */}
+        {/* 7. Third-Party Services, Local Storage & Cookies */}
         <section className="space-y-3">
           <h3 className="text-base font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
-            <Smartphone className="w-4 h-4" /> 7. Third-Party Services
+            <Smartphone className="w-4 h-4" /> 7. Third-Party Services, Local Storage & Zero Third-Party Ad Cookies
           </h3>
           <p className="text-[var(--muted-foreground)]">
-            Calyxo relies on trusted third parties for infrastructure, authentication, analytics, AI processing, cloud storage, payments, notifications, and wearable companion connectivity. Examples include Apple Inc., Google LLC, Razorpay Software Private Limited, Supabase Inc., and Vercel Inc.
+            Calyxo relies on trusted third parties for cloud infrastructure, authentication, AI processing, storage, payments, notifications, and wearable companion connectivity. Examples include Apple Inc., Google LLC, Razorpay Software Private Limited, Supabase Inc., and Vercel Inc.
+          </p>
+          <p className="text-[var(--muted-foreground)]">
+            <strong>Cookie & Storage Policy:</strong> Calyxo employs <strong>zero third-party advertising cookies</strong>, retargeting pixels, or behavioral tracking beacons. Application state, offline telemetry sync queues, theme preferences, and authentication session tokens are stored securely in local browser storage (<code className="text-cyan-400">localStorage</code>, <code className="text-cyan-400">sessionStorage</code>, and <code className="text-cyan-400">IndexedDB</code>). You can purge your offline cache at any time from your device or in-app settings.
           </p>
         </section>
 

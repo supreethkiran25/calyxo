@@ -25,12 +25,33 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
     ? 'Android Health Connect'
     : 'Device Sensor & Health API';
 
+  React.useEffect(() => {
+    const checkState = async () => {
+      await HealthPermissionManager.checkLiveAuthorization();
+      setIsConnected(HealthPermissionManager.isConnected());
+      setGrantedPerms(HealthPermissionManager.getGrantedPermissions());
+    };
+    if (isOpen) {
+      checkState();
+    }
+  }, [isOpen]);
+
   const handleConnect = async () => {
     const res = await HealthPermissionManager.requestPermissions({ includeOptional: true });
-    setIsConnected(HealthPermissionManager.isConnected());
+    const authState = await HealthPermissionManager.getAuthorizationState();
+    const isConn = authState.status === 'AUTHORIZED' || (res && res.status === 'AUTHORIZED');
+    setIsConnected(isConn);
     setGrantedPerms(HealthPermissionManager.getGrantedPermissions());
-    await HealthSyncEngine.triggerSync();
-    if (onNotification) onNotification(`Connected to ${platformName}! Syncing health metrics.`);
+    if (isConn) {
+      await HealthSyncEngine.reconnectAndSync();
+      if (onNotification) onNotification(`Connected to ${platformName}! Syncing health metrics.`);
+    } else {
+      if (authState.status === 'DENIED') {
+        if (onNotification) onNotification(`${platformName} access denied. Enable permissions in Settings.`);
+      } else {
+        if (onNotification) onNotification(`${platformName} access not granted.`);
+      }
+    }
   };
 
   const handleSyncNow = async () => {
@@ -155,7 +176,7 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
                 <span className="text-[10px] font-bold text-muted">Multi-Timeframe</span>
               </div>
 
-              <div className="grid grid-cols-4 gap-1.5 py-1">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 py-1">
                 {[
                   { id: '7d', label: '7 Days' },
                   { id: '30d', label: '30 Days' },
@@ -280,7 +301,7 @@ export default function HealthConnectionsModal({ isOpen, onClose, onNotification
 
           {/* Action Buttons */}
           {isConnected && (
-            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pt-1 pb-1">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2 pt-1 pb-1">
               <button
                 onClick={handleSyncNow}
                 disabled={syncing}

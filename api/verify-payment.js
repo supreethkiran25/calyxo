@@ -62,27 +62,38 @@ export default async function handler(req, res) {
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
+    const AUTHORITATIVE_PLANS = {
+      HIGH: { amount: 2, planName: 'HIGH', durationDays: 30 },
+      HIGH_MONTHLY: { amount: 2, planName: 'HIGH', durationDays: 30 },
+      HIGH_ANNUAL: { amount: 199, planName: 'HIGH_ANNUAL', durationDays: 365 }
+    };
+
+    const { planId } = req.body || {};
+    const planKey = (planId || 'HIGH').toUpperCase();
+    const resolvedPlan = AUTHORITATIVE_PLANS[planKey] || AUTHORITATIVE_PLANS.HIGH;
+    const now = new Date();
+    const durationDays = resolvedPlan.durationDays;
+    const expiryDate = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
     if (targetUserId && supabaseUrl && supabaseKey) {
       try {
         const supabase = createClient(supabaseUrl, supabaseKey);
-        const now = new Date();
-        const expiryDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
 
         await supabase.from('user_profiles').upsert({
           id: targetUserId,
-          subscription_plan: 'HIGH'
+          subscription_plan: resolvedPlan.planName
         }, { onConflict: 'id' });
 
         await supabase.from('subscriptions').upsert({
           user_id: targetUserId,
-          plan: 'HIGH',
+          plan: resolvedPlan.planName,
           status: 'Active',
           purchase_date: now.toISOString(),
           expiry_date: expiryDate.toISOString(),
           granted_by: 'Razorpay Gateway',
           payment_source: 'Razorpay',
           payment_id: razorpay_payment_id,
-          amount: 2,
+          amount: resolvedPlan.amount,
           currency: 'INR',
           updated_at: now.toISOString()
         }, { onConflict: 'user_id' });
@@ -94,8 +105,8 @@ export default async function handler(req, res) {
           details: JSON.stringify({
             payment_id: razorpay_payment_id,
             order_id: razorpay_order_id,
-            plan: 'HIGH',
-            amount: 2,
+            plan: resolvedPlan.planName,
+            amount: resolvedPlan.amount,
             expiry_date: expiryDate.toISOString()
           })
         });
@@ -108,6 +119,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       message: 'Payment verified and subscription activated successfully',
+      plan: resolvedPlan.planName,
+      expiresAt: expiryDate.toISOString(),
       payment_id: razorpay_payment_id,
       order_id: razorpay_order_id
     });

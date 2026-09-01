@@ -133,7 +133,7 @@ export default function HealthSettingsModal({ isOpen, onClose, onNotification })
           </div>
 
           {/* Action Buttons */}
-          <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
             <button
               onClick={handleSyncNow}
               disabled={syncing || !isConnected}

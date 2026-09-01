@@ -163,10 +163,13 @@ export default function WebPrivacyPage() {
           <section className="space-y-3 p-6 sm:p-8 rounded-2xl bg-white/[0.02] border border-white/10">
             <h2 className="text-lg font-bold text-white uppercase tracking-wide flex items-center gap-2.5">
               <Lock className="w-5 h-5 text-cyan-400" />
-              6. Security & Data Retention
+              6. Security, Retention & Zero-Ad Cookie Policy
             </h2>
             <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
               All communications utilize <strong>TLS 1.3 encryption in transit</strong> and <strong>AES-256 encryption at rest</strong> with Supabase Row Level Security (RLS). You maintain the right to export your complete telemetry history or request irreversible account erasure within 48 hours.
+            </p>
+            <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
+              <strong>Local Storage & Cookies:</strong> Calyxo employs <strong>zero third-party advertising cookies</strong>, pixels, or trackers. Session credentials, theme styles, and offline sync queues are persisted locally in your browser storage (<code className="text-cyan-400">localStorage</code>, <code className="text-cyan-400">sessionStorage</code>, and <code className="text-cyan-400">IndexedDB</code>).
             </p>
           </section>
 

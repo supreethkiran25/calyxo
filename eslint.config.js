@@ -8,6 +8,8 @@ export default [
       'ios/**',
       'android/**',
       'watchOS/**',
+      'calyxo-mobile/**',
+      'scripts/**',
       '.agents/**',
       'node_modules/**',
       'public/**',

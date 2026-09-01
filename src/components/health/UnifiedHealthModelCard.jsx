@@ -1,15 +1,15 @@
 import React from 'react';
-import { Sparkles, Watch, Heart, Moon, Activity, ShieldCheck, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Watch, CheckCircle2, AlertCircle } from 'lucide-react';
 import { UnifiedHealthModelEngine } from '../../services/health/UnifiedHealthModelEngine.js';
 import { SubscriptionManager } from '../../services/subscription/SubscriptionManager.js';
 import PremiumLockBadge from '../common/PremiumLockBadge.jsx';
 
 export default function UnifiedHealthModelCard({
   userProfile = {},
-  appleWatchData = { hr: 68, hrv: 54, workouts: [], activeCalories: 450 },
-  boatData = { sleepMinutes: 460, steps: 8420, deepSleepMinutes: 110 },
+  appleWatchData = null,
+  boatData = null,
   bleChestStrap = null,
-  bpMonitorData = { systolic: 118, diastolic: 78, pulse: 64 },
+  bpMonitorData = null,
   onOpenUpgradeModal
 }) {
   const isPremium = SubscriptionManager.isPremium(userProfile);
@@ -22,6 +22,10 @@ export default function UnifiedHealthModelCard({
   });
 
   const { telemetry, devicesConnected } = model;
+  const isAppleWatchConnected = devicesConnected.includes('Apple Watch');
+  const isBoatConnected = devicesConnected.includes('boAt Wearable');
+  const isBleStrapConnected = devicesConnected.includes('BLE Chest Strap');
+  const isBpConnected = devicesConnected.includes('BLE BP Monitor');
 
   return (
     <div className="w-full bg-surface border border-card-border rounded-3xl p-5 sm:p-7 shadow-card space-y-6 relative overflow-hidden">
@@ -43,7 +47,7 @@ export default function UnifiedHealthModelCard({
         </div>
 
         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs font-mono self-start sm:self-auto">
-          <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
+          <span className={`w-2 h-2 rounded-full ${devicesConnected.length > 0 ? 'bg-cyan-500 animate-pulse' : 'bg-muted'}`} />
           <span>{devicesConnected.length} Hardware Streams Fused</span>
         </div>
       </div>
@@ -58,12 +62,15 @@ export default function UnifiedHealthModelCard({
           </div>
           <div className="space-y-0.5">
             <div className="text-sm font-black text-foreground font-mono">
-              {telemetry.liveHeartRate.value ? `${telemetry.liveHeartRate.value} BPM` : '68 BPM (Resting)'}
+              {telemetry.liveHeartRate?.value ? `${telemetry.liveHeartRate.value} BPM` : '--'}
             </div>
-            <p className="text-[10px] text-muted font-mono">HRV: {telemetry.hrv.value || 54} ms SDNN</p>
+            <p className="text-[10px] text-muted font-mono">
+              HRV: {telemetry.hrv?.value ? `${telemetry.hrv.value} ms SDNN` : '--'}
+            </p>
           </div>
-          <span className="text-[9px] text-accent flex items-center gap-1">
-            <CheckCircle2 className="w-2.5 h-2.5" /> HealthKit Synced
+          <span className={`text-[9px] flex items-center gap-1 ${isAppleWatchConnected ? 'text-accent' : 'text-muted'}`}>
+            {isAppleWatchConnected ? <CheckCircle2 className="w-2.5 h-2.5" /> : <AlertCircle className="w-2.5 h-2.5" />}
+            {isAppleWatchConnected ? 'HealthKit Synced' : 'Not Connected'}
           </span>
         </div>
 
@@ -75,12 +82,15 @@ export default function UnifiedHealthModelCard({
           </div>
           <div className="space-y-0.5">
             <div className="text-sm font-black text-foreground font-mono">
-              {telemetry.sleep.hours}h Sleep
+              {telemetry.sleep?.hours > 0 ? `${telemetry.sleep.hours}h Sleep` : '--'}
             </div>
-            <p className="text-[10px] text-muted font-mono">Steps: {telemetry.steps.count.toLocaleString()}</p>
+            <p className="text-[10px] text-muted font-mono">
+              Steps: {telemetry.steps?.count > 0 ? telemetry.steps.count.toLocaleString() : '--'}
+            </p>
           </div>
-          <span className="text-[9px] text-accent flex items-center gap-1">
-            <CheckCircle2 className="w-2.5 h-2.5" /> Bridge Active
+          <span className={`text-[9px] flex items-center gap-1 ${isBoatConnected ? 'text-accent' : 'text-muted'}`}>
+            {isBoatConnected ? <CheckCircle2 className="w-2.5 h-2.5" /> : <AlertCircle className="w-2.5 h-2.5" />}
+            {isBoatConnected ? 'Bridge Active' : 'Not Paired'}
           </span>
         </div>
 
@@ -92,12 +102,13 @@ export default function UnifiedHealthModelCard({
           </div>
           <div className="space-y-0.5">
             <div className="text-sm font-black text-foreground font-mono">
-              Polar / Wahoo
+              {telemetry.liveHeartRate?.source === 'Polar / BLE Chest Strap' ? `${telemetry.liveHeartRate.value} BPM` : '--'}
             </div>
             <p className="text-[10px] text-muted font-mono">SIG 0x2A37 Direct</p>
           </div>
-          <span className="text-[9px] text-accent flex items-center gap-1">
-            <CheckCircle2 className="w-2.5 h-2.5" /> 1Hz Telemetry
+          <span className={`text-[9px] flex items-center gap-1 ${isBleStrapConnected ? 'text-accent' : 'text-muted'}`}>
+            {isBleStrapConnected ? <CheckCircle2 className="w-2.5 h-2.5" /> : <AlertCircle className="w-2.5 h-2.5" />}
+            {isBleStrapConnected ? '1Hz Telemetry' : 'Not Connected'}
           </span>
         </div>
 
@@ -109,12 +120,15 @@ export default function UnifiedHealthModelCard({
           </div>
           <div className="space-y-0.5">
             <div className="text-sm font-black text-foreground font-mono">
-              {telemetry.bloodPressure.systolic}/{telemetry.bloodPressure.diastolic} mmHg
+              {telemetry.bloodPressure?.systolic ? `${telemetry.bloodPressure.systolic}/${telemetry.bloodPressure.diastolic} mmHg` : '--'}
             </div>
-            <p className="text-[10px] text-muted font-mono">Status: {telemetry.bloodPressure.status}</p>
+            <p className="text-[10px] text-muted font-mono">
+              Status: {telemetry.bloodPressure?.category || '--'}
+            </p>
           </div>
-          <span className="text-[9px] text-accent flex items-center gap-1">
-            <CheckCircle2 className="w-2.5 h-2.5" /> Normal Zone
+          <span className={`text-[9px] flex items-center gap-1 ${isBpConnected ? 'text-accent' : 'text-muted'}`}>
+            {isBpConnected ? <CheckCircle2 className="w-2.5 h-2.5" /> : <AlertCircle className="w-2.5 h-2.5" />}
+            {isBpConnected ? 'Normal Zone' : 'No Readings'}
           </span>
         </div>
       </div>

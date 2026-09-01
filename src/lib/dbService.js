@@ -2133,3 +2133,17 @@ export const getClientFullProfile = async (clientId) => {
   const profile = await getUserProfile(clientId);
   return profile;
 };
+
+export const cancelUserSubscription = async (userId) => {
+  if (!userId || isMockMode) return true;
+  try {
+    const { error } = await supabase
+      .from('subscriptions')
+      .update({ status: 'Cancelled', updated_at: new Date().toISOString() })
+      .eq('user_id', userId);
+    if (error) console.warn('[CALYXO-DB] Cancel subscription warning:', error);
+    return !error;
+  } catch (e) {
+    return false;
+  }
+};

@@ -53,8 +53,8 @@ export default function SupportPage() {
           </div>
           <h3 className="font-black text-lg text-[var(--foreground)]">Still Need Help?</h3>
           <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">Our athletic support team is available 24/7. Reach out directly and we will get back to you within 12 hours.</p>
-          <a href="mailto:support@calyxo.com" className="block w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black rounded-xl text-xs font-black uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all">
-            Contact Support
+          <a href="mailto:support@calyxo.app" className="block w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black rounded-xl text-xs font-black uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all">
+            Contact Support (support@calyxo.app)
           </a>
         </motion.div>
       </div>

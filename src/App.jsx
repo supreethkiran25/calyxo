@@ -40,6 +40,7 @@ const AboutPage = lazyWithRetry(() => import('./pages/user/AboutPage'));
 const SupportPage = lazyWithRetry(() => import('./pages/user/SupportPage'));
 const PrivacyPage = lazyWithRetry(() => import('./pages/user/PrivacyPage'));
 const TermsPage = lazyWithRetry(() => import('./pages/user/TermsPage'));
+const AccessibilityPage = lazyWithRetry(() => import('./pages/user/AccessibilityPage'));
 
 // Admin Pages — lazy loaded for code splitting
 const AdminLoginPage = lazyWithRetry(() => import('./pages/admin/AdminLoginPage'));
@@ -89,6 +90,7 @@ function App() {
               <Route path="/vision" element={<VisionPage />} />
               <Route path="/privacy" element={<WebPrivacyPage />} />
               <Route path="/terms" element={<WebTermsPage />} />
+              <Route path="/accessibility" element={<AccessibilityPage />} />
               <Route path="/app" element={<AppHeroLanding />} />
               <Route path="/welcome" element={<AppHeroLanding />} />
 
@@ -109,6 +111,7 @@ function App() {
                 <Route path="support" element={<PageErrorBoundary><SupportPage /></PageErrorBoundary>} />
                 <Route path="privacy" element={<PageErrorBoundary><PrivacyPage /></PageErrorBoundary>} />
                 <Route path="terms" element={<PageErrorBoundary><TermsPage /></PageErrorBoundary>} />
+                <Route path="accessibility" element={<PageErrorBoundary><AccessibilityPage /></PageErrorBoundary>} />
               </Route>
 
               {/* Admin Routes */}

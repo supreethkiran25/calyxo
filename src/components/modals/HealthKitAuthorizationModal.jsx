@@ -48,23 +48,31 @@ export default function HealthKitAuthorizationModal({ isOpen, onClose, onAuthori
     try {
       // 1. Request real platform permissions
       const res = await HealthPermissionManager.requestPermissions({ includeOptional: true });
+      const isGranted = Boolean(res && (res.hasRequired || res.isConnected));
       
-      // 2. Query initial live metrics snapshot
-      await HealthDataService.fetchTodayMetrics();
-      await HealthSyncEngine.triggerSync().catch(() => {});
+      if (isGranted) {
+        // 2. Query initial live metrics snapshot
+        await HealthDataService.fetchTodayMetrics();
+        await HealthSyncEngine.triggerSync().catch(() => {});
 
-      if (onNotification) {
-        onNotification('Apple Health permissions granted! Data sync is now active. ⌚');
-      }
+        if (onNotification) {
+          onNotification('Apple Health permissions granted! Data sync is now active. ⌚');
+        }
 
-      if (onAuthorized) {
-        onAuthorized({ authorized: true, categories });
+        if (onAuthorized) {
+          onAuthorized({ authorized: true, categories });
+        }
+      } else {
+        if (onNotification) {
+          onNotification('Apple Health permission was not granted.');
+        }
+        if (onAuthorized) onAuthorized({ authorized: false });
       }
       onClose();
     } catch (err) {
       console.warn('[HealthKitModal] Authorization note:', err);
       if (onNotification) {
-        onNotification('Could not complete authorization. You can always sync from Settings.');
+        onNotification('Could not complete authorization.');
       }
       if (onAuthorized) onAuthorized({ authorized: false });
       onClose();
@@ -75,16 +83,16 @@ export default function HealthKitAuthorizationModal({ isOpen, onClose, onAuthori
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md">
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md">
         <motion.div
           initial={{ opacity: 0, y: 40, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 40, scale: 0.96 }}
           transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-lg bg-[#12121A] border border-white/10 rounded-t-[32px] sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+          className="w-full max-w-lg bg-surface border border-card-border rounded-t-[32px] sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         >
           {/* Header */}
-          <div className="p-5 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+          <div className="p-5 border-b border-card-border flex items-center justify-between bg-surface-subtle">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-pink-500 p-0.5 flex items-center justify-center shadow-lg shadow-rose-500/20">
                 <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center">
@@ -92,13 +100,13 @@ export default function HealthKitAuthorizationModal({ isOpen, onClose, onAuthori
                 </div>
               </div>
               <div>
-                <h3 className="text-base font-black text-white tracking-tight">Apple Health Access</h3>
-                <p className="text-[11px] text-slate-400">Permissions & Data Sharing</p>
+                <h3 className="text-base font-black text-foreground tracking-tight">Apple Health Access</h3>
+                <p className="text-[11px] text-muted">Permissions & Data Sharing</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all"
+              className="w-8 h-8 rounded-full bg-surface-subtle hover:bg-surface-interactive flex items-center justify-center text-muted hover:text-foreground transition-all cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -107,10 +115,10 @@ export default function HealthKitAuthorizationModal({ isOpen, onClose, onAuthori
           {/* Body Content */}
           <div className="p-5 overflow-y-auto space-y-4 flex-1">
             <div className="text-center space-y-1">
-              <h4 className="text-sm font-bold text-white">
+              <h4 className="text-sm font-bold text-foreground">
                 "Calyxo" would like to access and update your Health data
               </h4>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              <p className="text-xs text-muted max-w-sm mx-auto">
                 Turn on categories below so Calyxo can calculate strain, recovery, burned calories, and workouts.
               </p>
             </div>
@@ -118,20 +126,20 @@ export default function HealthKitAuthorizationModal({ isOpen, onClose, onAuthori
             {/* Turn On All Switch */}
             <div 
               onClick={handleToggleAll}
-              className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-between cursor-pointer hover:bg-white/[0.06] transition-all"
+              className="p-3.5 rounded-2xl bg-surface-subtle border border-card-border flex items-center justify-between cursor-pointer hover:bg-surface-interactive transition-all"
             >
-              <span className="text-xs font-bold text-white uppercase tracking-wide">Turn On All Categories</span>
-              <div className={`w-12 h-6 rounded-full transition-colors p-0.5 flex items-center ${turnOnAll ? 'bg-[#A3E635] justify-end' : 'bg-slate-700 justify-start'}`}>
+              <span className="text-xs font-bold text-foreground uppercase tracking-wide">Turn On All Categories</span>
+              <div className={`w-12 h-6 rounded-full transition-colors p-0.5 flex items-center ${turnOnAll ? 'bg-[#34C759] justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'}`}>
                 <motion.div 
                   layout 
-                  className={`w-5 h-5 rounded-full shadow-md ${turnOnAll ? 'bg-black' : 'bg-white'}`} 
+                  className="w-5 h-5 rounded-full shadow-md bg-white" 
                 />
               </div>
             </div>
 
             {/* Category Checkboxes */}
             <div className="space-y-2">
-              <p className="text-[10px] font-mono uppercase text-slate-500 tracking-wider">ALLOW "CALYXO" TO READ:</p>
+              <p className="text-[10px] font-mono uppercase text-muted tracking-wider">ALLOW "CALYXO" TO READ:</p>
 
               {[
                 { key: 'steps', label: 'Steps & Daily Movement', desc: 'Hardware-verified daily step counts', icon: Activity, color: '#A3E635' },
@@ -147,21 +155,21 @@ export default function HealthKitAuthorizationModal({ isOpen, onClose, onAuthori
                     key={item.key}
                     onClick={() => handleToggleCategory(item.key)}
                     className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-                      isChecked ? 'bg-white/[0.04] border-white/10' : 'bg-white/[0.01] border-white/[0.03] opacity-60'
+                      isChecked ? 'bg-surface border-card-border shadow-sm' : 'bg-surface-subtle border-card-border/60 opacity-60'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center shrink-0" style={{ color: item.color }}>
+                      <div className="w-8 h-8 rounded-xl bg-surface-subtle flex items-center justify-center shrink-0" style={{ color: item.color }}>
                         <Icon className="w-4 h-4" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-white">{item.label}</p>
-                        <p className="text-[10px] text-slate-400">{item.desc}</p>
+                        <p className="text-xs font-bold text-foreground">{item.label}</p>
+                        <p className="text-[10px] text-muted">{item.desc}</p>
                       </div>
                     </div>
 
                     <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
-                      isChecked ? 'bg-[#A3E635] border-[#A3E635]' : 'border-slate-600'
+                      isChecked ? 'bg-accent border-accent' : 'border-card-border'
                     }`}>
                       {isChecked && <Check className="w-3.5 h-3.5 text-black stroke-[3]" />}
                     </div>
@@ -170,18 +178,18 @@ export default function HealthKitAuthorizationModal({ isOpen, onClose, onAuthori
               })}
             </div>
 
-            <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-center gap-2 text-[11px] text-slate-400">
-              <ShieldCheck className="w-4 h-4 text-[#10B981] shrink-0" />
+            <div className="p-3 rounded-2xl bg-surface-subtle border border-card-border flex items-center gap-2 text-[11px] text-muted">
+              <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
               <span>All biometric data remains strictly on your device and is never shared with third parties.</span>
             </div>
           </div>
 
           {/* Footer Buttons */}
-          <div className="p-4 border-t border-white/10 flex items-center gap-3 bg-white/[0.02]">
+          <div className="p-4 border-t border-card-border flex items-center gap-3 bg-surface-subtle">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 rounded-xl border border-white/10 text-xs font-bold text-slate-300 hover:text-white hover:bg-white/5 transition-all"
+              className="flex-1 py-3 rounded-xl border border-card-border text-xs font-bold text-foreground hover:bg-surface-interactive transition-all cursor-pointer"
             >
               Don't Allow
             </button>
@@ -189,7 +197,7 @@ export default function HealthKitAuthorizationModal({ isOpen, onClose, onAuthori
               type="button"
               disabled={isAuthorizing}
               onClick={handleAllow}
-              className="flex-1 py-3 rounded-xl bg-[#A3E635] hover:bg-[#8fd128] text-black text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#A3E635]/20"
+              className="flex-1 py-3 rounded-xl bg-accent hover:brightness-110 text-accent-foreground text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-accent/20 cursor-pointer"
             >
               {isAuthorizing ? (
                 <span className="animate-spin text-xs">⚡ Authorizing...</span>
