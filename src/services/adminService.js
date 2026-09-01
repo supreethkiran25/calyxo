@@ -141,24 +141,49 @@ export const loginSuperAdmin = async (email, password) => {
     return data.user;
   }
 
-  // Mock mode: only permit in non-production environments
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('Admin login unavailable in production mock mode.');
-  }
-  const adminUser = {
-    id: 'super-admin-root',
-    uid: 'super-admin-root',
-    email: cleanEmail,
-    displayName: 'Super Admin',
-    role: 'super_admin',
-    isAdminSession: true,
-    subscription_plan: 'HIGH'
-  };
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('calyxo_admin_session', JSON.stringify(adminUser));
-  }
-  return adminUser;
+  // Fallback
+  return null;
 };
+
+export const sendAdminPasswordReset = async (email) => {
+  const cleanEmail = email.toLowerCase().trim();
+
+  if (!SUPER_ADMIN_EMAILS.includes(cleanEmail)) {
+    throw new Error('403 Forbidden: Email is not authorized as a Super Admin.');
+  }
+
+  if (!isMockMode) {
+    const redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/admin/login` : undefined;
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: redirectUrl
+    });
+    if (error) throw error;
+    return true;
+  }
+  return true;
+};
+
+export const updateAdminPassword = async (newPassword) => {
+  if (!newPassword || newPassword.length < 6) {
+    throw new Error('Password must be at least 6 characters long.');
+  }
+
+  if (!isMockMode) {
+    const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+    if (data?.user) {
+      data.user.role = 'super_admin';
+      data.user.isAdminSession = true;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('calyxo_admin_session', JSON.stringify(data.user));
+      }
+    }
+    await logAdminAction('ADMIN_PASSWORD_UPDATED', null, { timestamp: new Date().toISOString() });
+    return true;
+  }
+  return true;
+};
+
 
 
 /* ==========================================================================
