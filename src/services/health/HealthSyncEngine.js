@@ -31,6 +31,43 @@ export class HealthSyncEngine {
   }
 
   /**
+   * Emit real-time live heart rate and resting HR directly to active dashboard components
+   */
+  static emitLiveHeartRate(hrData) {
+    if (!hrData || !hrData.heartRateBpm) return;
+    this.notifyListeners({
+      type: 'live_heart_rate',
+      heartRateBpm: hrData.heartRateBpm,
+      heartRateSource: hrData.heartRateSource || hrData.source || 'Watch Sync',
+      restingHeartRateBpm: hrData.restingHeartRateBpm || 0,
+      restingHeartRateSource: hrData.restingHeartRateSource || hrData.restingSource || '',
+      heartRateTimestamp: hrData.heartRateTimestamp || hrData.timestamp || Date.now(),
+      isLive: true
+    });
+  }
+
+  /**
+   * Initialize native HealthKit live observer queries (Garmin, Whoop, boAt, Apple Health)
+   */
+  static initLiveNativeListeners() {
+    if (typeof window === 'undefined') return;
+    try {
+      import('@capacitor/core').then(({ Capacitor }) => {
+        if (Capacitor.isNativePlatform()) {
+          const { CalyxoHealthKit } = Capacitor.Plugins;
+          if (CalyxoHealthKit) {
+            CalyxoHealthKit.addListener('onHeartRateLiveUpdate', (data) => {
+              console.log('[CALYXO-HEALTH] Live HealthKit HR event received:', data);
+              HealthSyncEngine.emitLiveHeartRate(data);
+            });
+            CalyxoHealthKit.startHeartRateObserver().catch(() => {});
+          }
+        }
+      });
+    } catch (e) {}
+  }
+
+  /**
    * Execute immediate health sync
    */
   static async triggerSync() {

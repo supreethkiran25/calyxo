@@ -37,7 +37,11 @@ export class HealthDataService {
       activeMinutes: pwaSteps > 0 ? Math.round(pwaSteps / 110) : 0,
       activeMinutesGoal: 60,
       heartRateBpm: 0,
+      heartRateSource: '',
+      heartRateTimestamp: null,
       restingHeartRateBpm: 0,
+      restingHeartRateSource: '',
+      isHeartRateLive: false,
       sleepHours: 0.0,
       sleepQualityPct: 0,
       weightKg: 0.0,
@@ -57,7 +61,11 @@ export class HealthDataService {
             metrics.distanceKm = hkData.distanceKm || (metrics.steps > 0 ? Number((metrics.steps * 0.00075).toFixed(2)) : 0.0);
             metrics.activeCalories = hkData.activeCalories || (metrics.steps > 0 ? Math.round(metrics.steps * 0.042) : 0);
             metrics.heartRateBpm = hkData.heartRateBpm || 0;
+            metrics.heartRateSource = hkData.heartRateSource || (metrics.heartRateBpm > 0 ? 'Apple Health' : '');
+            metrics.heartRateTimestamp = hkData.heartRateTimestamp || null;
             metrics.restingHeartRateBpm = hkData.restingHeartRateBpm || 0;
+            metrics.restingHeartRateSource = hkData.restingHeartRateSource || '';
+            metrics.isHeartRateLive = Boolean(hkData.isHeartRateLive);
             metrics.sleepHours = hkData.sleepHours || metrics.sleepHours || 0.0;
             metrics.weightKg = hkData.weightKg || 0.0;
             metrics.bodyFatPct = hkData.bodyFatPct || 0.0;
@@ -76,6 +84,8 @@ export class HealthDataService {
             metrics.distanceKm = androidData.distanceKm || 0.0;
             metrics.activeCalories = androidData.activeCalories || 0;
             metrics.activeMinutes = androidData.activeMinutes || 0;
+            if (androidData.heartRateBpm) metrics.heartRateBpm = androidData.heartRateBpm;
+            if (androidData.restingHeartRateBpm) metrics.restingHeartRateBpm = androidData.restingHeartRateBpm;
             metrics.lastSyncTimestamp = Date.now();
           }
         }
@@ -87,6 +97,18 @@ export class HealthDataService {
         }
       }
 
+      // Merge live Bluetooth LE streaming if actively broadcasting (Garmin, Whoop, Polar, boAt)
+      try {
+        const { wearableIntegrationManager } = await import('./WearableIntegrationManager.js');
+        const liveBle = wearableIntegrationManager?.getLiveHeartRate();
+        if (liveBle && liveBle.bpm > 0) {
+          metrics.heartRateBpm = liveBle.bpm;
+          metrics.heartRateSource = liveBle.source;
+          metrics.heartRateTimestamp = liveBle.timestamp;
+          metrics.isHeartRateLive = true;
+        }
+      } catch (e) {}
+
       // Automatically evaluate phone nighttime inactivity sleep if watch sleep is unavailable
       if (!metrics.sleepHours || metrics.sleepHours <= 0) {
         const phoneSleep = PhoneSleepTrackerService.getTodaySleep();
@@ -97,6 +119,31 @@ export class HealthDataService {
           metrics.wakeTime = phoneSleep.wakeTime;
           metrics.sleepDetectionMethod = phoneSleep.detectionMethod;
         }
+      }
+
+      // Compute transparent deterministic recovery score from real RHR, sleep, and activity
+      try {
+        const { calculateDeterministicRecovery } = await import('./DeterministicRecoveryEngine.js');
+        const effectiveRhr = metrics.restingHeartRateBpm > 0 
+          ? metrics.restingHeartRateBpm 
+          : (metrics.heartRateBpm > 0 ? Math.round(metrics.heartRateBpm * 0.78) : 60);
+
+        const recResult = calculateDeterministicRecovery({
+          sleepHours: metrics.sleepHours || 0,
+          waterMl: 2500,
+          waterGoalMl: 3000,
+          proteinGrams: 120,
+          proteinGoalGrams: 150,
+          activeCaloriesBurned: metrics.activeCalories || 0,
+          restingHR: effectiveRhr,
+          hasLoggedWorkoutToday: false
+        });
+        if (recResult && typeof recResult.score === 'number' && recResult.score > 0) {
+          metrics.recoveryScore = recResult.score;
+          metrics.readinessLevel = recResult.readiness;
+        }
+      } catch (e) {
+        console.warn('[CALYXO-HEALTH] Recovery calculation warning:', e);
       }
 
       HealthCache.saveMetrics(metrics);

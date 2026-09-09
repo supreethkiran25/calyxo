@@ -78,6 +78,9 @@ export default function HealthHubPage({ onNotification }) {
 
     loadInitialHealthData();
 
+    // Start native HealthKit live observer (Garmin, Whoop, boAt, Apple Health)
+    HealthSyncEngine.initLiveNativeListeners();
+
     // Start motion pedometer if connected
     if (HealthPermissionManager.isConnected()) {
       PWAPedometerService.requestAndStartTracking();
@@ -99,13 +102,28 @@ export default function HealthHubPage({ onNotification }) {
       });
     });
 
-    // Subscribe to live sync events
+    // Subscribe to live sync events & real-time heart rate packets
     const unsubscribeSync = HealthSyncEngine.subscribe((syncData) => {
-      if (syncData.metrics) setMetrics(syncData.metrics);
-      if (syncData.workouts) setWorkouts(syncData.workouts);
+      if (syncData.type === 'live_heart_rate') {
+        setMetrics(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            heartRateBpm: syncData.heartRateBpm,
+            heartRateSource: syncData.heartRateSource || prev.heartRateSource,
+            restingHeartRateBpm: syncData.restingHeartRateBpm || prev.restingHeartRateBpm,
+            restingHeartRateSource: syncData.restingHeartRateSource || prev.restingHeartRateSource,
+            isHeartRateLive: true,
+            lastSyncTimestamp: Date.now()
+          };
+        });
+      } else {
+        if (syncData.metrics) setMetrics(syncData.metrics);
+        if (syncData.workouts) setWorkouts(syncData.workouts);
+      }
     });
 
-    const cleanupAuto = HealthSyncEngine.startAutoSync(30000);
+    const cleanupAuto = HealthSyncEngine.startAutoSync(10000);
 
     const syncLiveState = async () => {
       await HealthPermissionManager.checkLiveAuthorization();
@@ -421,10 +439,18 @@ export default function HealthHubPage({ onNotification }) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
 
         {/* Heart Rate */}
-        <div className="bg-surface border border-card-border rounded-3xl p-5 space-y-2">
+        <div className="bg-surface border border-card-border rounded-3xl p-5 space-y-2 relative overflow-hidden">
           <div className="flex justify-between items-center text-muted">
-            <Heart className="w-4 h-4 text-destructive" />
-            <span className="text-[9px] font-bold uppercase">HEART RATE</span>
+            <div className="flex items-center gap-1.5">
+              <Heart className={`w-4 h-4 text-destructive ${metrics?.heartRateBpm > 0 ? 'animate-pulse' : ''}`} />
+              {metrics?.isHeartRateLive && (
+                <span className="flex h-2 w-2 relative" title="Live Continuous Stream">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+              )}
+            </div>
+            <span className="text-[9px] font-bold uppercase tracking-wider">HEART RATE</span>
           </div>
           <div>
             <span className="text-2xl font-black text-foreground">
@@ -432,10 +458,12 @@ export default function HealthHubPage({ onNotification }) {
             </span>
             <span className="text-xs font-bold text-muted ml-1">BPM</span>
           </div>
-          <span className="text-[10px] font-bold text-muted block">
+          <span className="text-[10px] font-bold text-muted block truncate">
             {metrics?.restingHeartRateBpm && metrics.restingHeartRateBpm > 0
-              ? `Resting: ${metrics.restingHeartRateBpm} BPM`
-              : (metrics?.heartRateBpm > 0 ? 'Source: Apple Health' : 'No HR data available')}
+              ? `Resting: ${metrics.restingHeartRateBpm} BPM${metrics.restingHeartRateSource ? ` • ${metrics.restingHeartRateSource}` : (metrics.heartRateSource ? ` • ${metrics.heartRateSource}` : '')}`
+              : (metrics?.heartRateBpm > 0 
+                  ? (metrics?.heartRateSource ? `Source: ${metrics.heartRateSource}` : 'Source: Apple Health') 
+                  : 'No HR data available')}
           </span>
         </div>
 
@@ -486,8 +514,10 @@ export default function HealthHubPage({ onNotification }) {
               {metrics?.recoveryScore && metrics.recoveryScore > 0 ? `${metrics.recoveryScore}%` : '--'}
             </span>
           </div>
-          <span className="text-[10px] font-bold text-muted block">
-            {metrics?.recoveryScore && metrics.recoveryScore > 0 ? 'Calculated from load & sleep' : 'No recovery data'}
+          <span className="text-[10px] font-bold text-muted block truncate">
+            {metrics?.recoveryScore && metrics.recoveryScore > 0 
+              ? (metrics?.readinessLevel ? `${metrics.readinessLevel} • From RHR & Load` : 'Calculated from RHR & load') 
+              : 'No recovery data'}
           </span>
         </div>
 

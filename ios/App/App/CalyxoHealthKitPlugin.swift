@@ -23,7 +23,9 @@ public class CalyxoHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "activateHealthKitSource", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "saveWorkout", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "saveWeight", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "saveWater", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "saveWater", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "startHeartRateObserver", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "stopHeartRateObserver", returnType: CAPPluginReturnPromise)
     ]
 
     private let healthStore = HKHealthStore()
@@ -338,7 +340,7 @@ public class CalyxoHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
             healthStore.execute(cyclingQuery)
         }
 
-        // 5. Latest Heart Rate (BPM)
+        // 5. Latest Heart Rate (BPM) with Source Attribution (Garmin, Whoop, boAt, Apple Watch)
         if let hrType = HKQuantityType.quantityType(forIdentifier: .heartRate) {
             group.enter()
             let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
@@ -346,23 +348,46 @@ public class CalyxoHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 if let sample = samples?.first as? HKQuantitySample {
                     let bpm = Int(sample.quantity.doubleValue(for: HKUnit(from: "count/min")))
                     result["heartRateBpm"] = bpm
-                    print("[CALYXO-HEALTH] Heart Rate: \(bpm) bpm")
+                    let srcName = sample.sourceRevision.source.name
+                    result["heartRateSource"] = srcName
+                    result["heartRateTimestamp"] = sample.startDate.timeIntervalSince1970 * 1000
+                    let secondsAgo = abs(Date().timeIntervalSince(sample.startDate))
+                    result["isHeartRateLive"] = (secondsAgo < 600) // Within last 10 minutes
+                    print("[CALYXO-HEALTH] Heart Rate: \(bpm) bpm (Source: \(srcName), \(Int(secondsAgo))s ago)")
                 }
                 group.leave()
             }
             healthStore.execute(hrQuery)
         }
 
-        // 6. Resting Heart Rate
+        // 6. Resting Heart Rate with Device Source & Walking HR Average Fallback
         if let rhrType = HKQuantityType.quantityType(forIdentifier: .restingHeartRate) {
             group.enter()
             let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-            let rhrQuery = HKSampleQuery(sampleType: rhrType, predicate: nil, limit: 1, sortDescriptors: [sort]) { _, samples, _ in
+            let rhrQuery = HKSampleQuery(sampleType: rhrType, predicate: nil, limit: 1, sortDescriptors: [sort]) { [weak self] _, samples, _ in
                 if let sample = samples?.first as? HKQuantitySample {
                     let bpm = Int(sample.quantity.doubleValue(for: HKUnit(from: "count/min")))
                     result["restingHeartRateBpm"] = bpm
+                    let srcName = sample.sourceRevision.source.name
+                    result["restingHeartRateSource"] = srcName
+                    result["restingHeartRateTimestamp"] = sample.startDate.timeIntervalSince1970 * 1000
+                    print("[CALYXO-HEALTH] Resting Heart Rate: \(bpm) bpm (Source: \(srcName))")
+                    group.leave()
+                } else if let walkingType = HKQuantityType.quantityType(forIdentifier: .walkingHeartRateAverage) {
+                    let walkingQuery = HKSampleQuery(sampleType: walkingType, predicate: nil, limit: 1, sortDescriptors: [sort]) { _, walkingSamples, _ in
+                        if let walkingSample = walkingSamples?.first as? HKQuantitySample {
+                            let bpm = Int(walkingSample.quantity.doubleValue(for: HKUnit(from: "count/min")))
+                            result["restingHeartRateBpm"] = bpm
+                            result["restingHeartRateSource"] = walkingSample.sourceRevision.source.name
+                            result["restingHeartRateTimestamp"] = walkingSample.startDate.timeIntervalSince1970 * 1000
+                            print("[CALYXO-HEALTH] Fallback Resting HR (Walking Avg): \(bpm) bpm (Source: \(walkingSample.sourceRevision.source.name))")
+                        }
+                        group.leave()
+                    }
+                    self?.healthStore.execute(walkingQuery)
+                } else {
+                    group.leave()
                 }
-                group.leave()
             }
             healthStore.execute(rhrQuery)
         }
@@ -684,5 +709,79 @@ public class CalyxoHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.resolve(["saved": true])
             }
         }
+    }
+
+    // MARK: - Live Heart Rate & Resting HR Observer
+
+    private var hrObserverQuery: HKObserverQuery?
+
+    @objc func startHeartRateObserver(_ call: CAPPluginCall) {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            call.resolve(["observing": false, "reason": "not_available"])
+            return
+        }
+
+        if let hrType = HKQuantityType.quantityType(forIdentifier: .heartRate), hrObserverQuery == nil {
+            let observer = HKObserverQuery(sampleType: hrType, predicate: nil) { [weak self] _, completionHandler, error in
+                guard let self = self, error == nil else {
+                    completionHandler()
+                    return
+                }
+                self.queryLatestHRPayload { payload in
+                    self.notifyListeners("onHeartRateLiveUpdate", data: payload)
+                    completionHandler()
+                }
+            }
+            hrObserverQuery = observer
+            healthStore.execute(observer)
+            healthStore.enableBackgroundDelivery(for: hrType, frequency: .immediate) { _, _ in }
+            print("[CALYXO-HEALTH] ✅ Live Heart Rate observer query started")
+        }
+
+        call.resolve(["observing": true])
+    }
+
+    @objc func stopHeartRateObserver(_ call: CAPPluginCall) {
+        if let observer = hrObserverQuery {
+            healthStore.stop(observer)
+            hrObserverQuery = nil
+            print("[CALYXO-HEALTH] Live Heart Rate observer query stopped")
+        }
+        call.resolve(["observing": false])
+    }
+
+    private func queryLatestHRPayload(completion: @escaping ([String: Any]) -> Void) {
+        guard let hrType = HKQuantityType.quantityType(forIdentifier: .heartRate) else {
+            completion([:])
+            return
+        }
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        let query = HKSampleQuery(sampleType: hrType, predicate: nil, limit: 1, sortDescriptors: [sort]) { [weak self] _, samples, _ in
+            var payload: [String: Any] = [
+                "timestamp": Date().timeIntervalSince1970 * 1000,
+                "isLive": true
+            ]
+            if let sample = samples?.first as? HKQuantitySample {
+                let bpm = Int(sample.quantity.doubleValue(for: HKUnit(from: "count/min")))
+                payload["heartRateBpm"] = bpm
+                payload["heartRateSource"] = sample.sourceRevision.source.name
+                payload["source"] = sample.sourceRevision.source.name
+            }
+
+            if let rhrType = HKQuantityType.quantityType(forIdentifier: .restingHeartRate) {
+                let rhrQuery = HKSampleQuery(sampleType: rhrType, predicate: nil, limit: 1, sortDescriptors: [sort]) { _, rhrSamples, _ in
+                    if let rhrSample = rhrSamples?.first as? HKQuantitySample {
+                        let rhrBpm = Int(rhrSample.quantity.doubleValue(for: HKUnit(from: "count/min")))
+                        payload["restingHeartRateBpm"] = rhrBpm
+                        payload["restingHeartRateSource"] = rhrSample.sourceRevision.source.name
+                    }
+                    completion(payload)
+                }
+                self?.healthStore.execute(rhrQuery)
+            } else {
+                completion(payload)
+            }
+        }
+        healthStore.execute(query)
     }
 }

@@ -153,6 +153,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         if let vo2Type = HKQuantityType.quantityType(forIdentifier: .vo2Max) { readTypes.insert(vo2Type) }
         if let hrvType = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN) { readTypes.insert(hrvType) }
         if let waterType = HKQuantityType.quantityType(forIdentifier: .dietaryWater) { readTypes.insert(waterType) }
+        if let walkingHRType = HKQuantityType.quantityType(forIdentifier: .walkingHeartRateAverage) { readTypes.insert(walkingHRType) }
 
         let writeTypes: Set<HKSampleType> = [
             HKObjectType.quantityType(forIdentifier: .bodyMass)!,
@@ -178,7 +179,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     // MARK: - HealthKit Background Observer & Real-Time Widget Sync
 
-    /// Setup background delivery observer queries so steps and calories reload widgets in real time
+    /// Setup background delivery observer queries so steps, calories, and heart rate reload in real time
     static func startHealthKitBackgroundObserver() {
         guard HKHealthStore.isHealthDataAvailable() else { return }
 
@@ -211,6 +212,26 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             healthStore.execute(energyObserver)
             healthStore.enableBackgroundDelivery(for: energyType, frequency: .immediate) { success, err in
                 print("[CALYXO-WIDGET] HealthKit energy background delivery enabled: \(success)")
+            }
+        }
+
+        if let hrType = HKQuantityType.quantityType(forIdentifier: .heartRate) {
+            let hrObserver = HKObserverQuery(sampleType: hrType, predicate: nil) { _, completionHandler, _ in
+                completionHandler()
+            }
+            healthStore.execute(hrObserver)
+            healthStore.enableBackgroundDelivery(for: hrType, frequency: .immediate) { success, err in
+                print("[CALYXO-HEALTH] HealthKit heart rate background delivery enabled: \(success)")
+            }
+        }
+
+        if let rhrType = HKQuantityType.quantityType(forIdentifier: .restingHeartRate) {
+            let rhrObserver = HKObserverQuery(sampleType: rhrType, predicate: nil) { _, completionHandler, _ in
+                completionHandler()
+            }
+            healthStore.execute(rhrObserver)
+            healthStore.enableBackgroundDelivery(for: rhrType, frequency: .immediate) { success, err in
+                print("[CALYXO-HEALTH] HealthKit resting HR background delivery enabled: \(success)")
             }
         }
     }

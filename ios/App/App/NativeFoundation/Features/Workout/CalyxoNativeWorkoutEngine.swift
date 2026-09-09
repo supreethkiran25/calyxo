@@ -94,7 +94,6 @@ public final class CalyxoNativeWorkoutEngine: ObservableObject {
     private var restTargetTimestamp: Date?
     
     private let authService = CalyxoNativeAuthService.shared
-    private let watchManager = CalyxoWatchSessionManager.shared
     
     private init() {}
     
@@ -160,19 +159,6 @@ public final class CalyxoNativeWorkoutEngine: ObservableObject {
         self.restRemainingSeconds = seconds
         self.restTargetTimestamp = Date().addingTimeInterval(TimeInterval(seconds))
         self.isRestTimerActive = true
-        
-        // Notify Apple Watch Companion
-        watchManager.sendWorkoutState(
-            CalyxoWatchSessionManager.WorkoutMirrorPayload(
-                workoutId: activeSession?.id.uuidString ?? "",
-                exerciseName: exerciseName,
-                setNumber: setNumber,
-                targetReps: 10,
-                targetWeightKg: 80.0,
-                restRemainingSeconds: seconds,
-                isRestActive: true
-            )
-        )
         
         restTimer?.invalidate()
         restTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in

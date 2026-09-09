@@ -232,6 +232,23 @@ class WearableIntegrationManager {
     }
   }
 
+  subscribe(callback) {
+    this.listeners.add(callback);
+    return () => this.listeners.delete(callback);
+  }
+
+  getLiveHeartRate() {
+    if (this.liveHeartRate && this.lastPacketTime && (Date.now() - this.lastPacketTime < 20000)) {
+      return {
+        bpm: this.liveHeartRate,
+        source: this.connectedDevice?.name || 'Bluetooth Heart Rate Monitor',
+        timestamp: this.lastPacketTime,
+        isLive: true
+      };
+    }
+    return null;
+  }
+
   handleLiveHeartRatePacket(packet) {
     if (!packet || typeof packet.bpm !== 'number' || packet.bpm <= 0) return;
 
@@ -239,14 +256,32 @@ class WearableIntegrationManager {
     this.lastPacketTime = packet.timestamp || Date.now();
     this.setState(BLE_STATES.STREAM_VERIFIED);
 
+    const hrData = {
+      heartRateBpm: packet.bpm,
+      heartRateSource: this.connectedDevice?.name || 'Bluetooth Heart Rate Monitor',
+      heartRateTimestamp: this.lastPacketTime,
+      isLive: true
+    };
+
     // Update global normalized health cache
     const current = HealthCache.getMetrics() || {};
     HealthCache.saveMetrics({
       ...current,
-      heartRateBpm: packet.bpm,
-      heartRateSource: this.connectedDevice?.name || 'Bluetooth Heart Rate Monitor',
+      ...hrData,
       lastSyncTimestamp: Date.now()
     });
+
+    // Notify WearableManager listeners
+    this.listeners.forEach(cb => {
+      try { cb(hrData); } catch (e) {}
+    });
+
+    // Broadcast live heart rate to HealthSyncEngine for real-time dashboard UI
+    try {
+      import('./HealthSyncEngine.js').then(({ HealthSyncEngine }) => {
+        HealthSyncEngine.emitLiveHeartRate(hrData);
+      });
+    } catch (e) {}
   }
 
   handleDeviceDisconnected(event) {
