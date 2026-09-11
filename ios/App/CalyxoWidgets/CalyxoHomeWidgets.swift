@@ -135,27 +135,28 @@ struct CalyxoWidgetProvider: TimelineProvider {
         let authToken = d.string(forKey: "supabase_auth_token") ?? anonKey
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: Date())
-        let isoFormatter = ISO8601DateFormatter()
-        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let startOfDayStr = isoFormatter.string(from: startOfDay)
+        let startOfDayMs = Int64(startOfDay.timeIntervalSince1970 * 1000)
 
-        guard let encodedStart = startOfDayStr.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "\(supabaseUrl)/rest/v1/food_logs?user_id=eq.\(userId)&created_at=gte.\(encodedStart)&select=calories,protein,carbs,fat") else {
+        guard let foodUrl = URL(string: "\(supabaseUrl)/rest/v1/food_logs?userId=eq.\(userId)&timestamp=gte.\(startOfDayMs)&select=calories,protein,carbs,fat") else {
             completion(nil)
             return
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue(anonKey, forHTTPHeaderField: "apikey")
-        request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = 5.0
+        var foodRequest = URLRequest(url: foodUrl)
+        foodRequest.httpMethod = "GET"
+        foodRequest.setValue("application/json", forHTTPHeaderField: "Accept")
+        foodRequest.setValue(anonKey, forHTTPHeaderField: "apikey")
+        foodRequest.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        foodRequest.timeoutInterval = 6.0
 
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+        let dispatchGroup = DispatchGroup()
+        var didUpdateAny = false
+
+        dispatchGroup.enter()
+        let foodTask = URLSession.shared.dataTask(with: foodRequest) { data, response, error in
+            defer { dispatchGroup.leave() }
             guard let data = data, error == nil,
                   let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-                completion(nil)
                 return
             }
 
@@ -173,21 +174,54 @@ struct CalyxoWidgetProvider: TimelineProvider {
                 let totalCarbs = Int(meals.reduce(0) { $0 + ($1.carbs ?? 0) })
                 let totalFat = Int(meals.reduce(0) { $0 + ($1.fat ?? 0) })
 
-                if totalCals > 0 || totalProt > 0 {
-                    d.set(totalCals, forKey: "widget_calories")
-                    d.set(totalProt, forKey: "widget_protein")
-                    d.set(totalCarbs, forKey: "widget_carbs")
-                    d.set(totalFat, forKey: "widget_fat")
-                    d.synchronize()
+                d.set(totalCals, forKey: "widget_calories")
+                d.set(totalProt, forKey: "widget_protein")
+                d.set(totalCarbs, forKey: "widget_carbs")
+                d.set(totalFat, forKey: "widget_fat")
+                didUpdateAny = true
+            } catch {}
+        }
+        foodTask.resume()
+
+        // Also query today's water from users_metrics
+        if let waterUrl = URL(string: "\(supabaseUrl)/rest/v1/users_metrics?id=eq.\(userId)_water&select=amount") {
+            dispatchGroup.enter()
+            var waterRequest = URLRequest(url: waterUrl)
+            waterRequest.httpMethod = "GET"
+            waterRequest.setValue("application/json", forHTTPHeaderField: "Accept")
+            waterRequest.setValue(anonKey, forHTTPHeaderField: "apikey")
+            waterRequest.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+            waterRequest.timeoutInterval = 6.0
+
+            let waterTask = URLSession.shared.dataTask(with: waterRequest) { data, response, error in
+                defer { dispatchGroup.leave() }
+                guard let data = data, error == nil,
+                      let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+                    return
                 }
 
+                struct SupabaseWater: Decodable {
+                    let amount: Double?
+                }
+
+                if let waterItems = try? JSONDecoder().decode([SupabaseWater].self, from: data),
+                   let firstItem = waterItems.first, let amt = firstItem.amount {
+                    d.set(Int(amt), forKey: "widget_water")
+                    didUpdateAny = true
+                }
+            }
+            waterTask.resume()
+        }
+
+        dispatchGroup.notify(queue: .main) {
+            if didUpdateAny {
+                d.synchronize()
                 let updated = self.readSharedData()
                 completion(updated)
-            } catch {
+            } else {
                 completion(nil)
             }
         }
-        task.resume()
     }
 }
 

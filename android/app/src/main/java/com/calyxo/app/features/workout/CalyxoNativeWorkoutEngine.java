@@ -135,6 +135,7 @@ public final class CalyxoNativeWorkoutEngine {
         ex1.sets.add(new WorkoutSet(2, 85.0, 8));
         ex1.sets.add(new WorkoutSet(3, 90.0, 6));
         activeSession.exercises.add(ex1);
+        syncWorkoutToWidget(title);
     }
     
     // MARK: - Complete Set & Trigger Rest Timer
@@ -223,6 +224,7 @@ public final class CalyxoNativeWorkoutEngine {
                 
                 int code = conn.getResponseCode();
                 activeSession = null;
+                syncWorkoutToWidget("Rest & Recovery");
                 if (code >= 200 && code < 300) {
                     mainHandler.post(() -> callback.onSuccess(session));
                 } else {
@@ -230,8 +232,21 @@ public final class CalyxoNativeWorkoutEngine {
                 }
             } catch (Exception e) {
                 activeSession = null;
+                syncWorkoutToWidget("Rest & Recovery");
                 mainHandler.post(() -> callback.onError(e.getMessage()));
             }
         });
+    }
+
+    private void syncWorkoutToWidget(String workoutName) {
+        try {
+            android.content.SharedPreferences prefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
+            String raw = prefs.getString("calyxo_widget_data", null);
+            JSONObject json = raw != null ? new JSONObject(raw) : new JSONObject();
+            json.put("activeWorkoutName", workoutName);
+            json.put("updatedAt", System.currentTimeMillis());
+            prefs.edit().putString("calyxo_widget_data", json.toString()).apply();
+            com.calyxo.app.CalyxoWidgetPlugin.reloadAllWidgets(context);
+        } catch (Exception ignored) {}
     }
 }

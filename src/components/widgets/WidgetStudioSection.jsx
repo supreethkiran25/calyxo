@@ -15,6 +15,9 @@ import {
   DEFAULT_WIDGET_CONFIG
 } from '../../services/widgetDataService';
 import { sendTestNotification } from '../../services/notificationService';
+import { HealthCache } from '../../services/health/HealthCache';
+import { PWAPedometerService } from '../../services/health/PWAPedometerService';
+import { HealthSyncEngine } from '../../services/health/HealthSyncEngine';
 import { getTodayDateString, isSameLocalDate, isToday } from '../../utils/dateUtils';
 
 // Theme Palettes for Widget Styling
@@ -112,15 +115,48 @@ export default function WidgetStudioSection({ onNotification }) {
   const stepTarget = Number(userProfile?.stepGoal || userProfile?.dailySteps || 10000);
   const streak = Number(userProfile?.streak || 3);
 
-  // Read pedometer step count
-  const [liveSteps, setLiveSteps] = useState(() => {
+  // Real-time live step count resolution (PWA sensor / HealthKit / Android sensor / cache)
+  const getInitialSteps = () => {
     try {
+      if (typeof PWAPedometerService !== 'undefined' && typeof PWAPedometerService.getTodaySteps === 'function') {
+        const pwa = PWAPedometerService.getTodaySteps();
+        if (typeof pwa === 'number' && pwa > 0) return pwa;
+      }
+      const cached = HealthCache.getMetrics();
+      if (cached && typeof cached.steps === 'number' && cached.steps > 0) return cached.steps;
       const stored = localStorage.getItem('calyxo_pedometer_steps_' + todayStr);
-      return stored ? parseInt(stored, 10) : 6840;
-    } catch (e) {
-      return 6840;
-    }
-  });
+      if (stored) return parseInt(stored, 10) || 0;
+    } catch (e) {}
+    return 0;
+  };
+
+  const [liveSteps, setLiveSteps] = useState(getInitialSteps);
+
+  // Subscribe to live step and health engine updates
+  useEffect(() => {
+    setLiveSteps(getInitialSteps());
+
+    const unsubPedometer = PWAPedometerService.subscribe((steps) => {
+      if (typeof steps === 'number') setLiveSteps(steps);
+    });
+
+    const unsubSync = HealthSyncEngine.subscribe((data) => {
+      if (data?.metrics?.steps !== undefined) {
+        setLiveSteps(data.metrics.steps);
+      }
+    });
+
+    const handleDataSync = () => {
+      setLiveSteps(getInitialSteps());
+    };
+    window.addEventListener('calyxo_data_sync', handleDataSync);
+
+    return () => {
+      unsubPedometer();
+      unsubSync();
+      window.removeEventListener('calyxo_data_sync', handleDataSync);
+    };
+  }, [todayStr]);
 
   // Load user's saved widget custom config
   useEffect(() => {

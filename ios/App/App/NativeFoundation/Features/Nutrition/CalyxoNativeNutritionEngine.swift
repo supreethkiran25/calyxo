@@ -9,6 +9,7 @@
 
 import Foundation
 import SwiftUI
+import WidgetKit
 
 public final class CalyxoNativeNutritionEngine: ObservableObject {
     public static let shared = CalyxoNativeNutritionEngine()
@@ -131,6 +132,7 @@ public final class CalyxoNativeNutritionEngine: ObservableObject {
         let entry = item.scaled(portionGrams: portionGrams)
         DispatchQueue.main.async {
             self.todayLoggedFoods.insert(entry, at: 0)
+            self.syncWithWidgets()
         }
         
         let payload: [String: Any] = [
@@ -172,6 +174,22 @@ public final class CalyxoNativeNutritionEngine: ObservableObject {
     public func deleteFood(id: UUID) {
         DispatchQueue.main.async {
             self.todayLoggedFoods.removeAll { $0.id == id }
+            self.syncWithWidgets()
+        }
+    }
+
+    public func syncWithWidgets() {
+        let suiteName = "group.com.supreethkiran.calyxo"
+        let defaults = UserDefaults(suiteName: suiteName) ?? .standard
+        defaults.set(totalConsumedCalories, forKey: "widget_calories")
+        defaults.set(targetCalories, forKey: "widget_calorie_goal")
+        defaults.set(Int(totalConsumedProtein), forKey: "widget_protein")
+        defaults.set(Int(targetProteinGrams), forKey: "widget_protein_goal")
+        defaults.set(Int(totalConsumedCarbs), forKey: "widget_carbs")
+        defaults.set(Int(totalConsumedFat), forKey: "widget_fat")
+        defaults.synchronize()
+        if #available(iOS 14.0, *) {
+            WidgetCenter.shared.reloadAllTimelines()
         }
     }
 }

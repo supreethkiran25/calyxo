@@ -148,11 +148,10 @@ export class HealthDataService {
 
       HealthCache.saveMetrics(metrics);
 
-      // Automatically sync real state to iOS & Android native widgets
+      // Automatically sync real step state to iOS & Android native widgets without overwriting nutrition/food intake calories
       await syncWidgetData({
-        calories: metrics.activeCalories,
-        calorieGoal: metrics.calorieGoal,
-        steps: metrics.steps
+        steps: metrics.steps,
+        stepGoal: metrics.stepGoal
       });
     } catch (err) {
       console.warn('[CALYXO-HEALTH] HealthDataService fetch error:', err);

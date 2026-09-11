@@ -108,7 +108,7 @@ public class CalyxoWidgetPlugin extends Plugin {
         call.resolve(ret);
     }
 
-    private void reloadAllWidgets(Context context) {
+    public static void reloadAllWidgets(Context context) {
         AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
         Class<?>[] providers = new Class<?>[] {
             CalyxoAppWidgetProvider.class,

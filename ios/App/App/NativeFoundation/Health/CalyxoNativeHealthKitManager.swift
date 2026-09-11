@@ -10,6 +10,7 @@
 import Foundation
 import HealthKit
 import CoreMotion
+import WidgetKit
 
 public final class CalyxoNativeHealthKitManager: ObservableObject {
     public static let shared = CalyxoNativeHealthKitManager()
@@ -323,6 +324,21 @@ public final class CalyxoNativeHealthKitManager: ObservableObject {
             }
             snapshot.connectionState = self.connectionState
             self.currentSnapshot = snapshot
+
+            // Sync hardware steps & active energy to widgets
+            let suiteName = "group.com.supreethkiran.calyxo"
+            let defaults = UserDefaults(suiteName: suiteName) ?? .standard
+            if snapshot.steps > 0 {
+                defaults.set(snapshot.steps, forKey: "widget_steps")
+            }
+            if snapshot.activeCalories > 0 {
+                defaults.set(snapshot.activeCalories, forKey: "widget_active_calories")
+            }
+            defaults.synchronize()
+            if #available(iOS 14.0, *) {
+                WidgetCenter.shared.reloadAllTimelines()
+            }
+
             completion?(snapshot)
         }
     }

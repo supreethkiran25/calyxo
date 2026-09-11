@@ -15,11 +15,11 @@ public class CalyxoWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func syncWidgetData(_ call: CAPPluginCall) {
         let suiteName = "group.com.supreethkiran.calyxo"
-        guard let defaults = UserDefaults(suiteName: suiteName) else {
-            call.reject("Failed to access App Group UserDefaults: \(suiteName)")
-            return
-        }
+        let defaults = UserDefaults(suiteName: suiteName) ?? .standard
 
+        if let activeCalories = call.getInt("activeCalories") {
+            defaults.set(activeCalories, forKey: "widget_active_calories")
+        }
         if let calories = call.getInt("calories") {
             defaults.set(calories, forKey: "widget_calories")
         }

@@ -8,6 +8,7 @@
 //
 
 import Foundation
+import WidgetKit
 
 public final class CalyxoDataRepositories: ObservableObject {
     public static let shared = CalyxoDataRepositories()
@@ -97,6 +98,13 @@ public final class CalyxoDataRepositories: ObservableObject {
         
         DispatchQueue.main.async {
             self.todayWaterTotalMl += amountMl
+            let suiteName = "group.com.supreethkiran.calyxo"
+            let defaults = UserDefaults(suiteName: suiteName) ?? .standard
+            defaults.set(self.todayWaterTotalMl, forKey: "widget_water")
+            defaults.synchronize()
+            if #available(iOS 14.0, *) {
+                WidgetCenter.shared.reloadAllTimelines()
+            }
         }
         
         let dateString = ISO8601DateFormatter().string(from: Date())

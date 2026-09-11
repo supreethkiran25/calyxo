@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { getWaterIntake, saveWaterIntake, getUserProfile, saveUserProfile } from '../lib/dbService';
 import { useEcosystemStore } from '../store/useEcosystemStore';
+import useQuickActionsStore from '../store/useQuickActionsStore';
 import { syncAIHealthTwin } from '../lib/aiEcosystemService';
 import { calculateMacroTargets, formatNutritionValue } from '../utils/macroCalculator';
 import { isToday } from '../utils/dateUtils';
@@ -13,13 +14,11 @@ import { HealthCache } from '../services/health/HealthCache';
 import { 
   Flame, Droplets, Activity, Dumbbell, Utensils, Sparkles, 
   ChevronRight, Zap, Brain, Moon, BookOpen, Bot, TrendingUp, 
-  PieChart, Watch, Plus, ArrowUpRight, RefreshCw 
+  PieChart, Watch, Plus, ArrowUpRight, RefreshCw, Lightbulb, SlidersHorizontal 
 } from 'lucide-react';
 import RealisticWaterVessel from './common/RealisticWaterVessel';
 import DailyAIBriefingCard from './ai/DailyAIBriefingCard';
 import PremiumFeatureModal from './modals/PremiumFeatureModal';
-
-const ThreeHealthCore = lazy(() => import('./ThreeHealthCore'));
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -368,39 +367,52 @@ export default function Dashboard({ onNotification }) {
   const completedCount = setupChecklist.filter(x => x.done).length;
   const profileCompleteness = Math.round((completedCount / setupChecklist.length) * 100);
 
-  const QUICK_ACCESS = [
-    { label: 'Workout', icon: Dumbbell, color: 'text-accent', bg: 'bg-accent/10', action: () => navigate('/user/workout') },
-    { label: 'Nutrition', icon: Utensils, color: 'text-emerald-400', bg: 'bg-emerald-500/10', action: () => navigate('/user/nutrition') },
-    { label: 'AI Coach', icon: Bot, color: 'text-accent', bg: 'bg-accent/15', action: () => navigate('/user/ai') },
-    { label: 'Progress', icon: TrendingUp, color: 'text-indigo-400', bg: 'bg-indigo-500/10', action: () => navigate('/user/progress') },
-    { label: 'Hydration', icon: Droplets, color: 'text-cyan-400', bg: 'bg-cyan-500/10', action: () => document.getElementById('hydration-card')?.scrollIntoView({ behavior: 'smooth' }) },
-    { label: 'Analytics', icon: PieChart, color: 'text-amber-400', bg: 'bg-amber-500/10', action: () => navigate('/user/progress') }
-  ];
+  const targetCalorieBudget = Number(userProfile?.dailyCalories || userProfile?.calorieGoal || metrics?.calorieGoal || 2000);
+  const targetStepGoal = Number(userProfile?.stepGoal || userProfile?.dailySteps || 10000);
+  const targetWaterMl = Number(userProfile?.waterGoal || userProfile?.waterTarget || 3000);
+  const targetProteinG = Number(metrics?.macros?.protein || userProfile?.proteinTarget || 124);
+
+  // Authentically computed fractions (0.0 to 1.0) with ZERO fake fallback data
+  const calFraction = targetCalorieBudget > 0 ? Math.min(totalCal / targetCalorieBudget, 1) : 0;
+  const calPercent = Math.round(calFraction * 100);
+
+  const stepFraction = targetStepGoal > 0 ? Math.min(totalSteps / targetStepGoal, 1) : 0;
+  const stepPercent = Math.round(stepFraction * 100);
+
+  const waterFraction = targetWaterMl > 0 ? Math.min(waterIntake / targetWaterMl, 1) : 0;
+  const waterPercent = Math.round(waterFraction * 100);
+
+  const protFraction = targetProteinG > 0 ? Math.min(totalProt / targetProteinG, 1) : 0;
+  const protPercent = Math.round(protFraction * 100);
 
   return (
-    <div className="space-y-6 w-full pb-20 select-text">
-      {/* Greeting & Streak Hero Header */}
-      <div className="flex items-center justify-between gap-3 border-b border-card-border pb-4">
+    <div className="space-y-5 w-full pb-24 select-text">
+      {/* Greeting & Header */}
+      <div className="flex items-center justify-between gap-3 pb-1">
         <div className="min-w-0 flex-1">
-          <h1 className="text-lg sm:text-2xl font-extrabold text-foreground tracking-tight truncate">
-            {getGreeting()}, {userProfile?.nickname || userProfile?.firstName || user?.displayName || 'Athlete'}
+          <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight truncate">
+            {getGreeting()}, {userProfile?.nickname || userProfile?.firstName || user?.displayName?.split(' ')[0] || 'Athlete'}
           </h1>
-          <p className="text-[11px] sm:text-xs text-muted-foreground font-medium mt-0.5 truncate">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })} · Ready for today&apos;s targets
+          <p className="text-xs text-muted-foreground font-medium mt-0.5">
+            Small steps, big results.
           </p>
         </div>
 
-        {/* Level & Streaks Badge */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          <div className="flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-accent/10 border border-accent/20 text-accent text-[11px] sm:text-xs font-black uppercase tracking-wider shadow-sm">
-            <Zap className="w-3.5 h-3.5 fill-accent" />
-            <span>LVL {ecoStore.level || 1}</span>
-          </div>
-
-          <div className="flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[11px] sm:text-xs font-bold shadow-sm">
-            <Flame className="w-3.5 h-3.5 text-orange-400" />
-            <span>{ecoStore?.streaks?.loginStreak || 1}d</span>
-          </div>
+        {/* Profile Avatar halo */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/user/profile')}
+            aria-label="Open Profile"
+            className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-500 p-[1.5px] cursor-pointer border-none shadow-sm hover:scale-105 active:scale-95 transition-transform"
+          >
+            <div className="w-full h-full rounded-full bg-surface flex items-center justify-center text-sm font-bold text-accent overflow-hidden">
+              {userProfile?.photoURL ? (
+                <img src={userProfile.photoURL} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                (userProfile?.nickname?.[0] || userProfile?.firstName?.[0] || user?.displayName?.[0] || 'A').toUpperCase()
+              )}
+            </div>
+          </button>
         </div>
       </div>
 
@@ -430,30 +442,217 @@ export default function Dashboard({ onNotification }) {
         </div>
       )}
 
-      {/* 3D Health Core Visual */}
-      <Suspense fallback={<div className="h-44 rounded-3xl bg-surface border border-card-border animate-pulse" />}>
-        <ThreeHealthCore />
-      </Suspense>
+      {/* ── Today's Progress Card (4 Color-Synced Circular Progress Rings In One Row) ── */}
+      <div className="p-4 sm:p-5 rounded-3xl bg-surface border border-card-border shadow-sm relative overflow-hidden">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs font-bold text-foreground tracking-tight">
+            Today&apos;s Progress
+          </span>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/25">
+            Synced
+          </span>
+        </div>
 
-      {/* Quick Access Action Bar */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-        {QUICK_ACCESS.map((item, idx) => {
-          const Icon = item.icon;
-          return (
-            <button
-              key={idx}
-              onClick={item.action}
-              className="p-3.5 rounded-2xl bg-surface hover:bg-surface-elevated border border-card-border flex flex-col items-center justify-center gap-2 cursor-pointer border-none active:scale-95 transition-all group"
-            >
-              <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center group-hover:scale-105 transition-transform`}>
-                <Icon className={`w-5 h-5 ${item.color}`} />
+        {/* All 4 rings placed in ONE single line */}
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-3 py-1 text-center items-start">
+          {/* Ring 1: Calories (Rose Coral) */}
+          <div className="flex flex-col items-center min-w-0">
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" className="text-surface-elevated" strokeWidth="9" />
+                <motion.circle
+                  cx="50" cy="50" r="38" fill="none" stroke="#F43F5E" strokeWidth="9"
+                  strokeDasharray={2 * Math.PI * 38}
+                  strokeDashoffset={2 * Math.PI * 38 * (1 - calFraction)}
+                  strokeLinecap="round"
+                  initial={{ strokeDashoffset: 2 * Math.PI * 38 }}
+                  animate={{ strokeDashoffset: 2 * Math.PI * 38 * (1 - calFraction) }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-[11px] sm:text-xs font-black text-foreground font-mono">
+                  {calPercent}%
+                </span>
               </div>
-              <span className="text-[11px] font-bold text-foreground">
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
+            </div>
+            <span className="text-[11px] sm:text-xs font-bold text-foreground mt-1.5 truncate max-w-full">
+              Calories
+            </span>
+            <span className="text-[9px] sm:text-[10px] text-muted-foreground font-mono block leading-tight mt-0.5 truncate max-w-full">
+              {totalCal.toLocaleString()} kcal
+            </span>
+          </div>
+
+          {/* Ring 2: Steps (Emerald / Mint) */}
+          <div className="flex flex-col items-center min-w-0">
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" className="text-surface-elevated" strokeWidth="9" />
+                <motion.circle
+                  cx="50" cy="50" r="38" fill="none" stroke="#10B981" strokeWidth="9"
+                  strokeDasharray={2 * Math.PI * 38}
+                  strokeDashoffset={2 * Math.PI * 38 * (1 - stepFraction)}
+                  strokeLinecap="round"
+                  initial={{ strokeDashoffset: 2 * Math.PI * 38 }}
+                  animate={{ strokeDashoffset: 2 * Math.PI * 38 * (1 - stepFraction) }}
+                  transition={{ duration: 1, ease: "easeOut", delay: 0.1 }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-[11px] sm:text-xs font-black text-foreground font-mono">
+                  {stepPercent}%
+                </span>
+              </div>
+            </div>
+            <span className="text-[11px] sm:text-xs font-bold text-foreground mt-1.5 truncate max-w-full">
+              Steps
+            </span>
+            <span className="text-[9px] sm:text-[10px] text-muted-foreground font-mono block leading-tight mt-0.5 truncate max-w-full">
+              {totalSteps.toLocaleString()} / {Math.round(targetStepGoal / 1000)}k
+            </span>
+          </div>
+
+          {/* Ring 3: Hydration (Cyan) */}
+          <div className="flex flex-col items-center min-w-0">
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" className="text-surface-elevated" strokeWidth="9" />
+                <motion.circle
+                  cx="50" cy="50" r="38" fill="none" stroke="#06B6D4" strokeWidth="9"
+                  strokeDasharray={2 * Math.PI * 38}
+                  strokeDashoffset={2 * Math.PI * 38 * (1 - waterFraction)}
+                  strokeLinecap="round"
+                  initial={{ strokeDashoffset: 2 * Math.PI * 38 }}
+                  animate={{ strokeDashoffset: 2 * Math.PI * 38 * (1 - waterFraction) }}
+                  transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-[11px] sm:text-xs font-black text-foreground font-mono">
+                  {waterPercent}%
+                </span>
+              </div>
+            </div>
+            <span className="text-[11px] sm:text-xs font-bold text-foreground mt-1.5 truncate max-w-full">
+              Hydration
+            </span>
+            <span className="text-[9px] sm:text-[10px] text-muted-foreground font-mono block leading-tight mt-0.5 truncate max-w-full">
+              {(waterIntake / 1000).toFixed(1)} / {(targetWaterMl / 1000).toFixed(1)} L
+            </span>
+          </div>
+
+          {/* Ring 4: Protein (Amber) */}
+          <div className="flex flex-col items-center min-w-0">
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" className="text-surface-elevated" strokeWidth="9" />
+                <motion.circle
+                  cx="50" cy="50" r="38" fill="none" stroke="#F59E0B" strokeWidth="9"
+                  strokeDasharray={2 * Math.PI * 38}
+                  strokeDashoffset={2 * Math.PI * 38 * (1 - protFraction)}
+                  strokeLinecap="round"
+                  initial={{ strokeDashoffset: 2 * Math.PI * 38 }}
+                  animate={{ strokeDashoffset: 2 * Math.PI * 38 * (1 - protFraction) }}
+                  transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-[11px] sm:text-xs font-black text-foreground font-mono">
+                  {protPercent}%
+                </span>
+              </div>
+            </div>
+            <span className="text-[11px] sm:text-xs font-bold text-foreground mt-1.5 truncate max-w-full">
+              Protein
+            </span>
+            <span className="text-[9px] sm:text-[10px] text-muted-foreground font-mono block leading-tight mt-0.5 truncate max-w-full">
+              {Math.round(totalProt)} / {Math.round(targetProteinG)} g
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── AI Coach Banner ── */}
+      <div 
+        onClick={() => navigate('/user/ai')}
+        className="p-4 rounded-2xl bg-surface border border-emerald-500/20 hover:border-emerald-500/40 flex items-center justify-between gap-3 shadow-sm cursor-pointer transition-all active:scale-[0.99] group"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/25 text-emerald-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <Lightbulb className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11px] font-bold text-emerald-500 uppercase tracking-wider">
+              AI Coach
+            </div>
+            <p className="text-xs text-foreground font-medium truncate sm:whitespace-normal mt-0.5">
+              {totalCal === 0 && waterIntake === 0
+                ? "Ready to conquer today? Start by logging your breakfast or a glass of water!"
+                : totalProt < targetProteinG * 0.5
+                ? `Logged ${Math.round(totalProt)}g protein so far. Aim for your ${Math.round(targetProteinG)}g target!`
+                : "Great momentum! You're on track with your nutritional split and daily movement."}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate('/user/ai');
+          }}
+          className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm shrink-0 cursor-pointer border-none"
+        >
+          Chat with AI
+        </button>
+      </div>
+
+      {/* ── Quick Actions ── */}
+      <div className="space-y-2">
+        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
+          Quick Actions
+        </h3>
+        <div className="grid grid-cols-4 gap-2.5 sm:gap-3">
+          <button
+            onClick={() => useQuickActionsStore.getState().setActiveWorkflow('log_meal')}
+            className="p-3 rounded-2xl bg-surface hover:bg-surface-elevated border border-card-border flex flex-col items-center justify-center gap-1.5 cursor-pointer border-none shadow-sm active:scale-95 transition-all group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 text-emerald-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Utensils className="w-4 h-4" />
+            </div>
+            <span className="text-[10.5px] font-bold text-foreground truncate max-w-full">Log Meal</span>
+          </button>
+
+          <button
+            onClick={() => useQuickActionsStore.getState().setActiveWorkflow('log_workout')}
+            className="p-3 rounded-2xl bg-surface hover:bg-surface-elevated border border-card-border flex flex-col items-center justify-center gap-1.5 cursor-pointer border-none shadow-sm active:scale-95 transition-all group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-cyan-50 dark:bg-cyan-500/15 text-cyan-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Dumbbell className="w-4 h-4" />
+            </div>
+            <span className="text-[10.5px] font-bold text-foreground truncate max-w-full">Log Workout</span>
+          </button>
+
+          <button
+            onClick={() => handleAddWater(250)}
+            className="p-3 rounded-2xl bg-surface hover:bg-surface-elevated border border-card-border flex flex-col items-center justify-center gap-1.5 cursor-pointer border-none shadow-sm active:scale-95 transition-all group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/15 text-blue-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Droplets className="w-4 h-4" />
+            </div>
+            <span className="text-[10.5px] font-bold text-foreground truncate max-w-full">Water</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/user/challenges')}
+            className="p-3 rounded-2xl bg-surface hover:bg-surface-elevated border border-card-border flex flex-col items-center justify-center gap-1.5 cursor-pointer border-none shadow-sm active:scale-95 transition-all group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-surface-elevated text-muted-foreground flex items-center justify-center group-hover:scale-105 transition-transform">
+              <SlidersHorizontal className="w-4 h-4" />
+            </div>
+            <span className="text-[10.5px] font-bold text-foreground truncate max-w-full">More</span>
+          </button>
+        </div>
       </div>
 
       {/* Core Grid: Nutrition + Hydration */}
@@ -470,7 +669,7 @@ export default function Dashboard({ onNotification }) {
                   Today&apos;s Nutrition
                 </h3>
                 <span className="text-[10px] text-muted-foreground font-medium">
-                  Budget: {(metrics?.calorieGoal || 2000).toLocaleString()} kcal
+                  Budget: {targetCalorieBudget.toLocaleString()} kcal
                 </span>
               </div>
             </div>
@@ -487,7 +686,7 @@ export default function Dashboard({ onNotification }) {
           <CalorieRing
             consumed={totalCal || 0}
             burned={totalBurned || 0}
-            goal={metrics?.calorieGoal || 2000}
+            goal={targetCalorieBudget}
           />
 
           {/* Vitals Sync Pill */}
@@ -510,7 +709,7 @@ export default function Dashboard({ onNotification }) {
 
           {/* 3 Macro Progress Bars */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-card-border/60">
-            <MacroBar label="Protein" current={totalProt} total={metrics?.macros?.protein || 140} color="var(--accent)" />
+            <MacroBar label="Protein" current={totalProt} total={targetProteinG} color="var(--accent)" />
             <MacroBar label="Carbs" current={totalCarb} total={metrics?.macros?.carbs || 210} color="#FB923C" />
             <MacroBar label="Fats" current={totalFat} total={metrics?.macros?.fat || 57} color="#F87171" />
           </div>
@@ -528,20 +727,20 @@ export default function Dashboard({ onNotification }) {
                   Hydration
                 </h3>
                 <span className="text-[10px] text-muted-foreground font-medium">
-                  Daily Goal: 3,000 ml
+                  Daily Goal: {targetWaterMl.toLocaleString()} ml
                 </span>
               </div>
             </div>
 
             <span className="text-xs font-mono font-bold text-cyan-400">
-              {Math.round((waterIntake / 3000) * 100)}%
+              {Math.round((waterIntake / targetWaterMl) * 100)}%
             </span>
           </div>
 
           <div className="flex items-center gap-5 my-3">
             <RealisticWaterVessel
               currentAmount={waterIntake}
-              targetAmount={3000}
+              targetAmount={targetWaterMl}
               width={72}
               height={144}
               onAddWater={handleAddWater}
@@ -555,7 +754,7 @@ export default function Dashboard({ onNotification }) {
                   <span className="text-xs text-muted-foreground font-bold ml-1.5 font-sans">ml</span>
                 </div>
                 <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-1.5">
-                  Remaining: {Math.max(0, 3000 - waterIntake).toLocaleString()} ml
+                  Remaining: {Math.max(0, targetWaterMl - waterIntake).toLocaleString()} ml
                 </div>
               </div>
 

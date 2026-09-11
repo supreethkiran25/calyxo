@@ -490,7 +490,7 @@ public class CalyxoHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
                     defaults.set(steps, forKey: "widget_steps")
                 }
                 if let activeCals = result["activeCalories"] as? Int, activeCals > 0 {
-                    defaults.set(activeCals, forKey: "widget_calories")
+                    defaults.set(activeCals, forKey: "widget_active_calories")
                 }
                 defaults.synchronize()
                 if #available(iOS 14.0, *) {

@@ -4,6 +4,8 @@ import { useStore } from '../store/useStore.js';
 import { isToday, getTodayDateString, isSameLocalDate } from '../utils/dateUtils.js';
 import { getCurrentUserIdSync, getAuthTokenSync } from '../lib/dbService.js';
 import { supabase } from '../lib/supabaseClient.js';
+import { HealthCache } from './health/HealthCache.js';
+import { PWAPedometerService } from './health/PWAPedometerService.js';
 
 export const WIDGET_DATA_KEY = 'calyxo_widget_data';
 export const WIDGET_CONFIG_KEY = 'calyxo_widget_customization';
@@ -32,10 +34,11 @@ export const syncWidgetData = async (customData = {}) => {
   let stateStreak = null;
   let stateSteps = null;
   let stateStepGoal = null;
+  let storeState = null;
+  const todayStr = getTodayDateString();
 
   try {
-    const storeState = useStore?.getState ? useStore.getState() : null;
-    const todayStr = getTodayDateString();
+    storeState = useStore?.getState ? useStore.getState() : null;
 
     if (storeState) {
       const foodLogs = storeState.foodLogs || [];
@@ -55,23 +58,35 @@ export const syncWidgetData = async (customData = {}) => {
       stateStreak = Number(userProfile?.streak || 0);
     }
 
-    // Try reading real step count from localStorage / health sync cache
-    if (typeof localStorage !== 'undefined') {
+    // Try reading real step count from PWAPedometerService first
+    try {
+      if (typeof PWAPedometerService !== 'undefined' && typeof PWAPedometerService.getTodaySteps === 'function') {
+        const pwaSteps = PWAPedometerService.getTodaySteps();
+        if (typeof pwaSteps === 'number' && pwaSteps > 0) {
+          stateSteps = pwaSteps;
+        }
+      }
+    } catch (e) {}
+
+    // Fallback: Read from HealthCache
+    if (stateSteps === null) {
+      try {
+        const cachedMetrics = HealthCache.getMetrics();
+        if (cachedMetrics && typeof cachedMetrics.steps === 'number') {
+          stateSteps = cachedMetrics.steps;
+          if (cachedMetrics.stepGoal && !stateStepGoal) stateStepGoal = cachedMetrics.stepGoal;
+        }
+      } catch (e) {}
+    }
+
+    // Fallback: Read real step count from localStorage pedometer key
+    if (stateSteps === null && typeof localStorage !== 'undefined') {
       try {
         const pedometerKey = 'calyxo_pedometer_steps_' + todayStr;
         const storedSteps = localStorage.getItem(pedometerKey);
         if (storedSteps !== null) {
           const parsed = parseInt(storedSteps, 10);
           if (!isNaN(parsed) && parsed >= 0) stateSteps = parsed;
-        }
-
-        if (stateSteps === null) {
-          const healthCacheRaw = localStorage.getItem('calyxo_health_metrics');
-          if (healthCacheRaw) {
-            const h = JSON.parse(healthCacheRaw);
-            if (h && typeof h.steps === 'number') stateSteps = h.steps;
-            if (h && typeof h.stepGoal === 'number' && !stateStepGoal) stateStepGoal = h.stepGoal;
-          }
         }
       } catch (e) {}
     }
@@ -86,9 +101,13 @@ export const syncWidgetData = async (customData = {}) => {
     if (value) prev = JSON.parse(value);
   } catch (e) {}
 
+  const isTodayPrev = prev?.updatedAt ? (isSameLocalDate(prev.updatedAt, todayStr) || isToday(prev.updatedAt)) : false;
+  // If storeState is not yet hydrated (foodLogs is empty and water is 0) but we have valid prev data for today, preserve prev data
+  const isHydrating = (!storeState?.userProfile?.onboarded && (!storeState?.foodLogs || storeState.foodLogs.length === 0) && (!storeState?.waterIntake || storeState.waterIntake === 0));
+
   const calories = customData.calories !== undefined 
     ? customData.calories 
-    : (stateCalories !== null ? stateCalories : (prev?.calories || 0));
+    : (isHydrating && isTodayPrev && prev?.calories ? prev.calories : (stateCalories !== null ? stateCalories : (prev?.calories || 0)));
 
   const calorieGoal = customData.calorieGoal !== undefined 
     ? customData.calorieGoal 
@@ -96,7 +115,7 @@ export const syncWidgetData = async (customData = {}) => {
 
   const protein = customData.protein !== undefined 
     ? customData.protein 
-    : (stateProtein !== null ? stateProtein : (prev?.protein || 0));
+    : (isHydrating && isTodayPrev && prev?.protein ? prev.protein : (stateProtein !== null ? stateProtein : (prev?.protein || 0)));
 
   const proteinGoal = customData.proteinGoal !== undefined 
     ? customData.proteinGoal 
@@ -104,15 +123,15 @@ export const syncWidgetData = async (customData = {}) => {
 
   const carbs = customData.carbs !== undefined 
     ? customData.carbs 
-    : (stateCarbs !== null ? stateCarbs : (prev?.carbs || 0));
+    : (isHydrating && isTodayPrev && prev?.carbs ? prev.carbs : (stateCarbs !== null ? stateCarbs : (prev?.carbs || 0)));
 
   const fat = customData.fat !== undefined 
     ? customData.fat 
-    : (stateFat !== null ? stateFat : (prev?.fat || 0));
+    : (isHydrating && isTodayPrev && prev?.fat ? prev.fat : (stateFat !== null ? stateFat : (prev?.fat || 0)));
 
   const steps = customData.steps !== undefined 
     ? customData.steps 
-    : (stateSteps !== null ? stateSteps : (prev?.steps || 0));
+    : (stateSteps !== null ? stateSteps : (isTodayPrev && prev?.steps ? prev.steps : 0));
 
   const stepGoal = customData.stepGoal !== undefined
     ? customData.stepGoal
@@ -120,7 +139,7 @@ export const syncWidgetData = async (customData = {}) => {
 
   const water = customData.water !== undefined 
     ? customData.water 
-    : (stateWater !== null ? stateWater : (prev?.water || 0));
+    : (isHydrating && isTodayPrev && prev?.water ? prev.water : (stateWater !== null ? stateWater : (prev?.water || 0)));
 
   const waterGoal = customData.waterGoal !== undefined 
     ? customData.waterGoal 

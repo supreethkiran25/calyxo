@@ -276,7 +276,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 if let sum = stats?.sumQuantity() {
                     let kcal = Int(sum.doubleValue(for: HKUnit.kilocalorie()))
                     if kcal > 0 {
-                        defaults.set(kcal, forKey: "widget_calories")
+                        defaults.set(kcal, forKey: "widget_active_calories")
                     }
                 }
                 group.leave()
