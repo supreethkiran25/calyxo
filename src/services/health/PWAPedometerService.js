@@ -114,10 +114,30 @@ export class PWAPedometerService {
   }
 
   /**
+   * Synchronize authoritative steps from native health sources (HealthKit / Health Connect)
+   */
+  static syncFromNativeSource(nativeSteps) {
+    const clean = Math.max(0, parseInt(nativeSteps, 10) || 0);
+    const today = new Date().toISOString().split('T')[0];
+    const current = this.getStepsForDate(today);
+    if (clean > current) {
+      this.setStepsForDate(today, clean);
+    }
+  }
+
+  /**
    * Request device motion permission & start real-time accelerometer step tracking
    */
   static async requestAndStartTracking() {
     if (typeof window === 'undefined') return false;
+
+    // Do NOT run web motion accelerometer on native iOS/Android where HealthKit/HealthConnect is authoritative
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor && Capacitor.isNativePlatform()) {
+        return false;
+      }
+    } catch (e) {}
 
     // iOS Safari permission check
     if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
@@ -149,11 +169,6 @@ export class PWAPedometerService {
     this.isTracking = true;
 
     window.addEventListener('devicemotion', this.handleDeviceMotion, true);
-
-    // Initial check: if today's steps are 0, initialize with base activity
-    if (this.getTodaySteps() === 0) {
-      this.setTodaySteps(1240); // Baseline initial seed when connected
-    }
   }
 
   /**

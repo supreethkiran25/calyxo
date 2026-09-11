@@ -118,14 +118,13 @@ export default function WidgetStudioSection({ onNotification }) {
   // Real-time live step count resolution (PWA sensor / HealthKit / Android sensor / cache)
   const getInitialSteps = () => {
     try {
-      if (typeof PWAPedometerService !== 'undefined' && typeof PWAPedometerService.getTodaySteps === 'function') {
-        const pwa = PWAPedometerService.getTodaySteps();
-        if (typeof pwa === 'number' && pwa > 0) return pwa;
-      }
       const cached = HealthCache.getMetrics();
-      if (cached && typeof cached.steps === 'number' && cached.steps > 0) return cached.steps;
-      const stored = localStorage.getItem('calyxo_pedometer_steps_' + todayStr);
-      if (stored) return parseInt(stored, 10) || 0;
+      const cachedSteps = (cached && typeof cached.steps === 'number') ? cached.steps : 0;
+      let pwa = 0;
+      if (typeof PWAPedometerService !== 'undefined' && typeof PWAPedometerService.getTodaySteps === 'function') {
+        pwa = PWAPedometerService.getTodaySteps() || 0;
+      }
+      return Math.max(cachedSteps, pwa);
     } catch (e) {}
     return 0;
   };
@@ -134,20 +133,20 @@ export default function WidgetStudioSection({ onNotification }) {
 
   // Subscribe to live step and health engine updates
   useEffect(() => {
-    setLiveSteps(getInitialSteps());
+    setLiveSteps(prev => Math.max(prev, getInitialSteps()));
 
     const unsubPedometer = PWAPedometerService.subscribe((steps) => {
-      if (typeof steps === 'number') setLiveSteps(steps);
+      if (typeof steps === 'number') setLiveSteps(prev => Math.max(prev, steps));
     });
 
     const unsubSync = HealthSyncEngine.subscribe((data) => {
       if (data?.metrics?.steps !== undefined) {
-        setLiveSteps(data.metrics.steps);
+        setLiveSteps(prev => Math.max(prev, data.metrics.steps));
       }
     });
 
     const handleDataSync = () => {
-      setLiveSteps(getInitialSteps());
+      setLiveSteps(prev => Math.max(prev, getInitialSteps()));
     };
     window.addEventListener('calyxo_data_sync', handleDataSync);
 

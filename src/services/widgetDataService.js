@@ -58,38 +58,30 @@ export const syncWidgetData = async (customData = {}) => {
       stateStreak = Number(userProfile?.streak || 0);
     }
 
-    // Try reading real step count from PWAPedometerService first
+    // Resolve steps: take the highest verified count between HealthCache (HealthKit) and PWAPedometerService
     try {
-      if (typeof PWAPedometerService !== 'undefined' && typeof PWAPedometerService.getTodaySteps === 'function') {
-        const pwaSteps = PWAPedometerService.getTodaySteps();
-        if (typeof pwaSteps === 'number' && pwaSteps > 0) {
-          stateSteps = pwaSteps;
-        }
-      }
-    } catch (e) {}
-
-    // Fallback: Read from HealthCache
-    if (stateSteps === null) {
+      let cachedSteps = null;
       try {
         const cachedMetrics = HealthCache.getMetrics();
         if (cachedMetrics && typeof cachedMetrics.steps === 'number') {
-          stateSteps = cachedMetrics.steps;
+          cachedSteps = cachedMetrics.steps;
           if (cachedMetrics.stepGoal && !stateStepGoal) stateStepGoal = cachedMetrics.stepGoal;
         }
       } catch (e) {}
-    }
 
-    // Fallback: Read real step count from localStorage pedometer key
-    if (stateSteps === null && typeof localStorage !== 'undefined') {
+      let pwaSteps = null;
       try {
-        const pedometerKey = 'calyxo_pedometer_steps_' + todayStr;
-        const storedSteps = localStorage.getItem(pedometerKey);
-        if (storedSteps !== null) {
-          const parsed = parseInt(storedSteps, 10);
-          if (!isNaN(parsed) && parsed >= 0) stateSteps = parsed;
+        if (typeof PWAPedometerService !== 'undefined' && typeof PWAPedometerService.getTodaySteps === 'function') {
+          const s = PWAPedometerService.getTodaySteps();
+          if (typeof s === 'number' && s >= 0) pwaSteps = s;
         }
       } catch (e) {}
-    }
+
+      const candidateSteps = Math.max(cachedSteps || 0, pwaSteps || 0);
+      if (candidateSteps > 0 || cachedSteps !== null || pwaSteps !== null) {
+        stateSteps = candidateSteps;
+      }
+    } catch (e) {}
   } catch (e) {
     // Non-fatal fallback
   }

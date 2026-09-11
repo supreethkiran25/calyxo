@@ -253,7 +253,7 @@ export default function UserLayout() {
         store.setFoodLogs(foods || []);
         store.setWorkoutLogs(workouts || []);
         store.setWeightLogs(weights || []);
-        if (water !== undefined && water !== null) setWaterIntake(water);
+        if (water !== undefined && water !== null && (water > 0 || store.waterIntake === 0)) setWaterIntake(water);
         if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
         useEcosystemStore.getState().evaluateDailyStreakReset();
         useEcosystemStore.getState().checkDailyLoginStreak();
@@ -398,7 +398,7 @@ export default function UserLayout() {
       if (foods && (foods.length > 0 || store.foodLogs.length === 0)) store.setFoodLogs(foods);
       if (workouts && (workouts.length > 0 || store.workoutLogs.length === 0)) store.setWorkoutLogs(workouts);
       if (weights && (weights.length > 0 || store.weightLogs.length === 0)) store.setWeightLogs(weights);
-      if (water !== undefined && water !== null) store.setWaterIntake(water);
+      if (water !== undefined && water !== null && (water > 0 || store.waterIntake === 0)) store.setWaterIntake(water);
       if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
       const waterTarget = Number(profile?.waterGoal || profile?.waterTarget || store.userProfile?.waterTarget || 3000);
       useEcosystemStore.getState().recalculateDynamicStreaks(foods || [], workouts || [], waterLogs || [], waterTarget);
@@ -421,7 +421,7 @@ export default function UserLayout() {
       if (foods && (foods.length > 0 || store.foodLogs.length === 0)) store.setFoodLogs(foods);
       if (workouts && (workouts.length > 0 || store.workoutLogs.length === 0)) store.setWorkoutLogs(workouts);
       if (weights && (weights.length > 0 || store.weightLogs.length === 0)) store.setWeightLogs(weights);
-      if (water !== undefined && water !== null) store.setWaterIntake(water);
+      if (water !== undefined && water !== null && (water > 0 || store.waterIntake === 0)) store.setWaterIntake(water);
       if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
       const waterTarget = Number(profile?.waterGoal || profile?.waterTarget || store.userProfile?.waterTarget || 3000);
       useEcosystemStore.getState().recalculateDynamicStreaks(foods || [], workouts || [], waterLogs || [], waterTarget);

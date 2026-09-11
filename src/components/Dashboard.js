@@ -10,6 +10,7 @@ import { calculateMacroTargets, formatNutritionValue } from '../utils/macroCalcu
 import { isToday } from '../utils/dateUtils';
 import { calculateWorkoutCaloriesBurned } from '../utils/workoutUtils';
 import { HealthCache } from '../services/health/HealthCache';
+import { PWAPedometerService } from '../services/health/PWAPedometerService';
 
 import { 
   Flame, Droplets, Activity, Dumbbell, Utensils, Sparkles, 
@@ -270,7 +271,9 @@ export default function Dashboard({ onNotification }) {
           // Keep fresh
         } else {
           const savedWater = await getWaterIntake(userId);
-          setWaterIntake(savedWater || 0);
+          if (savedWater !== undefined && savedWater !== null && (savedWater > 0 || storeWater === 0)) {
+            setWaterIntake(savedWater || 0);
+          }
         }
 
         if ('requestIdleCallback' in window) {
@@ -322,7 +325,8 @@ export default function Dashboard({ onNotification }) {
   const healthActiveBurn = Number(cachedHealthMetrics.activeCalories) || 0;
   const workoutBurn = useMemo(() => todaysWorkoutLogs.reduce((s, x) => s + (Number(x.caloriesBurned) || calculateWorkoutCaloriesBurned(x)), 0), [todaysWorkoutLogs]);
   const totalBurned = Math.max(workoutBurn, healthActiveBurn);
-  const totalSteps = Number(cachedHealthMetrics.steps) || 0;
+  const pwaSteps = (typeof PWAPedometerService !== 'undefined' && typeof PWAPedometerService.getTodaySteps === 'function') ? (PWAPedometerService.getTodaySteps() || 0) : 0;
+  const totalSteps = Math.max(Number(cachedHealthMetrics.steps) || 0, pwaSteps);
 
   const recentMeals = useMemo(() => [...todaysFoodLogs].reverse().slice(0, 4), [todaysFoodLogs]);
   const recentWorkouts = useMemo(() => [...todaysWorkoutLogs].reverse().slice(0, 3), [todaysWorkoutLogs]);

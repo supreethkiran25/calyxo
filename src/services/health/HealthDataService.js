@@ -25,29 +25,31 @@ export class HealthDataService {
   static async fetchTodayMetrics() {
     const isConn = HealthPermissionManager.isConnected();
     const platform = HealthPermissionManager.getPlatform();
-    const pwaSteps = PWAPedometerService.getTodaySteps();
+    const prevCached = HealthCache.getMetrics() || {};
+    const pwaSteps = PWAPedometerService.getTodaySteps() || 0;
+    const initialSteps = Math.max(prevCached.steps || 0, pwaSteps);
 
-    // Default clean initial metric state (0s when no data, never fake randoms)
+    // Default clean initial metric state (never drop below verified cached values)
     let metrics = {
-      steps: pwaSteps || 0,
-      stepGoal: 10000,
-      distanceKm: pwaSteps > 0 ? Number((pwaSteps * 0.00075).toFixed(2)) : 0.0,
-      activeCalories: pwaSteps > 0 ? Math.round(pwaSteps * 0.042) : 0,
-      calorieGoal: 500,
-      activeMinutes: pwaSteps > 0 ? Math.round(pwaSteps / 110) : 0,
+      steps: initialSteps,
+      stepGoal: prevCached.stepGoal || 10000,
+      distanceKm: initialSteps > 0 ? Number((initialSteps * 0.00075).toFixed(2)) : (prevCached.distanceKm || 0.0),
+      activeCalories: initialSteps > 0 ? Math.round(initialSteps * 0.042) : (prevCached.activeCalories || 0),
+      calorieGoal: prevCached.calorieGoal || 500,
+      activeMinutes: initialSteps > 0 ? Math.round(initialSteps / 110) : (prevCached.activeMinutes || 0),
       activeMinutesGoal: 60,
-      heartRateBpm: 0,
-      heartRateSource: '',
-      heartRateTimestamp: null,
-      restingHeartRateBpm: 0,
-      restingHeartRateSource: '',
-      isHeartRateLive: false,
-      sleepHours: 0.0,
-      sleepQualityPct: 0,
-      weightKg: 0.0,
-      bodyFatPct: 0.0,
-      vo2Max: 0.0,
-      recoveryScore: 0,
+      heartRateBpm: prevCached.heartRateBpm || 0,
+      heartRateSource: prevCached.heartRateSource || '',
+      heartRateTimestamp: prevCached.heartRateTimestamp || null,
+      restingHeartRateBpm: prevCached.restingHeartRateBpm || 0,
+      restingHeartRateSource: prevCached.restingHeartRateSource || '',
+      isHeartRateLive: Boolean(prevCached.isHeartRateLive),
+      sleepHours: prevCached.sleepHours || 0.0,
+      sleepQualityPct: prevCached.sleepQualityPct || 0,
+      weightKg: prevCached.weightKg || 0.0,
+      bodyFatPct: prevCached.bodyFatPct || 0.0,
+      vo2Max: prevCached.vo2Max || 0.0,
+      recoveryScore: prevCached.recoveryScore || 0,
       lastSyncTimestamp: Date.now()
     };
 
@@ -57,22 +59,31 @@ export class HealthDataService {
         if (CalyxoHealthKit) {
           const hkData = await CalyxoHealthKit.queryTodayMetrics();
           console.log('[CALYXO-HEALTH] Native HealthKit data received:', hkData);
-            metrics.steps = hkData.steps || metrics.steps;
-            metrics.distanceKm = hkData.distanceKm || (metrics.steps > 0 ? Number((metrics.steps * 0.00075).toFixed(2)) : 0.0);
-            metrics.activeCalories = hkData.activeCalories || (metrics.steps > 0 ? Math.round(metrics.steps * 0.042) : 0);
-            metrics.heartRateBpm = hkData.heartRateBpm || 0;
-            metrics.heartRateSource = hkData.heartRateSource || (metrics.heartRateBpm > 0 ? 'Apple Health' : '');
-            metrics.heartRateTimestamp = hkData.heartRateTimestamp || null;
-            metrics.restingHeartRateBpm = hkData.restingHeartRateBpm || 0;
-            metrics.restingHeartRateSource = hkData.restingHeartRateSource || '';
-            metrics.isHeartRateLive = Boolean(hkData.isHeartRateLive);
+          if (hkData) {
+            if (typeof hkData.steps === 'number') {
+              metrics.steps = Math.max(hkData.steps, metrics.steps);
+              PWAPedometerService.syncFromNativeSource(metrics.steps);
+            }
+            metrics.distanceKm = hkData.distanceKm || (metrics.steps > 0 ? Number((metrics.steps * 0.00075).toFixed(2)) : metrics.distanceKm);
+            metrics.activeCalories = hkData.activeCalories || (metrics.steps > 0 ? Math.round(metrics.steps * 0.042) : metrics.activeCalories);
+            if (hkData.heartRateBpm && hkData.heartRateBpm > 0) {
+              metrics.heartRateBpm = hkData.heartRateBpm;
+              metrics.heartRateSource = hkData.heartRateSource || 'Apple Health';
+              metrics.heartRateTimestamp = hkData.heartRateTimestamp || Date.now();
+              metrics.isHeartRateLive = Boolean(hkData.isHeartRateLive);
+            }
+            if (hkData.restingHeartRateBpm && hkData.restingHeartRateBpm > 0) {
+              metrics.restingHeartRateBpm = hkData.restingHeartRateBpm;
+              metrics.restingHeartRateSource = hkData.restingHeartRateSource || '';
+            }
             metrics.sleepHours = hkData.sleepHours || metrics.sleepHours || 0.0;
-            metrics.weightKg = hkData.weightKg || 0.0;
-            metrics.bodyFatPct = hkData.bodyFatPct || 0.0;
-            metrics.vo2Max = hkData.vo2Max || 0.0;
-            metrics.hrvMs = hkData.hrvMs || 0.0;
+            metrics.weightKg = hkData.weightKg || metrics.weightKg || 0.0;
+            metrics.bodyFatPct = hkData.bodyFatPct || metrics.bodyFatPct || 0.0;
+            metrics.vo2Max = hkData.vo2Max || metrics.vo2Max || 0.0;
+            metrics.hrvMs = hkData.hrvMs || metrics.hrvMs || 0.0;
             if (hkData.distanceCyclingKm) metrics.distanceCyclingKm = hkData.distanceCyclingKm;
             metrics.lastSyncTimestamp = Date.now();
+          }
         }
       } else if (platform === 'android_health_connect' && Capacitor.isNativePlatform()) {
         const { CalyxoHealthPlugin } = Capacitor.Plugins;
@@ -80,12 +91,15 @@ export class HealthDataService {
           const androidData = await CalyxoHealthPlugin.queryTodayMetrics();
           console.log('[CALYXO-HEALTH] Native Android sensor data received:', androidData);
           if (androidData) {
-            metrics.steps = androidData.steps || 0;
-            metrics.distanceKm = androidData.distanceKm || 0.0;
-            metrics.activeCalories = androidData.activeCalories || 0;
-            metrics.activeMinutes = androidData.activeMinutes || 0;
-            if (androidData.heartRateBpm) metrics.heartRateBpm = androidData.heartRateBpm;
-            if (androidData.restingHeartRateBpm) metrics.restingHeartRateBpm = androidData.restingHeartRateBpm;
+            if (typeof androidData.steps === 'number') {
+              metrics.steps = Math.max(androidData.steps, metrics.steps);
+              PWAPedometerService.syncFromNativeSource(metrics.steps);
+            }
+            metrics.distanceKm = androidData.distanceKm || metrics.distanceKm;
+            metrics.activeCalories = androidData.activeCalories || metrics.activeCalories;
+            metrics.activeMinutes = androidData.activeMinutes || metrics.activeMinutes;
+            if (androidData.heartRateBpm && androidData.heartRateBpm > 0) metrics.heartRateBpm = androidData.heartRateBpm;
+            if (androidData.restingHeartRateBpm && androidData.restingHeartRateBpm > 0) metrics.restingHeartRateBpm = androidData.restingHeartRateBpm;
             metrics.lastSyncTimestamp = Date.now();
           }
         }
@@ -94,6 +108,9 @@ export class HealthDataService {
         const parsed = typeof res === 'string' ? JSON.parse(res) : res;
         if (parsed) {
           metrics = { ...metrics, ...parsed, lastSyncTimestamp: Date.now() };
+          if (typeof parsed.steps === 'number') {
+            PWAPedometerService.syncFromNativeSource(parsed.steps);
+          }
         }
       }
 

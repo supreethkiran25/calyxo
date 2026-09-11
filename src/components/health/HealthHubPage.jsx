@@ -90,13 +90,14 @@ export default function HealthHubPage({ onNotification }) {
     const unsubscribePedometer = PWAPedometerService.subscribe((liveSteps) => {
       setMetrics(prev => {
         if (!prev) return prev;
-        const newDist = Number((liveSteps * 0.00075).toFixed(2));
-        const newCals = Math.round(liveSteps * 0.042);
+        const effectiveSteps = Math.max(liveSteps || 0, prev.steps || 0);
+        const newDist = Number((effectiveSteps * 0.00075).toFixed(2));
+        const newCals = Math.round(effectiveSteps * 0.042);
         return {
           ...prev,
-          steps: liveSteps,
-          distanceKm: newDist,
-          activeCalories: newCals,
+          steps: effectiveSteps,
+          distanceKm: Math.max(newDist, prev.distanceKm || 0.0),
+          activeCalories: Math.max(newCals, prev.activeCalories || 0),
           lastSyncTimestamp: Date.now()
         };
       });
@@ -109,7 +110,7 @@ export default function HealthHubPage({ onNotification }) {
           if (!prev) return prev;
           return {
             ...prev,
-            heartRateBpm: syncData.heartRateBpm,
+            heartRateBpm: syncData.heartRateBpm || prev.heartRateBpm,
             heartRateSource: syncData.heartRateSource || prev.heartRateSource,
             restingHeartRateBpm: syncData.restingHeartRateBpm || prev.restingHeartRateBpm,
             restingHeartRateSource: syncData.restingHeartRateSource || prev.restingHeartRateSource,
@@ -118,12 +119,24 @@ export default function HealthHubPage({ onNotification }) {
           };
         });
       } else {
-        if (syncData.metrics) setMetrics(syncData.metrics);
+        if (syncData.metrics) {
+          setMetrics(prev => {
+            if (!prev) return syncData.metrics;
+            return {
+              ...prev,
+              ...syncData.metrics,
+              steps: Math.max(syncData.metrics.steps || 0, prev.steps || 0),
+              activeCalories: Math.max(syncData.metrics.activeCalories || 0, prev.activeCalories || 0),
+              heartRateBpm: syncData.metrics.heartRateBpm || prev.heartRateBpm || 0,
+              restingHeartRateBpm: syncData.metrics.restingHeartRateBpm || prev.restingHeartRateBpm || 0
+            };
+          });
+        }
         if (syncData.workouts) setWorkouts(syncData.workouts);
       }
     });
 
-    const cleanupAuto = HealthSyncEngine.startAutoSync(10000);
+    const cleanupAuto = HealthSyncEngine.startAutoSync(30000);
 
     const syncLiveState = async () => {
       await HealthPermissionManager.checkLiveAuthorization();
