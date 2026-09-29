@@ -11,15 +11,34 @@ const UserGuard = ({ children }) => {
   });
 
   useEffect(() => {
-    const storeUser = useStore.getState().user;
+    let localUser = null;
+    try {
+      const raw = localStorage.getItem('calyxo_user') || localStorage.getItem('calyxo_mock_user');
+      if (raw) localUser = JSON.parse(raw);
+    } catch (e) {}
+
+    const storeUser = useStore.getState().user || localUser;
     if (storeUser) {
+      if (!useStore.getState().user && localUser) {
+        useStore.getState().setUser(localUser);
+      }
+      try {
+        const rawProfile = localStorage.getItem('calyxo_user_profile');
+        if (rawProfile) {
+          const parsed = JSON.parse(rawProfile);
+          if (parsed && typeof parsed === 'object') {
+            useStore.getState().setUserProfile(parsed);
+          }
+        }
+      } catch (e) {}
       setAuthState({ loading: false, authenticated: true });
     }
 
     const unsubscribe = subscribeToAuth((user) => {
+      const active = user || useStore.getState().user || localUser;
       setAuthState({
         loading: false,
-        authenticated: Boolean(user || useStore.getState().user)
+        authenticated: Boolean(active)
       });
     });
 

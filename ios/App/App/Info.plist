@@ -8,6 +8,27 @@
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>Calyxo</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>es</string>
+		<string>fr</string>
+		<string>de</string>
+		<string>hi</string>
+		<string>kn</string>
+	</array>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -20,88 +41,38 @@
 			</array>
 		</dict>
 	</array>
-
-	<!-- Motion & Fitness Tracking -->
-	<key>NSMotionUsageDescription</key>
-	<string>Calyxo uses motion sensors and pedometer hardware to track your daily steps, active cadence, and physical movement in real time.</string>
-
-	<!-- Location for Outdoor Runs, Walks & GPS Mapping -->
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Calyxo uses GPS location to track distance, pace, elevation, split times, and outdoor workout routes (running, cycling, walking).</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Calyxo uses background location to accurately record outdoor workout GPS routes and pace even when your screen is turned off.</string>
-
-	<!-- Photos & Media Library -->
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Calyxo requires photo library access to upload meal photos for AI nutrition breakdown and visual transformation progress logs.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Calyxo requires permission to save workout victory graphics, weekly progress charts, and transformation snapshots to your camera roll.</string>
-
-	<!-- Bluetooth for Garmin / Polar / Wearables -->
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Calyxo connects via Bluetooth to external heart rate monitors (Garmin HRM, Polar H10, Wahoo), smart scales, and wearable sensors to stream live telemetry.</string>
-	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Calyxo connects via Bluetooth to external fitness monitors and wearable health sensors.</string>
-
-	<!-- Camera for Food Barcode Scanner & Meal AI Photos -->
-	<key>NSCameraUsageDescription</key>
-	<string>Calyxo uses your camera to scan food nutrition barcodes, snap meal photos for instant AI macro estimation, and take body transformation photos.</string>
-
-	<!-- Apple Health & Clinical Records -->
-	<key>NSHealthShareUsageDescription</key>
-	<string>Calyxo reads your step count, active calories burned, heart rate, resting HR, Garmin/Apple Watch workouts, and sleep stages to optimize your athletic recovery.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>Calyxo writes completed workout sessions and active calorie burns to Apple Health.</string>
-	<key>NSHealthClinicalHealthRecordsShareUsageDescription</key>
-	<string>Calyxo accesses biometric and health records to provide personalized training and nutrition prescriptions.</string>
-
-	<!-- App Tracking & Personalized Intelligence -->
-	<key>NSUserTrackingUsageDescription</key>
-	<string>Calyxo uses workout activity data to deliver customized training routines, macro recommendations, and predictive recovery intelligence.</string>
-
-	<!-- Background Modes -->
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-		<string>fetch</string>
-		<string>processing</string>
-		<string>location</string>
-		<string>bluetooth-central</string>
-	</array>
-
-	<!-- Live Activities & Dynamic Island -->
-	<key>NSSupportsLiveActivities</key>
-	<true/>
-	<key>NSSupportsLiveActivitiesFrequentUpdates</key>
-	<true/>
-
-	<!-- Localizations / Multi-Language Support -->
-	<key>CFBundleLocalizations</key>
-	<array>
-		<string>en</string>
-		<string>es</string>
-		<string>fr</string>
-		<string>de</string>
-		<string>hi</string>
-		<string>kn</string>
-	</array>
-
-	<key>CFBundleExecutable</key>
-	<string>$(EXECUTABLE_NAME)</string>
-	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Calyxo connects via Bluetooth to external heart rate monitors (Garmin HRM, Polar H10, Wahoo), smart scales, and wearable sensors to stream live telemetry.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Calyxo connects via Bluetooth to external fitness monitors and wearable health sensors.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Calyxo uses your camera to scan food nutrition barcodes, snap meal photos for instant AI macro estimation, and take body transformation photos.</string>
+	<key>NSHealthClinicalHealthRecordsShareUsageDescription</key>
+	<string>Calyxo accesses biometric and health records to provide personalized training and nutrition prescriptions.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Calyxo reads your step count, active calories burned, heart rate, resting HR, Garmin/Apple Watch workouts, and sleep stages to optimize your athletic recovery.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Calyxo writes completed workout sessions and active calorie burns to Apple Health.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Calyxo uses background location to accurately record outdoor workout GPS routes and pace even when your screen is turned off.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Calyxo uses GPS location to track distance, pace, elevation, split times, and outdoor workout routes (running, cycling, walking).</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Calyxo uses motion sensors and pedometer hardware to track your daily steps, active cadence, and physical movement in real time.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Calyxo requires permission to save workout victory graphics, weekly progress charts, and transformation snapshots to your camera roll.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Calyxo requires photo library access to upload meal photos for AI nutrition breakdown and visual transformation progress logs.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>NSSupportsLiveActivitiesFrequentUpdates</key>
+	<true/>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Calyxo uses workout activity data to deliver customized training routines, macro recommendations, and predictive recovery intelligence.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -121,6 +92,14 @@
 			</array>
 		</dict>
 	</dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>fetch</string>
+		<string>processing</string>
+		<string>location</string>
+		<string>bluetooth-central</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

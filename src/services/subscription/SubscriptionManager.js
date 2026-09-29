@@ -90,6 +90,26 @@ export const FREE_MONTHLY_AI_LIMIT = 10;
 
 export class SubscriptionManager {
   /**
+   * Helper to retrieve admin-granted subscription override for the given user/profile
+   */
+  static getAdminGrantedOverride(userProfile = {}, user = {}) {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem('calyxo_admin_granted_subscriptions');
+      if (!raw) return null;
+      const grants = JSON.parse(raw);
+      if (!grants || typeof grants !== 'object') return null;
+
+      const uid = user?.uid || user?.id || userProfile?.id;
+      const email = (user?.email || userProfile?.email || '').toLowerCase().trim();
+
+      return (uid && grants[uid]) || (email && grants[email]) || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
    * Determine Canonical Subscription State from User Profile & Subscription Record
    */
   static getSubscriptionStatus(userProfile = {}, user = {}) {
@@ -117,6 +137,51 @@ export class SubscriptionManager {
         isSubscribed: true,
         expiresAt: null,
         planName: 'Calyxo Trainer Suite'
+      };
+    }
+
+    // Check admin-granted override (from Admin CRM manual grants / revokes)
+    const adminGrant = this.getAdminGrantedOverride(userProfile, user);
+    if (adminGrant) {
+      const isRevoked = adminGrant.plan === 'FREE' || adminGrant.status === 'Revoked';
+      if (isRevoked) {
+        return {
+          state: SUBSCRIPTION_STATES.EXPIRED,
+          tier: SUBSCRIPTION_TIERS.FREE,
+          isActive: false,
+          isSubscribed: false,
+          expiresAt: adminGrant.expiryDate || null,
+          planName: 'Free Tier'
+        };
+      }
+
+      const grantExpStr = adminGrant.expiryDate;
+      if (grantExpStr) {
+        const grantExpDate = new Date(grantExpStr);
+        if (grantExpDate < new Date()) {
+          return {
+            state: SUBSCRIPTION_STATES.EXPIRED,
+            tier: SUBSCRIPTION_TIERS.FREE,
+            isActive: false,
+            isSubscribed: false,
+            expiresAt: grantExpStr,
+            planName: 'Expired'
+          };
+        }
+      }
+
+      const grantPlan = (adminGrant.plan || 'HIGH').toUpperCase();
+      const normalizedTier = (grantPlan === 'HIGH' || grantPlan === 'ULTRA' || grantPlan === 'HIGH_ANNUAL')
+        ? SUBSCRIPTION_TIERS.HIGH
+        : SUBSCRIPTION_TIERS.MEDIUM;
+
+      return {
+        state: SUBSCRIPTION_STATES.ACTIVE,
+        tier: normalizedTier,
+        isActive: true,
+        isSubscribed: true,
+        expiresAt: grantExpStr || null,
+        planName: normalizedTier === SUBSCRIPTION_TIERS.HIGH ? 'Calyxo Ultra' : 'Calyxo Pro'
       };
     }
 
@@ -179,19 +244,70 @@ export class SubscriptionManager {
 
   /**
    * Return canonical subscription timeline with verified dates (Zero date fabrication)
+   * Includes exact days/hours countdown and 5-day expiry warning triggers
    */
   static getSubscriptionTimeline(userProfile = {}, user = {}) {
     const status = this.getSubscriptionStatus(userProfile, user);
+    const adminGrant = this.getAdminGrantedOverride(userProfile, user);
     const isCancelled = Boolean(userProfile?.is_cancelled || userProfile?.isCancelled);
-    const isAutoRenew = userProfile?.auto_renew !== false && userProfile?.autoRenew !== false && !isCancelled;
-    const startedAt = userProfile?.subscription_created_at || userProfile?.subscriptionCreatedAt || userProfile?.created_at || null;
-    const expiresAt = userProfile?.subscriptionExpiresAt || userProfile?.subscription_expiry || userProfile?.expiryDate || userProfile?.subscriptionPeriodEnd || userProfile?.subscription_period_end || status.expiresAt || null;
+    const isAutoRenew = userProfile?.auto_renew !== false && userProfile?.autoRenew !== false && !isCancelled && !adminGrant;
+    
+    // Derive accurate start and expiry dates
+    let startedAt = adminGrant?.grantedAt || userProfile?.subscription_created_at || userProfile?.subscriptionCreatedAt || userProfile?.created_at || null;
+    let expiresAt = adminGrant?.expiryDate || userProfile?.subscriptionExpiresAt || userProfile?.subscription_expiry || userProfile?.expiryDate || userProfile?.subscriptionPeriodEnd || userProfile?.subscription_period_end || status.expiresAt || null;
+
+    // If active plan has no explicit expiry, compute from start date (default 30 days monthly, 365 annual)
+    if (status.isActive && status.tier !== SUBSCRIPTION_TIERS.FREE && !expiresAt) {
+      const baseStart = startedAt ? new Date(startedAt) : new Date();
+      const isAnnual = String(adminGrant?.plan || userProfile?.subscriptionPlan || '').toUpperCase().includes('ANNUAL');
+      const targetExp = new Date(baseStart);
+      targetExp.setDate(targetExp.getDate() + (isAnnual ? 365 : 30));
+      expiresAt = targetExp.toISOString();
+    }
+
     const nextBillingDate = userProfile?.next_billing_date || userProfile?.nextBillingDate || (isAutoRenew ? expiresAt : null);
+
+    // Calculate countdown
+    let daysRemaining = 0;
+    let hoursRemaining = 0;
+    let isExpiringSoon = false;
+    let isExpired = false;
+    let countdownString = 'Free Tier';
+
+    if (expiresAt && status.tier !== SUBSCRIPTION_TIERS.FREE) {
+      const now = Date.now();
+      const expTime = new Date(expiresAt).getTime();
+      const diffMs = expTime - now;
+
+      if (diffMs > 0) {
+        daysRemaining = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        hoursRemaining = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        
+        if (daysRemaining > 1) {
+          countdownString = `${daysRemaining} days left`;
+        } else if (daysRemaining === 1) {
+          countdownString = `1 day, ${hoursRemaining}h left`;
+        } else {
+          countdownString = `${hoursRemaining}h remaining`;
+        }
+
+        // 5-day expiry warning flag
+        if (daysRemaining <= 5) {
+          isExpiringSoon = true;
+        }
+      } else {
+        isExpired = true;
+        const daysPast = Math.abs(Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+        countdownString = daysPast === 0 ? 'Expired today' : `Expired ${daysPast}d ago`;
+      }
+    } else if (status.tier === SUBSCRIPTION_TIERS.FREE) {
+      countdownString = 'Forever Free';
+    }
 
     let timelineLabel = null;
     let timelineDate = null;
 
-    if (status.state === SUBSCRIPTION_STATES.EXPIRED) {
+    if (isExpired || status.state === SUBSCRIPTION_STATES.EXPIRED) {
       timelineLabel = 'Expired';
       timelineDate = expiresAt;
     } else if (isCancelled && expiresAt) {
@@ -207,17 +323,61 @@ export class SubscriptionManager {
 
     return {
       planName: status.planName,
-      status: status.state,
-      tier: status.tier,
-      isActive: status.isActive,
-      isSubscribed: status.isSubscribed,
+      status: isExpired ? SUBSCRIPTION_STATES.EXPIRED : status.state,
+      tier: isExpired ? SUBSCRIPTION_TIERS.FREE : status.tier,
+      isActive: isExpired ? false : status.isActive,
+      isSubscribed: isExpired ? false : status.isSubscribed,
       isCancelled,
       startedAt,
       nextBillingDate: isCancelled ? null : nextBillingDate,
       expiresAt,
+      daysRemaining,
+      hoursRemaining,
+      isExpiringSoon,
+      isExpired,
+      countdownString,
       timelineLabel,
       timelineDate
     };
+  }
+
+  /**
+   * Check for 5-day expiration and fire warning notification
+   */
+  static checkAndSendExpiryAlert(userProfile, user, notifyFn) {
+    const timeline = this.getSubscriptionTimeline(userProfile, user);
+    if (!timeline.isExpiringSoon || !timeline.daysRemaining) return false;
+
+    const cacheKey = `calyxo_expiry_notif_${userProfile?.id || user?.id || 'me'}_d${timeline.daysRemaining}`;
+    if (typeof window !== 'undefined' && localStorage.getItem(cacheKey)) {
+      return false; // Already alerted for this remaining-day count
+    }
+
+    const message = `⚠️ Your Calyxo ${timeline.planName} plan expires in ${timeline.daysRemaining} days. Renew now to avoid losing AI Coach & health telemetry access!`;
+    
+    if (typeof notifyFn === 'function') {
+      notifyFn(message);
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(cacheKey, new Date().toISOString());
+      
+      // Also register system notification
+      try {
+        const notifs = JSON.parse(localStorage.getItem('calyxo_system_notifications') || '[]');
+        notifs.unshift({
+          id: `expiry_notif_${Date.now()}`,
+          title: 'Subscription Expiring Soon',
+          message,
+          type: 'warning',
+          created_at: new Date().toISOString(),
+          read: false
+        });
+        localStorage.setItem('calyxo_system_notifications', JSON.stringify(notifs.slice(0, 50)));
+      } catch (e) {}
+    }
+
+    return true;
   }
 }
 

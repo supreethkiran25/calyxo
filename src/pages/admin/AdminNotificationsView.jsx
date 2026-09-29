@@ -81,13 +81,13 @@ const AdminNotificationsView = () => {
     <div className="space-y-6">
       {/* 1. Header */}
       <AdminPageHeader
-        title="Notifications"
-        description="Push broadcast campaigns, recipient segmentation, and engagement rates"
-        badge={`${pushDevicesCount} devices`}
+        title="Notifications & Broadcast Campaigns"
+        description="Push broadcast campaigns, recipient segmentation, and delivery engagement metrics."
+        badge={`${pushDevicesCount} registered devices`}
         actions={
           <button
             onClick={() => setComposerOpen(true)}
-            className="px-3.5 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold flex items-center gap-1.5 border border-neutral-800 transition-colors cursor-pointer"
+            className="px-3.5 py-1.5 rounded-xl bg-[#d4ff00] hover:bg-[#a3e635] text-slate-950 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-[#d4ff00]/10"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>New Broadcast</span>
@@ -124,7 +124,7 @@ const AdminNotificationsView = () => {
       </div>
 
       {/* 3. Filter Controls */}
-      <div className="p-3 bg-neutral-900/90 border border-neutral-800/80 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="p-3 bg-[#0e121d] border border-white/10 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl">
         <AdminSearchInput
           value={search}
           onChange={setSearch}
@@ -135,7 +135,7 @@ const AdminNotificationsView = () => {
         <select
           value={audienceFilter}
           onChange={(e) => setAudienceFilter(e.target.value)}
-          className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs font-mono rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-neutral-700 cursor-pointer"
+          className="bg-[#131622] border border-white/10 text-slate-300 text-xs font-mono rounded-xl px-3 py-2 focus:outline-none focus:border-lime-400/60 cursor-pointer"
         >
           <option value="ALL">All Audiences</option>
           <option value="Everyone">Everyone</option>
@@ -145,10 +145,12 @@ const AdminNotificationsView = () => {
         </select>
       </div>
 
-      {/* 4. Broadcast History Table */}
-      <div className="bg-neutral-900/90 border border-neutral-800/80 rounded-xl overflow-hidden">
+      {/* 4. Broadcast History Table Container */}
+      <div className="bg-[#0e121d] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
         {loading ? (
-          <AdminLoadingSkeleton rows={5} />
+          <div className="p-6">
+            <AdminLoadingSkeleton rows={5} />
+          </div>
         ) : filteredNotifs.length === 0 ? (
           <AdminEmptyState
             title="No broadcast campaigns found"
@@ -158,40 +160,40 @@ const AdminNotificationsView = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-neutral-800 bg-neutral-950/60 text-neutral-400 font-mono uppercase text-[10px]">
-                  <th className="p-3.5 font-bold">Campaign</th>
-                  <th className="p-3.5 font-bold">Audience</th>
-                  <th className="p-3.5 font-bold">Delivered</th>
-                  <th className="p-3.5 font-bold">Clicks (CTR)</th>
-                  <th className="p-3.5 font-bold">Sent</th>
-                  <th className="p-3.5 text-right font-bold">Actions</th>
+                <tr className="border-b border-white/10 bg-[#0b0e17] text-slate-400 font-mono uppercase text-[10px]">
+                  <th className="p-4 font-bold">Campaign</th>
+                  <th className="p-4 font-bold">Audience</th>
+                  <th className="p-4 font-bold">Delivered</th>
+                  <th className="p-4 font-bold">Clicks (CTR)</th>
+                  <th className="p-4 font-bold">Sent</th>
+                  <th className="p-4 text-right font-bold">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-800/60 font-sans">
+              <tbody className="divide-y divide-white/5 font-sans">
                 {filteredNotifs.map(n => {
                   const ctr = n.delivered > 0 ? (((n.clicks || 0) / n.delivered) * 100).toFixed(1) : '0.0';
                   return (
-                    <tr key={n.id} className="hover:bg-neutral-800/40 transition-colors">
-                      <td className="p-3.5">
+                    <tr key={n.id} className="hover:bg-white/[0.03] transition-colors">
+                      <td className="p-4">
                         <span className="font-semibold text-white block">{n.title}</span>
-                        <span className="text-neutral-400 text-[11px] mt-0.5 block truncate max-w-sm">{n.body}</span>
+                        <span className="text-slate-400 text-[11px] mt-0.5 block truncate max-w-sm">{n.body}</span>
                       </td>
-                      <td className="p-3.5">
-                        <span className="bg-neutral-800 text-neutral-300 border border-neutral-700 text-[10px] font-mono px-2 py-0.5 rounded">
+                      <td className="p-4">
+                        <span className="bg-white/5 text-slate-300 border border-white/10 text-[10px] font-mono px-2 py-0.5 rounded-full">
                           {n.audience}
                         </span>
                       </td>
-                      <td className="p-3.5 text-neutral-300 font-mono text-xs">{n.delivered || 0}</td>
-                      <td className="p-3.5 text-neutral-300 font-mono text-xs">
+                      <td className="p-4 text-slate-300 font-mono text-xs">{n.delivered || 0}</td>
+                      <td className="p-4 text-lime-400 font-mono text-xs">
                         {n.clicks || 0} ({ctr}%)
                       </td>
-                      <td className="p-3.5 text-neutral-400 font-mono text-[11px]">
+                      <td className="p-4 text-slate-400 font-mono text-[11px]">
                         {n.sent_at ? (n.sent_at.length > 16 ? n.sent_at.replace('T', ' ').substring(0, 16) : n.sent_at) : 'N/A'}
                       </td>
-                      <td className="p-3.5 text-right">
+                      <td className="p-4 text-right">
                         <button
                           onClick={() => setDeleteTarget(n)}
-                          className="p-1.5 rounded-lg text-neutral-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                           title="Delete Campaign"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -226,4 +228,3 @@ const AdminNotificationsView = () => {
 };
 
 export default AdminNotificationsView;
-

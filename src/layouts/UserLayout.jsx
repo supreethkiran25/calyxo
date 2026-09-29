@@ -5,13 +5,14 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { Capacitor } from '@capacitor/core';
 import React, { useState, useEffect, useRef, Suspense, lazy, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home as HomeIcon, Utensils, Dumbbell, User, Users, LogOut, Bot, X, TrendingUp, Heart, Search, Menu, Plus, Crown, Lock, Bell, CheckCheck, Trash, Flame } from 'lucide-react';
+import { Home as HomeIcon, Utensils, Dumbbell, User, Users, LogOut, Bot, X, TrendingUp, Heart, Search, Menu, Plus, Crown, Lock, Bell, CheckCheck, Trash, Flame, Clock, AlertTriangle } from 'lucide-react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import useQuickActionsStore from '../store/useQuickActionsStore';
 import { signOutUser, subscribeToAuth, loadUserData, invalidateUserDataCache, subscribeToUserDataChanges } from '../lib/dbService';
 import { subscribeToInAppNotifications, markNotificationAsRead, deleteNotification, registerServiceWorker, subscribeToPushNotifications } from '../services/notificationService';
+import { SubscriptionManager } from '../services/subscription/SubscriptionManager';
 import { supabase } from '../lib/supabaseClient';
 
 import Logo from '../components/Logo';
@@ -38,21 +39,26 @@ const LegalModal = lazy(() => import('../components/modals/LegalModal'));
 
 const DESKTOP_NAV = [
   {
-    group: 'EXPERIENCES',
+    group: 'CORE',
     items: [
       { id: 'dashboard', href: '/user/dashboard', label: 'Home', icon: HomeIcon },
-      { id: 'nutrition', href: '/user/nutrition', label: 'Nutrition', icon: Utensils },
       { id: 'workout', href: '/user/workout', label: 'Workout', icon: Dumbbell },
+      { id: 'nutrition', href: '/user/nutrition', label: 'Nutrition', icon: Utensils },
+      { id: 'progress', href: '/user/progress', label: 'Progress', icon: TrendingUp },
+      { id: 'ai', href: '/user/ai', label: 'AI Coach', icon: Bot },
+    ]
+  },
+  {
+    group: 'ECOSYSTEM',
+    items: [
       { id: 'health', href: '/user/health', label: 'Health Hub', icon: Heart },
       { id: 'challenges', href: '/user/challenges', label: 'Challenges', icon: Flame },
-      { id: 'progress', href: '/user/progress', label: 'Progress Hub', icon: TrendingUp },
-      { id: 'ai', href: '/user/ai', label: 'AI', icon: Bot, isPremium: true },
     ]
   },
   {
     group: 'ACCOUNT',
     items: [
-      { id: 'profile', href: '/user/profile', label: 'Profile', icon: User },
+      { id: 'profile', href: '/user/profile', label: 'Profile & Settings', icon: User },
     ]
   }
 ];
@@ -118,9 +124,96 @@ export default function UserLayout() {
         setSystemSettings(evt.detail);
       }
     };
+
+    const handleSubUpdated = (evt) => {
+      const detail = evt.detail;
+      if (!detail) return;
+      const store = useStore.getState();
+      const currentActiveUser = store.user;
+      const curProfile = store.userProfile || {};
+      const uid = currentActiveUser?.uid || currentActiveUser?.id || curProfile?.id;
+      const uEmail = (currentActiveUser?.email || curProfile?.email || '').toLowerCase().trim();
+
+      if (
+        detail.userId === uid || 
+        detail.targetUuid === uid || 
+        (detail.targetEmail && detail.targetEmail.toLowerCase() === uEmail)
+      ) {
+        const updated = {
+          ...curProfile,
+          subscriptionPlan: detail.plan,
+          subscription_plan: detail.plan,
+          isSubscribed: !detail.isRevoke,
+          is_subscribed: !detail.isRevoke,
+          subscriptionStatus: detail.isRevoke ? 'EXPIRED' : 'ACTIVE',
+          subscription_status: detail.isRevoke ? 'EXPIRED' : 'ACTIVE',
+          subscriptionExpiresAt: detail.expiryDate,
+          subscription_expires_at: detail.expiryDate,
+          subscriptionPeriodEnd: detail.expiryDate,
+          activePass: detail.plan,
+          daysRemaining: detail.daysRemaining
+        };
+        store.setUserProfile(updated);
+        localStorage.setItem('calyxo_user_profile', JSON.stringify(updated));
+      }
+    };
+
+    const handleUserStatusUpdated = (evt) => {
+      const detail = evt.detail;
+      if (!detail) return;
+      const store = useStore.getState();
+      const uid = store.user?.uid || store.user?.id || store.userProfile?.id;
+      if (detail.userId === uid) {
+        const curProfile = store.userProfile || {};
+        const updated = { ...curProfile, status: detail.status };
+        store.setUserProfile(updated);
+        localStorage.setItem('calyxo_user_profile', JSON.stringify(updated));
+      }
+    };
+
+    const handleStorageChange = (e) => {
+      if (e.key === 'calyxo_system_settings' && e.newValue) {
+        try { setSystemSettings(JSON.parse(e.newValue)); } catch (err) {}
+      }
+      if (e.key === 'calyxo_admin_granted_subscriptions' && e.newValue) {
+        try {
+          const grants = JSON.parse(e.newValue);
+          const store = useStore.getState();
+          const uid = store.user?.uid || store.user?.id || store.userProfile?.id;
+          const uEmail = (store.user?.email || store.userProfile?.email || '').toLowerCase().trim();
+          const myGrant = (uid && grants[uid]) || (uEmail && grants[uEmail]);
+          if (myGrant) {
+            const isRev = myGrant.plan === 'FREE' || myGrant.status === 'Revoked';
+            const cur = store.userProfile || {};
+            const updated = {
+              ...cur,
+              subscriptionPlan: myGrant.plan,
+              subscription_plan: myGrant.plan,
+              isSubscribed: !isRev,
+              is_subscribed: !isRev,
+              subscriptionStatus: isRev ? 'EXPIRED' : 'ACTIVE',
+              subscription_status: isRev ? 'EXPIRED' : 'ACTIVE',
+              subscriptionExpiresAt: myGrant.expiryDate,
+              subscription_expires_at: myGrant.expiryDate,
+              activePass: myGrant.plan
+            };
+            store.setUserProfile(updated);
+            localStorage.setItem('calyxo_user_profile', JSON.stringify(updated));
+          }
+        } catch (err) {}
+      }
+    };
+
     window.addEventListener('calyxo_settings_updated', handleSettingsUpdate);
+    window.addEventListener('calyxo_subscription_updated', handleSubUpdated);
+    window.addEventListener('calyxo_user_status_updated', handleUserStatusUpdated);
+    window.addEventListener('storage', handleStorageChange);
+
     return () => {
       window.removeEventListener('calyxo_settings_updated', handleSettingsUpdate);
+      window.removeEventListener('calyxo_subscription_updated', handleSubUpdated);
+      window.removeEventListener('calyxo_user_status_updated', handleUserStatusUpdated);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
@@ -220,7 +313,70 @@ export default function UserLayout() {
     );
   }
 
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  // Account Suspension Check (Admin-enforced)
+  const isSuspended = userProfile?.status === 'Suspended';
+  if (isSuspended && !isSuperAdmin) {
+    return (
+      <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center p-6 text-center font-sans relative overflow-hidden">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-neutral-900/90 border border-red-500/30 shadow-2xl space-y-6 relative z-10 backdrop-blur-xl">
+          <div className="w-16 h-16 rounded-2xl bg-red-500/15 border border-red-500/40 flex items-center justify-center mx-auto text-red-400 shadow-lg">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-2">
+            <span className="text-[10px] font-mono font-bold text-red-400 bg-red-500/15 px-3 py-1 rounded-full border border-red-500/30">
+              ACCOUNT SUSPENDED
+            </span>
+            <h2 className="text-2xl font-extrabold text-white tracking-tight">Account Restricted</h2>
+            <p className="text-xs text-neutral-400 leading-relaxed font-mono mt-2">
+              Your Calyxo athlete account access has been suspended by an administrator. Please reach out to our team if you need support.
+            </p>
+          </div>
+
+          <div className="pt-4 border-t border-neutral-800 flex flex-col gap-2 font-mono text-xs">
+            <a
+              href="mailto:support@calyxo.com"
+              className="w-full py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-bold transition-all text-center no-underline"
+            >
+              Contact Support (support@calyxo.com)
+            </a>
+            <button
+              onClick={handleLogout}
+              className="w-full py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-neutral-400 font-bold transition-all cursor-pointer"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const [isProfileLoading, setIsProfileLoading] = useState(() => {
+    const u = useStore.getState().user;
+    const p = useStore.getState().userProfile;
+    return !(u && p);
+  });
+
+  // Calculate canonical subscription timeline with countdown and 5-day warning
+  const subTimeline = useMemo(() => {
+    return SubscriptionManager.getSubscriptionTimeline(userProfile, user);
+  }, [userProfile, user]);
+
+  // Check 5-day expiry and send toast alert
+  useEffect(() => {
+    if (user && userProfile && subTimeline.isExpiringSoon && subTimeline.isActive) {
+      SubscriptionManager.checkAndSendExpiryAlert(userProfile, user, (msg) => {
+        toast.warning(msg, {
+          duration: 8000,
+          action: {
+            label: 'Renew',
+            onClick: () => navigate('/user/profile')
+          }
+        });
+      });
+    }
+  }, [user, userProfile, subTimeline, navigate]);
 
   useEffect(() => {
     useStore.getState().checkDailyReset();
@@ -240,27 +396,32 @@ export default function UserLayout() {
         // Initialize user-scoped ecosystem store for this specific user
         useEcosystemStore.getState().initUserEcosystem(uid);
 
-        const { profile, foods, workouts, weights, water, waterLogs, ecosystem } = await loadUserData(uid);
+        try {
+          const { profile, foods, workouts, weights, water, waterLogs, ecosystem } = await loadUserData(uid);
 
-        // Discard if a newer auth callback already completed.
-        if (seq !== authSeq) return;
+          // Discard if a newer auth callback already completed.
+          if (seq !== authSeq) return;
 
-        if (profile) {
-          setUserProfile(profile);
+          if (profile) {
+            setUserProfile(profile);
+          }
+
+          const store = useStore.getState();
+          store.setFoodLogs(foods || []);
+          store.setWorkoutLogs(workouts || []);
+          store.setWeightLogs(weights || []);
+          if (water !== undefined && water !== null && (water > 0 || store.waterIntake === 0)) setWaterIntake(water);
+          if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
+          useEcosystemStore.getState().evaluateDailyStreakReset();
+          useEcosystemStore.getState().checkDailyLoginStreak();
+          const waterTarget = Number(profile?.waterGoal || profile?.waterTarget || store.userProfile?.waterTarget || 3000);
+          useEcosystemStore.getState().recalculateDynamicStreaks(foods || [], workouts || [], waterLogs || [], waterTarget);
+          syncWidgetData();
+        } catch (err) {
+          console.warn('[UserLayout] loadUserData error:', err);
+        } finally {
+          setIsProfileLoading(false);
         }
-
-        const store = useStore.getState();
-        store.setFoodLogs(foods || []);
-        store.setWorkoutLogs(workouts || []);
-        store.setWeightLogs(weights || []);
-        if (water !== undefined && water !== null && (water > 0 || store.waterIntake === 0)) setWaterIntake(water);
-        if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
-        useEcosystemStore.getState().evaluateDailyStreakReset();
-        useEcosystemStore.getState().checkDailyLoginStreak();
-        const waterTarget = Number(profile?.waterGoal || profile?.waterTarget || store.userProfile?.waterTarget || 3000);
-        useEcosystemStore.getState().recalculateDynamicStreaks(foods || [], workouts || [], waterLogs || [], waterTarget);
-        syncWidgetData();
-        setIsProfileLoading(false);
       } else {
         setIsProfileLoading(false);
       }
@@ -478,140 +639,154 @@ export default function UserLayout() {
         <GlobalSearch isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       </Suspense>
 
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-72 flex-col border-r border-card-border bg-card-bg/50 backdrop-blur-xl z-20">
+      {/* Restrained Apple-Style Navigation Rail (Desktop) */}
+      <aside className="hidden lg:flex w-20 flex-col items-center py-6 border-r border-card-border bg-card-bg/60 backdrop-blur-2xl z-20 shrink-0 select-none">
         <Link 
           to="/user/dashboard" 
           onClick={handleLogoClick}
-          className="p-6 flex items-center justify-between border-b border-card-border cursor-pointer hover:opacity-90 transition-opacity no-underline text-current group"
+          className="w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-surface-interactive transition-all cursor-pointer no-underline group mb-8"
+          title="Calyxo Home"
         >
-          <div className="flex items-center gap-2.5">
-            <Logo className="w-8 h-8 text-acid-green" glow={true} />
-            <span className="brand-name text-lg text-foreground tracking-wider group-hover:text-acid-green transition-colors leading-none">CALYXO</span>
-          </div>
-          {isSubscribed && (
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-acid-green/15 text-acid-green border border-acid-green/30 text-[9px] font-black uppercase tracking-wider shadow-sm shadow-acid-green/10" title={`Subscribed: ${subscriptionPlan}`}>
-              <Crown className="w-3.5 h-3.5 text-acid-green shrink-0 animate-pulse" />
-              <span>{subscriptionPlan}</span>
-            </div>
-          )}
+          <Logo className="w-8 h-8 text-accent transition-transform group-hover:scale-105" />
         </Link>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-8 scrollbar-hide">
-          {DESKTOP_NAV.map((group, idx) => (
-            <div key={idx}>
-              <h4 className="text-[10px] font-black text-muted uppercase tracking-widest mb-3 px-4">{group.group}</h4>
-              <nav className="space-y-1">
-                {group.items.map(item => {
-                  const Icon = item.icon;
-                  const isActive = pathname === item.href;
-                  const isLocked = item.isPremium && !isSubscribed;
-                  return (
-                    <Link
-                      key={item.id}
-                      to={item.href}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-sm font-bold transition-all cursor-pointer border-none group ${
-                        isActive 
-                          ? 'bg-acid-green/10 text-acid-green' 
-                          : 'bg-transparent text-muted hover:bg-surface hover:text-foreground'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-                          isActive
-                            ? 'bg-acid-green/20 text-acid-green shadow-sm shadow-acid-green/20'
-                            : 'bg-surface/60 text-muted-foreground group-hover:bg-surface group-hover:text-foreground'
-                        }`}>
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        <span>{item.label}</span>
-                      </div>
-                      {isLocked && (
-                        <Lock className="w-3.5 h-3.5 text-muted opacity-60 group-hover:opacity-100" />
-                      )}
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
-          ))}
-        </div>
+        {/* 5 Core Navigation Destinations */}
+        <nav className="flex-1 flex flex-col items-center gap-2 w-full px-2" aria-label="Desktop Primary Navigation">
+          {[
+            { id: 'dashboard', href: '/user/dashboard', label: 'Home', icon: HomeIcon },
+            { id: 'workout', href: '/user/workout', label: 'Workout', icon: Dumbbell },
+            { id: 'nutrition', href: '/user/nutrition', label: 'Nutrition', icon: Utensils },
+            { id: 'progress', href: '/user/progress', label: 'Progress', icon: TrendingUp },
+            { id: 'ai', href: '/user/ai', label: 'Coach', icon: Bot },
+          ].map(item => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.id}
+                to={item.href}
+                title={item.label}
+                className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all cursor-pointer border no-underline group relative ${
+                  isActive 
+                    ? 'bg-accent/15 text-accent border-accent/25 shadow-sm shadow-accent/10 font-bold' 
+                    : 'bg-transparent text-muted-foreground border-transparent hover:bg-surface-interactive hover:text-foreground'
+                }`}
+              >
+                <Icon className={`w-5 h-5 transition-transform group-hover:scale-105 ${isActive ? 'text-accent' : 'text-muted-foreground group-hover:text-foreground'}`} />
+                <span className="text-[10px] tracking-tight leading-none">{item.label}</span>
+                {isActive && (
+                  <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-accent" />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
 
-        <div className="p-4 border-t border-card-border">
-          <button 
-            onClick={() => setIsQuickActionsOpen(true)}
-            className="w-full py-3 flex items-center justify-center gap-2 rounded-2xl bg-acid-green text-black text-xs font-black uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all cursor-pointer border-none shadow-md shadow-acid-green/10"
+        {/* Bottom Utility Controls */}
+        <div className="flex flex-col items-center gap-3 pt-4 border-t border-card-border/60 w-full px-2">
+          <ThemeToggle />
+          <Link
+            to="/user/profile"
+            title="Profile & Settings"
+            className={`w-11 h-11 rounded-full border flex items-center justify-center overflow-hidden transition-all hover:scale-105 ${
+              pathname === '/user/profile' ? 'border-accent shadow-sm shadow-accent/20' : 'border-card-border hover:border-foreground/30'
+            }`}
           >
-            <Plus className="w-4 h-4" />
-            Create
-          </button>
-        </div>
-
-        <div className="p-6 border-t border-card-border flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <button 
-              onClick={() => setIsNotifDrawerOpen(true)} 
-              aria-label="Notifications" 
-              className="p-2 text-muted hover:text-foreground transition-colors bg-transparent border-none cursor-pointer rounded-full hover:bg-surface relative"
-            >
-              <Bell className="w-5 h-5" />
-              {unreadCount > 0 && (
-                <span className="absolute top-0 right-0 w-4 h-4 rounded-full bg-acid-green text-black text-[9px] font-black flex items-center justify-center">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-          </div>
-          <button onClick={handleLogout} aria-label="Sign Out" className="p-2 text-muted hover:text-destructive transition-colors bg-transparent border-none cursor-pointer rounded-full hover:bg-surface">
-            <LogOut className="w-5 h-5" />
+            {userProfile?.photoURL ? (
+              <img src={userProfile.photoURL} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <User className="w-5 h-5 text-muted-foreground" />
+            )}
+          </Link>
+          <button 
+            onClick={handleLogout} 
+            title="Sign Out" 
+            className="w-10 h-10 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors flex items-center justify-center cursor-pointer border-none bg-transparent"
+          >
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </aside>
 
-      {/* Mobile Header & Content */}
-      <div className="flex-1 flex flex-col w-full lg:w-auto h-[100dvh] overflow-hidden">
-        {/* Mobile Header */}
-        <header className="lg:hidden pt-[max(env(safe-area-inset-top,0px),0.75rem)] border-b border-card-border bg-background/95 backdrop-blur-xl sticky top-0 z-30 shrink-0">
-          <div className="h-14 flex items-center justify-between px-4 w-full">
-            <div className="flex items-center gap-2.5">
-              <button onClick={() => setIsMobileDrawerOpen(true)} aria-label="Open Navigation Drawer" className="p-2 text-foreground bg-transparent border-none cursor-pointer">
-                <Menu className="w-6 h-6" />
-              </button>
+      {/* Main Content Area + Unified Top Header */}
+      <div className="flex-1 flex flex-col w-full h-[100dvh] overflow-hidden">
+        {/* Unified Top Header (Mobile & Desktop) */}
+        <header className="pt-[max(env(safe-area-inset-top,0px),0.5rem)] border-b border-card-border bg-background/90 backdrop-blur-xl sticky top-0 z-30 shrink-0">
+          <div className="h-14 flex items-center justify-between px-4 sm:px-8 w-full max-w-7xl mx-auto">
+            {/* Left: Mobile Brand / Desktop Context Status */}
+            <div className="flex items-center gap-3">
               <Link 
                 to="/user/dashboard" 
                 onClick={handleLogoClick}
-                className="flex items-center gap-2.5 cursor-pointer hover:opacity-90 transition-opacity no-underline text-current"
+                className="flex items-center gap-2.5 cursor-pointer hover:opacity-90 transition-opacity no-underline text-current lg:hidden"
               >
-                <Logo className="w-7 h-7 text-accent" glow={true} />
-                <span className="brand-name text-base text-accent tracking-wider leading-none">CALYXO</span>
-                {isSubscribed && (
-                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30 text-[8px] font-black uppercase tracking-wider" title={`Subscribed: ${subscriptionPlan}`}>
-                    <Crown className="w-3 h-3 text-accent shrink-0 animate-pulse" />
-                    <span>{subscriptionPlan}</span>
-                  </div>
-                )}
+                <Logo className="w-7 h-7 text-accent" />
+                <span className="brand-name text-base text-foreground tracking-wider leading-none">CALYXO</span>
               </Link>
+              <div className="hidden lg:flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-widest text-accent font-mono">CALYXO HEALTH OS</span>
+                <span className="text-muted-foreground/40 text-xs">/</span>
+                <span className="text-xs text-muted-foreground font-medium">
+                  {userProfile?.goal || 'Optimal Health'} · Week 6
+                </span>
+              </div>
             </div>
+
+            {/* Right: Quick Actions, Search, Notifications & Profile Avatar */}
             <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setIsSearchOpen(true)} 
+                aria-label="Open Search" 
+                className="p-2 sm:px-3 sm:py-1.5 rounded-xl text-muted-foreground hover:text-foreground bg-surface-subtle border border-card-border flex items-center gap-2 cursor-pointer transition-all hover:border-foreground/20 text-xs"
+              >
+                <Search className="w-4 h-4" />
+                <span className="hidden sm:inline text-muted-foreground font-mono">Search... ⌘K</span>
+              </button>
+              
               <button 
                 onClick={() => setIsNotifDrawerOpen(true)} 
                 aria-label="Open Notifications" 
-                className="p-2 text-foreground bg-transparent border-none cursor-pointer relative"
+                className="p-2 rounded-xl text-muted-foreground hover:text-foreground bg-surface-subtle border border-card-border cursor-pointer relative transition-all hover:border-foreground/20"
               >
-                <Bell className="w-5 h-5 text-[var(--text-secondary)] hover:text-foreground transition-colors" />
+                <Bell className="w-4 h-4" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-accent text-accent-foreground text-[9px] font-black flex items-center justify-center animate-bounce">
-                    {unreadCount}
-                  </span>
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-accent animate-pulse" />
                 )}
               </button>
-              <button onClick={() => setIsSearchOpen(true)} aria-label="Open Search" className="p-2 text-[var(--text-secondary)] hover:text-foreground bg-transparent border-none cursor-pointer">
-                <Search className="w-5 h-5" />
-              </button>
+
+              <Link
+                to="/user/profile"
+                aria-label="Profile"
+                onClick={triggerNavHaptic}
+                className="w-8 h-8 rounded-full bg-surface-elevated border border-card-border flex items-center justify-center text-foreground hover:border-accent transition-all overflow-hidden cursor-pointer shrink-0 ml-1"
+              >
+                {userProfile?.photoURL ? (
+                  <img src={userProfile.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-4 h-4 text-muted-foreground" />
+                )}
+              </Link>
             </div>
           </div>
         </header>
+
+        {/* 5-Day Expiry Countdown Alert Banner */}
+        {subTimeline.isExpiringSoon && subTimeline.isActive && (
+          <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2 flex items-center justify-between text-xs text-amber-300 z-20 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
+              <span className="truncate">
+                <strong className="font-bold">Subscription Expiring:</strong> Your {subTimeline.planName} pass has <span className="font-mono font-bold text-amber-200">{subTimeline.countdownString}</span> left.
+              </span>
+            </div>
+            <Link
+              to="/user/profile"
+              className="px-2.5 py-0.5 rounded-md bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[11px] transition-all no-underline shrink-0 ml-2"
+            >
+              Renew Now
+            </Link>
+          </div>
+        )}
 
         {/* Dynamic Content */}
         <main ref={mainRef} className={`flex-1 ${pathname === '/user/ai' ? 'overflow-hidden flex flex-col min-h-0 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] lg:pb-0' : 'overflow-y-auto overflow-x-hidden pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8'} relative scrollbar-hide`}>
@@ -619,12 +794,12 @@ export default function UserLayout() {
             <Outlet />
           </div>
         </main>
-        {/* Mobile Bottom Navigation */}
-        <nav aria-label="Mobile Navigation" className="lg:hidden fixed bottom-0 left-0 right-0 bg-nav-bg backdrop-blur-md border-t border-card-border z-30 px-2 pb-safe shadow-card transform-gpu will-change-transform">
+        {/* Mobile Bottom Navigation — 5 Primary Destinations */}
+        <nav aria-label="Mobile Navigation" className="lg:hidden fixed bottom-0 left-0 right-0 bg-nav-bg/95 backdrop-blur-xl border-t border-card-border z-30 px-1 pb-safe shadow-card transform-gpu will-change-transform">
           <div className="flex items-center justify-around h-16 max-w-md mx-auto">
             <Link
               to="/user/dashboard"
-              aria-label="Home Dashboard"
+              aria-label="Home"
               onClick={() => {
                 triggerNavHaptic();
                 setIsQuickActionsOpen(false);
@@ -633,60 +808,60 @@ export default function UserLayout() {
                 setIsSearchOpen(false);
                 if (mainRef.current) mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
-                pathname === '/user/dashboard' ? 'text-accent font-black drop-shadow-[0_0_10px_rgba(204,255,0,0.3)]' : 'text-[var(--text-secondary)] hover:text-foreground'
+              className={`flex flex-col items-center justify-center w-14 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
+                pathname === '/user/dashboard' ? 'text-accent font-black' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <HomeIcon className="w-5 h-5 pointer-events-none" />
               <span className="text-[9.5px] tracking-wide pointer-events-none">Home</span>
             </Link>
-            <Link
-              to="/user/nutrition"
-              aria-label="Nutrition Page"
-              onClick={triggerNavHaptic}
-              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
-                pathname === '/user/nutrition' ? 'text-accent font-black drop-shadow-[0_0_10px_rgba(204,255,0,0.3)]' : 'text-[var(--text-secondary)] hover:text-foreground'
-              }`}
-            >
-              <Utensils className="w-5 h-5 pointer-events-none" />
-              <span className="text-[9.5px] tracking-wide pointer-events-none">Nutrition</span>
-            </Link>
-            
-            {/* Quick Create Action Button */}
-            <button
-              onClick={() => {
-                triggerNavHaptic();
-                setIsQuickActionsOpen(true);
-              }}
-              aria-label="Quick Action Menu"
-              className="flex flex-col items-center justify-center -mt-5 border-none bg-transparent outline-none cursor-pointer group touch-manipulation transform-gpu"
-            >
-              <div className="w-12 h-12 rounded-full bg-accent text-accent-foreground flex items-center justify-center shadow-lg shadow-accent/40 active:scale-90 group-hover:scale-105 transition-all">
-                <Plus className="w-6 h-6 stroke-[3] text-black pointer-events-none" />
-              </div>
-            </button>
 
             <Link
               to="/user/workout"
-              aria-label="Workout Page"
+              aria-label="Workout"
               onClick={triggerNavHaptic}
-              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
-                pathname === '/user/workout' ? 'text-accent font-black drop-shadow-[0_0_10px_rgba(204,255,0,0.3)]' : 'text-[var(--text-secondary)] hover:text-foreground'
+              className={`flex flex-col items-center justify-center w-14 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
+                pathname === '/user/workout' ? 'text-accent font-black' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <Dumbbell className="w-5 h-5 pointer-events-none" />
               <span className="text-[9.5px] tracking-wide pointer-events-none">Workout</span>
             </Link>
+
             <Link
-              to="/user/profile"
-              aria-label="Profile Settings Page"
+              to="/user/nutrition"
+              aria-label="Nutrition"
               onClick={triggerNavHaptic}
-              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
-                pathname === '/user/profile' ? 'text-accent font-black drop-shadow-[0_0_10px_rgba(204,255,0,0.3)]' : 'text-[var(--text-secondary)] hover:text-foreground'
+              className={`flex flex-col items-center justify-center w-14 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
+                pathname === '/user/nutrition' ? 'text-accent font-black' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <User className="w-5 h-5 pointer-events-none" />
-              <span className="text-[9.5px] tracking-wide pointer-events-none">Profile</span>
+              <Utensils className="w-5 h-5 pointer-events-none" />
+              <span className="text-[9.5px] tracking-wide pointer-events-none">Nutrition</span>
+            </Link>
+
+            <Link
+              to="/user/progress"
+              aria-label="Progress"
+              onClick={triggerNavHaptic}
+              className={`flex flex-col items-center justify-center w-14 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
+                pathname === '/user/progress' ? 'text-accent font-black' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <TrendingUp className="w-5 h-5 pointer-events-none" />
+              <span className="text-[9.5px] tracking-wide pointer-events-none">Progress</span>
+            </Link>
+
+            <Link
+              to="/user/ai"
+              aria-label="AI Coach"
+              onClick={triggerNavHaptic}
+              className={`flex flex-col items-center justify-center w-14 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
+                pathname === '/user/ai' ? 'text-accent font-black' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Bot className="w-5 h-5 pointer-events-none" />
+              <span className="text-[9.5px] tracking-wide pointer-events-none">Coach</span>
             </Link>
           </div>
         </nav>
@@ -776,7 +951,7 @@ export default function UserLayout() {
                     <div 
                       key={n.id} 
                       className={`p-4 rounded-2xl border transition-all space-y-2 ${
-                        n.read ? 'bg-surface/50 border-card-border/60 opacity-75' : 'bg-card-bg border-acid-green/30 shadow-lg shadow-acid-green/5'
+                        n.read ? 'bg-surface/50 border-card-border/60 opacity-75' : 'bg-surface border-accent/30 shadow-sm'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -788,7 +963,7 @@ export default function UserLayout() {
                                 await markNotificationAsRead(n.id);
                                 setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x));
                               }}
-                              className="p-1 text-emerald-400 hover:text-emerald-300 cursor-pointer"
+                              className="p-1 text-accent hover:text-accent-dim cursor-pointer"
                               title="Mark as read"
                             >
                               <CheckCheck className="w-3.5 h-3.5" />
@@ -799,7 +974,7 @@ export default function UserLayout() {
                               await deleteNotification(n.id);
                               setNotifications(prev => prev.filter(x => x.id !== n.id));
                             }}
-                            className="p-1 text-neutral-500 hover:text-red-400 cursor-pointer"
+                            className="p-1 text-muted-foreground hover:text-destructive cursor-pointer"
                             title="Delete"
                           >
                             <Trash className="w-3.5 h-3.5" />
@@ -813,7 +988,7 @@ export default function UserLayout() {
                           <Link 
                             to={n.cta_link} 
                             onClick={() => setIsNotifDrawerOpen(false)}
-                            className="text-acid-green hover:underline font-bold"
+                            className="text-accent hover:underline font-bold"
                           >
                             {n.cta_label || 'View'} &rarr;
                           </Link>

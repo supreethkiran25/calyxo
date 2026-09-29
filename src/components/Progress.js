@@ -6,6 +6,9 @@ import { addWeightLog, saveEcosystemState } from '../lib/dbService';
 import { Trophy, Activity, Lock, Sparkles, Share2, Download, TrendingUp, RefreshCw, Scale, Minus, Plus, CheckCircle2, Flame } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import StrengthAnalyticsView from './analytics/StrengthAnalyticsView';
+import MuscleBalanceView from './analytics/MuscleBalanceView';
+import BodyMeasurementsAndPhotosView from './analytics/BodyMeasurementsAndPhotosView';
 
 export default function Progress({ onNotification }) {
   const user = useStore(state => state.user);
@@ -15,12 +18,16 @@ export default function Progress({ onNotification }) {
   const userProfile = useStore(state => state.userProfile);
   const foodLogs = useStore(state => state.foodLogs || []);
   const waterIntake = useStore(state => state.waterIntake || 0);
-  const ecoStore = useEcosystemStore();
+  const achievements = useEcosystemStore(state => state.achievements || []);
+  const unlockAchievement = useEcosystemStore(state => state.unlockAchievement);
+  const streaks = useEcosystemStore(state => state.streaks);
+  const ecoFitnessScore = useEcosystemStore(state => state.fitnessScore);
+  const syncEcosystemState = useEcosystemStore(state => state.syncEcosystemState);
   const userId = user?.uid || user?.id;
   const units = userProfile?.units || 'metric';
   const isMetric = units === 'metric';
 
-  const [activeSubTab, setActiveSubTab] = useState('analytics');
+  const [activeSubTab, setActiveSubTab] = useState('strength');
 
   // Weight Ruler Wheel State
   const currentWeightNum = Number(userProfile?.weight || (weightLogs[weightLogs.length - 1]?.weight) || 70);
@@ -36,31 +43,25 @@ export default function Progress({ onNotification }) {
 
   // Auto-evaluate achievements on mount / data change
   useEffect(() => {
-    if (!ecoStore.achievements) return;
-    let modified = false;
-    const currentAchs = ecoStore.achievements;
+    if (!achievements || achievements.length === 0) return;
 
     // 1. First Workout
-    if (workoutLogs.length > 0 && !currentAchs.find(a => a.id === 'first_workout')?.unlocked) {
-      ecoStore.unlockAchievement('first_workout');
-      modified = true;
+    if (workoutLogs.length > 0 && !achievements.find(a => a.id === 'first_workout')?.unlocked) {
+      unlockAchievement('first_workout');
     }
     // 2. First Meal
-    if (foodLogs.length > 0 && !currentAchs.find(a => a.id === 'first_meal')?.unlocked) {
-      ecoStore.unlockAchievement('first_meal');
-      modified = true;
+    if (foodLogs.length > 0 && !achievements.find(a => a.id === 'first_meal')?.unlocked) {
+      unlockAchievement('first_meal');
     }
     // 3. Hydration Hero
-    if (waterIntake >= 3000 && !currentAchs.find(a => a.id === 'hydration_hero')?.unlocked) {
-      ecoStore.unlockAchievement('hydration_hero');
-      modified = true;
+    if (waterIntake >= 3000 && !achievements.find(a => a.id === 'hydration_hero')?.unlocked) {
+      unlockAchievement('hydration_hero');
     }
     // 4. Muscle Builder (10+ workouts)
-    if (workoutLogs.length >= 10 && !currentAchs.find(a => a.id === 'muscle_builder')?.unlocked) {
-      ecoStore.unlockAchievement('muscle_builder');
-      modified = true;
+    if (workoutLogs.length >= 10 && !achievements.find(a => a.id === 'muscle_builder')?.unlocked) {
+      unlockAchievement('muscle_builder');
     }
-  }, [workoutLogs.length, foodLogs.length, waterIntake, ecoStore]);
+  }, [workoutLogs.length, foodLogs.length, waterIntake]);
 
   // Haptic feedback trigger
   const triggerHaptic = useCallback(async () => {
@@ -231,7 +232,7 @@ export default function Progress({ onNotification }) {
   const handleGenerateForecast = () => {
     setLoadingForecast(true);
     setTimeout(() => {
-      ecoStore.syncEcosystemState({
+      syncEcosystemState({
         predictions: {
           predictions: computedForecast,
           confidence: 94,
@@ -255,11 +256,11 @@ export default function Progress({ onNotification }) {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 600, 400);
     
-    ctx.strokeStyle = '#CCFF00';
+    ctx.strokeStyle = '#059669';
     ctx.lineWidth = 4;
     ctx.strokeRect(10, 10, 580, 380);
     
-    ctx.fillStyle = '#CCFF00';
+    ctx.fillStyle = '#059669';
     ctx.font = '900 28px sans-serif';
     ctx.fillText('CALYXO ATHLETE OS', 40, 60);
     
@@ -277,9 +278,9 @@ export default function Progress({ onNotification }) {
     ctx.fillStyle = '#8e8e93';
     ctx.font = 'bold 12px sans-serif';
     ctx.fillText('FITNESS SCORE', 40, 220);
-    ctx.fillStyle = '#CCFF00';
+    ctx.fillStyle = '#059669';
     ctx.font = '900 36px sans-serif';
-    ctx.fillText(`${ecoStore.fitnessScore?.dailyScore || 85}/100`, 40, 260);
+    ctx.fillText(`${ecoFitnessScore?.dailyScore || 85}/100`, 40, 260);
 
     ctx.fillStyle = '#8e8e93';
     ctx.font = 'bold 12px sans-serif';
@@ -287,10 +288,10 @@ export default function Progress({ onNotification }) {
     
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 14px sans-serif';
-    ctx.fillText(`Login Streak: ${ecoStore.streaks?.loginStreak || 1} days`, 320, 170);
-    ctx.fillText(`Workout Streak: ${ecoStore.streaks?.workoutStreak || 0} days`, 320, 195);
-    ctx.fillText(`Nutrition Streak: ${ecoStore.streaks?.nutritionStreak || 0} days`, 320, 220);
-    ctx.fillText(`Water Streak: ${ecoStore.streaks?.waterStreak || 0} days`, 320, 245);
+    ctx.fillText(`Login Streak: ${streaks?.loginStreak || 1} days`, 320, 170);
+    ctx.fillText(`Workout Streak: ${streaks?.workoutStreak || 0} days`, 320, 195);
+    ctx.fillText(`Nutrition Streak: ${streaks?.nutritionStreak || 0} days`, 320, 220);
+    ctx.fillText(`Water Streak: ${streaks?.waterStreak || 0} days`, 320, 245);
 
     const url = canvas.toDataURL('image/png');
     const a = document.createElement('a');
@@ -302,28 +303,32 @@ export default function Progress({ onNotification }) {
 
   return (
     <div className="space-y-6 pb-24">
-      {/* Sub tabs Menu */}
-      <div className="flex flex-col gap-3 border-b border-card-border pb-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <h1 className="text-base sm:text-xl font-black text-foreground uppercase tracking-wider leading-tight">Progress Hub</h1>
-            <p className="text-[10px] sm:text-xs text-muted font-medium mt-0.5 hidden sm:block">Understand your trajectory, predictions, and unlocks</p>
-          </div>
+      {/* ─── HEADER (SECTION 14 REDESIGN) ─── */}
+      <div className="flex flex-col gap-3 border-b border-card-border pb-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+            Progress
+          </h1>
+          <p className="text-xs text-muted font-medium mt-0.5">
+            Strength · Body · Consistency
+          </p>
         </div>
 
-        <div className="bg-surface border border-card-border p-1 rounded-2xl flex gap-1 overflow-x-auto scrollbar-none">
+        {/* Clean Segmented Navigation */}
+        <div className="bg-surface/80 border border-card-border p-1 rounded-2xl flex gap-1 overflow-x-auto scrollbar-none">
           {[
-            { id: 'analytics', label: 'Analytics' },
-            { id: 'measurements', label: 'Body Composition' },
-            { id: 'predictions', label: 'AI Forecast' },
-            { id: 'achievements', label: 'Achievements' }
+            { id: 'strength', label: 'Strength' },
+            { id: 'balance', label: 'Volume & Muscle' },
+            { id: 'body', label: 'Body & Photos' },
+            { id: 'weight', label: 'Weight & Goal' },
+            { id: 'achievements', label: 'Badges' }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id)}
-              className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shrink-0 flex-1 text-center border-none ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 text-center border-none ${
                 activeSubTab === tab.id
-                  ? 'bg-accent text-accent-foreground shadow-sm'
+                  ? 'bg-foreground text-background font-black shadow-sm'
                   : 'text-muted hover:text-foreground bg-transparent'
               }`}
             >
@@ -341,8 +346,24 @@ export default function Progress({ onNotification }) {
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.18 }}
         >
-          {/* TAB 1: ANALYTICS WITH HORIZONTAL RULER WEIGHT PICKER */}
-          {activeSubTab === 'analytics' && (
+          {/* TAB: STRENGTH & 1RM ANALYTICS */}
+          {activeSubTab === 'strength' && (
+            <StrengthAnalyticsView workoutLogs={workoutLogs} />
+          )}
+
+          {/* TAB: VOLUME & MUSCLE BALANCE */}
+          {activeSubTab === 'balance' && (
+            <MuscleBalanceView workoutLogs={workoutLogs} />
+          )}
+
+          {/* TAB: BODY MEASUREMENTS & PROGRESS PHOTOS */}
+          {activeSubTab === 'body' && (
+            <BodyMeasurementsAndPhotosView onNotification={onNotification} />
+          )}
+
+          {/* TAB: WEIGHT & FORECAST */}
+          {activeSubTab === 'weight' && (
+            <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               {/* Left Column: Interactive Ruler Wheel Weight Card */}
               <div className="p-6 rounded-3xl bg-surface border border-card-border shadow-md space-y-4">
@@ -528,10 +549,8 @@ export default function Progress({ onNotification }) {
                 </div>
               </div>
             </div>
-          )}
 
-          {/* TAB 2: VISUAL BODY COMPOSITION TRACKER (No tape measure required) */}
-          {activeSubTab === 'measurements' && (
+            {/* Visual Body Leanness & Silhouette */}
             <div className="p-6 sm:p-7 rounded-3xl bg-surface border border-card-border shadow-md space-y-6">
               <div className="border-b border-card-border/60 pb-4">
                 <h3 className="text-base sm:text-lg font-black text-foreground uppercase tracking-wider">
@@ -597,10 +616,8 @@ export default function Progress({ onNotification }) {
                 </div>
               </div>
             </div>
-          )}
 
-          {/* TAB 3: AI BODY COMPOSITION FORECAST */}
-          {activeSubTab === 'predictions' && (
+            {/* AI 180-Day Body Composition Forecast */}
             <div className="p-6 sm:p-7 rounded-3xl bg-surface border border-card-border shadow-md space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-card-border/60 pb-4">
                 <div>
@@ -649,6 +666,7 @@ export default function Progress({ onNotification }) {
                 </p>
               </div>
             </div>
+            </div>
           )}
 
           {/* TAB 4: ACHIEVEMENTS & STREAKS */}
@@ -662,10 +680,10 @@ export default function Progress({ onNotification }) {
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
-                    { title: 'Login Streak', val: ecoStore.streaks?.loginStreak || 1, desc: 'Active days checked in' },
-                    { title: 'Workout Streak', val: Math.max(ecoStore.streaks?.workoutStreak || 0, workoutLogs.length > 0 ? 1 : 0), desc: 'Training consistency' },
-                    { title: 'Nutrition Streak', val: Math.max(ecoStore.streaks?.nutritionStreak || 0, foodLogs.length > 0 ? 1 : 0), desc: 'Meal tracking consistency' },
-                    { title: 'Water Streak', val: Math.max(ecoStore.streaks?.waterStreak || 0, waterIntake >= (userProfile?.waterTarget || userProfile?.waterGoal || 3000) ? 1 : 0), desc: 'Hydration target streak' }
+                    { title: 'Login Streak', val: streaks?.loginStreak || 1, desc: 'Active days checked in' },
+                    { title: 'Workout Streak', val: Math.max(streaks?.workoutStreak || 0, workoutLogs.length > 0 ? 1 : 0), desc: 'Training consistency' },
+                    { title: 'Nutrition Streak', val: Math.max(streaks?.nutritionStreak || 0, foodLogs.length > 0 ? 1 : 0), desc: 'Meal tracking consistency' },
+                    { title: 'Water Streak', val: Math.max(streaks?.waterStreak || 0, waterIntake >= (userProfile?.waterTarget || userProfile?.waterGoal || 3000) ? 1 : 0), desc: 'Hydration target streak' }
                   ].map((s, idx) => (
                     <div key={idx} className="bg-surface-elevated border border-card-border p-4 rounded-2xl flex flex-col justify-between h-24 shadow-inner">
                       <div>
@@ -689,7 +707,7 @@ export default function Progress({ onNotification }) {
                 </h3>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {ecoStore.achievements?.map((ach) => {
+                  {achievements?.map((ach) => {
                     const isUnlocked = ach.unlocked || 
                       (ach.id === 'first_workout' && workoutLogs.length > 0) ||
                       (ach.id === 'first_meal' && foodLogs.length > 0) ||

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Search, Plus, X, Utensils, Sparkles, Star, Zap,
-  Calendar, ChevronLeft, ChevronRight, History, SlidersHorizontal
+  Calendar, ChevronLeft, ChevronRight, History, SlidersHorizontal, Droplets, Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
@@ -12,7 +12,8 @@ import {
   updateFoodLog, 
   deleteFoodLog, 
   saveUserProfile, 
-  getCurrentUserIdSync 
+  getCurrentUserIdSync,
+  saveWaterIntake
 } from '../lib/dbService';
 import { 
   ALL_CALYXO_FOODS, 
@@ -84,6 +85,10 @@ export default function FoodTracker({ onNotification }) {
   const targetFat = userProfile?.fatTarget || userProfile?.fat || 60;
   const favoriteFoods = userProfile?.favoriteFoods || [];
 
+  const waterIntake = useStore(state => state.waterIntake || 0);
+  const addWaterIntake = useStore(state => state.addWaterIntake);
+  const waterTarget = userProfile?.waterTarget || userProfile?.waterGoal || 3000;
+
   // Filter logs for active selected date
   const selectedDateFoodLogs = useMemo(() => {
     return foodLogs.filter(item => isSameLocalDate(item.timestamp, selectedDate));
@@ -106,7 +111,53 @@ export default function FoodTracker({ onNotification }) {
     };
   }, [selectedDateFoodLogs]);
 
-  const remainingProtein = Math.max(0, targetProt - totalProt);
+  const remainingCals = Math.max(0, targetCals - totalCals);
+  const remainingProt = Math.max(0, Math.round(targetProt - totalProt));
+  const remainingProtein = remainingProt;
+  const remainingCarbs = Math.max(0, Math.round(targetCarbs - totalCarbs));
+  const remainingFat = Math.max(0, Math.round(targetFat - totalFat));
+
+  const dietPref = (userProfile?.dietPreference || userProfile?.diet || 'non-veg').toLowerCase();
+
+  const smartSuggestions = useMemo(() => {
+    const isVeg = dietPref.includes('veg') && !dietPref.includes('non');
+    const isVegan = dietPref.includes('vegan');
+
+    if (isVegan) {
+      return [
+        { name: 'Firm Tofu (Sautéed)', protein: 16, calories: 140, carbs: 4, fat: 8, pieceWeight: 150, unitType: 'grams' },
+        { name: 'Soya Chunks', protein: 21, calories: 145, carbs: 13, fat: 0.5, pieceWeight: 40, unitType: 'grams' },
+        { name: 'Plant Protein Shake', protein: 24, calories: 130, carbs: 3, fat: 2, pieceWeight: 35, unitType: 'scoop' },
+        { name: 'Cooked Yellow Dal', protein: 12, calories: 170, carbs: 24, fat: 3, pieceWeight: 200, unitType: 'bowl' }
+      ];
+    } else if (isVeg) {
+      return [
+        { name: 'Low-Fat Paneer', protein: 18, calories: 180, carbs: 3, fat: 11, pieceWeight: 100, unitType: 'grams' },
+        { name: 'Greek Yogurt / Curd', protein: 15, calories: 120, carbs: 6, fat: 2, pieceWeight: 170, unitType: 'grams' },
+        { name: 'Whey Protein Shake', protein: 24, calories: 120, carbs: 2, fat: 1.5, pieceWeight: 32, unitType: 'scoop' },
+        { name: 'Dal Tadka / Moong Dal', protein: 12, calories: 175, carbs: 25, fat: 3, pieceWeight: 200, unitType: 'bowl' },
+        { name: 'Soya Chunks', protein: 21, calories: 145, carbs: 13, fat: 0.5, pieceWeight: 40, unitType: 'grams' }
+      ];
+    } else {
+      return [
+        { name: 'Grilled Chicken Breast', protein: 31, calories: 165, carbs: 0, fat: 3.5, pieceWeight: 120, unitType: 'grams' },
+        { name: 'Boiled Eggs (2 whole)', protein: 12, calories: 140, carbs: 1, fat: 10, pieceWeight: 100, unitType: 'serving' },
+        { name: 'Whey Protein Shake', protein: 24, calories: 120, carbs: 2, fat: 1.5, pieceWeight: 32, unitType: 'scoop' },
+        { name: 'Greek Yogurt', protein: 15, calories: 120, carbs: 6, fat: 2, pieceWeight: 170, unitType: 'grams' },
+        { name: 'Low-Fat Paneer', protein: 18, calories: 180, carbs: 3, fat: 11, pieceWeight: 100, unitType: 'grams' }
+      ];
+    }
+  }, [dietPref]);
+
+  const handleQuickWater = async (amount) => {
+    addWaterIntake(amount);
+    try {
+      await saveWaterIntake(userId, waterIntake + amount);
+    } catch (e) {
+      console.warn("Water save error", e);
+    }
+    if (onNotification) onNotification(`+${amount}ml water logged!`);
+  };
 
   // Dynamic Greeting based on hour
   const greetingText = useMemo(() => {
@@ -292,16 +343,23 @@ export default function FoodTracker({ onNotification }) {
   const handleQuickAdd = handleQuickAddFood;
   const handleCustomFoodSubmit = handleSaveCustomPortion;
 
+  const formatDisplayDate = (dateStr) => {
+    const todayStr = getTodayDateString();
+    if (dateStr === todayStr) return "Today";
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString("en-US", { weekday: 'short', month: 'short', day: 'numeric' });
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-24 px-3 sm:px-4 pt-3">
       {/* ─── TOP DATE & GREETING BAR ─── */}
       <div className="flex items-center justify-between gap-2 border-b border-card-border pb-3">
         <div className="min-w-0 flex-1">
-          <span className="text-[10px] font-mono uppercase font-bold tracking-widest text-accent block truncate">
-            Calyxo Nutrition OS
+          <span className="text-[10px] font-mono uppercase font-bold tracking-widest text-emerald-400 block truncate">
+            {isToday ? "Today's Nutrition" : `Nutrition · ${formatDisplayDate(selectedDate)}`}
           </span>
-          <h1 className="text-sm sm:text-lg font-black text-foreground tracking-tight truncate">
-            {greetingText}
+          <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight truncate">
+            Fuel & Macros
           </h1>
         </div>
 
@@ -314,80 +372,207 @@ export default function FoodTracker({ onNotification }) {
         </div>
       </div>
 
-      {/* ─── HERO: TODAY'S NUTRITIONAL STATE ─── */}
-      <div className="rounded-3xl bg-surface border border-card-border p-5 sm:p-6 overflow-hidden shadow-card space-y-6 relative">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          {/* Energy Ring Gauge */}
-          <div className="flex items-center justify-center shrink-0">
-            <EnergyRing
-              consumed={totalCals}
-              target={targetCals}
-              size={190}
-              strokeWidth={14}
-            />
+      {/* ─── HERO: TODAY'S NUTRITION (SECTION 15 REDESIGN) ─── */}
+      <div className="rounded-3xl bg-surface border border-card-border p-6 sm:p-7 shadow-md space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
+          <div>
+            <span className="text-[11px] font-mono uppercase font-bold tracking-widest text-muted block">
+              CALORIC INTAKE
+            </span>
+            <div className="text-3xl sm:text-4xl font-black text-foreground tracking-tight mt-1">
+              {totalCals.toLocaleString()} <span className="text-lg sm:text-xl text-muted font-normal">/ {targetCals.toLocaleString()} kcal</span>
+            </div>
           </div>
-
-          {/* Macro Progress Tracks */}
-          <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <MacroPillTrack
-              label="Protein"
-              consumed={totalProt}
-              target={targetProt}
-              unit="g"
-              color="#16A34A"
-              secondaryColor="#059669"
-            />
-            <MacroPillTrack
-              label="Carbs"
-              consumed={totalCarbs}
-              target={targetCarbs}
-              unit="g"
-              color="#0284C7"
-              secondaryColor="#2563EB"
-            />
-            <MacroPillTrack
-              label="Fat"
-              consumed={totalFat}
-              target={targetFat}
-              unit="g"
-              color="#D97706"
-              secondaryColor="#DC2626"
-            />
+          <div className="text-xs text-muted font-mono">
+            {remainingCals > 0 ? `${remainingCals.toLocaleString()} kcal remaining` : 'Daily calorie target met'}
           </div>
         </div>
 
-        {/* Primary Action Row: + Add Food & AI Advice */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-card-border pt-4">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setActiveSubTab(activeSubTab === 'timeline' ? 'ai_planner' : 'timeline')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition-all cursor-pointer border ${
-                activeSubTab === 'ai_planner'
-                  ? 'bg-accent text-accent-foreground border-accent shadow-xs'
-                  : 'bg-surface-subtle border-card-border text-secondary hover:text-foreground'
-              }`}
-            >
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
-                {activeSubTab === 'ai_planner' ? 'View Daily Stream' : 'AI Meal Planner'}
-              </span>
-            </button>
+        {/* Continuous Segmented Macro Bar */}
+        <div className="space-y-3">
+          <div className="w-full h-3 bg-surface-elevated rounded-full overflow-hidden flex border border-card-border/60">
+            <div
+              style={{ width: `${Math.min(100, Math.round((totalProt * 4 / Math.max(1, targetCals)) * 100))}%` }}
+              className="bg-emerald-400 h-full transition-all duration-500"
+              title={`Protein: ${totalProt}g`}
+            />
+            <div
+              style={{ width: `${Math.min(100, Math.round((totalCarbs * 4 / Math.max(1, targetCals)) * 100))}%` }}
+              className="bg-sky-400 h-full transition-all duration-500"
+              title={`Carbs: ${totalCarbs}g`}
+            />
+            <div
+              style={{ width: `${Math.min(100, Math.round((totalFat * 9 / Math.max(1, targetCals)) * 100))}%` }}
+              className="bg-amber-400 h-full transition-all duration-500"
+              title={`Fat: ${totalFat}g`}
+            />
           </div>
 
-          <motion.button
-            whileTap={{ scale: 0.97 }}
+          {/* Clean Three-Column Macro Readout (Section 15) */}
+          <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+            <div className="p-3.5 rounded-2xl bg-surface-elevated/40 border border-card-border/40">
+              <span className="text-[10px] font-mono uppercase font-bold text-emerald-400 block">Protein</span>
+              <span className="text-base sm:text-lg font-black text-foreground font-mono block mt-0.5">
+                {Math.round(totalProt)} <span className="text-xs text-muted font-normal">/ {targetProt}g</span>
+              </span>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-surface-elevated/40 border border-card-border/40">
+              <span className="text-[10px] font-mono uppercase font-bold text-sky-400 block">Carbs</span>
+              <span className="text-base sm:text-lg font-black text-foreground font-mono block mt-0.5">
+                {Math.round(totalCarbs)} <span className="text-xs text-muted font-normal">/ {targetCarbs}g</span>
+              </span>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-surface-elevated/40 border border-card-border/40">
+              <span className="text-[10px] font-mono uppercase font-bold text-amber-400 block">Fat</span>
+              <span className="text-base sm:text-lg font-black text-foreground font-mono block mt-0.5">
+                {Math.round(totalFat)} <span className="text-xs text-muted font-normal">/ {targetFat}g</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Primary Action Button: + LOG FOOD */}
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <button
             onClick={() => setIsContextSheetOpen(true)}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-2xl bg-accent text-accent-foreground font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:brightness-110 shadow-md shadow-accent/20 transition-all cursor-pointer border-none"
+            className="flex-1 py-4 rounded-2xl bg-foreground text-background font-black text-xs sm:text-sm uppercase tracking-wider hover:bg-emerald-400 hover:text-black transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg active:scale-[0.99] border-none"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
-            <span>+ Add Food to Day</span>
-          </motion.button>
+            <span>+ Log Food</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab(activeSubTab === 'timeline' ? 'ai_planner' : 'timeline')}
+            className={`px-5 py-4 rounded-2xl border text-xs font-bold font-mono uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeSubTab === 'ai_planner'
+                ? 'bg-emerald-400 text-black border-emerald-400 shadow-sm'
+                : 'bg-surface border-card-border text-foreground hover:border-card-border/80'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{activeSubTab === 'ai_planner' ? 'Timeline' : 'AI Plan'}</span>
+          </button>
         </div>
       </div>
 
       {/* ─── MAIN CONTENT: TIMELINE OR AI PLANNER ─── */}
       {activeSubTab === 'timeline' ? (
         <div className="space-y-6">
+          {/* ─── SECTION 34: NUTRITION INTELLIGENCE CARD ─── */}
+          <div className="rounded-3xl bg-surface border border-card-border p-5 space-y-4 shadow-card">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-card-border/60 pb-3">
+              <div>
+                <span className="text-[10px] font-mono uppercase font-bold tracking-widest text-accent block">
+                  Nutrition Intelligence
+                </span>
+                <h3 className="text-sm sm:text-base font-black text-foreground">
+                  {remainingProt > 0 || remainingCals > 0 ? (
+                    <span>
+                      You need: <span className="text-accent">+{remainingProt}g protein</span>
+                      {remainingCals > 0 && <span className="text-muted ml-2">· +{remainingCals} kcal</span>}
+                    </span>
+                  ) : (
+                    <span className="text-accent flex items-center gap-1.5">
+                      <Check className="w-4 h-4 stroke-[3]" /> Daily Macro Targets Reached!
+                    </span>
+                  )}
+                </h3>
+              </div>
+              <span className="text-[10px] font-mono text-muted uppercase font-bold px-2.5 py-1 rounded-full bg-surface-elevated border border-card-border">
+                Diet: {dietPref}
+              </span>
+            </div>
+
+            {/* Smart Suggestions Chips */}
+            {remainingProt > 0 && (
+              <div className="space-y-2">
+                <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">
+                  Suggested high-protein sources to close your target:
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {smartSuggestions.map((item, idx) => (
+                    <div 
+                      key={idx}
+                      className="p-3 rounded-2xl bg-surface-elevated border border-card-border/80 flex items-center justify-between gap-3 hover:border-accent/40 transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-foreground truncate">{item.name}</h4>
+                        <div className="flex items-center gap-2 mt-0.5 text-[10px] font-mono text-muted">
+                          <span className="text-accent font-bold">+{item.protein}g P</span>
+                          <span>·</span>
+                          <span>{item.calories} kcal</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickAddFood(item, targetSlotForAdd)}
+                        className="px-3 py-1.5 rounded-xl bg-accent text-accent-foreground text-[10px] font-black uppercase tracking-wider border-none cursor-pointer hover:brightness-110 active:scale-95 shrink-0 shadow-xs"
+                      >
+                        + Log
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ─── SECTION 35: HYDRATION QUICK TRACKER ─── */}
+          <div className="rounded-3xl bg-surface border border-card-border p-5 space-y-4 shadow-card">
+            <div className="flex items-center justify-between border-b border-card-border/60 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center">
+                  <Droplets className="w-4 h-4 fill-cyan-400" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-mono uppercase font-bold tracking-widest text-cyan-400 block">
+                    Hydration
+                  </span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-base font-black text-foreground font-mono">
+                      {(waterIntake / 1000).toFixed(1)}L
+                    </span>
+                    <span className="text-xs text-muted font-mono">/ {(waterTarget / 1000).toFixed(1)}L</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 6 Droplet Indicators */}
+              <div className="flex items-center gap-1.5">
+                {[0, 1, 2, 3, 4, 5].map((idx) => {
+                  const isFilled = (waterIntake / waterTarget) >= (idx + 1) / 6;
+                  return (
+                    <div 
+                      key={idx}
+                      className={`w-5 h-5 rounded-full flex items-center justify-center transition-all ${
+                        isFilled 
+                          ? 'bg-cyan-500 text-slate-950 shadow-[0_0_8px_rgba(6,182,212,0.5)]' 
+                          : 'bg-surface-elevated border border-card-border text-muted/40'
+                      }`}
+                    >
+                      <Droplets className={`w-3 h-3 ${isFilled ? 'fill-slate-950' : ''}`} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Quick Increment Buttons */}
+            <div className="flex items-center gap-2">
+              {[250, 500, 750].map((amt) => (
+                <button
+                  key={amt}
+                  type="button"
+                  onClick={() => handleQuickWater(amt)}
+                  className="flex-1 py-2.5 rounded-2xl bg-surface-elevated hover:bg-cyan-500/15 border border-card-border hover:border-cyan-500/30 text-xs font-mono font-bold text-foreground transition-all cursor-pointer active:scale-95 text-center flex items-center justify-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>{amt}ml</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Living Daily Meals Timeline */}
           <LivingMealTimeline
             foodLogs={selectedDateFoodLogs}

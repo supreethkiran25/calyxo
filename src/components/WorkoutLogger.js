@@ -16,9 +16,12 @@ import { supabase } from '../lib/supabaseClient';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import useQuickActionsStore from '../store/useQuickActionsStore';
 import LiveWorkoutSessionModal from './modals/LiveWorkoutSessionModal';
+import ActiveWorkoutTracker from './workout/ActiveWorkoutTracker.jsx';
+import ExerciseLibraryBrowser from './workout/ExerciseLibraryBrowser.jsx';
 import LiveWorkoutDashboard from './liveWorkout/LiveWorkoutDashboard.jsx';
 import AIWorkoutCoachCard from './workout/AIWorkoutCoachCard.jsx';
 import WorkoutMuscleAnalyticsView from './analytics/WorkoutMuscleAnalyticsView.jsx';
+import { WorkoutEngine } from '../services/workout/WorkoutEngine';
 import PremiumFeatureModal from './modals/PremiumFeatureModal.jsx';
 import CalendarDatePicker from './common/CalendarDatePicker.jsx';
 import NumberWheelPicker from './common/NumberWheelPicker.jsx';
@@ -74,13 +77,13 @@ const ExerciseImage = ({ src, alt, category, muscleGroup, className = "w-full h-
   if (hasError || !currentSrc || typeof currentSrc !== 'string' || currentSrc.includes('unsplash.com')) {
     return (
       <div className="w-full h-full bg-gradient-to-br from-surface via-card-bg to-black flex flex-col items-center justify-center p-3 text-center border border-card-border/40 relative overflow-hidden select-none">
-        <div className="w-10 h-10 rounded-2xl bg-acid-green/10 border border-acid-green/20 flex items-center justify-center text-acid-green mb-1.5 shadow-inner">
-          <Dumbbell className="w-5 h-5 text-acid-green" />
+        <div className="w-10 h-10 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent mb-1.5 shadow-inner">
+          <Dumbbell className="w-5 h-5 text-accent" />
         </div>
         <span className="text-[11px] font-black text-foreground uppercase tracking-wider truncate max-w-full px-1">
           {alt || 'Exercise Visual'}
         </span>
-        <span className="text-[8px] text-acid-green font-bold uppercase tracking-widest mt-0.5 px-2 py-0.5 rounded-full bg-acid-green/10 border border-acid-green/20">
+        <span className="text-[8px] text-accent font-bold uppercase tracking-widest mt-0.5 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20">
           {muscleGroup || category || 'Strength'}
         </span>
       </div>
@@ -274,7 +277,20 @@ export default function WorkoutLogger({ onNotification }) {
     return d.toLocaleDateString("en-US", { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
-  const [activeSubTab, setActiveSubTab] = useState('logger');
+  const [activeSubTab, setActiveSubTab] = useState('training');
+  const [showLiveSessionModal, setShowLiveSessionModal] = useState(false);
+  const [liveSessionRoutine, setLiveSessionRoutine] = useState(null);
+  const [activeSession, setActiveSession] = useState(() => WorkoutEngine.restoreActiveSession());
+
+  useEffect(() => {
+    const refreshActiveSession = () => {
+      setActiveSession(WorkoutEngine.restoreActiveSession());
+    };
+    refreshActiveSession();
+    window.addEventListener('focus', refreshActiveSession);
+    return () => window.removeEventListener('focus', refreshActiveSession);
+  }, [showLiveSessionModal]);
+
   const [premiumModalOpen, setPremiumModalOpen] = useState(false);
   const [premiumFeatureName, setPremiumFeatureName] = useState('AI Workout Coach');
   const [challengeInputs, setChallengeInputs] = useState({});
@@ -461,8 +477,6 @@ export default function WorkoutLogger({ onNotification }) {
   // Live Guided Workout Session Modal State
   const activeWorkflow = useQuickActionsStore(state => state.activeWorkflow);
   const closeWorkflow = useQuickActionsStore(state => state.closeWorkflow);
-  const [showLiveSessionModal, setShowLiveSessionModal] = useState(false);
-  const [liveSessionRoutine, setLiveSessionRoutine] = useState(null);
 
   useEffect(() => {
     if (activeWorkflow === 'start_live_session') {
@@ -1231,73 +1245,48 @@ export default function WorkoutLogger({ onNotification }) {
     });
   }, [libQuery, libBodyPart, libTarget, libEquipment, libCategory, libOnlyFavorites, favoriteExercises]);
 
-  const inputStyle = "w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner";
+  const inputStyle = "w-full bg-[var(--input)] border border-card-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-accent shadow-inner";
 
   return (
     <div className="space-y-6 pb-24">
 
-      {/* Flagship Live Activity / Live Workout Experience Card */}
-      <LiveWorkoutDashboard
-        onStartWorkout={() => {
-          setLiveSessionRoutine(splits[activeDay]);
-          setShowLiveSessionModal(true);
-        }}
-        onOpenActiveModal={() => {
-          setLiveSessionRoutine(splits[activeDay]);
-          setShowLiveSessionModal(true);
-        }}
-        splits={splits}
-        activeDay={activeDay}
-      />
-
-      {/* Sub tabs nav */}
-      <div className="flex flex-col gap-3 border-b border-card-border pb-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-sm sm:text-lg font-black text-foreground uppercase tracking-wider leading-tight truncate">Workouts Log</h1>
-            <p className="text-[10px] sm:text-xs text-muted font-medium mt-0.5 hidden sm:block">Register weight sets, reps, and track active fitness targets</p>
+      {/* Top Header & Segmented Navigation */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+              Workouts
+            </h1>
+            <p className="text-xs text-muted font-medium mt-0.5">
+              Structured training, live set logging, and progression
+            </p>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              onClick={() => {
-                setLiveSessionRoutine(splits[activeDay]);
-                setShowLiveSessionModal(true);
-              }}
-              className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-accent text-accent-foreground font-black text-[11px] sm:text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-accent/20"
-              title="Start interactive guided live workout session"
-            >
-              <Zap className="w-3.5 h-3.5 fill-current" />
-              <span>Live Session</span>
-            </button>
-
-            <button
-              onClick={handleLogFullDaySplit}
-              disabled={loading || !splits[activeDay]?.workout?.exercises?.length}
-              className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-surface border border-card-border text-foreground hover:border-accent text-[11px] sm:text-xs font-black uppercase tracking-wider active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-              title="Quick Log all exercises for today's routine split"
-            >
-              <Play className="w-3.5 h-3.5 text-accent fill-current" />
-              <span>Quick Log</span>
-            </button>
-          </div>
+          <button
+            onClick={() => useQuickActionsStore.getState().openWorkflow('log_workout', { date: selectedDate })}
+            className="px-3.5 py-2 rounded-xl bg-surface border border-card-border hover:border-emerald-400 text-foreground text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+          >
+            <Plus className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Log Set</span>
+          </button>
         </div>
 
-        <div className="bg-surface border border-card-border p-1 rounded-xl flex gap-0.5 w-full overflow-x-auto scrollbar-none">
+        {/* Clean Segmented Navigation */}
+        <div className="bg-surface/80 border border-card-border p-1 rounded-2xl flex gap-1 w-full overflow-x-auto scrollbar-none">
           {[
-            { id: 'logger', label: 'Logger' },
-            { id: 'ai_coach', label: 'AI Coach' },
-            { id: 'library', label: 'Library' },
-            { id: 'analytics', label: 'Analytics' },
-            { id: 'challenges', label: 'Challenges' }
+            { id: 'training', label: 'Training' },
+            { id: 'library', label: 'Exercise Library' },
+            { id: 'analytics', label: 'History & Analytics' },
+            { id: 'ai_coach', label: 'AI Coach' }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id)}
-              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex-1 text-center shrink-0 ${activeSubTab === tab.id
-                  ? 'bg-accent text-accent-foreground shadow-xs'
-                  : 'text-muted hover:text-foreground'
-                }`}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex-1 text-center shrink-0 border-none ${
+                activeSubTab === tab.id
+                  ? 'bg-foreground text-background font-black shadow-sm'
+                  : 'bg-transparent text-muted hover:text-foreground'
+              }`}
             >
               {tab.label}
             </button>
@@ -1333,199 +1322,365 @@ export default function WorkoutLogger({ onNotification }) {
             </div>
           )}
 
-          {/* LOGGER TAB VIEW */}
-          {activeSubTab === 'logger' && (
-            <div className="space-y-6">
+          {/* TRAINING TAB VIEW (SECTION 9 REDESIGN) */}
+          {(activeSubTab === 'training' || activeSubTab === 'logger') && (
+            <div className="space-y-8">
 
-              {/* HERO: TODAY'S TRAINING INTENT */}
-              <WorkoutHeroIntent
-                selectedDate={selectedDate}
-                activeRoutineName={splits[activeDay]?.workout?.type || "Push Power Split"}
-                activeMuscleGroups={splits[activeDay]?.workout?.desc || "Chest · Shoulders · Triceps"}
-                exerciseCount={splits[activeDay]?.workout?.exercises?.length || 6}
-                completedCountToday={selectedDateWorkoutLogs.length}
-                totalVolumeToday={selectedDateStats.volume}
-                onStartLiveWorkout={() => {
-                  setLiveSessionRoutine(splits[activeDay]);
-                  setShowLiveSessionModal(true);
-                }}
-                onQuickLogDay={handleLogFullDaySplit}
-                onOpenCustomLog={() => useQuickActionsStore.getState().openWorkflow('log_workout', { date: selectedDate })}
-              />
-
-              {/* DATE SELECTION CALENDAR & STATUS RIBBON */}
-              <div className="bg-surface border border-card-border rounded-2xl p-4 space-y-3 shadow-card">
-                <div className="flex items-center justify-between gap-2 border-b border-card-border/60 pb-3">
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div className="w-9 h-9 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0">
-                      <Calendar className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-xs sm:text-sm font-black text-foreground uppercase tracking-wider block truncate">
-                        {isSameLocalDate(selectedDate, getTodayDateString()) ? "Today" : formatDisplayDate(selectedDate)}
+              {/* 1. CONTINUE WORKOUT (If active session exists) */}
+              {activeSession && activeSession.exercises && activeSession.exercises.length > 0 && (
+                <div className="p-5 sm:p-6 rounded-3xl bg-surface border border-emerald-500/40 relative overflow-hidden shadow-xl">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 font-mono">
+                        Active Workout
                       </span>
-                      <div className="flex items-center gap-1.5 text-[9.5px] sm:text-[10px] text-secondary font-bold mt-0.5 truncate">
-                        <span>{selectedDateWorkoutLogs.length} Ex</span>
-                        <span>•</span>
-                        <span>{selectedDateStats.volume} kg</span>
-                        <span>•</span>
-                        <span>{selectedDateStats.sets} Sets</span>
-                      </div>
                     </div>
+                    <span className="text-xs font-mono font-bold text-muted">
+                      {activeSession.durationMinutes || 1}m elapsed
+                    </span>
                   </div>
 
-                  <div className="shrink-0">
-                    <CalendarDatePicker
-                      selectedDate={selectedDate}
-                      onSelectDate={(newDate) => setSelectedDate(newDate)}
-                    />
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-3">
+                    <div>
+                      <h3 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
+                        {activeSession.title || 'Current Workout'}
+                      </h3>
+                      <p className="text-xs text-muted font-medium mt-1">
+                        {activeSession.exercises.map(e => e.name).slice(0, 3).join(' · ')}
+                        {activeSession.exercises.length > 3 ? ` +${activeSession.exercises.length - 3} more` : ''}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => {
+                          if (window.confirm("Discard active workout session?")) {
+                            WorkoutEngine.clearActiveSession();
+                            setActiveSession(null);
+                          }
+                        }}
+                        className="px-3.5 py-2.5 rounded-xl bg-surface border border-card-border text-muted hover:text-destructive text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Discard
+                      </button>
+                      <button
+                        onClick={() => {
+                          setLiveSessionRoutine(activeSession);
+                          setShowLiveSessionModal(true);
+                        }}
+                        className="px-5 py-2.5 rounded-xl bg-emerald-400 text-black font-black text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all shadow-md shadow-emerald-400/25 flex items-center gap-2 cursor-pointer border-none"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>Continue</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 2. TODAY'S PLAN (Hero Routine Presentation) */}
+              <section className="p-6 sm:p-7 rounded-3xl bg-surface border border-card-border shadow-md space-y-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 font-mono block">
+                      TODAY'S PLAN
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight mt-1">
+                      {splits[activeDay]?.workout?.type || "Push Day"}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-muted mt-1 leading-relaxed max-w-xl">
+                      {splits[activeDay]?.workout?.desc || "Hypertrophy and strength targeting chest, delts and triceps."}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-xs font-mono font-bold text-foreground block">
+                      45–60 min
+                    </span>
+                    <span className="text-[11px] text-muted font-mono block mt-0.5">
+                      {splits[activeDay]?.workout?.exercises?.length || 0} movements
+                    </span>
                   </div>
                 </div>
 
-                {/* Primary Action Button */}
-                <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => useQuickActionsStore.getState().openWorkflow('log_workout', { date: selectedDate })}
-                    className="flex-1 py-3 px-4 rounded-xl bg-accent text-accent-foreground font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:brightness-110 active:scale-98 transition-all cursor-pointer shadow-md shadow-accent/20 border-none"
-                  >
-                    <Plus className="w-4 h-4 stroke-[3]" />
-                    <span>Log Exercise Sets</span>
-                  </button>
+                {/* Planned Movements Preview List */}
+                <div className="space-y-2 border-t border-card-border/50 pt-4">
+                  {splits[activeDay]?.workout?.exercises?.map((ex, i) => (
+                    <div
+                      key={i}
+                      onClick={() => handleOpenExerciseDetail(ex)}
+                      className="flex items-center justify-between p-3 rounded-2xl bg-surface/40 border border-card-border/40 hover:border-card-border transition-colors cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="w-6 h-6 rounded-full bg-surface border border-card-border flex items-center justify-center text-[10px] font-mono font-bold text-muted shrink-0">
+                          {i + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <span className="text-xs sm:text-sm font-bold text-foreground truncate group-hover:text-emerald-400 block transition-colors">
+                            {ex.name}
+                          </span>
+                          <span className="text-[10px] text-muted font-mono truncate block">
+                            {ex.details || "3 sets × 10 reps"}
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-muted group-hover:text-foreground transition-colors shrink-0" />
+                    </div>
+                  ))}
+                </div>
 
+                {/* Big Start Workout CTA */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
                   <button
-                    type="button"
                     onClick={() => {
                       setLiveSessionRoutine(splits[activeDay]);
                       setShowLiveSessionModal(true);
                     }}
-                    className="py-3 px-4 rounded-xl bg-surface border border-card-border hover:border-accent text-foreground font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+                    className="flex-1 py-4 rounded-2xl bg-foreground text-background font-black text-xs sm:text-sm uppercase tracking-wider hover:bg-emerald-400 hover:text-black transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg active:scale-[0.99] border-none"
                   >
-                    <Zap className="w-4 h-4 text-accent fill-current" />
-                    <span>Live Routine</span>
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>Start Workout</span>
+                  </button>
+
+                  <button
+                    onClick={handleLogFullDaySplit}
+                    disabled={loading || !splits[activeDay]?.workout?.exercises?.length}
+                    className="px-5 py-4 rounded-2xl bg-surface border border-card-border text-foreground hover:border-emerald-400 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <Check className="w-4 h-4 text-emerald-400" />
+                    <span>Quick Log Day</span>
                   </button>
                 </div>
-              </div>
+              </section>
 
-              {/* TODAY'S EXERCISES CARDS FEED */}
-              <section className="bg-surface border border-card-border rounded-2xl p-4 sm:p-6 space-y-4 shadow-card">
-                <div className="flex items-center justify-between border-b border-card-border/60 pb-3">
+              {/* 3. ROUTINES (Clean List: Push, Pull, Legs, Upper, Lower, Full Body) */}
+              <section className="space-y-3">
+                <div className="flex items-center justify-between px-1">
                   <div>
-                    <h2 className="text-xs sm:text-sm font-black text-foreground uppercase tracking-wider flex items-center gap-2">
-                      <Dumbbell className="w-4 h-4 text-accent" /> Logged Exercises ({formatDisplayDate(selectedDate)})
-                    </h2>
-                    <span className="text-[10px] text-muted font-medium">
-                      {selectedDateWorkoutLogs.length > 0 
-                        ? `${selectedDateWorkoutLogs.length} exercise(s) logged • ${selectedDateStats.volume} kg total volume` 
-                        : 'No exercises logged for this date'}
-                    </span>
+                    <h3 className="text-xs font-black uppercase tracking-widest text-muted font-mono">
+                      ROUTINES & SPLITS
+                    </h3>
+                    <p className="text-xs text-muted mt-0.5">
+                      Select any routine to preview or execute
+                    </p>
                   </div>
-                  {selectedDateWorkoutLogs.length > 0 && (
-                    <span className="text-[10px] font-black text-acid-green bg-acid-green/10 border border-acid-green/20 px-2.5 py-1 rounded-lg uppercase tracking-wider">
-                      {selectedDateStats.sets} Sets
-                    </span>
-                  )}
+                  <button
+                    onClick={() => setExtraToolsView(extraToolsView === 'split_planner' ? 'none' : 'split_planner')}
+                    className="text-xs font-bold text-emerald-400 hover:underline cursor-pointer bg-transparent border-none"
+                  >
+                    {extraToolsView === 'split_planner' ? 'Close Blueprint' : 'Edit Splits'}
+                  </button>
                 </div>
 
-                <div className="space-y-3">
-                  {selectedDateWorkoutLogs && selectedDateWorkoutLogs.length > 0 ? (
-                    selectedDateWorkoutLogs.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center bg-surface/70 border border-card-border p-3.5 sm:p-4 rounded-2xl gap-3 hover:border-card-border/80 transition-colors shadow-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {splits.map((daySplit, idx) => {
+                    const isToday = idx === getLocalDayOfWeekIndex();
+                    const isSelected = activeDay === idx;
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => setActiveDay(idx)}
+                        className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-surface border-emerald-400/60 shadow-md'
+                            : 'bg-surface/50 border-card-border/60 hover:border-card-border'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted">
+                            {daySplit.dayName}
+                          </span>
+                          {isToday && (
+                            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-400/15 text-emerald-400 border border-emerald-400/30">
+                              Today
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="text-sm font-bold text-foreground truncate">
+                          {daySplit.workout?.type || "Training Split"}
+                        </h4>
+                        <p className="text-[11px] text-muted line-clamp-1 mt-0.5">
+                          {daySplit.workout?.desc}
+                        </p>
+                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-card-border/40 text-[10px] text-muted font-mono">
+                          <span>{daySplit.workout?.exercises?.length || 0} exercises</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLiveSessionRoutine(daySplit);
+                              setShowLiveSessionModal(true);
+                            }}
+                            className="text-emerald-400 font-bold hover:underline bg-transparent border-none cursor-pointer flex items-center gap-1"
+                          >
+                            Start <ChevronRight className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* 4. EXERCISE LIBRARY (Fast Native Search & Compact Rows) */}
+              <section className="space-y-4 pt-4 border-t border-card-border/40">
+                <div className="flex items-center justify-between px-1">
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-widest text-muted font-mono">
+                      EXERCISE LIBRARY
+                    </h3>
+                    <p className="text-xs text-muted mt-0.5">
+                      Fast lookup across 1,200+ indexed movements
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveSubTab('library')}
+                    className="text-xs font-bold text-emerald-400 hover:underline cursor-pointer bg-transparent border-none"
+                  >
+                    View All →
+                  </button>
+                </div>
+
+                {/* Instant Search Bar */}
+                <div className="relative">
+                  <Search className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={exQuery}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setExQuery(val);
+                      if (val.trim()) {
+                        setSearchResults(searchAndRankExercises(val, exercisesData).slice(0, 8));
+                      } else {
+                        setSearchResults([]);
+                      }
+                    }}
+                    placeholder="Search exercise, muscle, or equipment..."
+                    className="w-full bg-surface border border-card-border rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-foreground focus:outline-none focus:border-emerald-400 placeholder:text-muted/60 transition-colors"
+                  />
+                </div>
+
+                {/* Muscle Quick Pills */}
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  {['All', 'Chest', 'Back', 'Shoulders', 'Legs', 'Arms', 'Core'].map(grp => (
+                    <button
+                      key={grp}
+                      onClick={() => {
+                        if (grp === 'All') {
+                          setExQuery('');
+                          setSearchResults([]);
+                        } else {
+                          setExQuery(grp);
+                          setSearchResults(searchAndRankExercises(grp, exercisesData).slice(0, 8));
+                        }
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors shrink-0 cursor-pointer ${
+                        (grp === 'All' && !exQuery) || exQuery.toLowerCase() === grp.toLowerCase()
+                          ? 'bg-foreground text-background border-foreground font-bold'
+                          : 'bg-surface border-card-border text-muted hover:text-foreground'
+                      }`}
+                    >
+                      {grp}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Compact Rows */}
+                <div className="space-y-2">
+                  {(searchResults.length > 0 ? searchResults : exercisesData.slice(0, 6)).map((exercise, idx) => (
+                    <div
+                      key={exercise.id || exercise.name || idx}
+                      onClick={() => handleOpenExerciseDetail(exercise)}
+                      className="flex items-center justify-between p-3 rounded-2xl bg-surface border border-card-border/60 hover:border-card-border transition-colors cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-black/40 border border-card-border/60 overflow-hidden shrink-0 flex items-center justify-center">
+                          <ExerciseImage
+                            src={exercise.gif_url || exercise.image || globalImageCache.get(exercise.name)}
+                            alt={exercise.name}
+                            category={exercise.category}
+                            muscleGroup={exercise.target || exercise.body_part}
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-xs sm:text-sm font-bold text-foreground truncate group-hover:text-emerald-400 transition-colors">
+                            {exercise.name}
+                          </h4>
+                          <p className="text-[11px] text-muted font-mono truncate mt-0.5">
+                            {exercise.target || exercise.body_part || 'Full Body'} · {exercise.equipment || 'Barbell'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExName(exercise.name);
+                            setExCategory(exercise.category || 'Strength');
+                            setExImage(exercise.image || null);
+                            useQuickActionsStore.getState().openWorkflow('log_workout', { date: selectedDate });
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-surface border border-card-border hover:border-emerald-400 text-foreground text-xs font-bold transition-all cursor-pointer"
+                        >
+                          + Log
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* 5. TODAY'S LOGGED EXERCISES & CALENDAR HISTORY */}
+              <section className="space-y-4 pt-4 border-t border-card-border/40">
+                <div className="flex items-center justify-between px-1">
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-widest text-muted font-mono">
+                      LOGGED SETS ({formatDisplayDate(selectedDate)})
+                    </h3>
+                    <p className="text-xs text-muted mt-0.5">
+                      {selectedDateWorkoutLogs.length} exercise(s) logged · {selectedDateStats.volume} kg total volume
+                    </p>
+                  </div>
+                  <CalendarDatePicker
+                    selectedDate={selectedDate}
+                    onSelectDate={(newDate) => setSelectedDate(newDate)}
+                  />
+                </div>
+
+                {selectedDateWorkoutLogs.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedDateWorkoutLogs.map((item, idx) => (
+                      <div key={idx} className="flex justify-between items-center bg-surface border border-card-border/60 p-3 sm:p-4 rounded-2xl gap-3">
                         <div className="flex items-center gap-3 min-w-0">
                           <div
                             onClick={() => handleOpenExerciseDetail(item)}
-                            className="w-12 h-12 rounded-xl border border-card-border bg-black/40 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
-                            title="Click to view exercise animation"
+                            className="w-10 h-10 rounded-xl border border-card-border bg-black/40 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer"
                           >
                             <ExerciseImage src={item.image || globalImageCache.get(item.name)} alt={item.name} category={item.category} muscleGroup={item.muscleGroup} />
                           </div>
-                          <div className="flex flex-col min-w-0">
-                            <span 
-                              className="text-xs sm:text-sm font-bold text-foreground truncate hover:text-acid-green cursor-pointer" 
-                              onClick={() => handleOpenExerciseDetail(item)}
-                            >
-                              {item.name}
-                            </span>
-                            <div className="flex items-center gap-2 text-[10px] text-muted mt-0.5 font-medium">
-                              <span className="bg-surface px-1.5 py-0.5 rounded border border-card-border/60 uppercase">{item.category}</span>
-                              {item.category !== "Cardio" && (
-                                <span className="font-bold text-foreground">
-                                  {Number(item.weight) > 0 ? `${item.weight} kg` : 'Bodyweight'}
-                                </span>
-                              )}
-                            </div>
+                          <div className="min-w-0">
+                            <span className="text-xs sm:text-sm font-bold text-foreground truncate block">{item.name}</span>
+                            <span className="text-[10px] text-muted font-mono">{item.sets} sets × {item.reps} reps {Number(item.weight) > 0 ? `· ${item.weight} kg` : ''}</span>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3 shrink-0">
-                          <div className="text-right">
-                            {item.category === "Cardio" ? (
-                              <span className="text-xs font-black text-acid-green flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5" /> {item.duration} Mins
-                              </span>
-                            ) : (
-                              <div className="flex flex-col items-end">
-                                <span className="text-xs sm:text-sm font-black text-acid-green">
-                                  {item.sets} Sets × {item.reps} Reps
-                                </span>
-                                {Number(item.weight) > 0 && (
-                                  <span className="text-[9px] font-mono text-muted">
-                                    {Math.round((Number(item.weight) || 0) * (Number(item.reps) || 10) * (Number(item.sets) || 1))} kg vol
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-1 border-l border-card-border pl-2">
-                            <button
-                              onClick={() => setEditingLog({ ...item })}
-                              className="p-1.5 rounded-lg text-muted hover:text-acid-green transition-colors cursor-pointer border-none bg-transparent"
-                              title="Edit Log"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-
-                            <button
-                              onClick={() => handleDeleteWorkoutLog(item.id)}
-                              className="p-1.5 rounded-lg text-muted hover:text-destructive transition-colors cursor-pointer border-none bg-transparent"
-                              title="Delete Log"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-10 px-4 rounded-2xl bg-surface/30 border border-dashed border-card-border/80 space-y-3">
-                      <div className="w-12 h-12 rounded-2xl bg-surface border border-card-border mx-auto flex items-center justify-center text-muted">
-                        <Dumbbell className="w-6 h-6 opacity-40" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-foreground">No workouts logged on {formatDisplayDate(selectedDate)}</p>
-                        <p className="text-[10px] text-muted mt-0.5">Record your sets or quick-log standard training staples below</p>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-center gap-1.5 pt-2">
-                        {['Bench Press', 'Barbell Squat', 'Pullups', 'Deadlift', 'Shoulder Press'].map(starter => (
-                          <button
-                            key={starter}
-                            type="button"
-                            onClick={() => {
-                              useQuickActionsStore.getState().openWorkflow('log_workout', { 
-                                date: selectedDate,
-                                initialExercise: { name: starter, category: 'Strength', sets: 3, reps: 10, weight: 60 }
-                              });
-                            }}
-                            className="px-2.5 py-1.5 rounded-xl bg-surface border border-card-border text-[10px] font-bold text-muted hover:text-foreground hover:border-acid-green transition-all cursor-pointer"
-                          >
-                            + {starter}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button onClick={() => setEditingLog({ ...item })} className="p-1.5 text-muted hover:text-foreground bg-transparent border-none cursor-pointer">
+                            <Edit2 className="w-3.5 h-3.5" />
                           </button>
-                        ))}
+                          <button onClick={() => handleDeleteWorkoutLog(item.id)} className="p-1.5 text-muted hover:text-destructive bg-transparent border-none cursor-pointer">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 rounded-2xl bg-surface/30 border border-dashed border-card-border/60 text-xs text-muted">
+                    No workout sets logged yet for {formatDisplayDate(selectedDate)}.
+                  </div>
+                )}
               </section>
 
               {/* COMPACT ADVANCED WORKOUT TOOLS ACCORDION */}
@@ -1596,12 +1751,12 @@ export default function WorkoutLogger({ onNotification }) {
                                     setExName(e.target.value);
                                   }}
                                   placeholder="Bench press, squat, pullup..."
-                                  className="w-full bg-[var(--input)] border border-card-border focus:border-acid-green rounded-xl pl-10 pr-4 py-3 text-sm text-foreground focus:outline-none shadow-inner"
+                                  className="w-full bg-[var(--input)] border border-card-border focus:border-accent rounded-xl pl-10 pr-4 py-3 text-sm text-foreground focus:outline-none shadow-inner"
                                 />
                               </div>
 
                               {exName && exName !== exQuery && (
-                                <div className="text-[9px] text-acid-green font-bold uppercase mt-1">
+                                <div className="text-[9px] text-accent font-bold uppercase mt-1">
                                   Selected: {exName}
                                 </div>
                               )}
@@ -1619,7 +1774,7 @@ export default function WorkoutLogger({ onNotification }) {
                                       <div
                                         key={idx}
                                         onClick={() => selectExercise(item)}
-                                        className="px-4 py-2.5 border-b border-card-border last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-acid-green hover:text-accent-foreground transition-colors gap-3"
+                                        className="px-4 py-2.5 border-b border-card-border last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors gap-3"
                                       >
                                         <div className="flex items-center gap-3 min-w-0">
                                           <div
@@ -1652,7 +1807,7 @@ export default function WorkoutLogger({ onNotification }) {
                                     key={cat.id}
                                     onClick={() => setExCategory(cat.id)}
                                     className={`py-2 px-1 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all border text-center cursor-pointer ${exCategory === cat.id
-                                        ? 'bg-acid-green text-accent-foreground border-acid-green shadow-sm'
+                                        ? 'bg-accent text-accent-foreground border-accent shadow-sm'
                                         : 'bg-[var(--input)] border-card-border text-muted hover:text-foreground'
                                       }`}
                                   >
@@ -1672,7 +1827,7 @@ export default function WorkoutLogger({ onNotification }) {
                                 onFocus={(e) => e.target.select()}
                                 onChange={(e) => setExSets(e.target.value.replace(/^0+(?=\d)/, ''))}
                                 placeholder="4"
-                                className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
+                                className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-accent shadow-inner"
                                 disabled={exCategory === "Cardio"}
                               />
                             </div>
@@ -1684,7 +1839,7 @@ export default function WorkoutLogger({ onNotification }) {
                                 onFocus={(e) => e.target.select()}
                                 onChange={(e) => setExReps(e.target.value.replace(/^0+(?=\d)/, ''))}
                                 placeholder="10"
-                                className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
+                                className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-accent shadow-inner"
                                 disabled={exCategory === "Cardio"}
                               />
                             </div>
@@ -1696,7 +1851,7 @@ export default function WorkoutLogger({ onNotification }) {
                                 onFocus={(e) => e.target.select()}
                                 onChange={(e) => setExWeight(e.target.value.replace(/^0+(?=\d)/, ''))}
                                 placeholder="kg"
-                                className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
+                                className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-accent shadow-inner"
                                 disabled={exCategory === "Cardio"}
                               />
                             </div>
@@ -1708,7 +1863,7 @@ export default function WorkoutLogger({ onNotification }) {
                                 onFocus={(e) => e.target.select()}
                                 onChange={(e) => setExDuration(e.target.value.replace(/^0+(?=\d)/, ''))}
                                 placeholder="mins"
-                                className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-acid-green shadow-inner"
+                                className="bg-[var(--input)] border border-card-border rounded-xl px-2 py-2 text-center text-xs text-foreground focus:outline-none focus:border-accent shadow-inner"
                                 disabled={exCategory !== "Cardio"}
                               />
                             </div>
@@ -1717,7 +1872,7 @@ export default function WorkoutLogger({ onNotification }) {
                           <button
                             type="submit"
                             disabled={loading || !exName}
-                            className="w-full bg-foreground text-[var(--background)] font-bold text-xs py-3 rounded-xl cursor-pointer hover:bg-acid-green hover:text-accent-foreground hover:shadow-[0_0_12px_rgba(204,255,0,0.15)] transition-all disabled:opacity-50 border-none"
+                            className="w-full bg-foreground text-[var(--background)] font-bold text-xs py-3 rounded-xl cursor-pointer hover:bg-accent hover:text-accent-foreground hover:shadow-[0_0_12px_rgba(5,150,105,0.15)] transition-all disabled:opacity-50 border-none"
                           >
                             {loading ? "Logging..." : "Log Workout Session"}
                           </button>
@@ -1737,7 +1892,7 @@ export default function WorkoutLogger({ onNotification }) {
                       <section className="glass rounded-2xl p-5 sm:p-6 border border-card-border">
                         <div className="flex items-center justify-between mb-4">
                           <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">Weekly Splits Template Planner</h2>
-                          <span className="text-[9px] text-acid-green font-bold uppercase tracking-wider bg-acid-green/10 px-2 py-0.5 rounded border border-acid-green/20">Editable & Saved</span>
+                          <span className="text-[9px] text-accent font-bold uppercase tracking-wider bg-accent/10 px-2 py-0.5 rounded border border-accent/20">Editable & Saved</span>
                         </div>
 
                         <div className="flex gap-1.5 overflow-x-auto pb-3 border-b border-card-border mb-4 scrollbar-none">
@@ -1751,13 +1906,13 @@ export default function WorkoutLogger({ onNotification }) {
                                   setEditingSplitDayIdx(null);
                                 }}
                                 className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase cursor-pointer border transition-colors flex items-center gap-1 ${activeDay === idx
-                                    ? 'bg-acid-green text-accent-foreground border-acid-green'
+                                    ? 'bg-accent text-accent-foreground border-accent'
                                     : 'bg-surface border-card-border text-muted hover:text-foreground'
                                   }`}
                               >
                                 <span>{day.dayName.substring(0, 3)}</span>
                                 {idx === getLocalDayOfWeekIndex() && (
-                                  <span className={`w-1.5 h-1.5 rounded-full ${activeDay === idx ? 'bg-black' : 'bg-acid-green'}`} />
+                                  <span className={`w-1.5 h-1.5 rounded-full ${activeDay === idx ? 'bg-black' : 'bg-accent'}`} />
                                 )}
                               </button>
                             );
@@ -1767,10 +1922,10 @@ export default function WorkoutLogger({ onNotification }) {
                         {editingSplit ? (
                           <div className="space-y-3 p-4 bg-surface border border-card-border rounded-xl">
                             <div className="flex items-center justify-between pb-2 border-b border-card-border/60">
-                              <span className="text-xs font-black text-acid-green uppercase tracking-wider">
+                              <span className="text-xs font-black text-accent uppercase tracking-wider">
                                 Editing {splits[editingSplitDayIdx !== null ? editingSplitDayIdx : activeDay]?.dayName}'s Split
                               </span>
-                              <span className="text-[9px] text-muted font-bold uppercase tracking-wider bg-acid-green/10 px-2 py-0.5 rounded border border-acid-green/20">
+                              <span className="text-[9px] text-muted font-bold uppercase tracking-wider bg-accent/10 px-2 py-0.5 rounded border border-accent/20">
                                 Cloud Synced
                               </span>
                             </div>
@@ -1790,7 +1945,7 @@ export default function WorkoutLogger({ onNotification }) {
                               {editRoutineFields.exercises.map((ex, i) => (
                                 <div key={i} className="relative flex flex-col sm:flex-row gap-2 items-stretch sm:items-center bg-card-bg/30 p-2.5 rounded-2xl border border-card-border/60 shadow-inner">
                                   <div className="flex items-center gap-1 shrink-0">
-                                    <span className="w-6 h-6 rounded-full bg-surface border border-card-border flex items-center justify-center text-[10px] font-black text-acid-green shrink-0 shadow-sm" title={`Step ${i + 1}`}>
+                                    <span className="w-6 h-6 rounded-full bg-surface border border-card-border flex items-center justify-center text-[10px] font-black text-accent shrink-0 shadow-sm" title={`Step ${i + 1}`}>
                                       {i + 1}
                                     </span>
 
@@ -1799,7 +1954,7 @@ export default function WorkoutLogger({ onNotification }) {
                                         type="button"
                                         onClick={() => handleMoveExerciseUp(i)}
                                         disabled={i === 0}
-                                        className="p-0.5 text-muted hover:text-acid-green disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer bg-none border-none transition-colors"
+                                        className="p-0.5 text-muted hover:text-accent disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer bg-none border-none transition-colors"
                                         title="Move Exercise Up"
                                       >
                                         <ChevronUp className="w-3.5 h-3.5" />
@@ -1808,7 +1963,7 @@ export default function WorkoutLogger({ onNotification }) {
                                         type="button"
                                         onClick={() => handleMoveExerciseDown(i)}
                                         disabled={i === editRoutineFields.exercises.length - 1}
-                                        className="p-0.5 text-muted hover:text-acid-green disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer bg-none border-none transition-colors"
+                                        className="p-0.5 text-muted hover:text-accent disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer bg-none border-none transition-colors"
                                         title="Move Exercise Down"
                                       >
                                         <ChevronDown className="w-3.5 h-3.5" />
@@ -1837,13 +1992,13 @@ export default function WorkoutLogger({ onNotification }) {
                                         >
                                           <div className="px-3 py-1.5 bg-surface/90 border-b border-card-border text-[8.5px] font-black uppercase tracking-wider text-muted flex justify-between">
                                             <span>Database Matches (With Image Previews)</span>
-                                            <span className="text-acid-green">Select to Fill</span>
+                                            <span className="text-accent">Select to Fill</span>
                                           </div>
                                           {splitEditSuggestions.map((item, idx) => (
                                             <div
                                               key={idx}
                                               onClick={() => selectSplitExSuggestion(i, item)}
-                                              className="px-3 py-2.5 border-b border-card-border/40 last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-acid-green hover:text-black transition-colors gap-3 group/item"
+                                              className="px-3 py-2.5 border-b border-card-border/40 last:border-b-0 flex justify-between items-center cursor-pointer hover:bg-accent hover:text-black transition-colors gap-3 group/item"
                                             >
                                               <div className="flex items-center gap-3 min-w-0">
                                                 <div
@@ -1901,23 +2056,23 @@ export default function WorkoutLogger({ onNotification }) {
                             <button
                               type="button"
                               onClick={handleAddExerciseToSplit}
-                              className="w-full py-3 rounded-xl border-2 border-dashed border-acid-green/50 hover:border-acid-green bg-acid-green/10 hover:bg-acid-green/20 text-acid-green text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99] my-3 shadow-sm"
+                              className="w-full py-3 rounded-xl border-2 border-dashed border-accent/50 hover:border-accent bg-accent/10 hover:bg-accent/20 text-accent text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99] my-3 shadow-sm"
                             >
-                              <Plus className="w-4 h-4 text-acid-green" /> Add Exercise
+                              <Plus className="w-4 h-4 text-accent" /> Add Exercise
                             </button>
 
                             <div className="flex justify-end gap-2 pt-3 border-t border-card-border">
                               <button onClick={() => { setEditingSplit(false); setEditingSplitDayIdx(null); }} className="text-[10px] text-muted py-2 px-3 bg-surface border border-card-border rounded-xl flex items-center gap-1 cursor-pointer hover:text-foreground"><X className="w-3.5 h-3.5" /> Cancel</button>
-                              <button onClick={handleSaveSplitEdit} className="text-[10px] text-accent-foreground bg-acid-green py-2 px-4 rounded-xl font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer border-none shadow-md shadow-acid-green/20 hover:brightness-110"><Check className="w-3.5 h-3.5" /> Save Split</button>
+                              <button onClick={handleSaveSplitEdit} className="text-[10px] text-accent-foreground bg-accent py-2 px-4 rounded-xl font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer border-none shadow-md shadow-accent/20 hover:brightness-110"><Check className="w-3.5 h-3.5" /> Save Split</button>
                             </div>
                           </div>
                         ) : (
                           <div>
                             <div className="flex justify-between items-center mb-2 gap-2 flex-wrap">
                               <div className="flex items-center gap-2">
-                                <span className="text-[9px] text-acid-green font-bold uppercase tracking-wider">Routine Split Type</span>
+                                <span className="text-[9px] text-accent font-bold uppercase tracking-wider">Routine Split Type</span>
                                 {activeDay === getLocalDayOfWeekIndex() && (
-                                  <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-acid-green/20 text-acid-green border border-acid-green/30">Today</span>
+                                  <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-accent/20 text-accent border border-accent/30">Today</span>
                                 )}
                               </div>
                               <div className="flex items-center gap-2">
@@ -1927,7 +2082,7 @@ export default function WorkoutLogger({ onNotification }) {
                                     setShowLiveSessionModal(true);
                                   }}
                                   disabled={!splits[activeDay]?.workout?.exercises?.length}
-                                  className="px-3.5 py-1.5 rounded-xl bg-acid-green text-black font-black text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-acid-green/20 disabled:opacity-50"
+                                  className="px-3.5 py-1.5 rounded-xl bg-accent text-black font-black text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-accent/20 disabled:opacity-50"
                                   title={`Start interactive guided live workout session for ${splits[activeDay]?.dayName}`}
                                 >
                                   <Zap className="w-3.5 h-3.5 fill-current" />
@@ -1936,10 +2091,10 @@ export default function WorkoutLogger({ onNotification }) {
                                 <button
                                   onClick={handleLogFullDaySplit}
                                   disabled={loading || !splits[activeDay]?.workout?.exercises?.length}
-                                  className="px-3.5 py-1.5 rounded-xl bg-surface border border-card-border text-foreground text-[10px] font-black uppercase tracking-wider hover:border-acid-green active:scale-95 transition-all border-none cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                                  className="px-3.5 py-1.5 rounded-xl bg-surface border border-card-border text-foreground text-[10px] font-black uppercase tracking-wider hover:border-accent active:scale-95 transition-all border-none cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                                   title={`Quick Log all ${splits[activeDay]?.dayName}'s exercises`}
                                 >
-                                  <Play className="w-3 h-3 fill-current text-acid-green" />
+                                  <Play className="w-3 h-3 fill-current text-accent" />
                                   Quick Log
                                 </button>
                                 <button
@@ -1958,7 +2113,7 @@ export default function WorkoutLogger({ onNotification }) {
                             <div className="mt-4 border-t border-card-border pt-3 space-y-3">
                               <div className="flex justify-between items-center">
                                 <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Exercises Recommended (Tap photo for GIF):</span>
-                                <span className="text-[9px] text-acid-green font-bold uppercase">Click + Log to record</span>
+                                <span className="text-[9px] text-accent font-bold uppercase">Click + Log to record</span>
                               </div>
 
                               {splits[activeDay]?.workout?.exercises?.map((ex, i) => (
@@ -1975,14 +2130,14 @@ export default function WorkoutLogger({ onNotification }) {
                                       <ExerciseImage src={ex.image || globalImageCache.get(ex.name)} item={ex} alt={ex.name} category={ex.category || 'Strength'} muscleGroup={ex.muscleGroup} />
                                     </div>
                                     <div className="flex flex-col min-w-0">
-                                      <span className="font-semibold text-foreground truncate cursor-pointer hover:text-acid-green" onClick={() => handleOpenExerciseDetail(ex)}>{ex.name}</span>
+                                      <span className="font-semibold text-foreground truncate cursor-pointer hover:text-accent" onClick={() => handleOpenExerciseDetail(ex)}>{ex.name}</span>
                                       <span className="text-muted text-[10px] truncate">{ex.details}</span>
                                     </div>
                                   </div>
 
                                   <button
                                     onClick={() => handleLogSplitExercise(ex)}
-                                    className="px-2.5 py-1.5 rounded-lg bg-surface border border-card-border hover:border-acid-green hover:bg-acid-green/15 text-acid-green font-black text-[10px] uppercase tracking-wider transition-all cursor-pointer border-none shrink-0 flex items-center gap-1 shadow-sm active:scale-95"
+                                    className="px-2.5 py-1.5 rounded-lg bg-surface border border-card-border hover:border-accent hover:bg-accent/15 text-accent font-black text-[10px] uppercase tracking-wider transition-all cursor-pointer border-none shrink-0 flex items-center gap-1 shadow-sm active:scale-95"
                                     title={`Log ${ex.name}`}
                                   >
                                     <Plus className="w-3 h-3" /> Log
@@ -2003,126 +2158,15 @@ export default function WorkoutLogger({ onNotification }) {
           {/* LIBRARY TAB VIEW */}
           {activeSubTab === 'library' && (
             <div className="space-y-6">
-              <div className="glass rounded-2xl p-5 flex flex-col gap-4">
-                <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
-                  <div className="relative flex-1 flex items-center">
-                    <Search className="absolute left-3.5 w-4 h-4 text-muted" />
-                    <input
-                      type="text"
-                      value={libQuery}
-                      onChange={(e) => {
-                        setLibQuery(e.target.value);
-                        setLibLimit(24);
-                      }}
-                      placeholder="Search exercises by name, muscle, equipment..."
-                      className="w-full bg-[var(--input)] border border-card-border focus:border-acid-green rounded-xl pl-11 pr-4 py-3 text-sm text-foreground focus:outline-none shadow-inner"
-                    />
-                    {libQuery && (
-                      <button
-                        onClick={() => { setLibQuery(''); setLibLimit(24); }}
-                        className="absolute right-3 text-xs text-muted hover:text-foreground cursor-pointer bg-transparent border-none"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1 border-t border-card-border/50">
-                  <select
-                    value={libBodyPart}
-                    onChange={(e) => { setLibBodyPart(e.target.value); setLibLimit(24); }}
-                    className="bg-[var(--input)] text-foreground border border-card-border rounded-xl px-3 py-2 text-xs focus:outline-none"
-                  >
-                    <option value="all">All Body Parts</option>
-                    {uniqueBodyParts.map(bp => (
-                      <option key={bp} value={bp}>{bp}</option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={libTarget}
-                    onChange={(e) => { setLibTarget(e.target.value); setLibLimit(24); }}
-                    className="bg-[var(--input)] text-foreground border border-card-border rounded-xl px-3 py-2 text-xs focus:outline-none"
-                  >
-                    <option value="all">All Target Muscles</option>
-                    {uniqueTargets.map(t => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={libEquipment}
-                    onChange={(e) => { setLibEquipment(e.target.value); setLibLimit(24); }}
-                    className="bg-[var(--input)] text-foreground border border-card-border rounded-xl px-3 py-2 text-xs focus:outline-none"
-                  >
-                    <option value="all">All Equipment</option>
-                    {uniqueEquipments.map(eq => (
-                      <option key={eq} value={eq}>{eq}</option>
-                    ))}
-                  </select>
-
-                  <button
-                    onClick={() => setLibOnlyFavorites(!libOnlyFavorites)}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${libOnlyFavorites
-                        ? 'bg-rose-500/20 text-rose-400 border-rose-500/40'
-                        : 'bg-surface border-card-border text-muted hover:text-foreground'
-                      }`}
-                  >
-                    <Heart className={`w-3.5 h-3.5 ${libOnlyFavorites ? 'fill-rose-400' : ''}`} />
-                    Favorites ({favoriteExercises.length})
-                  </button>
-                </div>
-              </div>
-
-              {/* Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredExercises.slice(0, libLimit).map((ex) => (
-                  <div
-                    key={ex.id}
-                    onClick={() => handleOpenExerciseDetail(ex)}
-                    className="glass border border-card-border rounded-2xl p-4 flex flex-col justify-between hover:border-acid-green/40 transition-all cursor-pointer group shadow-sm relative overflow-hidden"
-                  >
-                    <div className="relative w-full h-40 bg-black/40 rounded-xl overflow-hidden mb-3 border border-card-border/50">
-                      <ExerciseImage
-                        src={ex.gif_url || ex.image}
-                        alt={ex.name}
-                        category={ex.category}
-                        muscleGroup={ex.target || ex.body_part}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute top-2 right-2 bg-black/60 px-2 py-0.5 rounded text-[8px] font-black uppercase text-acid-green tracking-wider">
-                        GIF
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-xs font-bold text-foreground group-hover:text-acid-green transition-colors truncate">
-                        {ex.name}
-                      </h3>
-                      <p className="text-[10px] text-muted font-medium mt-0.5">
-                        Target: <span className="text-foreground">{ex.target}</span>
-                      </p>
-                    </div>
-
-                    <div className="flex justify-between items-center mt-3 pt-2 border-t border-card-border/40 text-[9px] font-bold text-muted uppercase">
-                      <span>{ex.equipment}</span>
-                      <span className="text-acid-green">View GIF →</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {filteredExercises.length > libLimit && (
-                <div className="text-center pt-4">
-                  <button
-                    onClick={() => setLibLimit(prev => prev + 24)}
-                    className="px-6 py-3 bg-surface border border-card-border hover:border-acid-green rounded-xl text-xs font-black uppercase tracking-wider text-foreground cursor-pointer transition-colors"
-                  >
-                    Load More Exercises ({filteredExercises.length - libLimit} remaining)
-                  </button>
-                </div>
-              )}
+              <ExerciseLibraryBrowser
+                onStartExercise={(exercise) => {
+                  setLiveSessionRoutine({
+                    name: exercise.name,
+                    exercises: [exercise]
+                  });
+                  setShowLiveSessionModal(true);
+                }}
+              />
             </div>
           )}
 
@@ -2145,19 +2189,19 @@ export default function WorkoutLogger({ onNotification }) {
                       <Trophy className="w-4 h-4 text-amber-400" />
                       <h3 className="text-xs font-black uppercase tracking-wider text-foreground">Lifetime Personal Records</h3>
                     </div>
-                    <span className="text-[10px] font-bold text-acid-green uppercase">{personalRecords.length} Max Records</span>
+                    <span className="text-[10px] font-bold text-accent uppercase">{personalRecords.length} Max Records</span>
                   </div>
 
                   {personalRecords.length > 0 ? (
                     <div className="space-y-2.5">
                       {personalRecords.map((pr, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-surface/50 border border-card-border/60 hover:border-acid-green/40 transition-colors">
+                        <div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-surface/50 border border-card-border/60 hover:border-accent/30 transition-colors">
                           <div className="min-w-0">
                             <span className="text-xs font-bold text-foreground block truncate">{pr.name}</span>
                             <span className="text-[10px] text-muted font-medium block">{pr.sets} sets × {pr.reps} reps • {pr.date}</span>
                           </div>
                           <div className="text-right shrink-0">
-                            <span className="text-sm font-black text-acid-green">{pr.weight} kg</span>
+                            <span className="text-sm font-black text-accent">{pr.weight} kg</span>
                             <span className="text-[9px] text-muted block uppercase font-extrabold">{pr.category}</span>
                           </div>
                         </div>
@@ -2175,7 +2219,7 @@ export default function WorkoutLogger({ onNotification }) {
                 <div className="glass p-5 rounded-3xl border border-card-border shadow-md space-y-4">
                   <div className="flex items-center justify-between border-b border-card-border pb-3">
                     <div className="flex items-center gap-2">
-                      <BarChart2 className="w-4 h-4 text-acid-green" />
+                      <BarChart2 className="w-4 h-4 text-accent" />
                       <h3 className="text-xs font-black uppercase tracking-wider text-foreground">Lifetime Category Breakdown</h3>
                     </div>
                   </div>
@@ -2185,7 +2229,7 @@ export default function WorkoutLogger({ onNotification }) {
                       <div key={idx} className="space-y-1.5">
                         <div className="flex justify-between items-center text-xs font-bold">
                           <span className="text-foreground">{item.category}</span>
-                          <span className="text-acid-green">{item.count} logs ({item.pct}%)</span>
+                          <span className="text-accent">{item.count} logs ({item.pct}%)</span>
                         </div>
                         <div className="w-full h-2.5 bg-black/40 border border-card-border rounded-full overflow-hidden">
                           <div
@@ -2260,7 +2304,7 @@ export default function WorkoutLogger({ onNotification }) {
 
               <div className="flex justify-end gap-2 pt-2 border-t border-card-border">
                 <button onClick={() => setEditingLog(null)} className="px-4 py-2 bg-surface border border-card-border rounded-xl text-xs font-bold text-muted cursor-pointer">Cancel</button>
-                <button onClick={handleSaveEditedWorkoutLog} className="px-4 py-2 bg-acid-green text-accent-foreground font-bold text-xs rounded-xl cursor-pointer border-none shadow-sm">Save Changes</button>
+                <button onClick={handleSaveEditedWorkoutLog} className="px-4 py-2 bg-accent text-accent-foreground font-bold text-xs rounded-xl cursor-pointer border-none shadow-sm">Save Changes</button>
               </div>
             </motion.div>
           </div>
@@ -2315,12 +2359,12 @@ export default function WorkoutLogger({ onNotification }) {
                     <h2 className="text-lg md:text-xl font-black text-foreground uppercase tracking-wide leading-tight">
                       {selectedExercise.name}
                     </h2>
-                    <span className="text-[9px] font-extrabold text-acid-green uppercase tracking-widest mt-1 block">
+                    <span className="text-[9px] font-extrabold text-accent uppercase tracking-widest mt-1 block">
                       Targeting {selectedExercise.target || selectedExercise.muscle_group} ({selectedExercise.body_part})
                     </span>
                   </div>
 
-                  <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border shrink-0 bg-acid-green/10 text-acid-green border-acid-green/30">
+                  <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border shrink-0 bg-accent/10 text-accent border-accent/30">
                     {selectedExercise.difficulty || 'Intermediate'}
                   </span>
                 </div>
@@ -2330,7 +2374,7 @@ export default function WorkoutLogger({ onNotification }) {
                     Equipment: <span className="text-foreground">{selectedExercise.equipment || 'Free Weights'}</span>
                   </div>
                   <div className="bg-surface/50 border border-card-border/60 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-muted">
-                    Burn Est: <span className="text-acid-green">{selectedExercise.caloriesEstimate || 8} kcal/min</span>
+                    Burn Est: <span className="text-accent">{selectedExercise.caloriesEstimate || 8} kcal/min</span>
                   </div>
                 </div>
 
@@ -2356,7 +2400,7 @@ export default function WorkoutLogger({ onNotification }) {
                     setActiveSubTab('logger');
                     if (onNotification) onNotification(`${selectedExercise.name} loaded into Logger!`);
                   }}
-                  className="px-5 py-2.5 rounded-xl bg-acid-green text-accent-foreground font-black text-xs uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all shadow-md hover:shadow-[0_0_12px_rgba(204,255,0,0.15)] border-none"
+                  className="px-5 py-2.5 rounded-xl bg-accent text-accent-foreground font-black text-xs uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all shadow-md hover:shadow-[0_0_12px_rgba(5,150,105,0.15)] border-none"
                 >
                   <Plus className="w-4 h-4 shrink-0" />
                   <span>Log This Exercise</span>
@@ -2367,13 +2411,14 @@ export default function WorkoutLogger({ onNotification }) {
         )}
       </AnimatePresence>
 
-      {/* LIVE GUIDED WORKOUT SESSION MODAL */}
-      <LiveWorkoutSessionModal
-        isOpen={showLiveSessionModal}
-        onClose={() => setShowLiveSessionModal(false)}
-        routine={liveSessionRoutine}
-        onNotification={onNotification}
-      />
+      {/* MASTER ACTIVE WORKOUT TRACKER */}
+      {showLiveSessionModal && (
+        <ActiveWorkoutTracker
+          initialRoutine={liveSessionRoutine}
+          onClose={() => setShowLiveSessionModal(false)}
+          onNotification={onNotification}
+        />
+      )}
 
       {/* PREMIUM UPGRADE MODAL */}
       <PremiumFeatureModal

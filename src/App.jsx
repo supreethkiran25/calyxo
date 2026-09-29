@@ -47,6 +47,19 @@ const AdminLoginPage = lazyWithRetry(() => import('./pages/admin/AdminLoginPage'
 const AdminLayout = lazyWithRetry(() => import('./pages/admin/AdminLayout'));
 const AdminHomeView = lazyWithRetry(() => import('./pages/admin/AdminHomeView'));
 const AdminUsersView = lazyWithRetry(() => import('./pages/admin/AdminUsersView'));
+const AdminLiveActivityView = lazyWithRetry(() => import('./pages/admin/AdminLiveActivityView'));
+const AdminTrainersView = lazyWithRetry(() => import('./pages/admin/AdminTrainersView'));
+const AdminAdminsView = lazyWithRetry(() => import('./pages/admin/AdminAdminsView'));
+const AdminLeadsView = lazyWithRetry(() => import('./pages/admin/AdminLeadsView'));
+const AdminSupportView = lazyWithRetry(() => import('./pages/admin/AdminSupportView'));
+const AdminExercisesView = lazyWithRetry(() => import('./pages/admin/AdminExercisesView'));
+const AdminMealsView = lazyWithRetry(() => import('./pages/admin/AdminMealsView'));
+const AdminProgressView = lazyWithRetry(() => import('./pages/admin/AdminProgressView'));
+const AdminPaymentsView = lazyWithRetry(() => import('./pages/admin/AdminPaymentsView'));
+const AdminPlansView = lazyWithRetry(() => import('./pages/admin/AdminPlansView'));
+const AdminReportsView = lazyWithRetry(() => import('./pages/admin/AdminReportsView'));
+const AdminSystemHealthView = lazyWithRetry(() => import('./pages/admin/AdminSystemHealthView'));
+const AdminRolesView = lazyWithRetry(() => import('./pages/admin/AdminRolesView'));
 const AdminPremiumView = lazyWithRetry(() => import('./pages/admin/AdminPremiumView'));
 const AdminAnalyticsView = lazyWithRetry(() => import('./pages/admin/AdminAnalyticsView'));
 const AdminWorkoutDbView = lazyWithRetry(() => import('./pages/admin/AdminWorkoutDbView'));
@@ -118,33 +131,73 @@ function App() {
               <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
                 <Route index element={<AdminHomeView />} />
                 <Route path="dashboard" element={<AdminHomeView />} />
-                <Route path="users" element={<AdminUsersView />} />
-                <Route path="premium" element={<AdminPremiumView />} />
+                <Route path="live-activity" element={<AdminLiveActivityView />} />
                 <Route path="analytics" element={<AdminAnalyticsView />} />
+                <Route path="users" element={<AdminUsersView />} />
+                <Route path="users/:id" element={<AdminUsersView />} />
+                <Route path="trainers" element={<AdminTrainersView />} />
+                <Route path="trainers/:id" element={<AdminTrainersView />} />
+                <Route path="admins" element={<AdminAdminsView />} />
+                <Route path="leads" element={<AdminLeadsView />} />
+                <Route path="support" element={<AdminSupportView />} />
+                <Route path="support/:id" element={<AdminSupportView />} />
+                <Route path="workouts" element={<AdminWorkoutDbView />} />
                 <Route path="workout-db" element={<AdminWorkoutDbView />} />
+                <Route path="exercises" element={<AdminExercisesView />} />
+                <Route path="meals" element={<AdminMealsView />} />
+                <Route path="nutrition" element={<AdminNutritionDbView />} />
                 <Route path="nutrition-db" element={<AdminNutritionDbView />} />
                 <Route path="ai" element={<AdminAIView />} />
-                <Route path="notifications" element={<AdminNotificationsView />} />
-                <Route path="feedback" element={<AdminFeedbackView />} />
+                <Route path="progress" element={<AdminProgressView />} />
+                <Route path="subscriptions" element={<AdminPremiumView />} />
+                <Route path="premium" element={<AdminPremiumView />} />
+                <Route path="payments" element={<AdminPaymentsView />} />
+                <Route path="plans" element={<AdminPlansView />} />
                 <Route path="revenue" element={<AdminRevenueView />} />
+                <Route path="notifications" element={<AdminNotificationsView />} />
+                <Route path="reports" element={<AdminReportsView />} />
+                <Route path="audit-logs" element={<AdminLogsView />} />
                 <Route path="logs" element={<AdminLogsView />} />
+                <Route path="system-health" element={<AdminSystemHealthView />} />
                 <Route path="settings" element={<AdminSettingsView />} />
+                <Route path="roles" element={<AdminRolesView />} />
+                <Route path="feedback" element={<AdminFeedbackView />} />
               </Route>
 
               <Route path="/app/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
                 <Route index element={<AdminHomeView />} />
                 <Route path="dashboard" element={<AdminHomeView />} />
-                <Route path="users" element={<AdminUsersView />} />
-                <Route path="premium" element={<AdminPremiumView />} />
+                <Route path="live-activity" element={<AdminLiveActivityView />} />
                 <Route path="analytics" element={<AdminAnalyticsView />} />
+                <Route path="users" element={<AdminUsersView />} />
+                <Route path="users/:id" element={<AdminUsersView />} />
+                <Route path="trainers" element={<AdminTrainersView />} />
+                <Route path="trainers/:id" element={<AdminTrainersView />} />
+                <Route path="admins" element={<AdminAdminsView />} />
+                <Route path="leads" element={<AdminLeadsView />} />
+                <Route path="support" element={<AdminSupportView />} />
+                <Route path="support/:id" element={<AdminSupportView />} />
+                <Route path="workouts" element={<AdminWorkoutDbView />} />
                 <Route path="workout-db" element={<AdminWorkoutDbView />} />
+                <Route path="exercises" element={<AdminExercisesView />} />
+                <Route path="meals" element={<AdminMealsView />} />
+                <Route path="nutrition" element={<AdminNutritionDbView />} />
                 <Route path="nutrition-db" element={<AdminNutritionDbView />} />
                 <Route path="ai" element={<AdminAIView />} />
-                <Route path="notifications" element={<AdminNotificationsView />} />
-                <Route path="feedback" element={<AdminFeedbackView />} />
+                <Route path="progress" element={<AdminProgressView />} />
+                <Route path="subscriptions" element={<AdminPremiumView />} />
+                <Route path="premium" element={<AdminPremiumView />} />
+                <Route path="payments" element={<AdminPaymentsView />} />
+                <Route path="plans" element={<AdminPlansView />} />
                 <Route path="revenue" element={<AdminRevenueView />} />
+                <Route path="notifications" element={<AdminNotificationsView />} />
+                <Route path="reports" element={<AdminReportsView />} />
+                <Route path="audit-logs" element={<AdminLogsView />} />
                 <Route path="logs" element={<AdminLogsView />} />
+                <Route path="system-health" element={<AdminSystemHealthView />} />
                 <Route path="settings" element={<AdminSettingsView />} />
+                <Route path="roles" element={<AdminRolesView />} />
+                <Route path="feedback" element={<AdminFeedbackView />} />
               </Route>
 
               {/* 404 */}

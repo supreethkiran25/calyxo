@@ -1,5 +1,18 @@
 import { supabase } from "./supabaseClient.js";
 import { Browser } from '@capacitor/browser';
+import { syncManager } from "../services/sync/SyncEngine.js";
+
+if (typeof window !== 'undefined') {
+  syncManager.restoreLocal();
+  window.addEventListener('online', () => {
+    syncManager.flush(async (evt) => {
+      if (evt.entityType === 'WORKOUT_LOG') {
+        const { error } = await supabase.from("workout_logs").insert(evt.payload);
+        if (error) throw error;
+      }
+    });
+  });
+}
 
 const getEnvVal = (key) => {
   try {
@@ -782,7 +795,14 @@ export const addWorkoutLog = async (userId, workout) => {
 
     const { data, error } = await supabase.from("workout_logs").insert(insertPayload).select().single();
     if (error) {
-      console.warn("Supabase addWorkoutLog insert error, saved locally:", error);
+      console.warn("Supabase addWorkoutLog insert error, queued for offline sync:", error);
+      syncManager.queueEvent({
+        entityType: 'WORKOUT_LOG',
+        entityId: logItem.id,
+        operation: 'CREATE',
+        payload: insertPayload,
+        userId: validUid
+      });
       return logItem;
     }
     const finalItem = {
@@ -798,7 +818,14 @@ export const addWorkoutLog = async (userId, workout) => {
     } catch (e) {}
     return finalItem;
   } catch (err) {
-    console.warn("Supabase addWorkoutLog exception, saved locally:", err);
+    console.warn("Supabase addWorkoutLog exception, queued for offline sync:", err);
+    syncManager.queueEvent({
+      entityType: 'WORKOUT_LOG',
+      entityId: logItem.id,
+      operation: 'CREATE',
+      payload: insertPayload,
+      userId: validUid
+    });
     return logItem;
   }
 };

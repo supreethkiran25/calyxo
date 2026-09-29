@@ -17,6 +17,11 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react()
     ],
+    server: {
+      watch: {
+        ignored: ['**/scripts/**', '**/.git/**', '**/dist/**']
+      }
+    },
     define: {
       'process.env.NEXT_PUBLIC_SUPABASE_URL': JSON.stringify(env.NEXT_PUBLIC_SUPABASE_URL || ''),
       'process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY': JSON.stringify(env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''),

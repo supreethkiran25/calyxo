@@ -2,85 +2,106 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
+  Radio,
+  BarChart3,
   Users,
-  Crown,
-  TrendingUp,
-  Dumbbell,
-  Utensils,
-  Bot,
-  Bell,
+  UserCheck,
+  Shield,
+  UserPlus,
   MessageSquare,
-  DollarSign,
+  Dumbbell,
+  Sparkles,
+  Utensils,
+  Apple,
+  Bot,
+  LineChart,
+  Calendar,
+  CreditCard,
+  Layers,
+  IndianRupee,
+  Bell,
   FileText,
+  ClipboardList,
+  ShieldCheck,
   Settings,
-  ChevronLeft,
-  ChevronRight,
-  Search,
+  KeyRound,
+  ChevronsLeft,
+  ChevronsRight,
   LogOut
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import Logo from '../Logo';
 
-const NAVIGATION_GROUPS = [
+export const ADMIN_NAVIGATION_GROUPS = [
   {
-    title: 'OVERVIEW',
+    title: 'Overview',
     items: [
-      { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+      { path: '/admin', label: 'Overview', icon: LayoutDashboard, exact: true },
+      { path: '/admin/live-activity', label: 'Live Activity', icon: Radio },
+      { path: '/admin/analytics', label: 'Analytics', icon: BarChart3 }
     ]
   },
   {
-    title: 'PEOPLE',
+    title: 'CRM',
     items: [
-      { path: '/admin/users', label: 'Users', icon: Users },
+      { path: '/admin/users', label: 'Athletes & Users', icon: Users },
+      { path: '/admin/leads', label: 'Leads / Prospects', icon: UserPlus },
+      { path: '/admin/support', label: 'Support & Tickets', icon: MessageSquare }
     ]
   },
   {
-    title: 'BUSINESS',
+    title: 'Health Platform',
     items: [
-      { path: '/admin/premium', label: 'Subscriptions', icon: Crown },
-      { path: '/admin/revenue', label: 'Revenue', icon: DollarSign },
-      { path: '/admin/analytics', label: 'Analytics', icon: TrendingUp },
+      { path: '/admin/workouts', label: 'Workouts', icon: Dumbbell },
+      { path: '/admin/exercises', label: 'Exercises', icon: Sparkles },
+      { path: '/admin/meals', label: 'Meals & Foods', icon: Utensils },
+      { path: '/admin/nutrition', label: 'Nutrition', icon: Apple },
+      { path: '/admin/ai', label: 'AI Coach', icon: Bot },
+      { path: '/admin/progress', label: 'Progress', icon: LineChart }
     ]
   },
   {
-    title: 'HEALTH & PRODUCT',
+    title: 'Business',
     items: [
-      { path: '/admin/workout-db', label: 'Workouts', icon: Dumbbell },
-      { path: '/admin/nutrition-db', label: 'Nutrition', icon: Utensils },
-      { path: '/admin/ai', label: 'AI Engine', icon: Bot },
+      { path: '/admin/subscriptions', label: 'Subscriptions', icon: Calendar },
+      { path: '/admin/payments', label: 'Payments', icon: CreditCard },
+      { path: '/admin/plans', label: 'Plans', icon: Layers },
+      { path: '/admin/revenue', label: 'Revenue', icon: IndianRupee }
     ]
   },
   {
-    title: 'OPERATIONS',
+    title: 'Operations',
     items: [
       { path: '/admin/notifications', label: 'Notifications', icon: Bell },
-      { path: '/admin/feedback', label: 'Feedback', icon: MessageSquare },
-      { path: '/admin/logs', label: 'Audit Logs', icon: FileText },
+      { path: '/admin/reports', label: 'Reports', icon: FileText },
+      { path: '/admin/audit-logs', label: 'Audit Logs', icon: ClipboardList },
+      { path: '/admin/system-health', label: 'System Health', icon: ShieldCheck }
     ]
   },
   {
-    title: 'SYSTEM',
+    title: 'Administration',
     items: [
       { path: '/admin/settings', label: 'Settings', icon: Settings },
+      { path: '/admin/roles', label: 'Roles & Permissions', icon: KeyRound }
     ]
   }
 ];
 
-const AdminSidebarV2 = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen, onOpenSearch }) => {
+const AdminSidebarV2 = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) => {
   const location = useLocation();
   const user = useStore(state => state.user);
 
   const isLinkActive = (item) => {
     if (item.exact) {
-      return location.pathname === '/admin' || location.pathname === '/admin/dashboard' || location.pathname === '/app/admin';
+      return location.pathname === '/admin' || location.pathname === '/admin/' || location.pathname === '/admin/dashboard' || location.pathname === '/app/admin';
     }
+    // Also match legacy route aliases
+    if (item.path === '/admin/subscriptions' && location.pathname.startsWith('/admin/premium')) return true;
+    if (item.path === '/admin/workouts' && location.pathname.startsWith('/admin/workout-db')) return true;
+    if (item.path === '/admin/nutrition' && location.pathname.startsWith('/admin/nutrition-db')) return true;
+    if (item.path === '/admin/support' && location.pathname.startsWith('/admin/feedback')) return true;
+    if (item.path === '/admin/audit-logs' && location.pathname.startsWith('/admin/logs')) return true;
     return location.pathname.startsWith(item.path);
-  };
-
-  const handleSignOut = async () => {
-    const { logoutSuperAdmin } = await import('../../services/adminService');
-    await logoutSuperAdmin();
-    window.location.href = '/admin/login';
   };
 
   return (
@@ -88,65 +109,46 @@ const AdminSidebarV2 = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen, on
       {/* Mobile Backdrop Overlay */}
       {mobileOpen && (
         <div 
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-50 flex flex-col bg-neutral-950 border-r border-neutral-800/80 transition-all duration-200 ${
-          collapsed ? 'w-20' : 'w-64'
+        className={`fixed top-0 left-0 bottom-0 z-50 flex flex-col bg-[#0d0f12] text-slate-300 border-r border-[#1e232e] transition-all duration-200 select-none ${
+          collapsed ? 'w-18' : 'w-60'
         } ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        {/* Header Branding with Authentic Calyxo Logo */}
-        <div className="h-16 px-4 flex items-center justify-between border-b border-neutral-800/80 shrink-0">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-8 h-8 rounded-lg bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white shrink-0">
-              <Logo className="w-5 h-5 text-white" />
-            </div>
+        {/* Header Branding */}
+        <div className="h-16 px-4 flex items-center justify-between border-b border-[#1e232e] shrink-0">
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <span className="text-base font-bold tracking-tight text-white font-sans">
+              Calyxo
+            </span>
             {!collapsed && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold tracking-wider text-white font-mono">CALYXO</span>
-                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300 border border-neutral-700">
-                  ADMIN
-                </span>
-              </div>
+              <span className="text-[10px] text-slate-400 font-sans leading-tight border-l border-slate-700/60 pl-2">
+                AI-Powered Health<br/>Operating System
+              </span>
             )}
           </div>
 
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors border border-transparent hover:border-neutral-800 cursor-pointer"
-            title={collapsed ? "Expand navigation" : "Collapse navigation"}
+            className="hidden lg:flex p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors cursor-pointer"
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            {collapsed ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
           </button>
         </div>
 
-        {/* Command Palette Trigger */}
-        {!collapsed && onOpenSearch && (
-          <div className="px-3 pt-3">
-            <button
-              onClick={onOpenSearch}
-              className="w-full px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-800 text-xs text-neutral-400 flex items-center justify-between hover:border-neutral-700 hover:text-white transition-all cursor-pointer group"
-            >
-              <div className="flex items-center gap-2">
-                <Search className="w-3.5 h-3.5 text-neutral-500 group-hover:text-neutral-300 transition-colors" />
-                <span className="font-mono text-[11px]">Quick search...</span>
-              </div>
-              <kbd className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-neutral-950 text-neutral-400 border border-neutral-800">⌘K</kbd>
-            </button>
-          </div>
-        )}
-
         {/* Navigation Sections */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5 custom-scrollbar">
-          {NAVIGATION_GROUPS.map((section) => (
+        <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-4 custom-scrollbar">
+          {ADMIN_NAVIGATION_GROUPS.map((section) => (
             <div key={section.title}>
               {!collapsed && (
-                <div className="text-[10px] font-mono font-bold tracking-widest text-neutral-400 uppercase px-3 mb-1.5">
+                <div className="text-[11px] font-medium text-slate-400 px-2.5 mb-1 tracking-tight">
                   {section.title}
                 </div>
               )}
@@ -160,14 +162,16 @@ const AdminSidebarV2 = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen, on
                       key={item.path}
                       to={item.path}
                       onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 text-xs transition-all group rounded-lg ${
+                      className={`flex items-center gap-2.5 px-2.5 py-1.5 text-xs transition-colors rounded-lg group ${
                         active
-                          ? 'bg-neutral-900 text-white border border-neutral-700 font-semibold'
-                          : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900/60 border border-transparent font-medium'
+                          ? 'bg-[#181c24] text-white font-semibold shadow-xs'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 font-normal'
                       }`}
                       title={collapsed ? item.label : undefined}
                     >
-                      <Icon className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-white' : 'text-neutral-400 group-hover:text-neutral-200'}`} />
+                      <Icon className={`w-4 h-4 shrink-0 transition-colors ${
+                        active ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
+                      }`} />
                       {!collapsed && <span className="truncate">{item.label}</span>}
                     </NavLink>
                   );
@@ -177,27 +181,17 @@ const AdminSidebarV2 = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen, on
           ))}
         </nav>
 
-        {/* Admin User Footer */}
-        <div className="p-3 border-t border-neutral-800/80 flex items-center justify-between shrink-0 bg-neutral-950">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-neutral-900 text-neutral-300 flex items-center justify-center font-mono font-bold text-xs shrink-0 border border-neutral-800">
-              {user?.displayName ? user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'SK'}
-            </div>
+        {/* Sidebar Footer with System Online indicator */}
+        <div className="px-4 py-3 border-t border-[#1e232e] shrink-0 bg-[#0d0f12] flex items-center justify-between text-xs font-mono">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
             {!collapsed && (
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs font-semibold text-white truncate">{user?.displayName || 'Operations Admin'}</span>
-                <span className="text-[10px] font-mono text-neutral-400 truncate">{user?.email || 'supreethkiran25@gmail.com'}</span>
-              </div>
+              <span className="text-slate-300 text-xs font-sans truncate">System Online</span>
             )}
           </div>
-
-          <button
-            onClick={handleSignOut}
-            className="p-1.5 rounded-lg text-neutral-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors shrink-0 cursor-pointer border border-transparent hover:border-rose-500/20"
-            title="Sign out"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+          {!collapsed && (
+            <span className="text-[11px] text-slate-400">v2.4.0</span>
+          )}
         </div>
       </aside>
     </>
@@ -205,4 +199,3 @@ const AdminSidebarV2 = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen, on
 };
 
 export default AdminSidebarV2;
-

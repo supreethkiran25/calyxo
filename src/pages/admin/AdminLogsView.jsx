@@ -5,7 +5,10 @@ import {
   ChevronRight,
   RefreshCw,
   Eye,
-  X
+  X,
+  ShieldCheck,
+  Terminal,
+  Activity
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAuditLogs } from '../../services/adminService';
@@ -24,45 +27,48 @@ const LogDetailModal = ({ log, onClose }) => {
   if (!log) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="w-full max-w-xl bg-neutral-900 border border-neutral-800 rounded-xl p-5 space-y-4 font-mono text-xs shadow-2xl">
-        <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-          <h3 className="text-sm font-semibold text-white tracking-tight font-sans">Audit Log Inspector</h3>
-          <button onClick={onClose} className="p-1 rounded-lg text-neutral-400 hover:text-white cursor-pointer">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
+      <div className="w-full max-w-xl bg-[#090c14] border border-white/15 rounded-2xl p-6 space-y-4 text-xs shadow-2xl text-slate-200">
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2">
+            <Terminal className="w-4 h-4 text-[#d4ff00]" />
+            <h3 className="text-sm font-bold text-white tracking-tight">Audit Log Inspector</h3>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-neutral-950 border border-neutral-800">
+        <div className="space-y-3 font-sans">
+          <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-[#0e121d] border border-white/10">
             <div>
-              <span className="text-neutral-500 block text-[10px] uppercase">LOG ID</span>
-              <span className="text-neutral-300 font-bold">{log.id}</span>
+              <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Log ID</span>
+              <span className="text-white font-semibold font-mono text-[11px]">{log.id}</span>
             </div>
             <div>
-              <span className="text-neutral-500 block text-[10px] uppercase">TIMESTAMP</span>
-              <span className="text-neutral-300">{new Date(log.created_at).toLocaleString()}</span>
+              <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Timestamp</span>
+              <span className="text-slate-300 font-medium">{new Date(log.created_at).toLocaleString()}</span>
             </div>
             <div>
-              <span className="text-neutral-500 block text-[10px] uppercase">ADMIN IDENTITY</span>
-              <span className="text-neutral-300 font-medium">{log.admin_id}</span>
+              <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Admin Identity</span>
+              <span className="text-[#d4ff00] font-medium font-mono text-[11px]">{log.admin_id}</span>
             </div>
             <div>
-              <span className="text-neutral-500 block text-[10px] uppercase">ACTION</span>
-              <span className="text-white font-bold">{log.action}</span>
+              <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Action</span>
+              <span className="text-cyan-400 font-bold font-mono text-[11px]">{log.action}</span>
             </div>
           </div>
 
           <div>
-            <span className="text-neutral-400 font-medium block mb-1 text-[11px]">Target Resource</span>
-            <div className="p-2.5 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-300 text-[11px]">
-              {log.target_id || 'System'}
+            <span className="text-slate-400 font-semibold block mb-1 text-[11px]">Target Resource</span>
+            <div className="p-2.5 rounded-xl bg-[#0e121d] border border-white/10 text-slate-200 font-mono text-[11px]">
+              {log.target_id || 'System Core'}
             </div>
           </div>
 
           <div>
-            <span className="text-neutral-400 font-medium block mb-1 text-[11px]">Event Payload</span>
-            <pre className="p-3 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-300 text-[11px] leading-relaxed max-h-60 overflow-x-auto custom-scrollbar">
+            <span className="text-slate-400 font-semibold block mb-1 text-[11px]">Event Payload</span>
+            <pre className="p-3.5 rounded-xl bg-[#040609] border border-white/10 text-[#d4ff00] text-[11px] font-mono leading-relaxed max-h-60 overflow-x-auto scrollbar-thin">
               {JSON.stringify(log.details, null, 2)}
             </pre>
           </div>
@@ -71,7 +77,7 @@ const LogDetailModal = ({ log, onClose }) => {
         <div className="flex justify-end pt-2">
           <button
             onClick={onClose}
-            className="px-3.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white font-medium text-xs font-sans cursor-pointer transition-colors"
+            className="px-4 py-2 rounded-xl bg-[#141724] hover:bg-[#1a1f30] text-white font-semibold text-xs border border-white/10 cursor-pointer transition-colors"
           >
             Close
           </button>
@@ -85,16 +91,17 @@ const AdminLogsView = () => {
   const [logs, setLogs] = useState([]);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
-  const [categoryFilter, setCategoryFilter] = useState('ALL');
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [page, setPage] = useState(1);
   const [selectedLog, setSelectedLog] = useState(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
 
   const fetchLogs = useCallback(async () => {
+    setLoading(true);
     try {
-      const list = await getAuditLogs(debouncedSearch, '');
-      setLogs(list || []);
+      const data = await getAuditLogs({ search: debouncedSearch, limit: 300 });
+      setLogs(data || []);
     } catch (e) {
       toast.error('Failed to load audit logs.');
     } finally {
@@ -104,19 +111,14 @@ const AdminLogsView = () => {
 
   useEffect(() => {
     fetchLogs();
-  }, [fetchLogs, categoryFilter]);
+  }, [fetchLogs]);
 
-  // Real-time updates
   useAdminRealtime(['admin_audit_logs'], () => {
     if (autoRefresh) fetchLogs();
   });
 
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, categoryFilter]);
-
-  const filterLogsByCategory = (logList) => {
-    return logList.filter(l => {
+  const filterLogsByCategory = (items) => {
+    return items.filter(l => {
       if (categoryFilter === 'ALL') return true;
       if (categoryFilter === 'USERS') return ['USER_UPDATED', 'USER_SUSPENDED', 'USER_ACTIVATED', 'USER_DELETED', 'PREMIUM_GRANTED', 'PREMIUM_REVOKED'].includes(l.action);
       if (categoryFilter === 'SETTINGS') return ['SETTINGS_CHANGED', 'ADMIN_PASSWORD_UPDATED'].includes(l.action);
@@ -147,28 +149,28 @@ const AdminLogsView = () => {
     <div className="space-y-6">
       {/* 1. Header */}
       <AdminPageHeader
-        title="Audit Logs"
-        description="Immutable authoritative record of all platform administrative actions and security events"
-        badge={`${logs.length} events`}
+        title="Audit Logs & Telemetry"
+        description="Immutable authoritative record of all platform administrative actions, grants, and security events."
+        badge={`${logs.length} Logged Events`}
         actions={
           <div className="flex items-center gap-2">
             <button
               onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-medium flex items-center gap-1.5 cursor-pointer transition-colors ${
+              className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors ${
                 autoRefresh
-                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                  : 'bg-neutral-900 border-neutral-800 text-neutral-400'
+                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                  : 'bg-[#141724] border-white/10 text-slate-400 hover:text-white'
               }`}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${autoRefresh ? 'animate-spin' : ''}`} />
-              {autoRefresh ? 'Live' : 'Paused'}
+              {autoRefresh ? 'Live Streaming' : 'Paused'}
             </button>
 
             <button
               onClick={handleExportCSV}
-              className="px-3.5 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-1.5 rounded-xl bg-[#141724] hover:bg-[#1a1f30] border border-white/10 text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
             >
-              <Download className="w-3.5 h-3.5 text-neutral-400" />
+              <Download className="w-3.5 h-3.5 text-slate-400" />
               <span>Export CSV</span>
             </button>
           </div>
@@ -176,21 +178,21 @@ const AdminLogsView = () => {
       />
 
       {/* 2. Category Tabs */}
-      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-neutral-900 border border-neutral-800 overflow-x-auto text-xs font-mono">
+      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[#0e121d] border border-white/10 overflow-x-auto text-xs font-sans scrollbar-none">
         {[
-          { id: 'ALL', label: 'All Logs' },
+          { id: 'ALL', label: 'All Events' },
           { id: 'USERS', label: 'Users & Subscriptions' },
           { id: 'SETTINGS', label: 'Security & Auth' },
-          { id: 'DATABASE', label: 'Content DBs' },
-          { id: 'BROADCAST', label: 'Broadcasts & Feedback' }
+          { id: 'DATABASE', label: 'Exercise & Food DB' },
+          { id: 'BROADCAST', label: 'Broadcasts & Notices' }
         ].map(cat => (
           <button
             key={cat.id}
-            onClick={() => setCategoryFilter(cat.id)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
+            onClick={() => { setCategoryFilter(cat.id); setPage(1); }}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
               categoryFilter === cat.id
-                ? 'bg-neutral-800 text-white font-bold'
-                : 'text-neutral-400 hover:text-neutral-200'
+                ? 'bg-[#d4ff00] text-slate-950 font-bold shadow-md shadow-[#d4ff00]/15'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
             {cat.label}
@@ -199,60 +201,71 @@ const AdminLogsView = () => {
       </div>
 
       {/* 3. Search Bar */}
-      <div className="p-3 bg-neutral-900/90 border border-neutral-800/80 rounded-xl">
+      <div className="p-4 bg-[#0e121d] border border-white/10 rounded-2xl shadow-xl">
         <AdminSearchInput
           value={search}
           onChange={setSearch}
-          placeholder="Filter audit logs by action or target..."
+          placeholder="Filter audit logs by action, admin, or target resource..."
           onClear={() => setSearch('')}
         />
       </div>
 
       {/* 4. Logs Table */}
-      <div className="bg-neutral-900/90 border border-neutral-800/80 rounded-xl overflow-hidden">
+      <div className="bg-[#0e121d] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
         {loading ? (
           <AdminLoadingSkeleton rows={8} />
         ) : currentLogs.length === 0 ? (
           <AdminEmptyState
             title="No matching audit log entries found"
-            description="Clear your filter to inspect all administrative events."
+            description="Clear your search keyword to view all administrative events."
+            actionLabel="Reset Search"
+            onAction={() => setSearch('')}
           />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-neutral-800 bg-neutral-950/60 text-neutral-400 font-mono uppercase text-[10px]">
-                  <th className="p-3.5 font-bold">Action</th>
-                  <th className="p-3.5 font-bold">Admin</th>
-                  <th className="p-3.5 font-bold">Target</th>
-                  <th className="p-3.5 font-bold">Payload Summary</th>
-                  <th className="p-3.5 text-right font-bold">Timestamp</th>
-                  <th className="p-3.5 text-center font-bold">Inspect</th>
+                <tr className="border-b border-white/10 bg-[#07090e] text-slate-400 font-semibold tracking-wider text-[11px] uppercase">
+                  <th className="p-4">Timestamp</th>
+                  <th className="p-4">Action</th>
+                  <th className="p-4">Admin Identity</th>
+                  <th className="p-4">Target Resource</th>
+                  <th className="p-4">Payload Summary</th>
+                  <th className="p-4 text-right">Inspect</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-800/60 font-sans">
-                {currentLogs.map(log => (
-                  <tr key={log.id} className="hover:bg-neutral-800/40 transition-colors">
-                    <td className="p-3.5">
-                      <span className="bg-neutral-800 text-neutral-300 border border-neutral-700 text-[10px] font-mono font-semibold rounded px-2 py-0.5">
-                        {log.action}
+              <tbody className="divide-y divide-white/5 font-sans">
+                {currentLogs.map(l => (
+                  <tr key={l.id} className="hover:bg-[#141828]/50 transition-colors">
+                    <td className="p-4 font-mono text-slate-400 whitespace-nowrap">
+                      {new Date(l.created_at).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </td>
+                    <td className="p-4">
+                      <span className="font-mono font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                        {l.action}
                       </span>
                     </td>
-                    <td className="p-3.5 text-xs text-neutral-300 font-mono">{log.admin_id}</td>
-                    <td className="p-3.5 text-neutral-400 text-xs font-mono">{log.target_id || 'System'}</td>
-                    <td className="p-3.5 text-neutral-400 text-[11px] font-mono max-w-xs truncate">
-                      {JSON.stringify(log.details)}
+                    <td className="p-4 font-mono text-slate-300">
+                      {l.admin_id}
                     </td>
-                    <td className="p-3.5 text-right text-neutral-500 font-mono text-[11px]">
-                      {new Date(log.created_at).toLocaleString()}
+                    <td className="p-4 font-mono text-slate-400">
+                      {l.target_id ? (l.target_id.length > 16 ? `${l.target_id.substring(0, 16)}...` : l.target_id) : 'Global System'}
                     </td>
-                    <td className="p-3.5 text-center">
+                    <td className="p-4 text-slate-400 max-w-xs truncate font-mono text-[11px]">
+                      {JSON.stringify(l.details || {})}
+                    </td>
+                    <td className="p-4 text-right">
                       <button
-                        onClick={() => setSelectedLog(log)}
-                        className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
-                        title="Inspect Log"
+                        onClick={() => setSelectedLog(l)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                        title="View Details"
                       >
-                        <Eye className="w-3.5 h-3.5" />
+                        <Eye className="w-4 h-4" />
                       </button>
                     </td>
                   </tr>
@@ -262,24 +275,23 @@ const AdminLogsView = () => {
           </div>
         )}
 
-        {/* Pagination Bar */}
-        <div className="p-3.5 bg-neutral-950/60 border-t border-neutral-800 flex items-center justify-between text-xs text-neutral-400 font-mono">
+        {/* 5. Pagination */}
+        <div className="p-4 bg-[#090c14] border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
           <span>
-            Showing {(page - 1) * PAGE_SIZE + 1} - {Math.min(page * PAGE_SIZE, filteredLogs.length)} of {filteredLogs.length} entries
+            Page <strong className="text-white">{page}</strong> of <strong className="text-white">{totalPages}</strong> ({filteredLogs.length} events)
           </span>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page <= 1}
-              onClick={() => setPage(p => p - 1)}
-              className="p-1.5 rounded-lg bg-neutral-900 border border-neutral-800 hover:text-white disabled:opacity-40 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg border border-white/10 bg-[#141724] text-slate-300 hover:text-white disabled:opacity-40 cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span>Page {page} of {totalPages}</span>
             <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              onClick={() => setPage(p => p + 1)}
-              className="p-1.5 rounded-lg bg-neutral-900 border border-neutral-800 hover:text-white disabled:opacity-40 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg border border-white/10 bg-[#141724] text-slate-300 hover:text-white disabled:opacity-40 cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -287,10 +299,15 @@ const AdminLogsView = () => {
         </div>
       </div>
 
-      <LogDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />
+      {/* Inspector Modal */}
+      {selectedLog && (
+        <LogDetailModal
+          log={selectedLog}
+          onClose={() => setSelectedLog(null)}
+        />
+      )}
     </div>
   );
 };
 
 export default AdminLogsView;
-

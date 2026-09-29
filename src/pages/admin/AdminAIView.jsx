@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, Cpu, ThumbsUp, ThumbsDown, MessageSquare, RefreshCw, Save } from 'lucide-react';
+import { Bot, Cpu, ThumbsUp, ThumbsDown, MessageSquare, RefreshCw, Save, Sparkles, Terminal } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminSettings, saveAdminSettings, getAdminTrainingLogs } from '../../services/adminService';
 import { supabase } from '../../lib/supabaseClient';
@@ -81,15 +81,15 @@ const AdminAIView = () => {
     <div className="space-y-6">
       {/* 1. Header */}
       <AdminPageHeader
-        title="AI Engine"
-        description="Model runtime, system personas, context telemetry, and training feedback logs"
+        title="AI Engine & Neural Coach"
+        description="Gemini LLM model configuration, system persona directives, token telemetry, and training reinforcement feedback logs."
         badge={model}
         actions={
           <button
             onClick={loadAiData}
-            className="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+            className="px-3.5 py-1.5 rounded-xl bg-[#141724] hover:bg-[#1a1f30] border border-white/10 text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-neutral-500 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </button>
         }
@@ -101,71 +101,73 @@ const AdminAIView = () => {
           title="Chat Sessions"
           value={chatSessionCount.toLocaleString()}
           icon={MessageSquare}
-          subtitle="Total logged sessions"
+          subtitle="Storage: chat_sessions"
         />
         <AdminStatCard
           title="Feedback Logs"
           value={trainingLogs.length.toString()}
           icon={ThumbsUp}
-          subtitle={`${ratingRate}% positive rate`}
+          subtitle={`Satisfaction: ${ratingRate}% positive`}
         />
         <AdminStatCard
           title="Active Model"
           value={model}
           icon={Cpu}
-          subtitle="Google Gemini API"
+          subtitle="Provider: Google Gemini"
         />
         <AdminStatCard
           title="Engine Status"
           value="Operational"
           icon={Bot}
-          subtitle="Normal latency"
+          subtitle="Realtime Streaming"
         />
       </div>
 
       {/* 3. Model Settings & System Prompt */}
-      <div className="bg-neutral-900/90 border border-neutral-800/80 rounded-xl p-5 space-y-4">
-        <div className="flex items-center justify-between border-b border-neutral-800/80 pb-3">
+      <div className="bg-[#0e121d] border border-white/10 rounded-2xl p-6 space-y-4 shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#d4ff00]/30 to-transparent" />
+        
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
           <div>
-            <h3 className="text-sm font-semibold text-white tracking-tight flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-neutral-400" /> Model & Persona Configuration
+            <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-[#d4ff00]" /> Model & Persona Configuration
             </h3>
-            <p className="text-xs text-neutral-400 font-mono mt-0.5">Parameters applied to all Calyxo AI endpoints</p>
+            <p className="text-xs text-slate-400 font-sans mt-0.5">Directives applied to all Calyxo AI coach endpoints</p>
           </div>
         </div>
 
         <div className="space-y-4 text-xs">
           <div>
-            <label className="text-neutral-300 font-mono font-medium block mb-1.5">Default Engine Model</label>
+            <label className="text-slate-300 font-semibold block mb-1.5">Default Engine Model</label>
             <select
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-neutral-700 cursor-pointer"
+              className="w-full bg-[#141724] border border-white/10 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-[#d4ff00]/60 cursor-pointer"
             >
-              <option value="gemini-2.0-flash">Gemini 2.0 Flash — Fast & Efficient</option>
+              <option value="gemini-2.0-flash">Gemini 2.0 Flash — Fast & Efficient (Production)</option>
               <option value="gemini-1.5-flash">Gemini 1.5 Flash — Balanced Speed & Quality</option>
               <option value="gemini-1.5-pro">Gemini 1.5 Pro — Deep Analysis</option>
             </select>
           </div>
 
           <div>
-            <label className="text-neutral-300 font-mono font-medium block mb-1.5">Global System Prompt</label>
+            <label className="text-slate-300 font-semibold block mb-1.5">Global System Prompt Directive</label>
             <textarea
               rows="4"
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
               placeholder="System prompt instruction sent to Gemini API..."
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-white focus:outline-none focus:border-neutral-700 leading-relaxed font-sans"
+              className="w-full bg-[#141724] border border-white/10 rounded-xl p-3 text-white placeholder-slate-500 focus:outline-none focus:border-[#d4ff00]/60 leading-relaxed font-sans text-xs"
             />
           </div>
 
-          <div className="flex justify-end pt-2 border-t border-neutral-800/80">
+          <div className="flex justify-end pt-2 border-t border-white/10">
             <button
               disabled={saving}
               onClick={handleSaveConfig}
-              className="px-3.5 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white font-semibold text-xs border border-neutral-700 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              className="px-4 py-2 rounded-xl bg-[#d4ff00] hover:bg-[#a3e635] text-slate-950 font-bold text-xs transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-[#d4ff00]/10"
             >
-              <Save className="w-3.5 h-3.5 text-neutral-400" />
+              <Save className="w-3.5 h-3.5" />
               <span>{saving ? 'Saving...' : 'Save Configuration'}</span>
             </button>
           </div>
@@ -173,60 +175,60 @@ const AdminAIView = () => {
       </div>
 
       {/* 4. Training Logs Table */}
-      <div className="bg-neutral-900/90 border border-neutral-800/80 rounded-xl overflow-hidden">
-        <div className="p-3.5 border-b border-neutral-800/80 flex items-center justify-between">
-          <h3 className="text-xs font-semibold text-white tracking-tight flex items-center gap-2 font-mono uppercase">
-            <MessageSquare className="w-3.5 h-3.5 text-neutral-400" /> Training Logs ({trainingLogs.length})
+      <div className="bg-[#0e121d] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+        <div className="p-4 border-b border-white/10 flex items-center justify-between bg-[#090c14]">
+          <h3 className="text-xs font-bold text-white tracking-tight flex items-center gap-2 uppercase">
+            <MessageSquare className="w-3.5 h-3.5 text-[#d4ff00]" /> Training Logs ({trainingLogs.length})
           </h3>
         </div>
 
-        <div className="overflow-x-auto">
-          {trainingLogs.length === 0 ? (
-            <AdminEmptyState
-              title="No training feedback logs recorded yet"
-              description="User evaluations from AI coach conversations will appear here."
-            />
-          ) : (
+        {trainingLogs.length === 0 ? (
+          <div className="p-12 text-center text-xs font-sans text-slate-400">
+            No AI training or prompt evaluation logs recorded yet.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-neutral-800 bg-neutral-950/60 text-neutral-400 font-mono uppercase text-[10px]">
-                  <th className="p-3.5 font-bold">User Query</th>
-                  <th className="p-3.5 font-bold">AI Response</th>
-                  <th className="p-3.5 font-bold">Rating</th>
-                  <th className="p-3.5 font-bold">User ID</th>
-                  <th className="p-3.5 text-right font-bold">Timestamp</th>
+                <tr className="border-b border-white/10 bg-[#07090e] text-slate-400 font-semibold tracking-wider text-[11px] uppercase">
+                  <th className="p-4">Timestamp</th>
+                  <th className="p-4">User Prompt</th>
+                  <th className="p-4">Response Snippet</th>
+                  <th className="p-4">Rating</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-800/60 font-sans">
-                {trainingLogs.map((log, idx) => (
-                  <tr key={log.id || idx} className="hover:bg-neutral-800/40 transition-colors">
-                    <td className="p-3.5 max-w-xs truncate text-white font-medium">{log.user_query}</td>
-                    <td className="p-3.5 max-w-md truncate text-neutral-300">{log.bot_response}</td>
-                    <td className="p-3.5">
+              <tbody className="divide-y divide-white/5 font-sans">
+                {trainingLogs.slice(0, 20).map((log, idx) => (
+                  <tr key={idx} className="hover:bg-[#141828]/50 transition-colors">
+                    <td className="p-4 font-mono text-slate-400 whitespace-nowrap text-[11px]">
+                      {log.created_at ? new Date(log.created_at).toLocaleDateString() : 'Recent'}
+                    </td>
+                    <td className="p-4 text-white font-medium max-w-xs truncate">
+                      {log.prompt || '--'}
+                    </td>
+                    <td className="p-4 text-slate-300 max-w-sm truncate">
+                      {log.response || '--'}
+                    </td>
+                    <td className="p-4">
                       {log.rating === 1 ? (
-                        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-mono font-semibold px-2 py-0.5 rounded inline-flex items-center gap-1">
-                          <ThumbsUp className="w-3 h-3" /> Helpful
+                        <span className="inline-flex items-center gap-1 text-emerald-400 font-mono text-[11px]">
+                          <ThumbsUp className="w-3 h-3" /> Positive
                         </span>
                       ) : (
-                        <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[10px] font-mono font-semibold px-2 py-0.5 rounded inline-flex items-center gap-1">
-                          <ThumbsDown className="w-3 h-3" /> Improvement
+                        <span className="inline-flex items-center gap-1 text-slate-400 font-mono text-[11px]">
+                          Neutral
                         </span>
                       )}
-                    </td>
-                    <td className="p-3.5 font-mono text-[11px] text-neutral-400 max-w-[120px] truncate">{log.userId || log.user_id || 'Anonymous'}</td>
-                    <td className="p-3.5 text-right font-mono text-[11px] text-neutral-500">
-                      {log.timestamp || log.created_at ? new Date(log.timestamp || log.created_at).toLocaleString() : 'N/A'}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 export default AdminAIView;
-

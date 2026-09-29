@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import PermissionsConnectionsSection from './PermissionsConnectionsSection';
 import ProfileIdentityHero from '../design-system/components/ProfileIdentityHero';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
@@ -63,6 +62,7 @@ export default function UserProfile({ onNotification }) {
   const ecoStore = useEcosystemStore();
 
   const [activePanel, setActivePanel] = useState('account');
+  const [activeTab, setActiveTab] = useState('personal');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [openAccordion, setOpenAccordion] = useState(null);
@@ -981,7 +981,7 @@ export default function UserProfile({ onNotification }) {
     { id: 'legal', label: 'Legal & Policies', icon: FileText }
   ];
 
-  const inputClass = "w-full bg-[var(--input)] text-foreground border border-card-border px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-acid-green text-xs shadow-inner";
+  const inputClass = "w-full bg-[var(--input)] text-foreground border border-card-border px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner";
   const labelClass = "text-[9px] text-muted font-bold uppercase tracking-wider block mb-1";
 
   // Close mobile sheet on outside click
@@ -1030,14 +1030,14 @@ export default function UserProfile({ onNotification }) {
 
       <div className="space-y-3">
         {/* Workout */}
-        <div className="p-3 rounded-xl bg-surface border border-acid-green/40 space-y-1.5">
+        <div className="p-3 rounded-xl bg-surface border border-accent/30 space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-acid-green flex items-center gap-1.5">Workout / Gym Time</span>
+            <span className="text-xs font-bold text-accent flex items-center gap-1.5">Workout / Gym Time</span>
             <input
               type="time"
               value={schedule?.workoutTime || '18:30'}
               onChange={(e) => setSchedule({ ...schedule, workoutTime: e.target.value })}
-              className="bg-[var(--input)] text-acid-green border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+              className="bg-[var(--input)] text-accent border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-accent"
             />
           </div>
         </div>
@@ -1050,7 +1050,7 @@ export default function UserProfile({ onNotification }) {
               type="time"
               value={schedule?.breakfastTime || '08:30'}
               onChange={(e) => setSchedule({ ...schedule, breakfastTime: e.target.value })}
-              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-accent"
             />
           </div>
 
@@ -1060,7 +1060,7 @@ export default function UserProfile({ onNotification }) {
               type="time"
               value={schedule?.lunchTime || '13:00'}
               onChange={(e) => setSchedule({ ...schedule, lunchTime: e.target.value })}
-              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-accent"
             />
           </div>
         </div>
@@ -1073,7 +1073,7 @@ export default function UserProfile({ onNotification }) {
               type="time"
               value={schedule?.snackTime || '17:00'}
               onChange={(e) => setSchedule({ ...schedule, snackTime: e.target.value })}
-              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-accent"
             />
           </div>
 
@@ -1083,7 +1083,7 @@ export default function UserProfile({ onNotification }) {
               type="time"
               value={schedule?.dinnerTime || '20:30'}
               onChange={(e) => setSchedule({ ...schedule, dinnerTime: e.target.value })}
-              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-accent"
             />
           </div>
         </div>
@@ -1096,7 +1096,7 @@ export default function UserProfile({ onNotification }) {
               type="time"
               value={schedule?.wakeTime || '06:30'}
               onChange={(e) => setSchedule({ ...schedule, wakeTime: e.target.value })}
-              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-accent"
             />
           </div>
 
@@ -1106,7 +1106,7 @@ export default function UserProfile({ onNotification }) {
               type="time"
               value={schedule?.sleepTime || '23:00'}
               onChange={(e) => setSchedule({ ...schedule, sleepTime: e.target.value })}
-              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-accent"
             />
           </div>
         </div>
@@ -1148,7 +1148,7 @@ export default function UserProfile({ onNotification }) {
               }}
               className={`py-2 px-1 rounded-lg border text-[8.5px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                 themeMode === themeOpt.id || (themeOpt.id === 'obsidian' && themeMode === 'dark')
-                  ? 'bg-acid-green border-acid-green text-accent-foreground shadow-sm'
+                  ? 'bg-accent border-accent text-accent-foreground shadow-sm'
                   : 'bg-surface border-card-border text-muted hover:text-foreground'
               }`}
             >
@@ -1172,7 +1172,7 @@ export default function UserProfile({ onNotification }) {
               setBgStyle('orbs');
             }
           }}
-          className="w-4 h-4 rounded border-card-border text-acid-green focus:ring-0 cursor-pointer accent-acid-green shrink-0"
+          className="w-4 h-4 rounded border-card-border text-accent focus:ring-0 cursor-pointer accent-emerald-500 shrink-0"
         />
       </label>
 
@@ -1187,7 +1187,7 @@ export default function UserProfile({ onNotification }) {
                 setBgEffectsEnabled(true);
               }
             }} 
-            className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner"
+            className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-accent text-xs shadow-inner"
           >
             <option value="minimal">Minimal (Default)</option>
             <option value="orbs">Floating Gradient Orbs</option>
@@ -1203,7 +1203,7 @@ export default function UserProfile({ onNotification }) {
           <select 
             value={animationIntensity} 
             onChange={(e) => setAnimationIntensity(e.target.value)} 
-            className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner"
+            className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-accent text-xs shadow-inner"
           >
             <option value="off">Off (Static)</option>
             <option value="low">Low (Subtle)</option>
@@ -1217,7 +1217,7 @@ export default function UserProfile({ onNotification }) {
           <select 
             value={performanceMode} 
             onChange={(e) => setPerformanceMode(e.target.value)} 
-            className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner"
+            className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-accent text-xs shadow-inner"
           >
             <option value="auto">Auto (Smart)</option>
             <option value="battery">Battery Saver</option>
@@ -1231,7 +1231,7 @@ export default function UserProfile({ onNotification }) {
               type="checkbox"
               checked={reduceMotionState}
               onChange={(e) => setReduceMotionState(e.target.checked)}
-              className="w-4 h-4 rounded border-card-border text-acid-green focus:ring-0 cursor-pointer accent-acid-green shrink-0"
+              className="w-4 h-4 rounded border-card-border text-accent focus:ring-0 cursor-pointer accent-emerald-500 shrink-0"
             />
             <div>
               <span className="text-xs font-bold text-foreground block">Reduce Motion</span>
@@ -1257,7 +1257,7 @@ export default function UserProfile({ onNotification }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className={labelClass}>Coach Personality</label>
-          <select value={coachPersonality} onChange={(e) => setCoachPersonality(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
+          <select value={coachPersonality} onChange={(e) => setCoachPersonality(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-accent text-xs shadow-inner">
             <option value="motivational">Motivational Coach</option>
             <option value="gym_bro">Gym Bro (Bold)</option>
             <option value="scientific">Scientific Architect</option>
@@ -1267,7 +1267,7 @@ export default function UserProfile({ onNotification }) {
 
         <div>
           <label className={labelClass}>Coaching Style</label>
-          <select value={coachingStyle} onChange={(e) => setCoachingStyle(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
+          <select value={coachingStyle} onChange={(e) => setCoachingStyle(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-accent text-xs shadow-inner">
             <option value="supportive">Supportive & Empathetic</option>
             <option value="direct">Direct & Straightforward</option>
           </select>
@@ -1277,7 +1277,7 @@ export default function UserProfile({ onNotification }) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
           <label className={labelClass}>Response Style</label>
-          <select value={responseLength} onChange={(e) => setResponseLength(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
+          <select value={responseLength} onChange={(e) => setResponseLength(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-accent text-xs shadow-inner">
             <option value="short">Short & Concise</option>
             <option value="detailed">Detailed & Analytical</option>
           </select>
@@ -1285,7 +1285,7 @@ export default function UserProfile({ onNotification }) {
 
         <div>
           <label className={labelClass}>Motivation Level</label>
-          <select value={motivationLevel} onChange={(e) => setMotivationLevel(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
+          <select value={motivationLevel} onChange={(e) => setMotivationLevel(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-accent text-xs shadow-inner">
             <option value="gentle">Gentle Guidance</option>
             <option value="extreme">Extreme Accountability</option>
           </select>
@@ -1293,7 +1293,7 @@ export default function UserProfile({ onNotification }) {
 
         <div>
           <label className={labelClass}>Reminders Frequency</label>
-          <select value={reminderFrequency} onChange={(e) => setReminderFrequency(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
+          <select value={reminderFrequency} onChange={(e) => setReminderFrequency(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-accent text-xs shadow-inner">
             <option value="none">None</option>
             <option value="daily">Daily Check-ins</option>
             <option value="weekly">Weekly Summaries</option>
@@ -1310,7 +1310,7 @@ export default function UserProfile({ onNotification }) {
           type="checkbox"
           checked={aiMemoryEnabled}
           onChange={(e) => setAiMemoryEnabled(e.target.checked)}
-          className="w-4 h-4 rounded border-card-border text-acid-green focus:ring-0 cursor-pointer accent-acid-green shrink-0"
+          className="w-4 h-4 rounded border-card-border text-accent focus:ring-0 cursor-pointer accent-emerald-500 shrink-0"
         />
       </label>
 
@@ -1322,7 +1322,7 @@ export default function UserProfile({ onNotification }) {
           onClick={handleExportChatHistory}
           className="py-2 px-3 bg-surface hover:bg-card-border border border-card-border text-foreground text-[10px] font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
         >
-          <FileText className="w-3.5 h-3.5 text-acid-green" />
+          <FileText className="w-3.5 h-3.5 text-accent" />
           Export Chat History (.md)
         </button>
       </div>
@@ -1345,7 +1345,7 @@ export default function UserProfile({ onNotification }) {
         <select 
           value={notificationFrequency} 
           onChange={(e) => setNotificationFrequency(e.target.value)} 
-          className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner"
+          className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-accent text-xs shadow-inner"
         >
           <option value="never">Never (Mute non-critical updates)</option>
           <option value="daily">Daily digest summary</option>
@@ -1373,7 +1373,7 @@ export default function UserProfile({ onNotification }) {
                 type="checkbox"
                 checked={notifications[item.key] !== false}
                 onChange={(e) => setNotifications({ ...notifications, [item.key]: e.target.checked })}
-                className="w-4 h-4 rounded border-card-border text-acid-green focus:ring-0 cursor-pointer accent-acid-green shrink-0"
+                className="w-4 h-4 rounded border-card-border text-accent focus:ring-0 cursor-pointer accent-emerald-500 shrink-0"
               />
             </label>
           ))}
@@ -1384,7 +1384,7 @@ export default function UserProfile({ onNotification }) {
       <div className="space-y-2 pt-2 border-t border-card-border">
         <div className="flex justify-between items-center">
           <h4 className="text-[10px] font-bold text-foreground uppercase tracking-wider">Daily Routine Timings</h4>
-          <span className="text-[9px] text-acid-green font-bold uppercase">Personalized Alerts</span>
+          <span className="text-[9px] text-accent font-bold uppercase">Personalized Alerts</span>
         </div>
         <p className="text-[10px] text-muted">Calyxo delivers your meal, workout, and sleep reminders based on these exact hours.</p>
         
@@ -1395,7 +1395,7 @@ export default function UserProfile({ onNotification }) {
               type="time"
               value={schedule.breakfastTime || '08:30'}
               onChange={(e) => setSchedule({ ...schedule, breakfastTime: e.target.value })}
-              className="w-full bg-[var(--input)] text-foreground border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-acid-green"
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-accent"
             />
           </div>
 
@@ -1405,7 +1405,7 @@ export default function UserProfile({ onNotification }) {
               type="time"
               value={schedule.lunchTime || '13:00'}
               onChange={(e) => setSchedule({ ...schedule, lunchTime: e.target.value })}
-              className="w-full bg-[var(--input)] text-foreground border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-acid-green"
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-accent"
             />
           </div>
 
@@ -1415,17 +1415,17 @@ export default function UserProfile({ onNotification }) {
               type="time"
               value={schedule.snackTime || '17:00'}
               onChange={(e) => setSchedule({ ...schedule, snackTime: e.target.value })}
-              className="w-full bg-[var(--input)] text-foreground border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-acid-green"
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-accent"
             />
           </div>
 
-          <div className="p-2 rounded-xl bg-surface border border-acid-green/40 space-y-1">
-            <span className="text-[10px] font-bold text-acid-green flex items-center gap-1">Workout</span>
+          <div className="p-2 rounded-xl bg-surface border border-accent/30 space-y-1">
+            <span className="text-[10px] font-bold text-accent flex items-center gap-1">Workout</span>
             <input
               type="time"
               value={schedule.workoutTime || '18:30'}
               onChange={(e) => setSchedule({ ...schedule, workoutTime: e.target.value })}
-              className="w-full bg-[var(--input)] text-acid-green border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-acid-green"
+              className="w-full bg-[var(--input)] text-accent border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-accent"
             />
           </div>
 
@@ -1435,7 +1435,7 @@ export default function UserProfile({ onNotification }) {
               type="time"
               value={schedule.dinnerTime || '20:30'}
               onChange={(e) => setSchedule({ ...schedule, dinnerTime: e.target.value })}
-              className="w-full bg-[var(--input)] text-foreground border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-acid-green"
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-accent"
             />
           </div>
 
@@ -1445,7 +1445,7 @@ export default function UserProfile({ onNotification }) {
               type="time"
               value={schedule.sleepTime || '23:00'}
               onChange={(e) => setSchedule({ ...schedule, sleepTime: e.target.value })}
-              className="w-full bg-[var(--input)] text-foreground border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-acid-green"
+              className="w-full bg-[var(--input)] text-foreground border border-card-border px-1.5 py-1 rounded-lg text-xs font-mono font-bold focus:border-accent"
             />
           </div>
         </div>
@@ -1463,7 +1463,7 @@ export default function UserProfile({ onNotification }) {
               type="checkbox"
               checked={notifications.weeklyReports !== false}
               onChange={(e) => setNotifications({ ...notifications, weeklyReports: e.target.checked })}
-              className="w-4 h-4 rounded border-card-border text-acid-green focus:ring-0 cursor-pointer accent-acid-green shrink-0"
+              className="w-4 h-4 rounded border-card-border text-accent focus:ring-0 cursor-pointer accent-emerald-500 shrink-0"
             />
           </label>
 
@@ -1476,7 +1476,7 @@ export default function UserProfile({ onNotification }) {
               type="checkbox"
               checked={notifications.monthlyReports !== false}
               onChange={(e) => setNotifications({ ...notifications, monthlyReports: e.target.checked })}
-              className="w-4 h-4 rounded border-card-border text-acid-green focus:ring-0 cursor-pointer accent-acid-green shrink-0"
+              className="w-4 h-4 rounded border-card-border text-accent focus:ring-0 cursor-pointer accent-emerald-500 shrink-0"
             />
           </label>
         </div>
@@ -1511,7 +1511,7 @@ export default function UserProfile({ onNotification }) {
             type="checkbox"
             checked={priv.state !== false}
             onChange={(e) => priv.setter(e.target.checked)}
-            className="w-4 h-4 rounded border-card-border text-acid-green focus:ring-0 cursor-pointer accent-acid-green shrink-0"
+            className="w-4 h-4 rounded border-card-border text-accent focus:ring-0 cursor-pointer accent-emerald-500 shrink-0"
           />
         </label>
       ))}
@@ -1561,12 +1561,12 @@ export default function UserProfile({ onNotification }) {
               type="email" 
               value={emailInput} 
               onChange={(e) => setEmailInput(e.target.value)} 
-              className="w-full bg-[var(--input)] text-foreground border border-card-border pl-8 pr-3 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner"
+              className="w-full bg-[var(--input)] text-foreground border border-card-border pl-8 pr-3 py-1.5 rounded-lg focus:outline-none focus:border-accent text-xs shadow-inner"
             />
           </div>
           <button 
             onClick={handleUpdateEmail}
-            className="bg-surface hover:bg-card-border border border-card-border hover:border-acid-green px-3 text-xs font-bold uppercase rounded-lg transition-all cursor-pointer text-foreground"
+            className="bg-surface hover:bg-card-border border border-card-border hover:border-accent px-3 text-xs font-bold uppercase rounded-lg transition-all cursor-pointer text-foreground"
           >
             Update
           </button>
@@ -1583,7 +1583,7 @@ export default function UserProfile({ onNotification }) {
               placeholder="Min 6 characters"
               value={passwordInput} 
               onChange={(e) => setPasswordInput(e.target.value)} 
-              className="w-full bg-[var(--input)] text-foreground border border-card-border pl-8 pr-8 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner"
+              className="w-full bg-[var(--input)] text-foreground border border-card-border pl-8 pr-8 py-1.5 rounded-lg focus:outline-none focus:border-accent text-xs shadow-inner"
             />
             <button 
               type="button" 
@@ -1595,7 +1595,7 @@ export default function UserProfile({ onNotification }) {
           </div>
           <button 
             onClick={handleUpdatePassword}
-            className="bg-surface hover:bg-card-border border border-card-border hover:border-acid-green px-3 text-xs font-bold uppercase rounded-lg transition-all cursor-pointer text-foreground"
+            className="bg-surface hover:bg-card-border border border-card-border hover:border-accent px-3 text-xs font-bold uppercase rounded-lg transition-all cursor-pointer text-foreground"
           >
             Update
           </button>
@@ -1612,7 +1612,7 @@ export default function UserProfile({ onNotification }) {
           </div>
           <span className={`text-[8.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
             twoFactorEnabled
-              ? 'bg-acid-green/10 text-acid-green border-acid-green'
+              ? 'bg-accent/10 text-accent border-accent'
               : 'bg-surface border-card-border text-muted'
           }`}>
             {twoFactorEnabled ? 'ACTIVE' : 'DISABLED'}
@@ -1626,18 +1626,18 @@ export default function UserProfile({ onNotification }) {
               placeholder="Enter 6-digit code" 
               value={twoFactorCode}
               onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g,'').slice(0,6))}
-              className="bg-[var(--input)] text-foreground border border-card-border px-3 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs font-mono font-bold tracking-widest shadow-inner flex-1 text-center"
+              className="bg-[var(--input)] text-foreground border border-card-border px-3 py-1.5 rounded-lg focus:outline-none focus:border-accent text-xs font-mono font-bold tracking-widest shadow-inner flex-1 text-center"
             />
             <button 
               type="submit" 
-              className="bg-acid-green text-accent-foreground border-none font-bold text-xs uppercase px-3 py-1.5 rounded-lg cursor-pointer"
+              className="bg-accent text-accent-foreground border-none font-bold text-xs uppercase px-3 py-1.5 rounded-lg cursor-pointer"
             >
               Enable 2FA
             </button>
           </form>
         ) : (
           <div className="flex justify-between items-center pt-2 border-t border-card-border/60">
-            <span className="text-[10px] text-acid-green font-medium">✓ Protected via TOTP Authenticator</span>
+            <span className="text-[10px] text-accent font-medium">✓ Protected via TOTP Authenticator</span>
             <button
               type="button"
               onClick={() => {
@@ -1661,7 +1661,7 @@ export default function UserProfile({ onNotification }) {
             onClick={() => {
               if (onNotification) onNotification("Signed out of all other remote device sessions.");
             }}
-            className="text-[9px] font-bold text-acid-green hover:underline cursor-pointer bg-none border-none p-0"
+            className="text-[9px] font-bold text-accent hover:underline cursor-pointer bg-none border-none p-0"
           >
             Sign Out Others
           </button>
@@ -1677,11 +1677,11 @@ export default function UserProfile({ onNotification }) {
                     ? 'Apple Mac • Calyxo Dashboard'
                     : 'Android / Mobile Device • Calyxo'}
                 </span>
-                <span className="text-[7px] bg-acid-green/20 text-acid-green px-1.5 py-0.2 rounded-full font-black uppercase">Active</span>
+                <span className="text-[7px] bg-accent/20 text-accent px-1.5 py-0.2 rounded-full font-black uppercase">Active</span>
               </div>
               <span className="text-[8.5px] text-muted block mt-0.5">Active Now • Secure TLS 1.3 Session (India)</span>
             </div>
-            <span className="text-[8px] text-acid-green font-bold uppercase">THIS DEVICE</span>
+            <span className="text-[8px] text-accent font-bold uppercase">THIS DEVICE</span>
           </div>
         </div>
       </div>
@@ -1723,8 +1723,8 @@ export default function UserProfile({ onNotification }) {
         price: `₹${monthlyPriceINR}`,
         period: 'per month',
         badge: 'MONTHLY',
-        accentColor: 'border-acid-green',
-        bgGradient: 'bg-acid-green/10',
+        accentColor: 'border-accent',
+        bgGradient: 'bg-accent/10',
         amountPaise: Number(monthlyPriceINR) * 100,
         features: [
           'Unlimited 24/7 Calyxo AI Fitness & Diet Coach',
@@ -1759,11 +1759,11 @@ export default function UserProfile({ onNotification }) {
         <div className="p-4 rounded-xl bg-surface border border-card-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-acid-green" />
+              <CreditCard className="w-4 h-4 text-accent" />
               <span className="text-xs font-black uppercase tracking-wider text-foreground">Current Active Status</span>
             </div>
             <p className="text-[11px] text-muted mt-1">
-              Active Tier: <strong className="text-acid-green font-bold uppercase">{currentPlan} PLAN</strong>
+              Active Tier: <strong className="text-accent font-bold uppercase">{currentPlan} PLAN</strong>
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -1771,11 +1771,11 @@ export default function UserProfile({ onNotification }) {
               type="button"
               onClick={handleRestoreSubscription}
               disabled={saving}
-              className="px-3 py-1 rounded-full bg-surface text-foreground hover:border-acid-green border border-card-border text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer"
+              className="px-3 py-1 rounded-full bg-surface text-foreground hover:border-accent border border-card-border text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer"
             >
               Restore
             </button>
-            <span className="px-3 py-1 rounded-full bg-acid-green/20 text-acid-green text-[10px] font-black uppercase tracking-wider border border-acid-green/30">
+            <span className="px-3 py-1 rounded-full bg-accent/20 text-accent text-[10px] font-black uppercase tracking-wider border border-accent/30">
               {currentPlan === 'FREE' ? 'Free Tier' : 'Active Subscription'}
             </span>
             {currentPlan !== 'FREE' && (
@@ -1801,7 +1801,7 @@ export default function UserProfile({ onNotification }) {
                 className={`p-5 rounded-2xl border ${plan.accentColor} ${plan.bgGradient} flex flex-col justify-between relative transition-all hover:scale-[1.02]`}
               >
                 {plan.badge && (
-                  <span className="absolute top-3 right-3 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-acid-green text-black">
+                  <span className="absolute top-3 right-3 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-accent text-black">
                     {plan.badge}
                   </span>
                 )}
@@ -1813,7 +1813,7 @@ export default function UserProfile({ onNotification }) {
                     <span className="text-[10px] text-muted">{plan.period}</span>
                   </div>
                   {plan.savingsText && (
-                    <span className="inline-block text-[10px] font-bold text-acid-green bg-acid-green/10 px-2 py-0.5 rounded border border-acid-green/20 mb-2">
+                    <span className="inline-block text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded border border-accent/20 mb-2">
                       {plan.savingsText}
                     </span>
                   )}
@@ -1821,7 +1821,7 @@ export default function UserProfile({ onNotification }) {
                   <ul className="space-y-2 my-4 pl-0 list-none">
                     {plan.features.map((feat, idx) => (
                       <li key={idx} className="flex items-center gap-2 text-[11px] text-muted">
-                        <CheckCircle className="w-3.5 h-3.5 text-acid-green shrink-0" />
+                        <CheckCircle className="w-3.5 h-3.5 text-accent shrink-0" />
                         <span>{feat}</span>
                       </li>
                     ))}
@@ -1833,7 +1833,7 @@ export default function UserProfile({ onNotification }) {
                     <button
                       type="button"
                       disabled={true}
-                      className="w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-acid-green/20 text-acid-green border border-acid-green/30 cursor-default"
+                      className="w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-accent/20 text-accent border border-accent/30 cursor-default"
                     >
                       Active Plan
                     </button>
@@ -1860,7 +1860,7 @@ export default function UserProfile({ onNotification }) {
                   <button
                     type="button"
                     onClick={() => handleRazorpayCheckout(plan)}
-                    className="w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer border-none mt-2 bg-acid-green text-black hover:brightness-110 shadow-md shadow-acid-green/10 flex items-center justify-center gap-1.5"
+                    className="w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer border-none mt-2 bg-accent text-black hover:brightness-110 shadow-md shadow-acid-green/10 flex items-center justify-center gap-1.5"
                   >
                     <CreditCard className="w-3.5 h-3.5" />
                     Subscribe via Razorpay
@@ -1882,7 +1882,7 @@ export default function UserProfile({ onNotification }) {
           <span>9.6% USED (4.8 MB / 50 MB)</span>
         </div>
         <div className="w-full bg-surface border border-card-border h-1.5 rounded-full overflow-hidden">
-          <div className="bg-acid-green h-full rounded-full" style={{ width: '9.6%' }} />
+          <div className="bg-accent h-full rounded-full" style={{ width: '9.6%' }} />
         </div>
       </div>
 
@@ -1912,10 +1912,10 @@ export default function UserProfile({ onNotification }) {
               onClick={handleBackupData}
               className="py-1.5 px-1 bg-surface hover:bg-card-border border border-card-border text-[9.5px] font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-0.5 text-foreground"
             >
-              <Download className="w-3 h-3 text-acid-green" /> Backup
+              <Download className="w-3 h-3 text-accent" /> Backup
             </button>
             <label className="py-1.5 px-1 bg-surface hover:bg-card-border border border-card-border text-[9.5px] font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-0.5 text-foreground text-center">
-              <RefreshCw className="w-3 h-3 text-acid-green" /> Restore
+              <RefreshCw className="w-3 h-3 text-accent" /> Restore
               <input type="file" accept=".json" onChange={handleRestoreData} className="hidden" />
             </label>
           </div>
@@ -1935,7 +1935,7 @@ export default function UserProfile({ onNotification }) {
               onClick={() => exportLogsToCSV(exp.type)}
               className="py-2 px-1 bg-surface hover:bg-card-border border border-card-border text-foreground text-[9px] font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1"
             >
-              <Download className="w-3 h-3 text-acid-green" />
+              <Download className="w-3 h-3 text-accent" />
               {exp.label}
             </button>
           ))}
@@ -1949,7 +1949,7 @@ export default function UserProfile({ onNotification }) {
             onClick={handleExportData}
             className="py-2 px-1.5 bg-surface hover:bg-card-border border border-card-border text-foreground text-[9.5px] font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1"
           >
-            <Download className="w-3.5 h-3.5 text-acid-green" />
+            <Download className="w-3.5 h-3.5 text-accent" />
             Export JSON
           </button>
           <button
@@ -1967,7 +1967,7 @@ export default function UserProfile({ onNotification }) {
   const renderAboutForm = () => (
     <div className="space-y-4">
       <div className="flex gap-3 p-3 bg-surface border border-card-border rounded-lg">
-        <div className="w-10 h-10 bg-acid-green flex items-center justify-center font-black text-accent-foreground text-sm rounded-lg shadow shrink-0 select-none">CX</div>
+        <div className="w-10 h-10 bg-accent flex items-center justify-center font-black text-accent-foreground text-sm rounded-lg shadow shrink-0 select-none">CX</div>
         <div>
           <h4 className="text-xs font-black text-foreground">Calyxo Nutrition & Coach</h4>
           <span className="text-[9px] text-muted block mt-0.5">Version 2.4.0-stable</span>
@@ -1979,9 +1979,9 @@ export default function UserProfile({ onNotification }) {
         <h4 className="text-[10px] font-bold text-foreground uppercase tracking-wider">Roadmap Milestones</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {[
-            { label: 'Offline Sync', status: 'Completed', color: 'text-acid-green bg-acid-green/10 border-acid-green/15' },
-            { label: 'Indian Food Expansion', status: 'Completed', color: 'text-acid-green bg-acid-green/10 border-acid-green/15' },
-            { label: 'Wearable Integration', status: 'Completed', color: 'text-acid-green bg-acid-green/10 border-acid-green/15' },
+            { label: 'Offline Sync', status: 'Completed', color: 'text-accent bg-accent/10 border-accent/15' },
+            { label: 'Indian Food Expansion', status: 'Completed', color: 'text-accent bg-accent/10 border-accent/15' },
+            { label: 'Wearable Integration', status: 'Completed', color: 'text-accent bg-accent/10 border-accent/15' },
             { label: 'AI Posture Video', status: 'Planned', color: 'text-muted bg-surface border-card-border' }
           ].map((mile, i) => (
             <div key={i} className="p-2 bg-surface border border-card-border rounded-lg flex justify-between items-center text-[10px]">
@@ -1997,7 +1997,7 @@ export default function UserProfile({ onNotification }) {
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className={labelClass}>Category</label>
-            <select value={feedbackType} onChange={(e) => setFeedbackType(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
+            <select value={feedbackType} onChange={(e) => setFeedbackType(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-accent text-xs shadow-inner">
               <option value="bug">Bug / UI Issue</option>
               <option value="feature">Feature Request</option>
               <option value="support">Account Help</option>
@@ -2017,7 +2017,7 @@ export default function UserProfile({ onNotification }) {
             value={feedbackMessage}
             onChange={(e) => setFeedbackMessage(e.target.value)}
             placeholder="Details..."
-            className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner resize-none leading-relaxed"
+            className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-accent text-xs shadow-inner resize-none leading-relaxed"
           />
         </div>
 
@@ -2036,14 +2036,14 @@ export default function UserProfile({ onNotification }) {
           <button 
             type="button" 
             onClick={() => useQuickActionsStore.getState().openLegalModal('privacy')} 
-            className="flex-1 py-2 px-3 rounded-xl font-black text-[10px] uppercase tracking-wider border cursor-pointer bg-acid-green/20 border-acid-green/40 text-acid-green hover:bg-acid-green/30 transition-colors flex items-center justify-center gap-1.5"
+            className="flex-1 py-2 px-3 rounded-xl font-black text-[10px] uppercase tracking-wider border cursor-pointer bg-accent/20 border-accent/30 text-accent hover:bg-accent/30 transition-colors flex items-center justify-center gap-1.5"
           >
             <Shield className="w-3 h-3" /> Privacy Policy
           </button>
           <button 
             type="button" 
             onClick={() => useQuickActionsStore.getState().openLegalModal('terms')} 
-            className="flex-1 py-2 px-3 rounded-xl font-bold text-[10px] uppercase tracking-wider border cursor-pointer bg-surface border-card-border text-foreground hover:border-acid-green transition-colors flex items-center justify-center gap-1.5"
+            className="flex-1 py-2 px-3 rounded-xl font-bold text-[10px] uppercase tracking-wider border cursor-pointer bg-surface border-card-border text-foreground hover:border-accent transition-colors flex items-center justify-center gap-1.5"
           >
             <FileText className="w-3 h-3" /> Terms & Conditions
           </button>
@@ -2052,7 +2052,7 @@ export default function UserProfile({ onNotification }) {
         <div className="bg-surface/50 border border-card-border p-3 rounded-xl text-[10px] text-muted space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="font-bold text-foreground">Complete Legal Transparency</span>
-            <span className="text-[9px] text-acid-green font-mono">17 Privacy Sections • 26 Terms Clauses</span>
+            <span className="text-[9px] text-accent font-mono">17 Privacy Sections • 26 Terms Clauses</span>
           </div>
           <p className="leading-relaxed">
             Your fitness logs, biometrics, and AI conversations are encrypted and isolated via Row-Level Security. We do not sell health data to third-party ad brokers. Click above to inspect the complete unabridged legal policy.
@@ -2062,648 +2062,526 @@ export default function UserProfile({ onNotification }) {
     </div>
   );
 
+  const PROFILE_TABS = [
+    { id: 'personal', label: 'Personal', icon: User },
+    { id: 'training', label: 'Training', icon: Activity },
+    { id: 'nutrition', label: 'Nutrition', icon: Heart },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'privacy', label: 'Privacy', icon: Shield },
+    { id: 'account', label: 'Account', icon: Key },
+  ];
+
   return (
     <div 
       data-keyboard-scroll="true"
       style={{ paddingBottom: 'calc(var(--keyboard-height, 0px) + 6rem)' }}
-      className="max-w-6xl mx-auto flex flex-col md:flex-row gap-4 md:gap-6 select-text px-2 md:px-4 pt-4"
+      className="max-w-4xl mx-auto space-y-6 select-text px-4 sm:px-6 pt-4 pb-24"
     >
-      {/* ─── SIDEBAR (Mobile: Top, Desktop: Left) ─── */}
-      <div className="w-full md:w-72 lg:w-80 shrink-0 space-y-4">
-        
-        {/* Hero / Profile Health Identity Component */}
-        <ProfileIdentityHero
-          name={firstName ? `${firstName} ${lastName}`.trim() : (username || nickname || 'Athlete')}
-          email={user?.email || ''}
-          photoURL={userProfile?.photoURL || ''}
-          level={level}
-          xp={xp}
-          xpToNext={xpToNext}
-          healthScore={fitnessScore}
-          streak={ecoStore.streaks?.loginStreak || 1}
-          badgesCount={unlockedAchievements}
-          bmi={mobileBmi}
-          goalLabel={goalLabel}
-          isVerified={isAccountVerified}
-          onPhotoUpload={handlePhotoUpload}
-          photoLoading={photoLoading}
-        />
+      {/* ─── 1. HEADER (Section 17: Avatar, Name, Goal, Current streak) ─── */}
+      <ProfileIdentityHero
+        name={firstName ? `${firstName} ${lastName}`.trim() : (username || nickname || 'Athlete')}
+        email={user?.email || ''}
+        photoURL={userProfile?.photoURL || ''}
+        level={level}
+        xp={xp}
+        xpToNext={xpToNext}
+        healthScore={fitnessScore}
+        streak={ecoStore.streaks?.loginStreak || 1}
+        badgesCount={unlockedAchievements}
+        bmi={mobileBmi}
+        goalLabel={goalLabel}
+        isVerified={isAccountVerified}
+        onPhotoUpload={handlePhotoUpload}
+        photoLoading={photoLoading}
+      />
 
-        {/* Navigation Sidebar (Desktop Only) */}
-        <div className="hidden md:flex flex-col gap-1 glass rounded-xl border border-card-border p-2">
-          {[
-            { id: 'permissions', label: 'Permissions & Connections', icon: ShieldCheck },
-            { id: 'coaching', label: 'My Coaching', icon: Users },
-            { id: 'appearance', label: 'Appearance & Themes', icon: Eye },
-            { id: 'ai', label: 'AI Coach Settings', icon: Sparkles },
-            { id: 'notifications', label: 'Notification Settings', icon: Bell },
-            { id: 'privacy', label: 'Privacy & Telemetry', icon: Shield },
-            { id: 'security', label: 'Security & 2FA', icon: Key },
-            { id: 'subscription', label: 'Subscription Plans', icon: CreditCard },
-            { id: 'data', label: 'Data & Storage', icon: Database },
-            { id: 'about', label: 'About & Legal Policies', icon: Info },
-          ].map(item => (
+      {/* ─── 2. SECTION NAVIGATION BAR (Segmented Control) ─── */}
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar p-1.5 bg-surface/80 backdrop-blur-md rounded-2xl border border-card-border/70 shadow-xs">
+        {PROFILE_TABS.map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
             <button
-              key={item.id}
-              onClick={() => { setOpenAccordion(item.id); setAdvancedOpen(true); }}
-              className={`w-full flex items-center justify-between p-3 text-xs font-bold transition-all cursor-pointer rounded-lg border-none ${
-                openAccordion === item.id && advancedOpen 
-                  ? 'bg-acid-green/10 text-acid-green' 
-                  : 'text-muted hover:bg-surface/50 hover:text-foreground'
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer border-none shrink-0 ${
+                isActive
+                  ? 'bg-foreground text-background font-black shadow-sm'
+                  : 'text-muted hover:text-foreground hover:bg-surface-subtle'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <item.icon className="w-4 h-4" />
-                <span>{item.label}</span>
-              </div>
-              <ChevronRight className="w-3.5 h-3.5 opacity-50" />
+              <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-black' : 'text-muted'}`} />
+              <span>{tab.label}</span>
             </button>
-          ))}
-        </div>
-
-        {/* Sign Out Button (Sidebar) */}
-        <button
-          onClick={handleLogout}
-          className="hidden md:flex w-full items-center justify-center gap-2 py-3 border border-destructive/20 hover:border-destructive active:border-destructive bg-destructive/5 hover:bg-destructive/10 text-destructive text-[10px] uppercase font-bold tracking-wider rounded-xl transition-all cursor-pointer mt-4"
-        >
-          <LogOut className="w-4 h-4" />
-          Sign Out
-        </button>
-
+          );
+        })}
       </div>
 
-      {/* ─── MAIN CONTENT ─── */}
-      <div className="flex-1 space-y-4">
-        
-        {/* Profile Info & Health Stats Grid */}
-        <div className="grid grid-cols-1 gap-4">
-          {/* Profile Information */}
-        <div className="glass p-4 rounded-xl border border-card-border space-y-3">
-          <div className="flex justify-between items-center border-b border-card-border/60 pb-2">
-            <h3 className="text-[10px] font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-acid-green" /> Profile Information
-            </h3>
-            <button
-              onClick={() => setEditSection(editSection === 'profile' ? null : 'profile')}
-              className="text-[9px] font-extrabold text-acid-green bg-acid-green/10 px-2.5 py-1 rounded uppercase tracking-wider cursor-pointer border-none"
-            >
-              {editSection === 'profile' ? 'Cancel' : 'Edit'}
-            </button>
-          </div>
-
-          {editSection === 'profile' ? (
-            <form onSubmit={(e) => { handleSaveAllDetails(e); setEditSection(null); }} className="space-y-2.5">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className={labelClass}>First Name</label>
-                  <input id="setup-field-display_name" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+      {/* ─── 3. ACTIVE SECTION CONTENT ─── */}
+      <div className="space-y-6">
+        {/* PERSONAL SECTION */}
+        {activeTab === 'personal' && (
+          <div className="space-y-5 animate-fade-in">
+            {/* Profile Information & Biometrics */}
+            <div className="glass p-5 rounded-2xl border border-card-border space-y-4">
+              <div className="flex justify-between items-center border-b border-card-border/60 pb-3">
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-accent" />
+                  <h3 className="text-sm font-black text-foreground uppercase tracking-wider">
+                    Personal Identity & Biometrics
+                  </h3>
                 </div>
-                <div>
-                  <label className={labelClass}>Last Name</label>
-                  <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className={labelClass}>Username</label>
-                  <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-                <div>
-                  <label className={labelClass}>Nickname</label>
-                  <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className={labelClass}>Age</label>
-                  <input type="number" value={ageInput} onChange={(e) => setAgeInput(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-                <div>
-                  <label className={labelClass}>Gender</label>
-                  <select value={gender} onChange={(e) => setGender(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label className={labelClass}>Units</label>
-                  <select value={units} onChange={(e) => setUnits(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
-                    <option value="metric">Metric</option>
-                    <option value="imperial">Imperial</option>
-                  </select>
-                </div>
+                <button
+                  onClick={() => setEditSection(editSection === 'profile' ? null : 'profile')}
+                  className="text-[10px] font-extrabold text-accent bg-accent/10 hover:bg-accent/20 px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer border-none transition-colors"
+                >
+                  {editSection === 'profile' ? 'Cancel' : 'Edit Details'}
+                </button>
               </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className={labelClass}>Fitness Level</label>
-                    <select value={fitnessLevel} onChange={(e) => setFitnessLevel(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
-                      <option value="beginner">Beginner</option>
-                      <option value="intermediate">Intermediate</option>
-                      <option value="advanced">Advanced</option>
-                      <option value="elite">Elite Athlete</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Fitness Goal</label>
-                    <select value={goal} onChange={(e) => setGoal(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
-                      <option value="lose">Weight Loss</option>
-                      <option value="gain">Muscle Gain</option>
-                      <option value="maintain">Maintain Weight</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className={labelClass}>Bio (Short Description)</label>
-                  <textarea maxLength={160} rows={2} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell the community about yourself..." className="w-full bg-[var(--input)] text-foreground border border-card-border px-2.5 py-2 rounded-xl focus:outline-none focus:border-acid-green text-xs shadow-inner resize-none" />
-                </div>
-
-                <div>
-                  <label className={labelClass}>Profile Cover Image</label>
-                  <input type="file" accept="image/*" onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                      const img = new Image();
-                      img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = 600;
-                        canvas.height = 200;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, 600, 200);
-                        setCoverImage(canvas.toDataURL('image/jpeg', 0.7));
-                      };
-                      img.src = event.target.result;
-                    };
-                    reader.readAsDataURL(file);
-                  }} className="w-full text-xs text-muted" />
-                  {coverImage && (
-                    <div className="mt-1.5 relative w-full h-14 rounded-lg overflow-hidden border border-card-border">
-                      <img src={coverImage} alt="Cover Preview" className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => setCoverImage('')} className="absolute right-1 top-1 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center text-[8px] text-white border-none cursor-pointer">✕</button>
+              {editSection === 'profile' ? (
+                <form onSubmit={(e) => { handleSaveAllDetails(e); setEditSection(null); }} className="space-y-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelClass}>First Name</label>
+                      <input id="setup-field-display_name" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner" />
                     </div>
-                  )}
-                </div>
-
-                <div id="setup-field-diet_preferences" className="space-y-1">
-                  <label className={labelClass}>Diet Preferences</label>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {DIET_PREFERENCES_OPTIONS.map(opt => {
-                      const selected = dietPreferences.includes(opt);
-                      return (
-                        <button
-                          key={opt}
-                          type="button"
-                          onClick={() => {
-                            setDietPreferences(prev => 
-                              prev.includes(opt) ? prev.filter(x => x !== opt) : [...prev, opt]
-                            );
-                          }}
-                          className={`px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase border cursor-pointer transition-colors ${
-                            selected 
-                              ? 'bg-acid-green/10 border-acid-green text-acid-green' 
-                              : 'bg-surface border-card-border text-muted hover:text-foreground'
-                          }`}
-                        >
-                          {opt}
-                        </button>
-                      );
-                    })}
+                    <div>
+                      <label className={labelClass}>Last Name</label>
+                      <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner" />
+                    </div>
                   </div>
-                </div>
-
-                <div>
-                  <label className={labelClass}>Health Interests</label>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {HEALTH_INTERESTS_OPTIONS.map(opt => {
-                      const selected = healthInterests.includes(opt);
-                      return (
-                        <button
-                          key={opt}
-                          type="button"
-                          onClick={() => {
-                            setHealthInterests(prev => {
-                              const isAdding = !prev.includes(opt);
-                              const next = isAdding ? [...prev, opt] : prev.filter(x => x !== opt);
-                              if (isAdding) {
-                                if (opt === "Muscle Gain" || opt === "Strength Training") setGoal("gain");
-                                else if (opt === "Weight Loss") setGoal("lose");
-                                else if (opt === "General Wellness") setGoal("maintain");
-                              }
-                              return next;
-                            });
-                          }}
-                          className={`px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase border cursor-pointer transition-colors ${
-                            selected 
-                              ? 'bg-acid-green/10 border-acid-green text-acid-green' 
-                              : 'bg-surface border-card-border text-muted hover:text-foreground'
-                          }`}
-                        >
-                          {opt}
-                        </button>
-                      );
-                    })}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelClass}>Username</label>
+                      <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Nickname</label>
+                      <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner" />
+                    </div>
                   </div>
-                </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className={labelClass}>Age</label>
+                      <input type="number" value={ageInput} onChange={(e) => setAgeInput(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Gender</label>
+                      <select value={gender} onChange={(e) => setGender(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner">
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Units</label>
+                      <select value={units} onChange={(e) => setUnits(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner">
+                        <option value="metric">Metric (kg/cm)</option>
+                        <option value="imperial">Imperial (lbs/in)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Bio (Short Description)</label>
+                    <textarea maxLength={160} rows={2} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell the community about yourself..." className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner resize-none" />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Profile Cover Image</label>
+                    <input type="file" accept="image/*" onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        const img = new Image();
+                        img.onload = () => {
+                          const canvas = document.createElement('canvas');
+                          canvas.width = 600;
+                          canvas.height = 200;
+                          const ctx = canvas.getContext('2d');
+                          ctx.drawImage(img, 0, 0, 600, 200);
+                          setCoverImage(canvas.toDataURL('image/jpeg', 0.7));
+                        };
+                        img.src = event.target.result;
+                      };
+                      reader.readAsDataURL(file);
+                    }} className="w-full text-xs text-muted" />
+                    {coverImage && (
+                      <div className="mt-2 relative w-full h-16 rounded-xl overflow-hidden border border-card-border">
+                        <img src={coverImage} alt="Cover Preview" className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => setCoverImage('')} className="absolute right-2 top-2 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-[10px] text-white border-none cursor-pointer">✕</button>
+                      </div>
+                    )}
+                  </div>
 
-              <button type="submit" disabled={saving} className="w-full btn-primary py-2 rounded-lg font-bold text-[10px] uppercase tracking-wider border-none flex items-center justify-center gap-1 cursor-pointer mt-3">
-                {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                Save Profile
-              </button>
-            </form>
-          ) : (
-            <div className="grid grid-cols-2 gap-2.5 pt-1">
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Full Name</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{firstName || lastName ? `${firstName} ${lastName}`.trim() : 'Not Set'}</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Age & Gender</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{ageInput} yrs • {gender}</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Username</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">@{username || nickname || 'athlete'}</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Fitness Level</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block capitalize">{fitnessLevel || 'beginner'}</span>
-              </div>
-              {healthInterests.length > 0 && (
-                <div className="bg-surface/50 border border-card-border rounded-lg p-2.5 col-span-2">
-                  <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Health Interests</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {healthInterests.map(tag => (
-                      <span key={tag} className="px-2 py-0.5 rounded bg-surface border border-card-border text-[8.5px] font-bold text-foreground">{tag}</span>
-                    ))}
+                  <button type="submit" disabled={saving} className="w-full btn-primary py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider border-none flex items-center justify-center gap-1.5 cursor-pointer mt-2">
+                    {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                    Save Personal Details
+                  </button>
+                </form>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Full Name</span>
+                    <span className="text-sm font-black text-foreground mt-0.5 block">{firstName || lastName ? `${firstName} ${lastName}`.trim() : 'Not Set'}</span>
+                  </div>
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Username</span>
+                    <span className="text-sm font-black text-foreground mt-0.5 block">@{username || nickname || 'athlete'}</span>
+                  </div>
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Age & Gender</span>
+                    <span className="text-sm font-black text-foreground mt-0.5 block capitalize">{ageInput} yrs • {gender}</span>
+                  </div>
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Measurement Units</span>
+                    <span className="text-sm font-black text-foreground mt-0.5 block capitalize">{units}</span>
+                  </div>
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3 col-span-2">
+                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Bio</span>
+                    <span className="text-xs text-foreground mt-0.5 block line-clamp-2">{bio || 'No bio set yet.'}</span>
                   </div>
                 </div>
               )}
             </div>
-          )}
-        </div>
-
-        {/* Health Stats */}
-        <div className="glass p-4 rounded-xl border border-card-border space-y-3">
-          <div className="flex justify-between items-center border-b border-card-border/60 pb-2">
-            <h3 className="text-[10px] font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Heart className="w-3.5 h-3.5 text-acid-green" /> Health Targets & Stats
-            </h3>
-            <button
-              onClick={() => setEditSection(editSection === 'health' ? null : 'health')}
-              className="text-[9px] font-extrabold text-acid-green bg-acid-green/10 px-2.5 py-1 rounded uppercase tracking-wider cursor-pointer border-none"
-            >
-              {editSection === 'health' ? 'Cancel' : 'Edit'}
-            </button>
           </div>
+        )}
 
-          {editSection === 'health' ? (
-            <form onSubmit={(e) => { handleSaveAllDetails(e); setEditSection(null); }} className="space-y-2.5">
-              <div className="flex justify-between items-center bg-acid-green/10 border border-acid-green/20 p-2.5 rounded-lg">
+        {/* TRAINING SECTION */}
+        {activeTab === 'training' && (
+          <div className="space-y-5 animate-fade-in">
+            {/* Training Profile & Goals */}
+            <div className="glass p-5 rounded-2xl border border-card-border space-y-4">
+              <div className="flex items-center gap-2 border-b border-card-border/60 pb-3">
+                <Activity className="w-4 h-4 text-accent" />
+                <h3 className="text-sm font-black text-foreground uppercase tracking-wider">Training Profile</h3>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <span className="text-xs font-bold text-foreground block">Auto-Calculate Targets</span>
-                  <span className="text-[9px] text-muted block">Compute optimal calories & macros from your biometrics & BMI</span>
+                  <label className={labelClass}>Fitness Level</label>
+                  <select value={fitnessLevel} onChange={(e) => setFitnessLevel(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner">
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                    <option value="elite">Elite Athlete</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Primary Fitness Goal</label>
+                  <select value={goal} onChange={(e) => setGoal(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner">
+                    <option value="lose">Weight Loss & Cut</option>
+                    <option value="gain">Hypertrophy & Muscle Gain</option>
+                    <option value="maintain">Strength & Athletic Maintenance</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className={labelClass}>Health & Training Interests</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {HEALTH_INTERESTS_OPTIONS.map(opt => {
+                    const selected = healthInterests.includes(opt);
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => {
+                          setHealthInterests(prev => {
+                            const isAdding = !prev.includes(opt);
+                            const next = isAdding ? [...prev, opt] : prev.filter(x => x !== opt);
+                            if (isAdding) {
+                              if (opt === "Muscle Gain" || opt === "Strength Training") setGoal("gain");
+                              else if (opt === "Weight Loss") setGoal("lose");
+                              else if (opt === "General Wellness") setGoal("maintain");
+                            }
+                            return next;
+                          });
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase border cursor-pointer transition-colors ${
+                          selected 
+                            ? 'bg-accent/15 border-accent text-accent' 
+                            : 'bg-surface border-card-border text-muted hover:text-foreground'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Daily Routine & Timings Form */}
+            <div className="glass p-5 rounded-2xl border border-card-border space-y-4">
+              <div className="flex items-center gap-2 border-b border-card-border/60 pb-3">
+                <Clock className="w-4 h-4 text-accent" />
+                <h3 className="text-sm font-black text-foreground uppercase tracking-wider">Daily Schedule & Training Hours</h3>
+              </div>
+              {renderRoutineForm()}
+            </div>
+
+            {/* Achievements Showcase */}
+            {ecoStore.achievements && (
+              <div className="glass p-5 rounded-2xl border border-card-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <Award className="w-4 h-4 text-yellow-400" /> Unlocked Achievements
+                  </h3>
+                  <span className="text-[10px] text-accent font-bold">{unlockedAchievements} Unlocked</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                  {ecoStore.achievements.map(a => (
+                    <div key={a.id} className={`flex items-center gap-2 p-2.5 rounded-xl border ${a.unlocked ? 'bg-surface border-card-border' : 'bg-surface/30 border-card-border/40 opacity-40'}`}>
+                      <span className="text-lg">{a.icon}</span>
+                      <div className="min-w-0">
+                        <span className="text-[11px] font-bold text-foreground block truncate">{a.name}</span>
+                        <span className="text-[9px] text-muted block truncate">{a.unlocked ? 'Achieved' : 'Locked'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* NUTRITION SECTION */}
+        {activeTab === 'nutrition' && (
+          <div className="space-y-5 animate-fade-in">
+            {/* Health Targets & Macro Allocation */}
+            <div className="glass p-5 rounded-2xl border border-card-border space-y-4">
+              <div className="flex justify-between items-center border-b border-card-border/60 pb-3">
+                <div className="flex items-center gap-2">
+                  <Heart className="w-4 h-4 text-accent" />
+                  <h3 className="text-sm font-black text-foreground uppercase tracking-wider">Macro & Caloric Targets</h3>
                 </div>
                 <button
-                  type="button"
-                  onClick={async () => {
-                    const computed = calculateMacroTargets({ weight, height, age: ageInput, gender, activity, goal, units });
-                    setDailyCalories(computed.calorieGoal);
-                    setProteinTarget(computed.protein);
-                    setCarbsTarget(computed.carbs);
-                    setFatTarget(computed.fat);
-                    // Save immediately with the new computed values
-                    const updatedProfile = {
-                      ...userProfile,
-                      dailyCalories: computed.calorieGoal,
-                      calorieGoal: computed.calorieGoal,
-                      proteinTarget: computed.protein,
-                      protein: computed.protein,
-                      carbs: computed.carbs,
-                      fat: computed.fat,
-                      targetMacros: { protein: computed.protein, carbs: computed.carbs, fat: computed.fat },
-                      bmr: computed.bmr,
-                      tdee: computed.tdee,
-                      weight: Number(weight),
-                      height: Number(height),
-                      age: Number(ageInput),
-                      gender,
-                      activity: Number(activity),
-                      goal,
-                      units
-                    };
-                    updateUserProfile(updatedProfile);
-                    try {
-                      await saveUserProfile(userId, updatedProfile);
-                      if (onNotification) onNotification(`Macro targets calculated & saved! ${computed.calorieGoal} kcal | ${computed.protein}g protein`);
-                    } catch (err) {
-                      if (onNotification) onNotification("Macro targets calculated! Click Save to persist.");
-                    }
-                  }}
-                  className="bg-acid-green text-black px-3 py-1.5 rounded-lg text-[9.5px] font-black uppercase tracking-wider border-none cursor-pointer hover:opacity-90 flex items-center gap-1 shrink-0"
+                  onClick={() => setEditSection(editSection === 'health' ? null : 'health')}
+                  className="text-[10px] font-extrabold text-accent bg-accent/10 hover:bg-accent/20 px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer border-none transition-colors"
                 >
-                  <Sparkles className="w-3 h-3" /> Auto-Calculate
+                  {editSection === 'health' ? 'Cancel' : 'Edit Targets'}
                 </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-2" id="setup-field-height_weight">
-                <div>
-                  <label className={labelClass}>Weight ({units === 'metric' ? 'kg' : 'lbs'})</label>
-                  <input type="number" step="0.1" value={weight} onFocus={(e) => e.target.select()} onChange={(e) => setWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-                <div>
-                  <label className={labelClass}>Height ({units === 'metric' ? 'cm' : 'in'})</label>
-                  <input type="number" value={height} onFocus={(e) => e.target.select()} onChange={(e) => setHeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-                <div>
-                  <label className={labelClass}>Goal Weight</label>
-                  <input id="setup-field-target_weight" type="number" step="0.1" value={goalWeight} onFocus={(e) => e.target.select()} onChange={(e) => setGoalWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className={labelClass}>Daily Calories (kcal)</label>
-                  <input id="setup-field-calorie_target" type="number" value={dailyCalories} onFocus={(e) => e.target.select()} onChange={(e) => setDailyCalories(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-                <div>
-                  <label className={labelClass}>Water Target (ml)</label>
-                  <input type="number" value={waterTarget} onFocus={(e) => e.target.select()} onChange={(e) => setWaterTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className={labelClass}>Protein (g)</label>
-                  <input type="number" value={proteinTarget} onFocus={(e) => e.target.select()} onChange={(e) => setProteinTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-                <div>
-                  <label className={labelClass}>Carbs (g)</label>
-                  <input type="number" value={carbsTarget} onFocus={(e) => e.target.select()} onChange={(e) => setCarbsTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-                <div>
-                  <label className={labelClass}>Fat (g)</label>
-                  <input type="number" value={fatTarget} onFocus={(e) => e.target.select()} onChange={(e) => setFatTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-              </div>
-
-              <button type="submit" disabled={saving} className="w-full btn-primary py-2 rounded-lg font-bold text-[10px] uppercase tracking-wider border-none flex items-center justify-center gap-1 cursor-pointer">
-                {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                Save Targets
-              </button>
-            </form>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Height & Weight</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{height}{units === 'metric' ? 'cm' : 'in'} • {weight}{units === 'metric' ? 'kg' : 'lbs'}</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Goal Weight</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{goalWeight}{units === 'metric' ? 'kg' : 'lbs'}</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Calorie Target</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{dailyCalories} kcal</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Protein Target</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{proteinTarget} g</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Carbs Target</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{carbsTarget} g</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Fat Target</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{fatTarget} g</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-        {/* ─── Daily Routine & Scheduled Timings Card ─── */}
-        <div className="glass rounded-xl border border-card-border p-4">
-          <div className="flex items-center justify-between mb-3 border-b border-card-border pb-2">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-acid-green" />
-              <h3 className="text-xs font-black text-foreground uppercase tracking-wider">Daily Routine & Reminder Timings</h3>
-            </div>
-            <button
-              type="button"
-              onClick={() => setEditSection(editSection === 'routine' ? null : 'routine')}
-              className="text-[10px] font-bold text-acid-green hover:underline cursor-pointer bg-transparent border-none"
-            >
-              {editSection === 'routine' ? 'Cancel' : 'Edit Timings'}
-            </button>
-          </div>
-
-          {editSection === 'routine' ? (
-            <form onSubmit={(e) => { handleSaveAllDetails(e); setEditSection(null); }} className="space-y-3">
-              <p className="text-[10px] text-muted">Set when you eat, train, and sleep so Calyxo sends smart notifications at your exact hours.</p>
-              
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-foreground block">Breakfast</label>
-                  <input
-                    type="time"
-                    value={schedule?.breakfastTime || '08:30'}
-                    onChange={(e) => setSchedule({ ...schedule, breakfastTime: e.target.value })}
-                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
-                  />
-                </div>
-
-                <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-foreground block">Lunch</label>
-                  <input
-                    type="time"
-                    value={schedule?.lunchTime || '13:00'}
-                    onChange={(e) => setSchedule({ ...schedule, lunchTime: e.target.value })}
-                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
-                  />
-                </div>
-
-                <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-foreground block">Evening Snack</label>
-                  <input
-                    type="time"
-                    value={schedule?.snackTime || '17:00'}
-                    onChange={(e) => setSchedule({ ...schedule, snackTime: e.target.value })}
-                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
-                  />
-                </div>
-
-                <div className="bg-surface border border-acid-green/40 rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-acid-green block">Workout / Gym</label>
-                  <input
-                    type="time"
-                    value={schedule?.workoutTime || '18:30'}
-                    onChange={(e) => setSchedule({ ...schedule, workoutTime: e.target.value })}
-                    className="w-full bg-[var(--input)] text-acid-green border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
-                  />
-                </div>
-
-                <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-foreground block">Dinner</label>
-                  <input
-                    type="time"
-                    value={schedule?.dinnerTime || '20:30'}
-                    onChange={(e) => setSchedule({ ...schedule, dinnerTime: e.target.value })}
-                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
-                  />
-                </div>
-
-                <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-foreground block">Bedtime</label>
-                  <input
-                    type="time"
-                    value={schedule?.sleepTime || '23:00'}
-                    onChange={(e) => setSchedule({ ...schedule, sleepTime: e.target.value })}
-                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
-                  />
-                </div>
-              </div>
-
-              <button type="submit" disabled={saving} className="w-full btn-primary py-2 rounded-lg font-bold text-[10px] uppercase tracking-wider border-none flex items-center justify-center gap-1 cursor-pointer">
-                {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                Save Timings
-              </button>
-            </form>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Breakfast</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.breakfastTime || '08:30'}</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Lunch</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.lunchTime || '13:00'}</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Snack</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.snackTime || '17:00'}</span>
-              </div>
-              <div className="bg-surface/50 border border-acid-green/30 rounded-lg p-2.5">
-                <span className="text-[8px] text-acid-green font-bold uppercase tracking-wider block">Workout</span>
-                <span className="text-xs font-black text-acid-green mt-0.5 block">{schedule?.workoutTime || '18:30'}</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Dinner</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.dinnerTime || '20:30'}</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Bedtime</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.sleepTime || '23:00'}</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ─── Achievements Row (Horizontal list) ─── */}
-        {ecoStore.achievements && ecoStore.achievements.some(a => a.unlocked) && (
-          <div className="glass rounded-xl border border-card-border p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[10px] font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <Award className="w-3.5 h-3.5 text-yellow-400" /> Unlocked Achievements
-              </h3>
-              <span className="text-[9px] text-acid-green font-bold">{unlockedAchievements} Unlocked</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {ecoStore.achievements.filter(a => a.unlocked).map(a => (
-                <div key={a.id} className="flex items-center gap-1 bg-surface border border-card-border rounded-lg px-2 py-1 shrink-0">
-                  <span className="text-xs">{a.icon}</span>
-                  <span className="text-[9px] text-foreground font-bold">{a.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ─── Advanced Settings Collapsible Trigger (Mobile Only) ─── */}
-        <button
-          onClick={() => setAdvancedOpen(!advancedOpen)}
-          className="md:hidden w-full flex items-center justify-between px-4 py-3 glass border border-card-border rounded-xl hover:border-acid-green/40 transition-all cursor-pointer text-left font-bold"
-        >
-          <div className="flex items-center gap-2">
-            <Settings className="w-4 h-4 text-acid-green" />
-            <span className="text-xs font-bold text-foreground">Advanced Settings</span>
-          </div>
-          <span className="text-xs text-muted font-bold">{advancedOpen ? '▲' : '▼'}</span>
-        </button>
-
-        {/* ─── Advanced Settings Content ─── */}
-        {advancedOpen && (
-          <div className="space-y-2 border border-card-border/60 p-2.5 rounded-xl bg-surface/20">
-            {/* On desktop, show the active panel without accordion wrapper if possible, but keeping accordion is safer to avoid breaking state */}
-            {[
-              { id: 'routine', label: 'Daily Routine & Timings', icon: Clock },
-              { id: 'permissions', label: 'Permissions & Connections', icon: ShieldCheck },
-              { id: 'coaching', label: 'My Coaching', icon: Users },
-              { id: 'appearance', label: 'Appearance & Themes', icon: Eye },
-              { id: 'ai', label: 'AI Coach Settings', icon: Sparkles },
-              { id: 'notifications', label: 'Notification Settings', icon: Bell },
-              { id: 'privacy', label: 'Privacy & Telemetry', icon: Shield },
-              { id: 'security', label: 'Security & 2FA', icon: Key },
-              { id: 'subscription', label: 'Subscription Plans', icon: CreditCard },
-              { id: 'data', label: 'Data & Storage', icon: Database },
-              { id: 'about', label: 'About & Legal Policies', icon: Info },
-            ].map(acc => {
-              const isOpen = openAccordion === acc.id || (!openAccordion && acc.id === 'routine'); // default open routine on desktop
-              
-              // Only render if it's the open one on desktop, or render all as accordion on mobile
-              return (
-                <div key={acc.id} className={`border border-card-border rounded-lg overflow-hidden glass bg-surface/30 ${!isOpen && 'md:hidden'}`}>
-                  <button
-                    onClick={() => toggleAccordion(acc.id)}
-                    className="w-full flex md:hidden items-center justify-between p-3 text-xs font-bold text-foreground hover:bg-surface/50 transition-colors cursor-pointer border-none"
-                  >
-                    <div className="flex items-center gap-2">
-                      <acc.icon className="w-3.5 h-3.5 text-muted" />
-                      <span>{acc.label}</span>
+              {editSection === 'health' ? (
+                <form onSubmit={(e) => { handleSaveAllDetails(e); setEditSection(null); }} className="space-y-3.5">
+                  <div className="flex justify-between items-center bg-accent/10 border border-accent/20 p-3 rounded-xl">
+                    <div>
+                      <span className="text-xs font-bold text-foreground block">Auto-Calculate Targets</span>
+                      <span className="text-[10px] text-muted block">Compute optimal calories & macros from biometrics</span>
                     </div>
-                    <span className="text-muted">{isOpen ? '▲' : '▼'}</span>
-                  </button>
-                  
-                  {/* Desktop header */}
-                  <div className="hidden md:flex items-center gap-2 p-4 border-b border-card-border bg-surface/50">
-                    <acc.icon className="w-4 h-4 text-acid-green" />
-                    <h3 className="text-sm font-black text-foreground uppercase tracking-wider">{acc.label}</h3>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const computed = calculateMacroTargets({ weight, height, age: ageInput, gender, activity, goal, units });
+                        setDailyCalories(computed.calorieGoal);
+                        setProteinTarget(computed.protein);
+                        setCarbsTarget(computed.carbs);
+                        setFatTarget(computed.fat);
+                        const updatedProfile = {
+                          ...userProfile,
+                          dailyCalories: computed.calorieGoal,
+                          calorieGoal: computed.calorieGoal,
+                          proteinTarget: computed.protein,
+                          protein: computed.protein,
+                          carbs: computed.carbs,
+                          fat: computed.fat,
+                          targetMacros: { protein: computed.protein, carbs: computed.carbs, fat: computed.fat },
+                          bmr: computed.bmr,
+                          tdee: computed.tdee,
+                          weight: Number(weight),
+                          height: Number(height),
+                          age: Number(ageInput),
+                          gender,
+                          activity: Number(activity),
+                          goal,
+                          units
+                        };
+                        updateUserProfile(updatedProfile);
+                        try {
+                          await saveUserProfile(userId, updatedProfile);
+                          if (onNotification) onNotification(`Targets calculated! ${computed.calorieGoal} kcal | ${computed.protein}g protein`);
+                        } catch (err) {
+                          if (onNotification) onNotification("Targets computed! Save to persist.");
+                        }
+                      }}
+                      className="bg-accent text-black px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider border-none cursor-pointer hover:opacity-90 flex items-center gap-1.5 shrink-0"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" /> Auto-Calculate
+                    </button>
                   </div>
 
-                  {isOpen && (
-                    <div className="p-4 bg-[var(--card-bg)] space-y-4">
-                      {acc.id === 'routine' && renderRoutineForm()}
-                      {acc.id === 'permissions' && <PermissionsConnectionsSection onNotification={onNotification} />}
-                      {acc.id === 'coaching' && renderCoachingForm()}
-                      {acc.id === 'appearance' && renderAppearanceForm()}
-                      {acc.id === 'ai' && renderAIForm()}
-                      {acc.id === 'notifications' && renderNotificationsForm()}
-                      {acc.id === 'privacy' && renderPrivacyForm()}
-                      {acc.id === 'security' && renderSecurityForm()}
-                      {acc.id === 'subscription' && renderSubscriptionForm()}
-                      {acc.id === 'data' && renderDataForm()}
-                      {acc.id === 'about' && renderAboutForm()}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className={labelClass}>Weight ({units === 'metric' ? 'kg' : 'lbs'})</label>
+                      <input type="number" step="0.1" value={weight} onFocus={(e) => e.target.select()} onChange={(e) => setWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner" />
                     </div>
-                  )}
+                    <div>
+                      <label className={labelClass}>Height ({units === 'metric' ? 'cm' : 'in'})</label>
+                      <input type="number" value={height} onFocus={(e) => e.target.select()} onChange={(e) => setHeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Goal Weight</label>
+                      <input id="setup-field-target_weight" type="number" step="0.1" value={goalWeight} onFocus={(e) => e.target.select()} onChange={(e) => setGoalWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelClass}>Daily Calories (kcal)</label>
+                      <input id="setup-field-calorie_target" type="number" value={dailyCalories} onFocus={(e) => e.target.select()} onChange={(e) => setDailyCalories(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Water Target (ml)</label>
+                      <input type="number" value={waterTarget} onFocus={(e) => e.target.select()} onChange={(e) => setWaterTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className={labelClass}>Protein (g)</label>
+                      <input type="number" value={proteinTarget} onFocus={(e) => e.target.select()} onChange={(e) => setProteinTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Carbs (g)</label>
+                      <input type="number" value={carbsTarget} onFocus={(e) => e.target.select()} onChange={(e) => setCarbsTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Fat (g)</label>
+                      <input type="number" value={fatTarget} onFocus={(e) => e.target.select()} onChange={(e) => setFatTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-3 py-2 rounded-xl focus:outline-none focus:border-accent text-xs shadow-inner" />
+                    </div>
+                  </div>
+
+                  <button type="submit" disabled={saving} className="w-full btn-primary py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider border-none flex items-center justify-center gap-1.5 cursor-pointer">
+                    {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                    Save Macro Targets
+                  </button>
+                </form>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Daily Calories</span>
+                    <span className="text-lg font-black text-foreground mt-0.5 block font-mono">{dailyCalories} <span className="text-xs text-muted font-normal">kcal</span></span>
+                  </div>
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Protein</span>
+                    <span className="text-lg font-black text-accent mt-0.5 block font-mono">{proteinTarget}g</span>
+                  </div>
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Carbs</span>
+                    <span className="text-lg font-black text-cyan-400 mt-0.5 block font-mono">{carbsTarget}g</span>
+                  </div>
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Fats</span>
+                    <span className="text-lg font-black text-amber-400 mt-0.5 block font-mono">{fatTarget}g</span>
+                  </div>
                 </div>
-              );
-            })}
+              )}
+            </div>
+
+            {/* Dietary Preferences */}
+            <div className="glass p-5 rounded-2xl border border-card-border space-y-3">
+              <label className={labelClass}>Dietary Preferences & Protocol</label>
+              <div className="flex flex-wrap gap-1.5">
+                {DIET_PREFERENCES_OPTIONS.map(opt => {
+                  const selected = dietPreferences.includes(opt);
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => {
+                        setDietPreferences(prev => 
+                          prev.includes(opt) ? prev.filter(x => x !== opt) : [...prev, opt]
+                        );
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase border cursor-pointer transition-colors ${
+                        selected 
+                          ? 'bg-accent/15 border-accent text-accent' 
+                          : 'bg-surface border-card-border text-muted hover:text-foreground'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
 
-        {/* ─── Sign Out (Mobile) ─── */}
-        <button
-          onClick={handleLogout}
-          className="md:hidden w-full flex items-center justify-center gap-2 py-3 border border-destructive/20 hover:border-destructive active:border-destructive bg-destructive/5 hover:bg-destructive/10 text-destructive text-[10px] uppercase font-bold tracking-wider rounded-xl transition-all cursor-pointer"
-        >
-          <LogOut className="w-4 h-4" />
-          Sign Out
-        </button>
 
+        {/* NOTIFICATIONS SECTION */}
+        {activeTab === 'notifications' && (
+          <div className="space-y-5 animate-fade-in glass p-5 rounded-2xl border border-card-border">
+            <div className="flex items-center gap-2 border-b border-card-border/60 pb-3 mb-4">
+              <Bell className="w-4 h-4 text-accent" />
+              <h3 className="text-sm font-black text-foreground uppercase tracking-wider">Push & Reminder Notifications</h3>
+            </div>
+            {renderNotificationsForm()}
+          </div>
+        )}
+
+        {/* PRIVACY SECTION */}
+        {activeTab === 'privacy' && (
+          <div className="space-y-5 animate-fade-in">
+            <div className="glass p-5 rounded-2xl border border-card-border space-y-4">
+              <div className="flex items-center gap-2 border-b border-card-border/60 pb-3">
+                <Shield className="w-4 h-4 text-accent" />
+                <h3 className="text-sm font-black text-foreground uppercase tracking-wider">Privacy & Telemetry Controls</h3>
+              </div>
+              {renderPrivacyForm()}
+            </div>
+            <div className="glass p-5 rounded-2xl border border-card-border space-y-4">
+              <div className="flex items-center gap-2 border-b border-card-border/60 pb-3">
+                <Database className="w-4 h-4 text-accent" />
+                <h3 className="text-sm font-black text-foreground uppercase tracking-wider">Data & Local Storage</h3>
+              </div>
+              {renderDataForm()}
+            </div>
+            <div className="glass p-5 rounded-2xl border border-card-border space-y-4">
+              <div className="flex items-center gap-2 border-b border-card-border/60 pb-3">
+                <Info className="w-4 h-4 text-accent" />
+                <h3 className="text-sm font-black text-foreground uppercase tracking-wider">About & Legal Disclosures</h3>
+              </div>
+              {renderAboutForm()}
+            </div>
+          </div>
+        )}
+
+        {/* ACCOUNT SECTION */}
+        {activeTab === 'account' && (
+          <div className="space-y-5 animate-fade-in">
+            <div className="glass p-5 rounded-2xl border border-card-border space-y-4">
+              <div className="flex items-center gap-2 border-b border-card-border/60 pb-3">
+                <Key className="w-4 h-4 text-accent" />
+                <h3 className="text-sm font-black text-foreground uppercase tracking-wider">Account Credentials & Security</h3>
+              </div>
+              {renderSecurityForm()}
+            </div>
+
+            <div className="glass p-5 rounded-2xl border border-card-border space-y-4">
+              <div className="flex items-center gap-2 border-b border-card-border/60 pb-3">
+                <CreditCard className="w-4 h-4 text-accent" />
+                <h3 className="text-sm font-black text-foreground uppercase tracking-wider">Subscription & Membership</h3>
+              </div>
+              {renderSubscriptionForm()}
+            </div>
+
+            {/* Session Management */}
+            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-5 space-y-3">
+              <h4 className="text-xs font-black uppercase tracking-wider text-destructive">Account Session</h4>
+              <p className="text-xs text-muted">Sign out of Calyxo on this device or terminate active credentials.</p>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 py-3 border border-destructive/30 hover:border-destructive bg-destructive/10 hover:bg-destructive/20 text-destructive text-xs uppercase font-bold tracking-wider rounded-xl transition-all cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out of Calyxo
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

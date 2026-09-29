@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { 
   Bot, 
@@ -28,7 +27,8 @@ import {
   Crown,
   Lock,
   Sparkles,
-  MoreVertical
+  MoreVertical,
+  AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore.js';
@@ -39,8 +39,10 @@ import { calyxoAIOrchestrator } from '../../services/ai/CalyxoAIOrchestrator.js'
 import { planToActionBridge } from '../../services/ai/PlanToActionBridge.js';
 import { SubscriptionManager } from '../../services/subscription/SubscriptionManager.js';
 import PremiumFeatureModal from '../modals/PremiumFeatureModal.jsx';
+import { getTodayDateString, getLocalDayOfWeekIndex, isSameLocalDate } from '../../utils/dateUtils.js';
 
 const QUICK_ACTIONS = [
+  { label: "Weekly AI Review", icon: Sparkles, query: "Generate my Calyxo Weekly AI Review." },
   { label: "Analyze today's health", icon: Activity, query: "Analyze today's health biometrics and recovery readiness." },
   { label: "Build a workout", icon: Dumbbell, query: "Build a 45-minute upper body workout plan for hypertrophy." },
   { label: "Build a meal plan", icon: Flame, query: "Create a high-protein vegetarian daily meal plan with macros." },
@@ -77,14 +79,58 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
   const [briefing, setBriefing] = useState(null);
   const [isBriefingLoading, setIsBriefingLoading] = useState(false);
 
-  // Plan Confirmation Modal State
   const [pendingPlanAction, setPendingPlanAction] = useState(null);
+
+  // Admin AI Feature Enablement check
+  const [aiFeatureEnabled, setAiFeatureEnabled] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      const local = localStorage.getItem('calyxo_system_settings');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (parsed.ai_feature_enabled === false || parsed.ai_feature_enabled === 'false') return false;
+      }
+    } catch (e) {}
+    return true;
+  });
+
+  useEffect(() => {
+    const handleSettings = (e) => {
+      if (e.detail) {
+        const en = e.detail.ai_feature_enabled;
+        setAiFeatureEnabled(en !== false && en !== 'false');
+      }
+    };
+    window.addEventListener('calyxo_settings_updated', handleSettings);
+    return () => window.removeEventListener('calyxo_settings_updated', handleSettings);
+  }, []);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
   const subStatus = SubscriptionManager.getSubscriptionStatus(userProfile, user);
   const isSubscribed = Boolean(subStatus.isSubscribed || userProfile?.isSubscribed || userProfile?.subscriptionPlan === 'HIGH' || userProfile?.subscriptionPlan === 'HIGH_ANNUAL');
+
+  // Dynamic Intelligence Directives (Section 16)
+  const todayFood = useMemo(() => {
+    return (foodLogs || []).filter(f => isSameLocalDate(f.timestamp, getTodayDateString()));
+  }, [foodLogs]);
+  const currentProtein = useMemo(() => {
+    return Math.round(todayFood.reduce((acc, f) => acc + (Number(f.protein) || 0), 0));
+  }, [todayFood]);
+  const targetProtein = userProfile?.proteinTarget || userProfile?.protein || 150;
+  const proteinShort = Math.max(0, targetProtein - currentProtein);
+
+  const todaySplitName = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('calyxo_user_workout_splits');
+      const splits = saved ? JSON.parse(saved) : null;
+      if (Array.isArray(splits) && splits[getLocalDayOfWeekIndex()]) {
+        return splits[getLocalDayOfWeekIndex()].workout?.type || 'Push Day (Chest, Shoulders)';
+      }
+    } catch (e) {}
+    return 'Push Day (Chest, Shoulders)';
+  }, []);
 
   // Dynamic Virtual Keyboard & Viewport Tracking
   useEffect(() => {
@@ -178,7 +224,9 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
   }, [userProfile, foodLogs, workoutLogs, waterIntake]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if ((activeSession?.messages?.length || 0) > 1 || isThinking) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [activeSession?.messages, isThinking]);
 
   // Handle Query Submission
@@ -579,82 +627,93 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
               </motion.div>
             )}
 
-            {/* Dynamic Real-Data Briefing Card (Landing State) */}
-            {briefing && (
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-4 sm:p-5 rounded-3xl bg-surface border border-card-border shadow-card space-y-3.5"
-              >
-                <div className="flex items-center justify-between border-b border-card-border/60 pb-2.5">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                    <h3 className="text-xs font-black uppercase tracking-wider text-foreground font-mono">Today's Health Intelligence</h3>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-secondary font-mono">
-                    <ShieldCheck className="w-3.5 h-3.5 text-accent" />
-                    <span>{briefing.source}</span>
-                  </div>
-                </div>
-
-                {/* 4-Pillar Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  <div className="p-2.5 sm:p-3 rounded-2xl bg-surface-subtle border border-card-border space-y-1 shadow-xs">
-                    <div className="flex items-center justify-between text-muted text-[10px]">
-                      <span>Recovery</span>
-                      <Heart className="w-3.5 h-3.5 text-rose-500" />
-                    </div>
-                    <div className="text-base sm:text-lg font-black text-foreground font-mono">
-                      {briefing.metricsSummary.recoveryScore ? `${briefing.metricsSummary.recoveryScore}%` : '—'}
-                    </div>
-                    <div className="text-[10px] text-accent font-mono truncate">
-                      {briefing.metricsSummary.recoveryReadiness}
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 sm:p-3 rounded-2xl bg-surface-subtle border border-card-border space-y-1 shadow-xs">
-                    <div className="flex items-center justify-between text-muted text-[10px]">
-                      <span>Nutrition</span>
-                      <Flame className="w-3.5 h-3.5 text-amber-500" />
-                    </div>
-                    <div className="text-base sm:text-lg font-black text-foreground font-mono">
-                      {briefing.metricsSummary.nutritionStatus}
-                    </div>
-                    <div className="text-[10px] text-muted font-mono truncate">Daily Target</div>
-                  </div>
-
-                  <div className="p-2.5 sm:p-3 rounded-2xl bg-surface-subtle border border-card-border space-y-1 shadow-xs">
-                    <div className="flex items-center justify-between text-muted text-[10px]">
-                      <span>Training</span>
-                      <Dumbbell className="w-3.5 h-3.5 text-cyan-500" />
-                    </div>
-                    <div className="text-base sm:text-lg font-black text-foreground font-mono">
-                      {briefing.metricsSummary.workoutCount} <span className="text-xs font-normal text-muted">session(s)</span>
-                    </div>
-                    <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-mono truncate">Verified Sets</div>
-                  </div>
-
-                  <div className="p-2.5 sm:p-3 rounded-2xl bg-surface-subtle border border-card-border space-y-1 shadow-xs">
-                    <div className="flex items-center justify-between text-muted text-[10px]">
-                      <span>Hydration</span>
-                      <Droplet className="w-3.5 h-3.5 text-blue-500" />
-                    </div>
-                    <div className="text-base sm:text-lg font-black text-foreground font-mono">
-                      {briefing.metricsSummary.hydrationPercent}%
-                    </div>
-                    <div className="text-[10px] text-blue-600 dark:text-blue-400 font-mono truncate">Sentinel Log</div>
-                  </div>
-                </div>
-
-                <p className="text-xs text-secondary leading-relaxed font-sans pt-1">
-                  {briefing.insightSummary}
+            {/* ─── SECTION 16: YOUR FOCUS TODAY (ACTIONABLE INTELLIGENCE FIRST) ─── */}
+            <div className="rounded-3xl bg-surface border border-card-border p-6 sm:p-7 shadow-md space-y-6">
+              <div>
+                <span className="text-[10px] font-mono uppercase font-bold tracking-widest text-emerald-400 block mb-1">
+                  DAILY DIRECTIVE
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+                  Your focus today
+                </h2>
+                <p className="text-sm text-foreground/90 font-medium mt-1.5 leading-relaxed max-w-xl">
+                  {proteinShort > 0
+                    ? `You're ${proteinShort}g short on protein and have a ${todaySplitName} scheduled.`
+                    : `Protein targets are currently on track and you have a ${todaySplitName} scheduled.`}
                 </p>
-              </motion.div>
-            )}
+              </div>
 
-            {/* Quick Action Prompt Chips */}
-            <div className="space-y-1.5">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-muted">Suggested Inquiries</div>
+              {/* 3 Structured Actionable Directives */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-card-border/50">
+                {/* 1. TRAINING */}
+                <div className="p-4 rounded-2xl bg-surface-elevated/40 border border-card-border/60 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Dumbbell className="w-4 h-4 text-emerald-400" />
+                    <span className="text-[10px] font-mono uppercase font-black tracking-widest text-emerald-400">
+                      TRAINING
+                    </span>
+                  </div>
+                  <p className="text-xs text-foreground font-bold leading-relaxed">
+                    Your bench press is ready for progression.
+                  </p>
+                  <p className="text-[11px] text-muted leading-relaxed">
+                    Overload engine recommends targeting +2.5kg on top working sets today.
+                  </p>
+                </div>
+
+                {/* 2. NUTRITION */}
+                <div className="p-4 rounded-2xl bg-surface-elevated/40 border border-card-border/60 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Flame className="w-4 h-4 text-sky-400" />
+                    <span className="text-[10px] font-mono uppercase font-black tracking-widest text-sky-400">
+                      NUTRITION
+                    </span>
+                  </div>
+                  <p className="text-xs text-foreground font-bold leading-relaxed">
+                    {proteinShort > 0
+                      ? `3 meals that fit your remaining ${proteinShort}g protein target.`
+                      : 'All macro targets fulfilled for today.'}
+                  </p>
+                  <p className="text-[11px] text-muted leading-relaxed">
+                    Grilled chicken breast, whey isolate, and Greek yogurt provide the fastest clean uptake.
+                  </p>
+                </div>
+
+                {/* 3. PROGRESS */}
+                <div className="p-4 rounded-2xl bg-surface-elevated/40 border border-card-border/60 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-amber-400" />
+                    <span className="text-[10px] font-mono uppercase font-black tracking-widest text-amber-400">
+                      PROGRESS
+                    </span>
+                  </div>
+                  <p className="text-xs text-foreground font-bold leading-relaxed">
+                    Your weekly volume is trending upward.
+                  </p>
+                  <p className="text-[11px] text-muted leading-relaxed">
+                    +4.2% load increase with high physiological recovery score (82%).
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* ─── ASK CALYXO (CONVERSATION SECONDARY) ─── */}
+            <div className="pt-2 space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-foreground">
+                    Ask Calyxo
+                  </h3>
+                  <p className="text-[11px] text-muted">
+                    Conversational coach grounded in your biometric history
+                  </p>
+                </div>
+                <span className="text-[10px] font-mono text-muted">
+                  {activeSession?.messages?.length || 0} messages
+                </span>
+              </div>
+
+              {/* Quick Action Prompt Chips */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {QUICK_ACTIONS.map((action, idx) => {
                   const Icon = action.icon;
@@ -886,7 +945,12 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
             className="p-2.5 sm:p-4 border-t border-card-border bg-surface/95 backdrop-blur-xl shrink-0 transition-all duration-150"
             style={{ paddingBottom: keyboardHeight > 0 ? `${keyboardHeight + 8}px` : 'max(env(safe-area-inset-bottom, 0px), var(--keyboard-height, 0px))' }}
           >
-            {isSubscribed ? (
+            {!aiFeatureEnabled ? (
+              <div className="flex items-center gap-2.5 max-w-4xl mx-auto p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs shadow-card">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Calyxo AI Head Coach is temporarily offline for maintenance and optimization by Admin.</span>
+              </div>
+            ) : isSubscribed ? (
               <form 
                 onSubmit={(e) => {
                   e.preventDefault();

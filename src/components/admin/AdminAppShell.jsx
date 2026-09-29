@@ -52,23 +52,22 @@ const AdminAppShell = () => {
   }, [navigate, initializeTheme]);
 
   return (
-    <div className="min-h-screen font-sans antialiased flex bg-neutral-950 text-neutral-100 selection:bg-blue-500/30 selection:text-blue-200">
-      <Toaster richColors position="top-right" />
+    <div className="min-h-screen font-sans antialiased flex bg-[#07080b] text-white selection:bg-lime-400 selection:text-black">
+      <Toaster richColors position="top-right" theme="dark" />
 
-      {/* New Enterprise Sidebar */}
+      {/* Modern Calyxo Left Sidebar */}
       <AdminSidebarV2
         collapsed={sidebarCollapsed}
         setCollapsed={setSidebarCollapsed}
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
-        onOpenSearch={() => setSearchOpen(true)}
       />
 
       {/* Main Workspace Layout */}
-      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
-        sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${
+        sidebarCollapsed ? 'lg:pl-18' : 'lg:pl-60'
       }`}>
-        {/* Topbar Navigation */}
+        {/* Topbar Navigation Header */}
         <AdminTopbarV2
           setMobileOpen={setMobileOpen}
           onOpenSearch={() => setSearchOpen(true)}
@@ -76,14 +75,14 @@ const AdminAppShell = () => {
         />
 
         {/* Dynamic Route View */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
-          <div className="max-w-7xl mx-auto w-full space-y-6">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden bg-[#07080b]">
+          <div className="max-w-[1600px] mx-auto w-full space-y-6">
             <Outlet context={{ onSelectUser: setSelectedUser }} />
           </div>
         </main>
       </div>
 
-      {/* Global Command Search Palette */}
+      {/* Global Command Search Palette (CMD+K) */}
       <AdminGlobalSearchModal
         isOpen={searchOpen}
         onClose={() => setSearchOpen(false)}
@@ -94,10 +93,10 @@ const AdminAppShell = () => {
       <NotificationComposerModal
         isOpen={quickActionOpen}
         onClose={() => setQuickActionOpen(false)}
-        onSuccess={() => toast.success('Quick broadcast dispatched successfully!')}
+        onSuccess={() => toast.success('Broadcast sent successfully!')}
       />
 
-      {/* User Profile Detail Inspector Drawer */}
+      {/* User 360 Profile Detail Inspector Drawer */}
       {selectedUser && (
         <UserProfileDetailModal
           user={selectedUser}

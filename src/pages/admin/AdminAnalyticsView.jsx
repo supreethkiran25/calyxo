@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { TrendingUp, Activity, Users, Utensils, Dumbbell } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { TrendingUp, Activity, Users, Utensils, Dumbbell, IndianRupee, Flame, UserCheck } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid } from 'recharts';
 import { getAdminDashboardMetrics } from '../../services/adminService';
 import {
   AdminPageHeader,
@@ -30,7 +30,6 @@ const AdminAnalyticsView = () => {
     loadMetrics();
   }, [loadMetrics]);
 
-  // Real-time Supabase WebSockets listener
   useAdminRealtime(['user_profiles', 'subscriptions', 'food_logs', 'workout_logs'], () => {
     loadMetrics();
   });
@@ -46,7 +45,7 @@ const AdminAnalyticsView = () => {
       {/* 1. Header Context */}
       <AdminPageHeader
         title="Platform Analytics"
-        description="Aggregated athlete retention, workout completion rates, and nutrition tracking trends"
+        description="Comprehensive athlete retention, workout completion rates, nutrition tracking trends, and recurring revenue."
         actions={
           <AdminDateRangePicker selectedRange={dateRange} onSelectRange={setDateRange} />
         }
@@ -56,70 +55,111 @@ const AdminAnalyticsView = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <AdminStatCard
           title="Daily Active Users (DAU)"
-          value={kpis.dau.toLocaleString()}
+          value={(kpis.dau ?? 0).toLocaleString()}
           icon={Users}
-          subtitle="Unique active athletes"
+          trend={`${kpis.dau ?? 0} Athletes`}
+          trendLabel="active today (24h)"
         />
         <AdminStatCard
           title="Monthly Active Users (MAU)"
-          value={kpis.mau.toLocaleString()}
+          value={(kpis.mau ?? 0).toLocaleString()}
           icon={TrendingUp}
-          subtitle="30-day active roster"
+          trend={`${kpis.mau ?? 0} Athletes`}
+          trendLabel="30-day active roster"
         />
         <AdminStatCard
           title="Logged Meals Total"
-          value={kpis.meals_logged_today.toLocaleString()}
+          value={(kpis.meals_logged_total ?? 0).toLocaleString()}
           icon={Utensils}
-          subtitle="Total nutrition entries"
+          trend={`${kpis.meals_logged_total ?? 0} Meals`}
+          trendLabel="nutrition logs in DB"
         />
         <AdminStatCard
-          title="Workouts Logged"
-          value={kpis.workout_sessions_today.toLocaleString()}
+          title="Workouts Completed"
+          value={(kpis.workout_activity ?? 0).toLocaleString()}
           icon={Dumbbell}
-          subtitle="Completed gym sessions"
+          trend={`${kpis.workout_activity ?? 0} Sessions`}
+          trendLabel="sessions in DB"
         />
       </div>
 
       {/* 3. Analytics Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Engagement Growth Chart */}
-        <div className="bg-neutral-900/90 border border-neutral-800/80 rounded-xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-mono font-semibold text-white tracking-tight flex items-center gap-2 uppercase">
-              <TrendingUp className="w-3.5 h-3.5 text-neutral-400" /> Athlete Trajectory & Growth
-            </h3>
-            <span className="text-[10px] font-mono text-neutral-500">Cumulative Registered</span>
+        <div className="bg-[#0e121d] border border-white/10 rounded-2xl p-6 shadow-2xl space-y-4 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#d4ff00]/30 to-transparent" />
+          <div className="flex items-center justify-between pb-3 border-b border-white/10">
+            <div>
+              <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-[#d4ff00]" /> Athlete Trajectory & Growth
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">Cumulative registered athletes over time</p>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#141724] text-slate-300 border border-white/10">
+              Supabase Auth DB
+            </span>
           </div>
-          <div className="h-64 w-full">
+
+          <div className="h-64 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={user_growth_chart}>
-                <XAxis dataKey="date" stroke="#525252" fontSize={10} fontStyle="mono" tickLine={false} />
-                <YAxis stroke="#525252" fontSize={10} fontStyle="mono" tickLine={false} />
-                <Tooltip contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace' }} />
-                <Area type="monotone" dataKey="total" stroke="#e5e5e5" fill="#525252" fillOpacity={0.15} name="Total Athletes" />
+              <AreaChart data={user_growth_chart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="analyticsUserGrowth" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#d4ff00" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#d4ff00" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e2333" />
+                <XAxis dataKey="date" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#090c14',
+                    borderColor: 'rgba(255,255,255,0.15)',
+                    borderRadius: '12px',
+                    color: '#fff',
+                    fontSize: '12px'
+                  }}
+                  formatter={(val) => [Number(val).toLocaleString(), 'Athletes']}
+                />
+                <Area type="monotone" dataKey="total" stroke="#d4ff00" strokeWidth={2} fillOpacity={1} fill="url(#analyticsUserGrowth)" name="Total Athletes" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Financial Growth Chart */}
-        <div className="bg-neutral-900/90 border border-neutral-800/80 rounded-xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-mono font-semibold text-white tracking-tight flex items-center gap-2 uppercase">
-              <Activity className="w-3.5 h-3.5 text-neutral-400" /> Subscription Revenue Trend
-            </h3>
-            <span className="text-[10px] font-mono text-neutral-500">Gross Monthly (INR)</span>
+        <div className="bg-[#0e121d] border border-white/10 rounded-2xl p-6 shadow-2xl space-y-4 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent" />
+          <div className="flex items-center justify-between pb-3 border-b border-white/10">
+            <div>
+              <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+                <Activity className="w-4 h-4 text-cyan-400" /> Subscription Revenue Trend
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">Gross monthly revenue in Indian Rupees (INR)</p>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#141724] text-slate-300 border border-white/10">
+              Razorpay Settlement
+            </span>
           </div>
-          <div className="h-64 w-full">
+
+          <div className="h-64 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={revenue_chart}>
-                <XAxis dataKey="month" stroke="#525252" fontSize={10} fontStyle="mono" tickLine={false} />
-                <YAxis stroke="#525252" fontSize={10} fontStyle="mono" tickLine={false} />
-                <Tooltip 
-                  formatter={(val) => [`₹${Number(val).toLocaleString()}`, 'Revenue']}
-                  contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace' }} 
+              <BarChart data={revenue_chart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e2333" />
+                <XAxis dataKey="month" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `₹${v / 1000}k`} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#090c14',
+                    borderColor: 'rgba(255,255,255,0.15)',
+                    borderRadius: '12px',
+                    color: '#fff',
+                    fontSize: '12px'
+                  }}
+                  formatter={(val) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Revenue']}
                 />
-                <Bar dataKey="revenue_inr" fill="#ffffff" radius={[3, 3, 0, 0]} name="Revenue (₹)" />
+                <Bar dataKey="revenue" fill="#38bdf8" radius={[4, 4, 0, 0]} maxBarSize={28} name="Revenue" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -130,4 +170,3 @@ const AdminAnalyticsView = () => {
 };
 
 export default AdminAnalyticsView;
-

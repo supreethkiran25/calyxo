@@ -232,11 +232,6 @@ class WearableIntegrationManager {
     }
   }
 
-  subscribe(callback) {
-    this.listeners.add(callback);
-    return () => this.listeners.delete(callback);
-  }
-
   getLiveHeartRate() {
     if (this.liveHeartRate && this.lastPacketTime && (Date.now() - this.lastPacketTime < 20000)) {
       return {

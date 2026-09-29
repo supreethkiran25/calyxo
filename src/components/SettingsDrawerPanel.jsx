@@ -12,13 +12,11 @@ import { startRazorpayCheckout, restoreSubscription, PAYMENT_STATUS } from '../u
 import { SubscriptionManager } from '../services/subscription/SubscriptionManager';
 import useQuickActionsStore from '../store/useQuickActionsStore';
 
-import PermissionsConnectionsSection from './PermissionsConnectionsSection';
 import WidgetStudioSection from './widgets/WidgetStudioSection';
 
 const SETTINGS_CATEGORIES = [
   { id: 'routine', label: 'Daily Routine & Timings', icon: Clock, desc: 'Meal, workout, hydration & sleep schedule' },
   { id: 'widgets', label: 'Home Screen & Widgets', icon: LayoutGrid, desc: 'Quad rings, steps, aesthetic styles & live sync' },
-  { id: 'permissions', label: 'Permissions & Connections', icon: Shield, desc: 'PWA, notifications & health integrations' },
   { id: 'appearance', label: 'Appearance & Themes', icon: Eye, desc: 'Themes, dark mode, background effects' },
   { id: 'aicoach', label: 'AI Coach Settings', icon: Sparkles, desc: 'Personality, response style & tone' },
   { id: 'notifications', label: 'Notification Settings', icon: Bell, desc: 'Rest timer, sound alerts & reminders' },
@@ -379,8 +377,6 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
         );
       case 'widgets':
         return <WidgetStudioSection onNotification={(msg) => { setSaveStatus(msg); setTimeout(() => setSaveStatus(''), 4000); }} />;
-      case 'permissions':
-        return <PermissionsConnectionsSection onNotification={(msg) => { setSaveStatus(msg); setTimeout(() => setSaveStatus(''), 4000); }} />;
       case 'appearance':
         return (
           <form onSubmit={(e) => handleSaveAll(e, 'Appearance Options')} className="space-y-4 text-xs">
@@ -1053,40 +1049,92 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
         else if (paymentState === PAYMENT_STATUS.CHECKOUT_ACTIVE) ctaText = 'Checkout in Progress...';
         else if (paymentState === PAYMENT_STATUS.VERIFYING_PAYMENT) ctaText = 'Verifying Payment...';
 
+        // Trigger 5-day expiry warning check on active subscription view
+        if (isUserSubscribed && subTimeline.isExpiringSoon) {
+          SubscriptionManager.checkAndSendExpiryAlert(userProfile, user, (msg) => {
+            setSaveStatus(msg);
+            setTimeout(() => setSaveStatus(''), 6000);
+          });
+        }
+
         return (
           <div className="space-y-4 text-xs">
-            {/* Status Header Card */}
-            <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--card-border)] space-y-2">
+            {/* Status Header Card with Countdown */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-[var(--surface)] border border-[var(--card-border)] space-y-3 shadow-lg">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-[var(--color-acid-green)]" />
-                  <span className="text-xs font-black uppercase text-[var(--foreground)]">Current Active Status</span>
+                  <span className="text-xs font-black uppercase text-[var(--foreground)] tracking-wide">Subscription Status</span>
                 </div>
-                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${
-                  isUserSubscribed 
-                    ? 'bg-[var(--color-acid-green)]/20 text-[var(--color-acid-green)] border-[var(--color-acid-green)]/30' 
-                    : 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20'
-                }`}>
-                  {subTimeline.isCancelled ? 'Cancelled (Active)' : isUserSubscribed ? 'Active Subscription' : 'Free Tier'}
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                <div>
-                  <p className="text-[11px] text-[var(--muted-foreground)]">
-                    Active Tier: <strong className="text-[var(--color-acid-green)] font-bold uppercase">{subTimeline.planName}</strong>
-                  </p>
-                  {subTimeline.timelineLabel && subTimeline.timelineDate && (
-                    <p className="text-[10px] font-medium text-[var(--foreground)] mt-0.5">
-                      {subTimeline.timelineLabel}: <span className="font-bold text-[var(--color-acid-green)]">{new Date(subTimeline.timelineDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                    </p>
+                <div className="flex items-center gap-2">
+                  {isUserSubscribed && (
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 ${
+                      subTimeline.isExpiringSoon 
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse'
+                        : 'bg-[var(--color-acid-green)]/20 text-[var(--color-acid-green)] border border-[var(--color-acid-green)]/40'
+                    }`}>
+                      <Clock className="w-3 h-3" />
+                      <span>{subTimeline.countdownString}</span>
+                    </span>
                   )}
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${
+                    isUserSubscribed 
+                      ? 'bg-[var(--color-acid-green)]/15 text-[var(--color-acid-green)] border-[var(--color-acid-green)]/30' 
+                      : 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20'
+                  }`}>
+                    {subTimeline.isCancelled ? 'Cancelled (Active)' : isUserSubscribed ? 'Active Subscription' : 'Free Tier'}
+                  </span>
                 </div>
+              </div>
+
+              {/* Countdown & Period Details */}
+              <div className="p-3 rounded-xl bg-black/30 border border-white/5 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-neutral-400 block tracking-wider">Active Tier</span>
+                    <strong className="text-sm text-[var(--color-acid-green)] font-black uppercase">{subTimeline.planName}</strong>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-neutral-400 block tracking-wider">
+                      {subTimeline.isCancelled ? 'Access Ends' : 'Renewal / Expiry'}
+                    </span>
+                    <span className="text-xs font-bold text-white font-mono">
+                      {subTimeline.expiresAt ? new Date(subTimeline.expiresAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Continuous'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Accurate Start -> End Period */}
+                {subTimeline.startedAt && subTimeline.expiresAt && (
+                  <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[10px] text-neutral-400 font-mono">
+                    <span>Started: {new Date(subTimeline.startedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    <span>Valid: {subTimeline.daysRemaining} days remaining</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 5-Day Expiry Notification Alert */}
+              {isUserSubscribed && subTimeline.isExpiringSoon && (
+                <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>
+                      <strong>Expiring in {subTimeline.daysRemaining} days:</strong> Renew now to maintain uninterrupted AI coach, 3D twin, and wearable sync!
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-1">
+                <p className="text-[10px] text-[var(--muted-foreground)]">
+                  {subTimeline.isCancelled ? 'Subscription cancelled. You will switch to Free Tier at period end.' : isUserSubscribed ? 'Renews automatically through Razorpay.' : 'Upgrade anytime to activate Calyxo AI High Pass.'}
+                </p>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={handleRestoreSubscription}
                     disabled={saving}
-                    className="px-2.5 py-1 rounded-xl bg-[var(--surface)] text-[var(--foreground)] hover:border-[var(--color-acid-green)] border border-[var(--card-border)] text-[10px] font-bold uppercase cursor-pointer"
+                    className="px-2.5 py-1 rounded-xl bg-[var(--surface)] text-[var(--foreground)] hover:border-[var(--color-acid-green)] border border-[var(--card-border)] text-[10px] font-bold uppercase cursor-pointer transition-all"
                   >
                     Restore
                   </button>
@@ -1094,7 +1142,7 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
                     <button
                       type="button"
                       onClick={handleCancelSubscription}
-                      className="px-2.5 py-1 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/30 text-[10px] font-bold uppercase cursor-pointer"
+                      className="px-2.5 py-1 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/30 text-[10px] font-bold uppercase cursor-pointer transition-all"
                     >
                       Cancel
                     </button>

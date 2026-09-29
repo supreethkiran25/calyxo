@@ -383,16 +383,18 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
           )}
         </div>
 
-        {/* Dynamic iOS Progress Pill */}
+        {/* Dynamic iOS Progress Indicator per Section 18 */}
         {currentScreenIdx > 0 && (
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-[11px] font-bold text-muted">
-              <span>{currentScreen.category}</span>
-              <span>{currentScreenIdx} of {SCREENS.length - 1}</span>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-xs font-mono font-bold text-muted">
+              <span className="uppercase tracking-widest text-[10px] text-accent font-bold">{currentScreen.category}</span>
+              <span className="text-foreground tracking-wider font-mono text-xs">
+                {String(currentScreenIdx).padStart(2, '0')} / {String(SCREENS.length - 1).padStart(2, '0')}
+              </span>
             </div>
-            <div className="w-full h-1.5 bg-surface-subtle border border-card-border rounded-full overflow-hidden">
+            <div className="w-full h-1 bg-surface-subtle border border-card-border/60 rounded-full overflow-hidden">
               <motion.div 
-                className="h-full bg-gradient-to-r from-accent via-emerald-500 to-cyan-400 rounded-full"
+                className="h-full bg-accent rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${progressPercent}%` }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
@@ -488,79 +490,61 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
               </div>
             )}
 
-            {/* SCREEN 02 — GOAL DISCOVERY */}
+            {/* SCREEN 02 — GOAL DISCOVERY (Section 18 Redesign) */}
             {currentScreen.id === 'goals' && (
-              <div className="space-y-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-foreground tracking-tight">What are you working toward?</h2>
-                  <p className="text-xs text-muted mt-1">Select your primary goal and key priority.</p>
+              <div className="space-y-6 max-w-lg mx-auto py-2">
+                <div className="space-y-2 text-center sm:text-left">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-accent font-bold">Goal Architecture</span>
+                  <h2 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight uppercase">
+                    What are you training for?
+                  </h2>
+                  <p className="text-xs text-muted leading-relaxed">
+                    Select your primary objective. Calyxo calibrates sets, weight targets, and nutritional macros to this core focus.
+                  </p>
                 </div>
 
-                <div className="space-y-2 max-h-[48vh] overflow-y-auto pr-1">
+                <div className="space-y-3">
                   {[
-                    { id: 'lose_body_fat', label: 'Lose body fat', desc: 'Optimize energy deficit & lean tone' },
-                    { id: 'build_muscle', label: 'Build muscle', desc: 'Hypertrophy volume & progressive overload' },
-                    { id: 'get_stronger', label: 'Get stronger', desc: 'Compound lifts & raw force production' },
-                    { id: 'improve_fitness', label: 'Improve fitness', desc: 'Cardiovascular health & mobility' },
-                    { id: 'improve_endurance', label: 'Improve endurance', desc: 'Stamina, running & metabolic capacity' },
-                    { id: 'improve_overall_health', label: 'Improve overall health', desc: 'Longevity, vitality & clean habits' },
-                    { id: 'improve_sleep_recovery', label: 'Improve sleep & recovery', desc: 'Restorative sleep & nervous system rest' },
-                    { id: 'maintain_physique', label: 'Maintain my current physique', desc: 'Consistent energy balance & strength' },
-                    { id: 'prepare_sport_event', label: 'Prepare for a sport/event', desc: 'Targeted athletic conditioning' },
-                    { id: 'not_sure_yet', label: "I'm not sure yet", desc: 'Guided baseline & discovery' }
+                    { id: 'build_muscle', label: 'Build muscle', desc: 'Hypertrophy volume, progressive overload & mechanical tension', icon: Dumbbell },
+                    { id: 'lose_body_fat', label: 'Lose fat', desc: 'Calibrated deficit, high metabolic output & muscle preservation', icon: Flame },
+                    { id: 'get_stronger', label: 'Get stronger', desc: 'Heavy compound lifts & neuromuscular force production', icon: Zap },
+                    { id: 'improve_fitness', label: 'Improve fitness', desc: 'Cardiovascular engine, athletic conditioning & mobility', icon: Activity },
+                    { id: 'maintain_physique', label: 'Maintain health', desc: 'Sustainable athletic performance, longevity & vital health', icon: Heart }
                   ].map((goalOption) => {
                     const isSelected = profile.goals.primaryGoal === goalOption.id;
+                    const Icon = goalOption.icon;
                     return (
                       <button
                         key={goalOption.id}
                         type="button"
                         onClick={() => updateSection('goals', { primaryGoal: goalOption.id })}
-                        className={`w-full p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                        className={`w-full p-4 sm:p-5 rounded-2xl border text-left flex items-center justify-between transition-all duration-200 cursor-pointer ${
                           isSelected 
-                            ? 'bg-accent/15 border-accent shadow-sm' 
-                            : 'bg-surface border-card-border hover:bg-surface-interactive'
+                            ? 'bg-accent/15 border-accent shadow-sm scale-[1.01]' 
+                            : 'bg-surface/80 border-card-border/80 hover:border-card-border hover:bg-surface'
                         }`}
                       >
-                        <div>
-                          <p className={`text-sm font-bold ${isSelected ? 'text-accent' : 'text-foreground'}`}>
-                            {goalOption.label}
-                          </p>
-                          <p className="text-[11px] text-muted mt-0.5">{goalOption.desc}</p>
+                        <div className="flex items-center gap-3.5">
+                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                            isSelected ? 'bg-accent text-black font-black' : 'bg-surface-subtle text-muted border border-card-border'
+                          }`}>
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className={`text-base font-black ${isSelected ? 'text-accent' : 'text-foreground'}`}>
+                              {goalOption.label}
+                            </p>
+                            <p className="text-xs text-muted mt-0.5 leading-snug">{goalOption.desc}</p>
+                          </div>
                         </div>
-                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                          isSelected ? 'border-accent bg-accent' : 'border-card-border'
+                        <div className={`w-6 h-6 rounded-full border flex items-center justify-center shrink-0 ml-3 ${
+                          isSelected ? 'border-accent bg-accent text-black' : 'border-card-border/60'
                         }`}>
-                          {isSelected && <Check className="w-3 h-3 text-black stroke-[3]" />}
+                          {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                         </div>
                       </button>
                     );
                   })}
-                </div>
-
-                {/* Primary Priority */}
-                <div className="pt-1">
-                  <label className="block text-xs font-bold text-foreground mb-1.5">
-                    What's the biggest thing you want to improve?
-                  </label>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {['body_composition', 'strength', 'energy', 'nutrition', 'sleep', 'recovery', 'consistency', 'performance'].map((p) => {
-                      const isSelected = profile.goals.primaryPriority === p;
-                      return (
-                        <button
-                          key={p}
-                          type="button"
-                          onClick={() => updateSection('goals', { primaryPriority: p })}
-                          className={`p-2 rounded-xl border text-center text-[11px] font-bold capitalize transition-all cursor-pointer ${
-                            isSelected 
-                              ? 'bg-accent/20 border-accent text-accent' 
-                              : 'bg-surface border-card-border text-foreground hover:bg-surface-interactive'
-                          }`}
-                        >
-                          {p.replace('_', ' ')}
-                        </button>
-                      );
-                    })}
-                  </div>
                 </div>
               </div>
             )}

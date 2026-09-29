@@ -7,6 +7,11 @@ import { supabase } from '../../lib/supabaseClient';
 import FoodEditorModal from '../../components/admin/FoodEditorModal';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import useDebounce from '../../hooks/useDebounce';
+import {
+  AdminPageHeader,
+  AdminStatCard,
+  AdminSearchInput
+} from '../../components/admin/AdminUIPrimitives';
 
 const ITEMS_PER_PAGE = 50;
 
@@ -127,21 +132,21 @@ const AdminNutritionDbView = () => {
         badge={`${foods.length} items`}
         actions={
           <div className="flex items-center gap-2">
-            <label className="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors">
-              <Upload className="w-3.5 h-3.5 text-neutral-400" />
+            <label className="px-3.5 py-1.5 rounded-xl bg-[#141724] hover:bg-[#1a1f30] border border-white/10 text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs">
+              <Upload className="w-3.5 h-3.5 text-slate-400" />
               <span>Import CSV</span>
               <input type="file" accept=".csv" onChange={handleImportCSV} className="hidden" />
             </label>
             <button
               onClick={handleExportCSV}
-              className="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+              className="px-3.5 py-1.5 rounded-xl bg-[#141724] hover:bg-[#1a1f30] border border-white/10 text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
             >
-              <Download className="w-3.5 h-3.5 text-neutral-400" />
+              <Download className="w-3.5 h-3.5 text-slate-400" />
               <span>Export CSV</span>
             </button>
             <button
               onClick={() => { setModalData(null); setIsModalOpen(true); }}
-              className="px-3.5 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold flex items-center gap-1.5 border border-neutral-700 transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 rounded-xl bg-[#d4ff00] hover:bg-[#a3e635] text-slate-950 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-[#d4ff00]/10"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Food Item</span>
@@ -179,7 +184,7 @@ const AdminNutritionDbView = () => {
       </div>
 
       {/* 3. Search & Filter Bar */}
-      <div className="p-3 bg-neutral-900/90 border border-neutral-800/80 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="p-4 bg-[#0e121d] border border-white/10 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl">
         <AdminSearchInput
           value={search}
           onChange={setSearch}
@@ -191,7 +196,7 @@ const AdminNutritionDbView = () => {
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs font-mono rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-neutral-700 cursor-pointer"
+            className="bg-[#141724] border border-white/10 text-slate-200 text-xs font-sans rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#d4ff00]/60 cursor-pointer font-medium"
           >
             <option value="">All Categories</option>
             {['Poultry', 'Meat', 'Fish & Seafood', 'Grains', 'Dairy', 'Fruits & Vegetables', 'Nuts & Seeds', 'Supplements', 'General', 'Indian & Regional'].map(c => (
@@ -202,7 +207,7 @@ const AdminNutritionDbView = () => {
           <select
             value={sourceFilter}
             onChange={(e) => setSourceFilter(e.target.value)}
-            className="bg-neutral-950 border border-neutral-800 text-neutral-300 text-xs font-mono rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-neutral-700 cursor-pointer"
+            className="bg-[#141724] border border-white/10 text-slate-200 text-xs font-sans rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#d4ff00]/60 cursor-pointer font-medium"
           >
             <option value="ALL">All Sources</option>
             <option value="CUSTOM">Custom DB</option>
@@ -212,56 +217,56 @@ const AdminNutritionDbView = () => {
       </div>
 
       {/* 4. Foods Datatable */}
-      <div className="bg-neutral-900/90 border border-neutral-800/80 rounded-xl overflow-hidden">
+      <div className="bg-[#0e121d] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
           {loading ? (
-            <div className="p-12 text-center text-xs font-mono text-neutral-500">
+            <div className="p-12 text-center text-xs font-sans text-slate-400">
               Loading nutrition catalog...
             </div>
           ) : filteredFoods.length === 0 ? (
-            <div className="p-12 text-center text-xs font-mono text-neutral-500">
+            <div className="p-12 text-center text-xs font-sans text-slate-400">
               No matching food items found
             </div>
           ) : (
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-neutral-800 bg-neutral-950/60 text-neutral-400 font-mono uppercase text-[10px]">
-                  <th className="p-3.5 font-bold">Food Item</th>
-                  <th className="p-3.5 font-bold">Category</th>
-                  <th className="p-3.5 font-bold">Serving Size</th>
-                  <th className="p-3.5 font-bold">Calories</th>
-                  <th className="p-3.5 font-bold">Macros (P / C / F / Fib)</th>
-                  <th className="p-3.5 font-bold">Source</th>
-                  <th className="p-3.5 text-right font-bold">Actions</th>
+                <tr className="border-b border-white/10 bg-[#07090e] text-slate-400 font-sans uppercase text-[10px] tracking-wider">
+                  <th className="p-4 font-semibold">Food Item</th>
+                  <th className="p-4 font-semibold">Category</th>
+                  <th className="p-4 font-semibold">Serving Size</th>
+                  <th className="p-4 font-semibold">Calories</th>
+                  <th className="p-4 font-semibold">Macros (P / C / F / Fib)</th>
+                  <th className="p-4 font-semibold">Source</th>
+                  <th className="p-4 text-right font-semibold">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-800/60 font-sans">
+              <tbody className="divide-y divide-white/5 font-sans">
                 {currentFoods.map(f => (
-                  <tr key={f.id} className="hover:bg-neutral-800/40 transition-colors">
-                    <td className="p-3.5 font-semibold text-white text-xs">{f.name}</td>
-                    <td className="p-3.5 text-neutral-400 text-xs font-mono">{f.category}</td>
-                    <td className="p-3.5 text-neutral-400 font-mono text-[11px]">{f.serving_size}</td>
-                    <td className="p-3.5 font-mono font-bold text-white text-xs">{f.calories} kcal</td>
-                    <td className="p-3.5 font-mono text-[11px] text-neutral-300">
+                  <tr key={f.id} className="hover:bg-[#141828]/50 transition-colors">
+                    <td className="p-4 font-semibold text-white text-xs">{f.name}</td>
+                    <td className="p-4 text-slate-400 text-xs">{f.category}</td>
+                    <td className="p-4 text-slate-400 text-[11px] font-mono">{f.serving_size}</td>
+                    <td className="p-4 font-bold text-[#d4ff00] text-xs font-sans">{f.calories} kcal</td>
+                    <td className="p-4 text-[11px] text-slate-300 font-medium">
                       P: {f.protein}g · C: {f.carbs}g · F: {f.fat}g · Fib: {f.fiber}g
                     </td>
-                    <td className="p-3.5">
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-neutral-800 text-neutral-400 border border-neutral-700">
+                    <td className="p-4">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-white/5">
                         {f.source || 'Standard'}
                       </span>
                     </td>
-                    <td className="p-3.5 text-right">
+                    <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => { setModalData(f); setIsModalOpen(true); }}
-                          className="p-1 rounded text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                           title="Edit"
                         >
                           <Edit className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => setDeleteTarget(f)}
-                          className="p-1 rounded text-neutral-400 hover:text-rose-400 transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                           title="Delete"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -276,23 +281,23 @@ const AdminNutritionDbView = () => {
         </div>
 
         {/* Pagination Bar */}
-        <div className="bg-neutral-950/60 border-t border-neutral-800 p-3.5 flex items-center justify-between text-xs text-neutral-400 font-mono">
-          <span>
-            Showing {(page - 1) * ITEMS_PER_PAGE + 1} - {Math.min(page * ITEMS_PER_PAGE, filteredFoods.length)} of {filteredFoods.length}
+        <div className="bg-[#090c14] border-t border-white/10 p-4 flex items-center justify-between text-xs text-slate-400 font-sans">
+          <span className="font-medium">
+            Showing <strong className="text-white">{(page - 1) * ITEMS_PER_PAGE + 1}</strong> - <strong className="text-white">{Math.min(page * ITEMS_PER_PAGE, filteredFoods.length)}</strong> of <strong className="text-white">{filteredFoods.length}</strong> items
           </span>
           <div className="flex items-center gap-2">
             <button
               disabled={page <= 1}
               onClick={() => setPage(p => p - 1)}
-              className="p-1.5 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-300 disabled:opacity-30 cursor-pointer"
+              className="p-1.5 rounded-lg bg-[#141724] border border-white/10 text-slate-300 hover:text-white disabled:opacity-30 cursor-pointer transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span>Page {page} of {totalPages}</span>
+            <span className="font-semibold text-slate-200">Page {page} of {totalPages}</span>
             <button
               disabled={page >= totalPages}
               onClick={() => setPage(p => p + 1)}
-              className="p-1.5 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-300 disabled:opacity-30 cursor-pointer"
+              className="p-1.5 rounded-lg bg-[#141724] border border-white/10 text-slate-300 hover:text-white disabled:opacity-30 cursor-pointer transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

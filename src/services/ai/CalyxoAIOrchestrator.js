@@ -16,10 +16,12 @@ import { ExplainableAICoachService } from './ExplainableAICoachService.js';
 import { UnsupervisedAIAdaptiveEngine } from './UnsupervisedAIAdaptiveEngine.js';
 import { SubscriptionManager, AI_CAPABILITIES } from '../subscription/SubscriptionManager.js';
 import { UserIntelligenceProfile } from '../onboarding/UserIntelligenceProfile.js';
+import { AIBriefingEngine } from './AIBriefingEngine.js';
 import { getTodayDateString, isSameLocalDate, parseSafeDate } from '../../utils/dateUtils.js';
 
 export const AI_INTENTS = {
   GREETING_OR_CONVERSATIONAL: 'GREETING_OR_CONVERSATIONAL',
+  WEEKLY_AI_REVIEW: 'WEEKLY_AI_REVIEW',
   GENERAL_HEALTH_QUERY: 'GENERAL_HEALTH_QUERY',
   RECOVERY_EXPLANATION: 'RECOVERY_EXPLANATION',
   WEEKLY_WORKOUT_PROGRAM_REQUEST: 'WEEKLY_WORKOUT_PROGRAM_REQUEST',
@@ -68,6 +70,11 @@ export class CalyxoAIOrchestrator {
     }
     if (userRole === 'TRAINER' && (q.includes('client') || q.includes('program') || q.includes('periodization') || q.includes('athlete'))) {
       return AI_INTENTS.ROLE_TRAINER_PROGRAMMING;
+    }
+
+    // Weekly AI Review Request (Section 40)
+    if (q.includes('weekly review') || q.includes('review my week') || q.includes('weekly summary') || q.includes('how was my week') || q.includes('weekly ai review')) {
+      return AI_INTENTS.WEEKLY_AI_REVIEW;
     }
 
     // Weekly Periodized Program Request (Handling typos like 'giv eme one week')
@@ -231,6 +238,24 @@ How can I help power your training and nutrition today?`;
         text: `⚠️ **Important Health Notice:** You mentioned symptoms that may indicate an acute medical situation. Calyxo AI is a wellness and fitness intelligence layer, not a medical diagnostic system or emergency service.\n\nPlease immediately consult a qualified healthcare professional, visit an emergency room, or call local emergency services if you are experiencing severe symptoms.`,
         plan: null,
         sourceProvenance: 'Clinical Safety Protocol'
+      };
+    }
+
+    // ── Weekly Deterministic AI Review ─────────────────────────────
+    if (intent === AI_INTENTS.WEEKLY_AI_REVIEW) {
+      const review = AIBriefingEngine.generateWeeklyReview({
+        userProfile: safeUserProfile,
+        foodLogs: context.foodLogs || [],
+        workoutLogs: context.workoutLogs || [],
+        weightLogs: context.weightLogs || [],
+        waterIntake: context.waterIntake || 0
+      });
+
+      return {
+        role: 'assistant',
+        text: review.report,
+        plan: null,
+        sourceProvenance: 'Calyxo Deterministic AI Review Engine'
       };
     }
 

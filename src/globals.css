@@ -136,12 +136,12 @@ h1, h2, h3, h4, h5, h6 {
   --border: rgba(255, 255, 255, 0.08);
   --border-subtle: rgba(255, 255, 255, 0.05);
   --border-strong: rgba(255, 255, 255, 0.16);
-  --accent: #CCFF00;
-  --accent-dim: #A3E635;
-  --accent-soft: rgba(204, 255, 0, 0.12);
-  --accent-foreground: #000000;
-  --primary: #CCFF00;
-  --primary-foreground: #000000;
+  --accent: #059669;
+  --accent-dim: #047857;
+  --accent-soft: rgba(5, 150, 105, 0.15);
+  --accent-foreground: #FFFFFF;
+  --primary: #059669;
+  --primary-foreground: #FFFFFF;
   --secondary: #181820;
   --secondary-foreground: #F8FAFC;
   --muted: #181820;
@@ -202,12 +202,12 @@ select:focus,
   --border: rgba(255, 255, 255, 0.1);
   --border-subtle: rgba(255, 255, 255, 0.06);
   --border-strong: rgba(255, 255, 255, 0.18);
-  --accent: #CCFF00;
-  --accent-dim: #99CC00;
-  --accent-soft: rgba(204, 255, 0, 0.15);
-  --accent-foreground: #000000;
-  --primary: #CCFF00;
-  --primary-foreground: #000000;
+  --accent: #059669;
+  --accent-dim: #047857;
+  --accent-soft: rgba(5, 150, 105, 0.15);
+  --accent-foreground: #FFFFFF;
+  --primary: #059669;
+  --primary-foreground: #FFFFFF;
   --secondary: #121218;
   --secondary-foreground: #F8FAFC;
   --muted: #181820;
@@ -388,26 +388,26 @@ select:focus,
 :root:not([data-theme='light']) .bg-acid-green,
 [data-theme='obsidian'] .bg-acid-green,
 [data-theme='dark'] .bg-acid-green {
-  background-color: #CCFF00 !important;
-  color: #000000 !important;
+  background-color: #059669 !important;
+  color: #FFFFFF !important;
 }
 
 :root:not([data-theme='light']) .text-acid-green,
 [data-theme='obsidian'] .text-acid-green,
 [data-theme='dark'] .text-acid-green {
-  color: #CCFF00 !important;
+  color: #10B981 !important;
 }
 
 :root:not([data-theme='light']) .bg-acid-green\/10,
 :root:not([data-theme='light']) .bg-acid-green\/15,
 :root:not([data-theme='light']) .bg-acid-green\/20 {
-  background-color: rgba(204, 255, 0, 0.15) !important;
+  background-color: rgba(5, 150, 105, 0.15) !important;
 }
 
 :root:not([data-theme='light']) .border-acid-green\/30,
 :root:not([data-theme='light']) .border-acid-green\/20,
 :root:not([data-theme='light']) .border-acid-green\/40 {
-  border-color: rgba(204, 255, 0, 0.30) !important;
+  border-color: rgba(5, 150, 105, 0.30) !important;
 }
 
 [data-theme='light'] .bg-acid-green {
