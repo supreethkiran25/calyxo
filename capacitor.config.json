@@ -22,11 +22,13 @@
     },
     "StatusBar": {
       "overlaysWebView": true,
-      "style": "DEFAULT"
+      "style": "DARK",
+      "backgroundColor": "#000000"
     },
     "StatusBarPlugin": {
       "overlaysWebView": true,
-      "style": "DEFAULT"
+      "style": "DARK",
+      "backgroundColor": "#000000"
     },
     "Keyboard": {
       "resize": "none",

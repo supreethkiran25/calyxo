@@ -58,13 +58,12 @@ class MainViewController: CAPBridgeViewController {
             self.webView?.underPageBackgroundColor = .clear
         }
 
-        // Set dynamic initial background so cold boot matches system mode
-        let initialBg = UIColor { trait in
-            return trait.userInterfaceStyle == .dark
-                ? UIColor(red: 10/255.0, green: 10/255.0, blue: 12/255.0, alpha: 1.0)
-                : UIColor(red: 248/255.0, green: 250/255.0, blue: 252/255.0, alpha: 1.0)
-        }
-        self.view.backgroundColor = initialBg
+        // Initial cold boot background: Black to match the cinematic splash screen
+        self.view.backgroundColor = .black
+    }
+
+    override var preferredStatusBarStyle: UIStatusBarStyle {
+        return self.bridge?.statusBarStyle ?? .lightContent
     }
 
     override func viewDidLayoutSubviews() {
@@ -115,14 +114,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
 
-        let initialBg = UIColor { trait in
-            return trait.userInterfaceStyle == .dark
-                ? UIColor(red: 10/255.0, green: 10/255.0, blue: 12/255.0, alpha: 1.0)
-                : UIColor(red: 248/255.0, green: 250/255.0, blue: 252/255.0, alpha: 1.0)
-        }
-
         window = UIWindow(windowScene: windowScene)
-        window?.backgroundColor = initialBg
+        window?.backgroundColor = .black
         window?.rootViewController = MainViewController()
         window?.makeKeyAndVisible()
 

@@ -21,8 +21,32 @@ export default function NativeMobileBridge() {
     // Initialize Native Push / Local Notification Authorization
     requestNotificationPermission().catch(() => {});
 
-    // Configure Status Bar with Dynamic Theme Support & Edge-to-Edge Full Screen Coverage
+    // 1. Cold boot status bar: Keep pure black with white icons during splash screen
+    const setSplashStatusBar = async () => {
+      try {
+        await StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
+        await StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+        await StatusBar.setBackgroundColor({ color: '#000000' }).catch(() => {});
+        
+        if (Capacitor.isNativePlatform()) {
+          const { CalyxoTheme } = Capacitor.Plugins;
+          if (CalyxoTheme && typeof CalyxoTheme.setTheme === 'function') {
+            await CalyxoTheme.setTheme({ hex: '#000000', isLight: false }).catch(() => {});
+          }
+        }
+        
+        const metaThemeColors = document.querySelectorAll('meta[name="theme-color"]');
+        metaThemeColors.forEach(tag => tag.setAttribute('content', '#000000'));
+      } catch (e) {
+        console.warn('[NativeMobileBridge] Splash status bar init error:', e);
+      }
+    };
+
+    // 2. Active app theme status bar: applied once splash screen is dismissed
     const updateStatusBar = async () => {
+      if (!window.__calyxo_splash_dismissed) {
+        return;
+      }
       try {
         const theme = document.documentElement.getAttribute('data-theme') || '';
         const isLight = theme === 'light' || theme === 'paper' || 
@@ -49,8 +73,27 @@ export default function NativeMobileBridge() {
       }
     };
 
-    // Run status bar setup immediately
-    updateStatusBar();
+    // Run splash status bar setup immediately if splash is still active
+    if (!window.__calyxo_splash_dismissed) {
+      setSplashStatusBar();
+    } else {
+      updateStatusBar();
+    }
+
+    // Listen for splash dismissal to apply the app theme
+    const handleSplashDismissed = () => {
+      window.__calyxo_splash_dismissed = true;
+      updateStatusBar();
+    };
+    window.addEventListener('calyxo_splash_dismissed', handleSplashDismissed);
+
+    // Safety fallback: if splash event not received within 2.8s, reveal theme
+    const splashFallbackTimer = setTimeout(() => {
+      if (!window.__calyxo_splash_dismissed) {
+        window.__calyxo_splash_dismissed = true;
+        updateStatusBar();
+      }
+    }, 2800);
 
     // Listen for theme attribute mutations
     const MutationObs = window.MutationObserver || window.WebKitMutationObserver;
@@ -381,7 +424,9 @@ export default function NativeMobileBridge() {
 
     return () => {
       isMounted = false;
-      themeObserver.disconnect();
+      themeObserver?.disconnect?.();
+      window.removeEventListener('calyxo_splash_dismissed', handleSplashDismissed);
+      clearTimeout(splashFallbackTimer);
       window.removeEventListener('focusin', handleFocusIn);
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleVisualViewportChange);
