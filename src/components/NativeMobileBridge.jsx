@@ -61,10 +61,10 @@ export default function NativeMobileBridge() {
       themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     }
 
-    // Hide Splash Screen after React mount
+    // Hide Splash Screen after React mount with smooth fade transition
     const hideSplash = async () => {
       try {
-        await SplashScreen.hide();
+        await SplashScreen.hide({ fadeOutDuration: 400 });
       } catch (e) {
         console.warn('[NativeMobileBridge] SplashScreen hide error:', e);
       }
