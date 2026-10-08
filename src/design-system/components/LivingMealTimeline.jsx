@@ -40,7 +40,9 @@ export default function LivingMealTimeline({
           <span className="text-[10px] font-mono uppercase font-bold tracking-widest text-secondary block">
             Living Daily Stream
           </span>
-          <h3 className="text-sm sm:text-base font-black text-foreground">Today's Meals Timeline</h3>
+          <h3 className="text-sm sm:text-base font-black text-foreground uppercase tracking-wider font-mono">
+            TODAY&apos;S MEALS TIMELINE
+          </h3>
         </div>
         <span className="text-[10px] font-mono text-muted">
           {foodLogs.length} item(s) logged

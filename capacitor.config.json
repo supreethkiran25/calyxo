@@ -20,7 +20,7 @@
       "style": "DARK"
     },
     "Keyboard": {
-      "resize": "body",
+      "resize": "none",
       "style": "DARK",
       "resizeOnFullScreen": true
     }

@@ -300,7 +300,7 @@ export default function FoodTracker({ onNotification }) {
           <span className="text-[10px] font-mono uppercase font-bold tracking-widest text-accent block truncate">
             Calyxo Nutrition OS
           </span>
-          <h1 className="text-sm sm:text-lg font-black text-foreground tracking-tight truncate">
+          <h1 className="text-sm sm:text-lg font-black text-foreground tracking-wide truncate uppercase">
             {greetingText}
           </h1>
         </div>
@@ -403,7 +403,9 @@ export default function FoodTracker({ onNotification }) {
                 <span className="text-[10px] font-mono uppercase font-bold tracking-widest text-accent block">
                   Quick Catalog
                 </span>
-                <h3 className="text-sm sm:text-base font-black text-foreground">Search & Log Verified Foods</h3>
+                <h3 className="text-sm sm:text-base font-black text-foreground uppercase tracking-wider font-mono">
+                  SEARCH & LOG VERIFIED FOODS
+                </h3>
               </div>
               <span className="text-[10px] font-mono text-muted">
                 Adding to <strong className="text-accent uppercase">{targetSlotForAdd}</strong>

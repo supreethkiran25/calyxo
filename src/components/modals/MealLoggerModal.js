@@ -230,7 +230,7 @@ export default function MealLoggerModal() {
   return (
     <AnimatePresence>
       <div 
-        className="fixed inset-x-0 top-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-none"
+        className="fixed inset-0 z-[100] flex flex-col justify-end pointer-events-none"
         style={{
           bottom: 'var(--keyboard-height, 0px)',
           transition: 'bottom 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
@@ -240,27 +240,35 @@ export default function MealLoggerModal() {
           initial={{ opacity: 0 }} 
           animate={{ opacity: 1 }} 
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-background/80 backdrop-blur-md pointer-events-auto"
+          className="fixed inset-0 bg-black/80 backdrop-blur-md pointer-events-auto"
           onClick={closeWorkflow}
         />
         
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          className="relative w-full max-w-lg bg-surface border border-card-border rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col overflow-hidden pointer-events-auto"
+          exit={{ opacity: 0, y: 30 }}
+          transition={{ type: "spring", damping: 28, stiffness: 260 }}
+          className="relative w-full max-w-lg mx-auto bg-surface border-t sm:border border-card-border rounded-t-[32px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden pointer-events-auto z-10 mt-auto"
           style={{
-            maxHeight: 'min(90dvh, calc(100dvh - var(--keyboard-height, 0px) - 16px))'
+            maxHeight: 'calc(100dvh - var(--keyboard-height, 0px) - max(env(safe-area-inset-top, 0px), 16px) - 8px)'
           }}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-              <Apple className="w-5 h-5 text-green-500" /> Log Meal & Portion
+          {/* Top Edge-to-Edge Drag Indicator */}
+          <div className="pt-2.5 pb-1 flex justify-center shrink-0">
+            <div className="w-12 h-1.5 bg-muted/40 rounded-full" />
+          </div>
+
+          {/* Pinned Sticky Header - Always visible with title and close button */}
+          <div className="px-5 sm:px-6 py-2.5 border-b border-card-border/60 flex items-center justify-between shrink-0 bg-surface/95 backdrop-blur-md">
+            <h2 className="text-base sm:text-lg font-black uppercase tracking-wider text-foreground flex items-center gap-2 truncate">
+              <Apple className="w-5 h-5 text-emerald-500 shrink-0" />
+              <span>Log Meal & Portion</span>
             </h2>
             <button 
               onClick={closeWorkflow}
-              className="p-2 rounded-full bg-[var(--input)] text-muted hover:text-foreground transition-colors cursor-pointer border-none"
+              className="p-2 rounded-full bg-[var(--input)] hover:bg-surface-interactive text-muted hover:text-foreground transition-colors cursor-pointer border-none shrink-0"
+              title="Close"
             >
               <X className="w-5 h-5" />
             </button>
@@ -268,9 +276,9 @@ export default function MealLoggerModal() {
 
           <div 
             data-keyboard-scroll="true"
-            className="space-y-4 overflow-y-auto flex-1 pr-1 custom-scrollbar modal-scroll-body"
+            className="space-y-4 overflow-y-auto flex-1 p-5 sm:p-6 custom-scrollbar modal-scroll-body overscroll-contain"
             style={{
-              paddingBottom: '24px'
+              paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))'
             }}
           >
             {/* Search Food Name Input */}

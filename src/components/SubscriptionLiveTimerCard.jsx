@@ -70,40 +70,29 @@ export default function SubscriptionLiveTimerCard({
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {onSyncLive && (
-            <button
-              type="button"
-              onClick={onSyncLive}
-              disabled={saving}
-              title="Query latest subscription status live from Razorpay / Supabase"
-              className="px-3 py-1.5 rounded-full bg-acid-green/10 text-acid-green hover:bg-acid-green/20 border border-acid-green/30 text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3 h-3 ${saving ? 'animate-spin' : ''}`} />
-              <span>Live Razorpay Sync</span>
-            </button>
-          )}
-
-          {onRestore && (
-            <button
-              type="button"
-              onClick={onRestore}
-              disabled={saving}
-              className="px-3 py-1.5 rounded-full bg-surface text-foreground hover:border-acid-green border border-card-border text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
-            >
-              Restore
-            </button>
-          )}
-
+        {/* Action Buttons: Clean consumer actions only */}
+        <div className="flex items-center gap-2 shrink-0">
           {isSubscribed && onCancel && (
             <button
               type="button"
               onClick={onCancel}
               disabled={saving}
-              className="px-3 py-1.5 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30 text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-1.5 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30 text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
             >
-              Cancel
+              Cancel Subscription
+            </button>
+          )}
+
+          {(!isSubscribed || isExpired) && (
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById('setup-field-subscription');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="px-3.5 py-1.5 rounded-full bg-acid-green text-black hover:brightness-110 text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm"
+            >
+              {isExpired ? 'Renew Plan' : 'Upgrade to Ultra'}
             </button>
           )}
         </div>
@@ -181,7 +170,7 @@ export default function SubscriptionLiveTimerCard({
           </p>
           <div className="flex items-center gap-1.5 text-muted text-[10px]">
             <ShieldCheck className="w-3.5 h-3.5 text-acid-green" />
-            <span>Razorpay Verified</span>
+            <span>Verified Membership</span>
           </div>
         </div>
       ) : (

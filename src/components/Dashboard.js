@@ -446,7 +446,7 @@ export default function Dashboard({ onNotification }) {
       {/* Greeting & Header */}
       <div className="flex items-center justify-between gap-3 pb-1">
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight truncate">
+          <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight truncate uppercase">
             {getGreeting()}, {userProfile?.nickname || userProfile?.firstName || user?.displayName?.split(' ')[0] || 'Athlete'}
           </h1>
           <p className="text-xs text-muted-foreground font-medium mt-0.5">
@@ -629,54 +629,6 @@ export default function Dashboard({ onNotification }) {
         </div>
       </div>
 
-      {/* ── Quick Actions ── */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
-          Quick Actions
-        </h3>
-        <div className="grid grid-cols-4 gap-2.5 sm:gap-3">
-          <button
-            onClick={() => useQuickActionsStore.getState().setActiveWorkflow('log_meal')}
-            className="p-3 rounded-2xl bg-surface hover:bg-surface-elevated border border-card-border flex flex-col items-center justify-center gap-1.5 cursor-pointer border-none shadow-sm active:scale-95 transition-all group"
-          >
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 text-emerald-500 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Utensils className="w-4 h-4" />
-            </div>
-            <span className="text-[10.5px] font-bold text-foreground truncate max-w-full">Log Meal</span>
-          </button>
-
-          <button
-            onClick={() => useQuickActionsStore.getState().setActiveWorkflow('log_workout')}
-            className="p-3 rounded-2xl bg-surface hover:bg-surface-elevated border border-card-border flex flex-col items-center justify-center gap-1.5 cursor-pointer border-none shadow-sm active:scale-95 transition-all group"
-          >
-            <div className="w-9 h-9 rounded-xl bg-cyan-50 dark:bg-cyan-500/15 text-cyan-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Dumbbell className="w-4 h-4" />
-            </div>
-            <span className="text-[10.5px] font-bold text-foreground truncate max-w-full">Workout</span>
-          </button>
-
-          <button
-            onClick={() => handleAddWater(250)}
-            className="p-3 rounded-2xl bg-surface hover:bg-surface-elevated border border-card-border flex flex-col items-center justify-center gap-1.5 cursor-pointer border-none shadow-sm active:scale-95 transition-all group"
-          >
-            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/15 text-blue-500 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Droplets className="w-4 h-4" />
-            </div>
-            <span className="text-[10.5px] font-bold text-foreground truncate max-w-full">Water</span>
-          </button>
-
-          <button
-            onClick={() => useQuickActionsStore.getState().openSheet()}
-            className="p-3 rounded-2xl bg-surface hover:bg-surface-elevated border border-card-border flex flex-col items-center justify-center gap-1.5 cursor-pointer border-none shadow-sm active:scale-95 transition-all group"
-          >
-            <div className="w-9 h-9 rounded-xl bg-surface-elevated text-muted-foreground flex items-center justify-center group-hover:scale-105 transition-transform">
-              <SlidersHorizontal className="w-4 h-4" />
-            </div>
-            <span className="text-[10.5px] font-bold text-foreground truncate max-w-full">More</span>
-          </button>
-        </div>
-      </div>
-
       {/* Core Grid: Nutrition + Hydration */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Nutrition Energy Summary Card (2 Cols on lg) */}
@@ -687,8 +639,8 @@ export default function Dashboard({ onNotification }) {
                 <Utensils className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-extrabold text-foreground">
-                  Today&apos;s Nutrition
+                <h3 className="text-sm sm:text-base font-black text-foreground uppercase tracking-wider font-mono">
+                  TODAY&apos;S NUTRITION
                 </h3>
                 <span className="text-[10px] text-muted-foreground font-medium">
                   Budget: {targetCalorieBudget.toLocaleString()} kcal
@@ -698,7 +650,7 @@ export default function Dashboard({ onNotification }) {
 
             <button
               onClick={() => navigate('/user/nutrition')}
-              className="text-xs font-bold text-accent hover:underline flex items-center gap-1 border-none bg-transparent cursor-pointer"
+              className="text-xs font-bold text-accent hover:underline flex items-center gap-1 border-none bg-transparent cursor-pointer uppercase tracking-wider"
             >
               <span>Food Log</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -818,7 +770,7 @@ export default function Dashboard({ onNotification }) {
                   Readiness {briefingData?.recoveryScore || 82}%
                 </span>
               </div>
-              <h3 className="text-sm sm:text-base font-extrabold text-foreground mt-0.5">
+              <h3 className="text-sm sm:text-base font-extrabold text-foreground mt-0.5 uppercase">
                 {getGreeting()}, {userProfile?.nickname || userProfile?.firstName || user?.displayName?.split(' ')[0] || 'Athlete'}
               </h3>
             </div>
