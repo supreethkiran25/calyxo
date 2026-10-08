@@ -22,6 +22,7 @@ export default function CalyxoSplash({ onComplete = () => {} }) {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   const targetProgressRef = useRef(0);
+  const currentProgressRef = useRef(0);
   const animFrameRef = useRef(null);
   const isCompletedRef = useRef(false);
 
@@ -38,88 +39,98 @@ export default function CalyxoSplash({ onComplete = () => {} }) {
 
   // Smooth 60fps requestAnimationFrame progress interpolation
   useEffect(() => {
+    let isRunning = true;
     const updateProgressLoop = () => {
-      setDisplayProgress((prev) => {
-        const target = targetProgressRef.current;
-        if (prev < target) {
-          const delta = Math.max(0.4, (target - prev) * 0.14);
-          const nextVal = Math.min(target, prev + delta);
-          return nextVal;
-        }
-        return prev;
-      });
+      if (!isRunning) return;
+      const target = targetProgressRef.current;
+      const current = currentProgressRef.current;
+      if (current < target) {
+        const delta = Math.max(0.5, (target - current) * 0.16);
+        const nextVal = Math.min(target, current + delta);
+        currentProgressRef.current = nextVal;
+        setDisplayProgress(Math.round(nextVal * 10) / 10);
+      }
       animFrameRef.current = requestAnimationFrame(updateProgressLoop);
     };
 
     animFrameRef.current = requestAnimationFrame(updateProgressLoop);
     return () => {
+      isRunning = false;
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
   }, []);
 
+  const finishAndDismiss = useCallback((destination = '/') => {
+    if (isCompletedRef.current) return;
+    isCompletedRef.current = true;
+
+    currentProgressRef.current = 100;
+    setDisplayProgress(100);
+    setIsDismissing(true);
+
+    if (typeof window !== 'undefined') {
+      window.__calyxo_splash_dismissed = true;
+      window.dispatchEvent(new CustomEvent('calyxo_splash_dismissed', { detail: { destination } }));
+    }
+
+    setTimeout(() => {
+      onComplete(destination);
+    }, 320);
+  }, [onComplete]);
+
   // Application bootstrap execution
   const startInitialization = useCallback(async () => {
     setErrorState(null);
-    targetProgressRef.current = 5;
+    targetProgressRef.current = 10;
+    currentProgressRef.current = 0;
 
     const startTime = performance.now();
 
-    try {
-      const result = await initializeApplication((progress) => {
-        targetProgressRef.current = progress;
-      });
+    // Absolute fallback safety timer: never trap user on splash screen
+    const safetyTimer = setTimeout(() => {
+      if (!isCompletedRef.current) {
+        console.warn('[CalyxoSplash] Safety timeout reached, dismissing splash');
+        finishAndDismiss('/');
+      }
+    }, 2800);
 
-      // Ensure target hits 100%
+    try {
+      const result = await Promise.race([
+        initializeApplication((progress) => {
+          targetProgressRef.current = Math.max(targetProgressRef.current, progress);
+        }),
+        new Promise((resolve) => setTimeout(() => resolve({ destination: '/' }), 2000))
+      ]);
+
+      // Ensure target reaches 100%
       targetProgressRef.current = 100;
 
-      // Guarantee minimum presentation duration of 1200ms
+      // Guarantee minimum presentation duration of 1000ms for visual polish
       const elapsed = performance.now() - startTime;
       const remainingTime = Math.max(0, MIN_SPLASH_DURATION - elapsed);
       if (remainingTime > 0) {
-        await new Promise((resolve) => setTimeout(resolve, remainingTime));
+        await new Promise((r) => setTimeout(r, remainingTime));
       }
 
-      // Ensure smooth visual catch-up to 100%
-      const waitForCatchup = () =>
-        new Promise((resolve) => {
-          const check = () => {
-            setDisplayProgress((current) => {
-              if (current >= 99.5) {
-                resolve();
-                return 100;
-              }
-              setTimeout(check, 16);
-              return current;
-            });
-          };
-          check();
-        });
-
-      await waitForCatchup();
+      // Smooth visual catch-up to 100% (max 350ms)
+      const catchupStart = performance.now();
+      while (currentProgressRef.current < 99 && performance.now() - catchupStart < 400) {
+        await new Promise((r) => setTimeout(r, 20));
+      }
 
       // Brief Apple-style dwell at 100% (150ms)
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      currentProgressRef.current = 100;
+      setDisplayProgress(100);
+      await new Promise((r) => setTimeout(r, 150));
 
-      if (!isCompletedRef.current) {
-        isCompletedRef.current = true;
-        setIsDismissing(true);
-
-        // Notify system and native bridge that splash is departing
-        if (typeof window !== 'undefined') {
-          window.__calyxo_splash_dismissed = true;
-          window.dispatchEvent(new CustomEvent('calyxo_splash_dismissed'));
-        }
-
-        // Complete transition callback
-        setTimeout(() => {
-          onComplete(result?.destination || '/');
-        }, 320);
-      }
+      clearTimeout(safetyTimer);
+      finishAndDismiss(result?.destination || '/');
     } catch (err) {
-      console.error('[CalyxoSplash] Startup error:', err);
-      setErrorState('Unable to restore your session.');
+      console.warn('[CalyxoSplash] Startup fallback:', err);
+      clearTimeout(safetyTimer);
+      finishAndDismiss('/');
     }
-  }, [onComplete]);
+  }, [finishAndDismiss]);
 
   useEffect(() => {
     startInitialization();

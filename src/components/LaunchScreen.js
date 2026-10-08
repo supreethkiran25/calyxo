@@ -55,15 +55,16 @@ export default function LaunchScreen({ isLoading }) {
     }
   };
 
-  if (isAlreadyDismissed) {
-    return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#050606]/60 backdrop-blur-sm pointer-events-none">
-        <div className="w-7 h-7 rounded-full border-[1.5px] border-[#F4F5F6] border-t-transparent animate-spin" />
-      </div>
-    );
+  if (isAlreadyDismissed || !visible) {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center min-h-[140px] w-full p-6 pointer-events-none" aria-label="Loading">
+          <div className="w-5 h-5 rounded-full border-[1.5px] border-[#737981] border-t-transparent animate-spin" />
+        </div>
+      );
+    }
+    return null;
   }
-
-  if (!visible) return null;
 
   return <CalyxoSplash onComplete={handleComplete} />;
 }

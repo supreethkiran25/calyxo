@@ -5,9 +5,12 @@ import { useStore } from '../store/useStore';
 import LaunchScreen from './LaunchScreen';
 
 const UserGuard = ({ children }) => {
-  const [authState, setAuthState] = useState({
-    loading: true,
-    authenticated: false
+  const [authState, setAuthState] = useState(() => {
+    const storeUser = useStore.getState().user;
+    return {
+      loading: !storeUser,
+      authenticated: Boolean(storeUser)
+    };
   });
 
   useEffect(() => {

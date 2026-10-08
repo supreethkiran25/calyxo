@@ -221,7 +221,9 @@ export default function UserLayout() {
     );
   }
 
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [isProfileLoading, setIsProfileLoading] = useState(() => {
+    return !useStore.getState().userProfile;
+  });
 
   useEffect(() => {
     useStore.getState().checkDailyReset();
