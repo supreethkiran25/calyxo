@@ -26,17 +26,17 @@ export default function NativeMobileBridge() {
       try {
         await StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
         await StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
-        await StatusBar.setBackgroundColor({ color: '#000000' }).catch(() => {});
+        await StatusBar.setBackgroundColor({ color: '#050606' }).catch(() => {});
         
         if (Capacitor.isNativePlatform()) {
           const { CalyxoTheme } = Capacitor.Plugins;
           if (CalyxoTheme && typeof CalyxoTheme.setTheme === 'function') {
-            await CalyxoTheme.setTheme({ hex: '#000000', isLight: false }).catch(() => {});
+            await CalyxoTheme.setTheme({ hex: '#050606', isLight: false }).catch(() => {});
           }
         }
         
         const metaThemeColors = document.querySelectorAll('meta[name="theme-color"]');
-        metaThemeColors.forEach(tag => tag.setAttribute('content', '#000000'));
+        metaThemeColors.forEach(tag => tag.setAttribute('content', '#050606'));
       } catch (e) {
         console.warn('[NativeMobileBridge] Splash status bar init error:', e);
       }

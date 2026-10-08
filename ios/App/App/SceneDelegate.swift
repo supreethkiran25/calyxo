@@ -58,8 +58,8 @@ class MainViewController: CAPBridgeViewController {
             self.webView?.underPageBackgroundColor = .clear
         }
 
-        // Initial cold boot background: Black to match the cinematic splash screen
-        self.view.backgroundColor = .black
+        // Initial cold boot background: #050606 to match the cinematic splash screen
+        self.view.backgroundColor = UIColor(red: 5/255.0, green: 6/255.0, blue: 6/255.0, alpha: 1.0)
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle {
@@ -115,7 +115,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
-        window?.backgroundColor = .black
+        window?.backgroundColor = UIColor(red: 5/255.0, green: 6/255.0, blue: 6/255.0, alpha: 1.0)
         window?.rootViewController = MainViewController()
         window?.makeKeyAndVisible()
 
