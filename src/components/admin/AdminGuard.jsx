@@ -37,7 +37,7 @@ const AdminGuard = ({ children }) => {
   }, []);
 
   if (authStatus.loading) {
-    return <div className="fixed inset-0 z-40 bg-[#050606] pointer-events-none" />;
+    return <LaunchScreen isLoading={true} />;
   }
 
   if (!authStatus.authorized) {

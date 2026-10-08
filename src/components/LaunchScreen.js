@@ -1,70 +1,109 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import CalyxoSplash from './splash/CalyxoSplash';
-import { Capacitor } from '@capacitor/core';
 
-export default function LaunchScreen() {
-  const isAlreadyDismissed = typeof window !== 'undefined' && Boolean(window.__calyxo_splash_dismissed);
-  const [visible, setVisible] = useState(!isAlreadyDismissed);
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Logo from './Logo';
 
-  // Safely hook router navigation
-  let navigate = null;
-  let location = null;
-  try {
-    navigate = useNavigate();
-    location = useLocation();
-  } catch (e) {
-    // Rendered outside router context
-  }
+export default function LaunchScreen({ isLoading }) {
+  const [visible, setVisible] = useState(true);
+  const [progress, setProgress] = useState(0);
 
-  const handleComplete = useCallback((destination) => {
-    setVisible(false);
-    if (typeof window !== 'undefined') {
-      window.__calyxo_splash_dismissed = true;
+  useEffect(() => {
+    // Fast high-speed progress animation (0 -> 100 in ~300ms)
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 98) {
+          clearInterval(interval);
+          return 100;
+        }
+        return prev + 25;
+      });
+    }, 25);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setProgress(100);
+      const timer = setTimeout(() => setVisible(false), 50);
+      return () => clearTimeout(timer);
     }
+  }, [isLoading]);
 
-    if (!destination) return;
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0, scale: 1.02 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-6 overflow-hidden select-none bg-[#030303]"
+        >
+          {/* Subtle Deep Ambient Halo Effect */}
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: [0.8, 1.2, 1], opacity: [0.2, 0.4, 0.25] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              className="w-[450px] h-[450px] sm:w-[600px] sm:h-[600px] rounded-full bg-radial from-[#d4ff00]/25 via-[#ccff00]/10 to-transparent blur-[120px]"
+            />
+          </div>
 
-    const currentPath = location?.pathname || (typeof window !== 'undefined' ? window.location.pathname : '/');
+          {/* Centered Iconic Nike/Puma-style Brand Hero Container */}
+          <div className="relative z-10 flex flex-col items-center justify-center text-center my-auto">
+            {/* Iconic Glowing Logo Emblem */}
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="relative flex items-center justify-center mb-6 group cursor-default"
+            >
+              <Logo className="w-16 h-16 sm:w-20 sm:h-20 text-[#d4ff00]" glow={false} />
+            </motion.div>
 
-    // 1. ACTIVE WORKOUT SPECIAL CASE: Return immediately to active workout screen
-    if (destination === '/user/workout') {
-      if (currentPath !== '/user/workout') {
-        if (navigate) navigate('/user/workout', { replace: true });
-        else window.location.replace('/user/workout');
-      }
-      return;
-    }
+            {/* Bold Premium Brand Typography */}
+            <motion.h1
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              style={{ color: '#ffffff' }}
+              className="text-2xl sm:text-3xl font-black tracking-[0.25em] text-white force-white uppercase leading-none text-center"
+            >
+              CALYXO
+            </motion.h1>
 
-    // 2. NATIVE MOBILE APP: route authenticated launch to dashboard
-    if (Capacitor.isNativePlatform()) {
-      if (destination !== currentPath) {
-        if (navigate) navigate(destination, { replace: true });
-        else window.location.replace(destination);
-      }
-      return;
-    }
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.7 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+              style={{ color: '#9ca3af' }}
+              className="text-[10px] sm:text-[11px] font-bold tracking-[0.35em] text-[#9CA3AF] uppercase mt-3 text-center"
+            >
+              TRACK TODAY &bull; TRANSFORM TOMORROW
+            </motion.p>
+          </div>
 
-    // 3. WEB APP:
-    // STRICT RULE (AGENTS.md): NEVER automatically redirect from root URL "/" to "/user/dashboard"
-    if (currentPath === '/') {
-      return; // Stay on landing page without forcing navigation
-    }
-
-    // If user had requested a specific route, navigate only if different
-    if (destination !== currentPath && currentPath !== '/') {
-      if (navigate) navigate(destination, { replace: true });
-      else window.location.replace(destination);
-    }
-  }, [location?.pathname, navigate]);
-
-  // Once dismissed or hidden, return null immediately
-  if (isAlreadyDismissed || !visible) {
-    return null;
-  }
-
-  return <CalyxoSplash onComplete={handleComplete} />;
+          {/* Minimalist Bottom Precision Loading Line */}
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.5 }}
+            className="relative z-10 w-36 sm:w-44 flex flex-col items-center gap-2 pb-8"
+          >
+            {/* Ultra-thin Minimalist Neon Progress Line */}
+            <div className="w-full h-[2px] bg-white/10 rounded-full overflow-hidden relative">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-[#d4ff00] via-[#ccff00] to-[#d4ff00] shadow-[0_0_12px_rgba(212,255,0,0.8)]"
+                initial={{ width: '0%' }}
+                animate={{ width: `${progress}%` }}
+                transition={{ ease: "easeOut", duration: 0.2 }}
+              />
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 }
 
 export { LaunchScreen };
-

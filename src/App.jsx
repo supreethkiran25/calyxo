@@ -80,7 +80,7 @@ function App() {
         <BrowserRouter>
           <NativeMobileBridge />
           <UniversalLiveHUD />
-          <Suspense fallback={<div className="fixed inset-0 z-40 bg-[#050606] pointer-events-none" />}>
+          <Suspense fallback={<LaunchScreen isLoading={true} />}>
             <Routes>
               {/* Root & Dedicated Website Pages */}
               <Route path="/" element={<HomePage />} />

@@ -8,8 +8,7 @@ import LaunchScreen from '../components/LaunchScreen';
 import LandingPage from '../components/LandingPage';
 
 export default function HomePage() {
-  const isDismissed = typeof window !== 'undefined' && Boolean(window.__calyxo_splash_dismissed);
-  const [loading, setLoading] = useState(!isDismissed);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   
   const user = useStore((state) => state.user);
@@ -20,11 +19,6 @@ export default function HomePage() {
 
   useEffect(() => {
     initializeTheme();
-
-    const handleSplashDismissed = () => {
-      setLoading(false);
-    };
-    window.addEventListener('calyxo_splash_dismissed', handleSplashDismissed);
     
     const unsubscribe = subscribeToAuth(async (authUser) => {
       setUser(authUser);
@@ -50,25 +44,17 @@ export default function HomePage() {
       }
     });
 
-    const safetyTimer = setTimeout(() => {
-      setLoading(false);
-    }, 2500);
-
-    return () => {
-      clearTimeout(safetyTimer);
-      unsubscribe();
-      window.removeEventListener('calyxo_splash_dismissed', handleSplashDismissed);
-    };
+    return () => unsubscribe();
   }, [setUser, initializeTheme, setUserProfile, navigate]);
 
-  if (loading && !(typeof window !== 'undefined' && window.__calyxo_splash_dismissed)) {
-    return <LaunchScreen />;
+  if (loading) {
+    return <LaunchScreen isLoading={true} />;
   }
 
   // If already authenticated on native, navigate to dashboard
   if (user && Capacitor.isNativePlatform()) {
     navigate('/user/dashboard', { replace: true });
-    return null;
+    return <LaunchScreen isLoading={true} />;
   }
 
   // Web landing page

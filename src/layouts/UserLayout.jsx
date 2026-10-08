@@ -221,9 +221,7 @@ export default function UserLayout() {
     );
   }
 
-  const [isProfileLoading, setIsProfileLoading] = useState(() => {
-    return !useStore.getState().userProfile;
-  });
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
 
   useEffect(() => {
     useStore.getState().checkDailyReset();
@@ -454,7 +452,7 @@ export default function UserLayout() {
 
 
   if (isProfileLoading) {
-    return <div className="fixed inset-0 z-40 bg-[#050606] pointer-events-none" />;
+    return <LaunchScreen isLoading={true} />;
   }
 
   const uid = user?.uid || user?.id;
@@ -468,7 +466,7 @@ export default function UserLayout() {
   // If user is authenticated but has not completed onboarding, trigger OnboardingFlow
   if (user && !isOnboarded) {
     return (
-      <Suspense fallback={<div className="fixed inset-0 z-40 bg-[#050606] pointer-events-none" />}>
+      <Suspense fallback={<LaunchScreen isLoading={true} />}>
         <OnboardingFlow onComplete={(completedProfile) => {
           if (typeof window !== 'undefined' && uid) {
             localStorage.setItem(`calyxo_onboarded_${uid}`, 'true');
