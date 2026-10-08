@@ -19,7 +19,6 @@ import useQuickActionsStore from '../store/useQuickActionsStore';
 // Component imports
 import Logo from '../components/Logo';
 import ThemeToggle from '../components/ThemeToggle';
-import LaunchScreen from '../components/LaunchScreen';
 import AuthFlow from '../components/AuthFlow';
 import OnboardingFlow from '../components/OnboardingFlow';
 

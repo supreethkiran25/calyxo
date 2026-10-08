@@ -46,7 +46,7 @@ const UserGuard = ({ children }) => {
 
 
   if (authState.loading) {
-    return <LaunchScreen isLoading={true} />;
+    return <div className="fixed inset-0 z-40 bg-[#050606] pointer-events-none" />;
   }
 
   if (!authState.authenticated) {

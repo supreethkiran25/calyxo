@@ -454,7 +454,7 @@ export default function UserLayout() {
 
 
   if (isProfileLoading) {
-    return <LaunchScreen isLoading={true} />;
+    return <div className="fixed inset-0 z-40 bg-[#050606] pointer-events-none" />;
   }
 
   const uid = user?.uid || user?.id;
@@ -468,7 +468,7 @@ export default function UserLayout() {
   // If user is authenticated but has not completed onboarding, trigger OnboardingFlow
   if (user && !isOnboarded) {
     return (
-      <Suspense fallback={<LaunchScreen isLoading={true} />}>
+      <Suspense fallback={<div className="fixed inset-0 z-40 bg-[#050606] pointer-events-none" />}>
         <OnboardingFlow onComplete={(completedProfile) => {
           if (typeof window !== 'undefined' && uid) {
             localStorage.setItem(`calyxo_onboarded_${uid}`, 'true');

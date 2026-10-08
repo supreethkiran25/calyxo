@@ -50,15 +50,19 @@ export default function HomePage() {
       }
     });
 
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 2500);
+
     return () => {
+      clearTimeout(safetyTimer);
       unsubscribe();
       window.removeEventListener('calyxo_splash_dismissed', handleSplashDismissed);
     };
   }, [setUser, initializeTheme, setUserProfile, navigate]);
 
-  // If splash screen is still running, show LaunchScreen
   if (loading && !(typeof window !== 'undefined' && window.__calyxo_splash_dismissed)) {
-    return <LaunchScreen isLoading={true} />;
+    return <LaunchScreen />;
   }
 
   // If already authenticated on native, navigate to dashboard
