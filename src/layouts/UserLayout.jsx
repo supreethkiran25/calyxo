@@ -586,7 +586,10 @@ export default function UserLayout() {
         {/* Mobile Header */}
         <header 
           className="lg:hidden border-b border-card-border bg-background sticky top-0 z-30 shrink-0"
-          style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 0.75rem)' }}
+          style={{ 
+            paddingTop: 'max(env(safe-area-inset-top, 0px), 0.75rem)',
+            backgroundColor: 'var(--background)'
+          }}
         >
           <div className="h-14 flex items-center justify-between px-4 w-full">
             <div className="flex items-center gap-2.5">

@@ -6,6 +6,9 @@
     "androidScheme": "https",
     "cleartext": true
   },
+  "ios": {
+    "contentInset": "never"
+  },
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 0,
@@ -17,13 +20,11 @@
     },
     "StatusBar": {
       "overlaysWebView": true,
-      "style": "DARK",
-      "backgroundColor": "#030303"
+      "style": "DEFAULT"
     },
     "StatusBarPlugin": {
       "overlaysWebView": true,
-      "style": "DARK",
-      "backgroundColor": "#030303"
+      "style": "DEFAULT"
     },
     "Keyboard": {
       "resize": "none",

@@ -27,16 +27,23 @@ export default function NativeMobileBridge() {
         const theme = document.documentElement.getAttribute('data-theme') || '';
         const isLight = theme === 'light' || theme === 'paper' || 
                         (!theme && window.matchMedia('(prefers-color-scheme: light)').matches);
-        const bgHex = isLight ? '#F8FAFC' : '#030303';
+        const bgHex = isLight ? '#F8FAFC' : '#0A0A0C';
+        
         await StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
         await StatusBar.setStyle({ style: isLight ? Style.Light : Style.Dark }).catch(() => {});
         await StatusBar.setBackgroundColor({ color: bgHex }).catch(() => {});
         
-        // Dynamically update theme-color meta tag for PWA / Safari status bar tint
-        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-        if (metaThemeColor) {
-          metaThemeColor.setAttribute('content', bgHex);
+        // Native iOS theme bridge: sync window, webView backing, underPageBackgroundColor and status bar style
+        if (Capacitor.isNativePlatform()) {
+          const { CalyxoTheme } = Capacitor.Plugins;
+          if (CalyxoTheme && typeof CalyxoTheme.setTheme === 'function') {
+            await CalyxoTheme.setTheme({ hex: bgHex, isLight }).catch(() => {});
+          }
         }
+
+        // Dynamically update theme-color meta tag for PWA / Safari status bar tint
+        const metaThemeColors = document.querySelectorAll('meta[name="theme-color"]');
+        metaThemeColors.forEach(tag => tag.setAttribute('content', bgHex));
       } catch (e) {
         console.warn('[NativeMobileBridge] StatusBar init error:', e);
       }

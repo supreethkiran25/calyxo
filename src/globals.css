@@ -51,6 +51,8 @@ a:active,
 }
 
 html, body {
+  background-color: var(--background);
+  color: var(--foreground);
   height: 100%;
   min-height: 100dvh;
   overflow-x: hidden;
@@ -276,9 +278,10 @@ select:focus,
 }
 
 /* Light Theme Global Utility Class Overrides */
+html[data-theme='light'],
+body[data-theme='light'],
+html[data-theme='light'] body,
 [data-theme='light'],
-[data-theme='light'] html,
-[data-theme='light'] body,
 [data-theme='light'] #root {
   background-color: var(--background) !important;
   color: var(--foreground) !important;
