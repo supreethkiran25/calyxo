@@ -27,14 +27,15 @@ export default function NativeMobileBridge() {
         const theme = document.documentElement.getAttribute('data-theme') || '';
         const isLight = theme === 'light' || theme === 'paper' || 
                         (!theme && window.matchMedia('(prefers-color-scheme: light)').matches);
+        const bgHex = isLight ? '#F8FAFC' : '#030303';
         await StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
         await StatusBar.setStyle({ style: isLight ? Style.Light : Style.Dark }).catch(() => {});
+        await StatusBar.setBackgroundColor({ color: bgHex }).catch(() => {});
         
         // Dynamically update theme-color meta tag for PWA / Safari status bar tint
         const metaThemeColor = document.querySelector('meta[name="theme-color"]');
         if (metaThemeColor) {
-          const bgVal = getComputedStyle(document.documentElement).getPropertyValue('--background').trim();
-          metaThemeColor.setAttribute('content', bgVal || (isLight ? '#f8fafc' : '#0a0a0c'));
+          metaThemeColor.setAttribute('content', bgHex);
         }
       } catch (e) {
         console.warn('[NativeMobileBridge] StatusBar init error:', e);

@@ -584,7 +584,10 @@ export default function UserLayout() {
       {/* Mobile Header & Content */}
       <div className="flex-1 flex flex-col w-full lg:w-auto h-full min-h-0 overflow-hidden">
         {/* Mobile Header */}
-        <header className="lg:hidden pt-[max(env(safe-area-inset-top,0px),0.75rem)] border-b border-card-border bg-background/95 backdrop-blur-xl sticky top-0 z-30 shrink-0">
+        <header 
+          className="lg:hidden border-b border-card-border bg-background sticky top-0 z-30 shrink-0"
+          style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 0.75rem)' }}
+        >
           <div className="h-14 flex items-center justify-between px-4 w-full">
             <div className="flex items-center gap-2.5">
               <button onClick={() => setIsMobileDrawerOpen(true)} aria-label="Open Navigation Drawer" className="p-2 text-foreground bg-transparent border-none cursor-pointer">

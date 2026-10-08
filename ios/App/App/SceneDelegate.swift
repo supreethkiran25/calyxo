@@ -7,9 +7,20 @@ class MainViewController: CAPBridgeViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         self.view.backgroundColor = .systemBackground
-        self.webView?.isOpaque = false
-        self.webView?.backgroundColor = .clear
-        self.webView?.scrollView.contentInsetAdjustmentBehavior = .never
+        self.webView?.isOpaque = true
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        // Ensure webView always covers the entire screen edge-to-edge behind Dynamic Island & status bar
+        guard let window = self.view.window ?? UIApplication.shared.windows.first else { return }
+        let fullBounds = window.bounds
+        if self.view.frame != fullBounds {
+            self.view.frame = fullBounds
+        }
+        if let webView = self.webView, webView.frame != fullBounds {
+            webView.frame = fullBounds
+        }
     }
 
     override func capacitorDidLoad() {

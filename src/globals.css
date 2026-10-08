@@ -276,6 +276,8 @@ select:focus,
 }
 
 /* Light Theme Global Utility Class Overrides */
+[data-theme='light'],
+[data-theme='light'] html,
 [data-theme='light'] body,
 [data-theme='light'] #root {
   background-color: var(--background) !important;
@@ -524,6 +526,7 @@ select:focus,
 
 html {
   scroll-behavior: smooth;
+  background-color: var(--background);
 }
 
 body {
