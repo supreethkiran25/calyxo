@@ -1071,16 +1071,29 @@ export const getUserProfile = async (userId) => {
       }
     } catch (upErr) { /* ignore fallback query error */ }
 
-    // 2. Query subscriptions table by user_id
+    // 2. Query subscriptions table live by user_id or customer_email
+    let subRecord = null;
     try {
       const validUid = toValidUuid(userId);
       let { data: subData } = await supabase
         .from("subscriptions")
-        .select("plan, status")
+        .select("plan, status, expiry_date, purchase_date, current_period_start, current_period_end, payment_id, amount, payment_source, granted_by, created_at, updated_at")
         .eq("user_id", validUid)
         .maybeSingle();
 
+      if (!subData && userEmail) {
+        const { data: subByEmail } = await supabase
+          .from("subscriptions")
+          .select("plan, status, expiry_date, purchase_date, current_period_start, current_period_end, payment_id, amount, payment_source, granted_by, created_at, updated_at")
+          .eq("customer_email", userEmail.toLowerCase().trim())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (subByEmail) subData = subByEmail;
+      }
+
       if (subData) {
+        subRecord = subData;
         const statusUpper = (subData.status || '').toUpperCase();
         if ((statusUpper === 'ACTIVE' || statusUpper === 'CAPTURED') && subData.plan && subData.plan !== 'FREE') {
           userProfileSubPlan = subData.plan;
@@ -1091,7 +1104,7 @@ export const getUserProfile = async (userId) => {
 
     const cleanEmail = (userEmail || "").toLowerCase().trim();
     if (cleanEmail === 'supreethkiran25@gmail.com') {
-      userProfileSubPlan = 'HIGH';
+      userProfileSubPlan = userProfileSubPlan || 'HIGH';
       isUserSubscribed = true;
     }
 
@@ -1105,8 +1118,46 @@ export const getUserProfile = async (userId) => {
         }
       }
       const isKnownPremiumEmail = cleanEmail === 'supreethkiran25@gmail.com';
-      const subPlan = isKnownPremiumEmail ? 'HIGH' : (userProfileSubPlan || extra.subscriptionPlan || localState.userProfile?.subscriptionPlan || 'FREE');
-      const isSub = isKnownPremiumEmail || isUserSubscribed || (subPlan !== 'FREE' && subPlan !== 'DEFAULT');
+      const rawSubPlan = (userProfileSubPlan || extra.subscriptionPlan || localState.userProfile?.subscriptionPlan || (isKnownPremiumEmail ? 'HIGH' : 'FREE')).toUpperCase();
+      const isPaid = rawSubPlan !== 'FREE' && rawSubPlan !== 'DEFAULT';
+      const isAnnual = rawSubPlan === 'HIGH_ANNUAL' || rawSubPlan === 'ANNUAL';
+      const durationDays = isAnnual ? 365 : 30;
+      const durationMs = durationDays * 24 * 60 * 60 * 1000;
+      const nowMs = Date.now();
+
+      // Resolve authoritative subscription dates from live subscriptions table or fallback
+      let subDate = subRecord?.purchase_date || subRecord?.current_period_start || subRecord?.created_at || extra.subscriptionDate || localState.userProfile?.subscriptionDate || null;
+      let subExpiry = subRecord?.expiry_date || subRecord?.current_period_end || extra.subscriptionExpiresAt || extra.subscriptionExpiry || localState.userProfile?.subscriptionExpiresAt || null;
+
+      if (isPaid) {
+        let baseMs = subDate ? new Date(subDate).getTime() : nowMs;
+        if (isNaN(baseMs)) baseMs = nowMs;
+
+        if (!subExpiry) {
+          subExpiry = new Date(baseMs + durationMs).toISOString();
+        } else {
+          const parsedExpiryMs = new Date(subExpiry).getTime();
+          // MODEL RECONCILIATION: For a monthly (30-day) plan, expiry can never exceed 31 days into future
+          if (!isAnnual && !isNaN(parsedExpiryMs) && (parsedExpiryMs - nowMs > 31 * 24 * 60 * 60 * 1000)) {
+            const elapsed = Math.max(0, nowMs - baseMs);
+            const cyclesCompleted = Math.floor(elapsed / durationMs);
+            const currentCycleEndMs = baseMs + (cyclesCompleted + 1) * durationMs;
+            subExpiry = new Date(currentCycleEndMs > nowMs ? currentCycleEndMs : (nowMs + durationMs)).toISOString();
+          }
+        }
+      }
+
+      // Evaluate plan expiration
+      let isPlanExpired = false;
+      if (subExpiry && isPaid) {
+        const expiryMs = new Date(subExpiry).getTime();
+        if (!isNaN(expiryMs) && nowMs >= expiryMs) {
+          isPlanExpired = true;
+        }
+      }
+
+      const activePlan = isPlanExpired ? 'FREE' : rawSubPlan;
+      const isSub = isKnownPremiumEmail || (!isPlanExpired && (isUserSubscribed || isPaid));
 
       const resolvedPhotoURL = data.photoURL || extra.photoURL || upData?.photo_url || authUserMetadata?.photoURL || authUserMetadata?.avatar_url || localState.userProfile?.photoURL || '';
       const resolvedDisplayName = data.displayName || extra.displayName || extra.nickname || upData?.display_name || authUserMetadata?.displayName || extra.firstName || '';
@@ -1115,16 +1166,19 @@ export const getUserProfile = async (userId) => {
         ...localState.userProfile,
         ...data,
         ...extra,
-        subscriptionPlan: subPlan,
+        subscriptionPlan: activePlan,
         isSubscribed: isSub,
+        isExpired: isPlanExpired,
+        subscriptionDate: subDate,
+        subscriptionExpiresAt: subExpiry,
+        subscriptionExpiry: subExpiry,
         healthInterests: Array.isArray(extra.healthInterests)
           ? extra.healthInterests
           : (Array.isArray(data?.healthInterests) ? data.healthInterests : (localState.userProfile?.healthInterests || [])),
         fitnessLevel: extra.fitnessLevel || extra.experience || localState.userProfile?.fitnessLevel || 'Intermediate',
         lastPaymentId: extra.lastPaymentId || localState.userProfile?.lastPaymentId || null,
-        subscriptionDate: extra.subscriptionDate || localState.userProfile?.subscriptionDate || null,
         passPurchases: extra.passPurchases || localState.userProfile?.passPurchases || null,
-        activePass: extra.activePass || localState.userProfile?.activePass || subPlan,
+        activePass: extra.activePass || localState.userProfile?.activePass || activePlan,
         onboarded: extra.onboarded === true || 
                    extra.onboardingCompleted === true || 
                    data.onboarded === true || 
@@ -1146,19 +1200,31 @@ export const getUserProfile = async (userId) => {
       localState.userProfile = combinedProfile;
       saveLocalState(userId, localState);
 
-      // Silently ensure cloud DB is synced with the active plan so subsequent reads on all devices stay updated
-      if (!extra.subscriptionPlan || extra.subscriptionPlan !== subPlan) {
+      // Silently ensure cloud DB is synced with the active plan and expiry so subsequent reads on all devices stay updated
+      if (!extra.subscriptionPlan || extra.subscriptionPlan !== activePlan || extra.subscriptionExpiresAt !== subExpiry) {
         saveUserProfile(userId, combinedProfile).catch(() => { });
       }
 
       return combinedProfile;
     }
     const localProf = getLocalState(userId).userProfile;
-    const fallbackPlan = userProfileSubPlan || localProf?.subscriptionPlan || 'FREE';
+    const fallbackRawPlan = userProfileSubPlan || localProf?.subscriptionPlan || 'FREE';
+    const fallbackExpiry = localProf?.subscriptionExpiresAt || localProf?.subscriptionExpiry || null;
+    let fallbackIsExpired = false;
+    if (fallbackExpiry) {
+      const expMs = new Date(fallbackExpiry).getTime();
+      if (!isNaN(expMs) && Date.now() >= expMs) {
+        fallbackIsExpired = true;
+      }
+    }
+    const fallbackPlan = fallbackIsExpired ? 'FREE' : fallbackRawPlan;
     const fallbackSub = {
       ...localProf,
       subscriptionPlan: fallbackPlan,
-      isSubscribed: fallbackPlan !== 'FREE' && fallbackPlan !== 'DEFAULT',
+      isSubscribed: !fallbackIsExpired && fallbackPlan !== 'FREE' && fallbackPlan !== 'DEFAULT',
+      isExpired: fallbackIsExpired,
+      subscriptionExpiresAt: fallbackExpiry,
+      subscriptionExpiry: fallbackExpiry,
       onboarded: localProf?.onboarded === true || 
                  localState.userProfile?.onboarded === true || 
                  (typeof window !== 'undefined' && userId && localStorage.getItem(`calyxo_onboarded_${userId}`) === 'true')
@@ -1204,13 +1270,23 @@ export const saveUserProfile = async (userId, profile) => {
 
   const finalRole = profile.role || mergedProfile.role || existingBio.role;
   const finalSubPlan = profile.subscriptionPlan || mergedProfile.subscriptionPlan || existingBio.subscriptionPlan || 'FREE';
+  const finalSubscriptionDate = profile.subscriptionDate || mergedProfile.subscriptionDate || existingBio.subscriptionDate || null;
+  const finalExpiresAt = profile.subscriptionExpiresAt ?? profile.subscriptionExpiry ?? mergedProfile.subscriptionExpiresAt ?? mergedProfile.subscriptionExpiry ?? existingBio.subscriptionExpiresAt ?? existingBio.subscriptionExpiry ?? null;
+
+  let isExpired = false;
+  if (finalExpiresAt) {
+    const expMs = new Date(finalExpiresAt).getTime();
+    if (!isNaN(expMs) && Date.now() >= expMs) {
+      isExpired = true;
+    }
+  }
+
   const finalIsSubscribed = profile.isSubscribed !== undefined
     ? profile.isSubscribed
     : (mergedProfile.isSubscribed !== undefined
       ? mergedProfile.isSubscribed
-      : (existingBio.isSubscribed !== undefined ? existingBio.isSubscribed : (finalSubPlan !== 'FREE' && finalSubPlan !== 'DEFAULT')));
+      : (existingBio.isSubscribed !== undefined ? existingBio.isSubscribed : (!isExpired && finalSubPlan !== 'FREE' && finalSubPlan !== 'DEFAULT')));
   const finalLastPaymentId = profile.lastPaymentId || mergedProfile.lastPaymentId || existingBio.lastPaymentId || null;
-  const finalSubscriptionDate = profile.subscriptionDate || mergedProfile.subscriptionDate || existingBio.subscriptionDate || null;
   const finalPassPurchases = profile.passPurchases || mergedProfile.passPurchases || existingBio.passPurchases || null;
   const finalActivePass = profile.activePass || mergedProfile.activePass || existingBio.activePass || null;
 
@@ -1219,10 +1295,13 @@ export const saveUserProfile = async (userId, profile) => {
       ...existingBio,
       ...mergedProfile,
       onboarded: mergedProfile.onboarded ?? existingBio.onboarded,
-      subscriptionPlan: finalSubPlan,
-      isSubscribed: finalIsSubscribed,
+      subscriptionPlan: (isExpired && profile.subscriptionPlan === undefined) ? 'FREE' : finalSubPlan,
+      isSubscribed: isExpired ? false : finalIsSubscribed,
+      isExpired: isExpired,
       lastPaymentId: finalLastPaymentId,
       subscriptionDate: finalSubscriptionDate,
+      subscriptionExpiresAt: finalExpiresAt,
+      subscriptionExpiry: finalExpiresAt,
       passPurchases: finalPassPurchases,
       activePass: finalActivePass,
       healthInterests: Array.isArray(profile.healthInterests)

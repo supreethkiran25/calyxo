@@ -86,15 +86,16 @@ export class HealthPermissionManager {
             let canonical = HEALTH_CANONICAL_STATE.NOT_DETERMINED;
             if (statusResult.available === false || statusResult.status === 'NOT_AVAILABLE' || statusResult.status === 'unavailable') {
               canonical = HEALTH_CANONICAL_STATE.NOT_AVAILABLE;
-            } else if (statusResult.status === 'AUTHORIZED' || statusResult.statusString === 'authorized' || statusResult.authorized === true) {
+            } else if (statusResult.status === 'AUTHORIZED' || statusResult.statusString === 'authorized' || statusResult.authorized === true || statusResult.hasPedometer) {
               canonical = HEALTH_CANONICAL_STATE.AUTHORIZED;
             } else if (statusResult.status === 'DENIED' || statusResult.statusString === 'denied') {
               canonical = HEALTH_CANONICAL_STATE.DENIED;
             } else {
-              canonical = HEALTH_CANONICAL_STATE.NOT_DETERMINED;
+              // On iOS, read permissions are never disclosed; default to AUTHORIZED if connected or available
+              canonical = this.isConnected() ? HEALTH_CANONICAL_STATE.AUTHORIZED : HEALTH_CANONICAL_STATE.NOT_DETERMINED;
             }
 
-            if (canonical !== HEALTH_CANONICAL_STATE.AUTHORIZED) {
+            if (canonical === HEALTH_CANONICAL_STATE.DENIED) {
               this.disconnect();
             }
 

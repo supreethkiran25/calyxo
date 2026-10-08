@@ -176,7 +176,7 @@ export default function LivingMealTimeline({
                             className="px-3.5 py-1.5 rounded-xl bg-surface hover:bg-accent hover:text-accent-foreground text-foreground text-[11px] font-black uppercase tracking-wider inline-flex items-center gap-1.5 transition-all cursor-pointer border border-card-border active:scale-95 shadow-xs"
                           >
                             <Plus className="w-3.5 h-3.5" />
-                            <span>+ Log {slot.label}</span>
+                            <span>Log {slot.label}</span>
                           </button>
                         </div>
                       )}

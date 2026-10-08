@@ -4,6 +4,14 @@ import Capacitor
 /// Custom CAPBridgeViewController that explicitly registers all Calyxo native plugins
 /// with Capacitor's bridge upon WebView initialization.
 class MainViewController: CAPBridgeViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        self.view.backgroundColor = .systemBackground
+        self.webView?.isOpaque = false
+        self.webView?.backgroundColor = .clear
+        self.webView?.scrollView.contentInsetAdjustmentBehavior = .never
+    }
+
     override func capacitorDidLoad() {
         super.capacitorDidLoad()
 

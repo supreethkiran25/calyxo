@@ -20,6 +20,8 @@ import OfflineSyncIndicator from '../components/OfflineSyncIndicator';
 import PWAInstallBanner from '../components/PWAInstallBanner';
 import LaunchScreen from '../components/LaunchScreen';
 import { syncWidgetData } from '../services/widgetDataService';
+import { HealthSyncEngine } from '../services/health/HealthSyncEngine';
+import { SubscriptionManager } from '../services/subscription/SubscriptionManager';
 
 const BackgroundEffects = lazy(() => import('../components/BackgroundEffects'));
 const QuickActionsSheet = lazy(() => import('../components/QuickActionsSheet'));
@@ -34,6 +36,7 @@ const ProgressUploadModal = lazy(() => import('../components/modals/ProgressUplo
 const AIChatModal = lazy(() => import('../components/modals/AIChatModal'));
 const WaterLoggerModal = lazy(() => import('../components/modals/WaterLoggerModal'));
 const WeightLoggerModal = lazy(() => import('../components/modals/WeightLoggerModal'));
+const AnatomyTargetModal = lazy(() => import('../components/modals/AnatomyTargetModal'));
 const LegalModal = lazy(() => import('../components/modals/LegalModal'));
 
 const DESKTOP_NAV = [
@@ -90,15 +93,13 @@ export default function UserLayout() {
   const location = useLocation();
   const pathname = location.pathname;
 
-  const subscriptionPlan = userProfile?.subscriptionPlan;
   const currentUserEmail = (user?.email || userProfile?.email || "").toLowerCase().trim();
   const hasAdminSession = typeof window !== 'undefined' && Boolean(localStorage.getItem('calyxo_admin_session'));
   const isSuperAdmin = currentUserEmail === 'supreethkiran25@gmail.com' || currentUserEmail === 'admin@calyxo.com' || hasAdminSession;
-  const isSubscribed = Boolean(
-    userProfile?.isSubscribed || 
-    (subscriptionPlan && subscriptionPlan !== 'FREE' && subscriptionPlan !== 'DEFAULT') ||
-    isSuperAdmin
-  );
+
+  const subStatus = SubscriptionManager.getSubscriptionStatus(userProfile, user);
+  const subTimeline = SubscriptionManager.getSubscriptionTimeline(userProfile, user);
+  const isSubscribed = subStatus.isSubscribed;
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -124,7 +125,7 @@ export default function UserLayout() {
     };
   }, []);
 
-  const { activeWorkflow, legalModalType, closeLegalModal } = useQuickActionsStore();
+  const { activeWorkflow, legalModalType, closeLegalModal, isSheetOpen, closeSheet } = useQuickActionsStore();
 
   useEffect(() => {
     try {
@@ -425,6 +426,8 @@ export default function UserLayout() {
       if (ecosystem) useEcosystemStore.getState().syncEcosystemState(ecosystem);
       const waterTarget = Number(profile?.waterGoal || profile?.waterTarget || store.userProfile?.waterTarget || 3000);
       useEcosystemStore.getState().recalculateDynamicStreaks(foods || [], workouts || [], waterLogs || [], waterTarget);
+      // Seamlessly sync background HealthKit & CoreMotion hardware steps on app resume
+      HealthSyncEngine.triggerSync().catch(() => {});
     };
 
     window.addEventListener('focus', handleFocusSync);
@@ -434,9 +437,13 @@ export default function UserLayout() {
     };
     document.addEventListener('visibilitychange', handleVisibility);
 
+    // Start auto sync for active sessions (every 45s)
+    const cleanupAutoSync = HealthSyncEngine.startAutoSync(45000);
+
     return () => {
       if (unsubNotifs) unsubNotifs();
       if (unsubCrossDevice) unsubCrossDevice();
+      if (cleanupAutoSync) cleanupAutoSync();
       window.removeEventListener('focus', handleFocusSync);
       window.removeEventListener('calyxo_data_sync', handleFocusSync);
       document.removeEventListener('visibilitychange', handleVisibility);
@@ -490,9 +497,14 @@ export default function UserLayout() {
             <span className="brand-name text-lg text-foreground tracking-wider group-hover:text-acid-green transition-colors leading-none">CALYXO</span>
           </div>
           {isSubscribed && (
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-acid-green/15 text-acid-green border border-acid-green/30 text-[9px] font-black uppercase tracking-wider shadow-sm shadow-acid-green/10" title={`Subscribed: ${subscriptionPlan}`}>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-acid-green/15 text-acid-green border border-acid-green/30 text-[9px] font-black uppercase tracking-wider shadow-sm shadow-acid-green/10" title={`Subscribed: ${subStatus.planName}`}>
               <Crown className="w-3.5 h-3.5 text-acid-green shrink-0 animate-pulse" />
-              <span>{subscriptionPlan}</span>
+              <span>{subStatus.planName}</span>
+            </div>
+          )}
+          {subStatus.isExpired && (
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/15 text-destructive border border-destructive/30 text-[8px] font-black uppercase tracking-wider" title="Subscription has expired">
+              <span>Plan Expired</span>
             </div>
           )}
         </Link>
@@ -570,7 +582,7 @@ export default function UserLayout() {
       </aside>
 
       {/* Mobile Header & Content */}
-      <div className="flex-1 flex flex-col w-full lg:w-auto h-[100dvh] overflow-hidden">
+      <div className="flex-1 flex flex-col w-full lg:w-auto h-full min-h-0 overflow-hidden">
         {/* Mobile Header */}
         <header className="lg:hidden pt-[max(env(safe-area-inset-top,0px),0.75rem)] border-b border-card-border bg-background/95 backdrop-blur-xl sticky top-0 z-30 shrink-0">
           <div className="h-14 flex items-center justify-between px-4 w-full">
@@ -586,9 +598,14 @@ export default function UserLayout() {
                 <Logo className="w-7 h-7 text-accent" glow={true} />
                 <span className="brand-name text-base text-accent tracking-wider leading-none">CALYXO</span>
                 {isSubscribed && (
-                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30 text-[8px] font-black uppercase tracking-wider" title={`Subscribed: ${subscriptionPlan}`}>
+                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30 text-[8px] font-black uppercase tracking-wider" title={`Subscribed: ${subStatus.planName}`}>
                     <Crown className="w-3 h-3 text-accent shrink-0 animate-pulse" />
-                    <span>{subscriptionPlan}</span>
+                    <span>{subStatus.planName}</span>
+                  </div>
+                )}
+                {subStatus.isExpired && (
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive border border-destructive/30 text-[7px] font-black uppercase tracking-wider" title="Subscription has expired">
+                    <span>Expired</span>
                   </div>
                 )}
               </Link>
@@ -620,7 +637,7 @@ export default function UserLayout() {
           </div>
         </main>
         {/* Mobile Bottom Navigation */}
-        <nav aria-label="Mobile Navigation" className="lg:hidden fixed bottom-0 left-0 right-0 bg-nav-bg backdrop-blur-md border-t border-card-border z-30 px-2 pb-safe shadow-card transform-gpu will-change-transform">
+        <nav aria-label="Mobile Navigation" className="mobile-bottom-nav lg:hidden fixed bottom-0 left-0 right-0 bg-nav-bg backdrop-blur-md border-t border-card-border z-30 px-2 pb-safe shadow-card transform-gpu will-change-transform">
           <div className="flex items-center justify-around h-16 max-w-md mx-auto">
             <Link
               to="/user/dashboard"
@@ -693,7 +710,13 @@ export default function UserLayout() {
       </div>
 
       <Suspense fallback={null}>
-        <QuickActionsSheet isOpen={isQuickActionsOpen} onClose={() => setIsQuickActionsOpen(false)} />
+        <QuickActionsSheet 
+          isOpen={isQuickActionsOpen || isSheetOpen} 
+          onClose={() => {
+            setIsQuickActionsOpen(false);
+            closeSheet();
+          }} 
+        />
 
         {/* Create Hub Modals */}
         <WorkoutLoggerModal />
@@ -702,6 +725,7 @@ export default function UserLayout() {
         <AIChatModal />
         <WaterLoggerModal />
         <WeightLoggerModal />
+        <AnatomyTargetModal />
         <LegalModal 
           isOpen={Boolean(legalModalType)} 
           onClose={closeLegalModal} 
@@ -748,8 +772,9 @@ export default function UserLayout() {
                   {unreadCount > 0 && (
                     <button
                       onClick={async () => {
-                        await markAllNotificationsAsRead();
+                        const unreadNotifs = notifications.filter(x => !x.read);
                         setNotifications(prev => prev.map(x => ({ ...x, read: true })));
+                        await Promise.allSettled(unreadNotifs.map(x => markNotificationAsRead(x.id)));
                       }}
                       className="text-[10px] font-bold text-accent px-2.5 py-1 rounded-full bg-accent/10 hover:bg-accent/20 border border-accent/20 cursor-pointer"
                     >

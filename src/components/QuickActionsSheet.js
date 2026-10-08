@@ -1,25 +1,21 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Dumbbell, Apple, ScanLine, TrendingUp, MessageSquare, Droplets, Scale, Zap, Lock, Bot } from 'lucide-react';
+import { X, Dumbbell, Apple, ScanLine, TrendingUp, MessageSquare, Droplets, Scale, Zap, Lock, Bot, Activity } from 'lucide-react';
 import useQuickActionsStore from '../store/useQuickActionsStore';
 import { useStore } from '../store/useStore';
+import { SubscriptionManager } from '../services/subscription/SubscriptionManager';
 
 export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
   const setActiveWorkflow = useQuickActionsStore((state) => state.setActiveWorkflow);
   const user = useStore(state => state.user);
   const userProfile = useStore(state => state.userProfile);
-  const plan = userProfile?.subscriptionPlan;
-  const email = (user?.email || userProfile?.email || "").toLowerCase().trim();
-  const isSubscribed = Boolean(
-    userProfile?.isSubscribed || 
-    (plan && plan !== 'FREE' && plan !== 'DEFAULT') ||
-    email === 'supreethkiran25@gmail.com'
-  );
+  const isSubscribed = SubscriptionManager.getSubscriptionStatus(userProfile, user).isSubscribed;
 
   if (!isOpen) return null;
 
   const actions = [
     { id: 'start_live_session', label: 'Start Live Workout', icon: Zap, color: 'text-acid-green', bg: 'bg-acid-green/10', section: 'Health' },
+    { id: 'anatomy_target', label: 'Anatomy / Target Muscle', icon: Activity, color: 'text-amber-400', bg: 'bg-amber-400/10', section: 'Health' },
     { id: 'log_workout', label: 'Log Workout', icon: Dumbbell, color: 'text-blue-500', bg: 'bg-blue-500/10', section: 'Health' },
     { id: 'log_meal', label: 'Log Meal', icon: Apple, color: 'text-green-500', bg: 'bg-green-500/10', section: 'Health' },
     { id: 'progress_photo', label: 'Upload Progress', icon: TrendingUp, color: 'text-indigo-500', bg: 'bg-indigo-500/10', section: 'Health' },

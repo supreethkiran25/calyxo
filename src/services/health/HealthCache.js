@@ -19,6 +19,7 @@ export class HealthCache {
         data: metrics
       };
       localStorage.setItem(CACHE_KEY_METRICS, JSON.stringify(payload));
+      window.dispatchEvent(new CustomEvent('calyxo_health_metrics_updated', { detail: metrics }));
     } catch (e) {
       console.warn("Failed to write health metrics cache:", e);
     }

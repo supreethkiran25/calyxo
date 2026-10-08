@@ -10,6 +10,7 @@ import { calculateMacroTargets, formatNutritionValue } from '../utils/macroCalcu
 import { isToday } from '../utils/dateUtils';
 import { calculateWorkoutCaloriesBurned } from '../utils/workoutUtils';
 import { HealthCache } from '../services/health/HealthCache';
+import { HealthSyncEngine } from '../services/health/HealthSyncEngine';
 import { PWAPedometerService } from '../services/health/PWAPedometerService';
 
 import { 
@@ -18,7 +19,7 @@ import {
   PieChart, Watch, Plus, ArrowUpRight, RefreshCw, Lightbulb, SlidersHorizontal 
 } from 'lucide-react';
 import RealisticWaterVessel from './common/RealisticWaterVessel';
-import DailyAIBriefingCard from './ai/DailyAIBriefingCard';
+import { AIBriefingEngine } from '../services/ai/AIBriefingEngine';
 import PremiumFeatureModal from './modals/PremiumFeatureModal';
 
 function getGreeting() {
@@ -163,6 +164,37 @@ export default function Dashboard({ onNotification }) {
   const [premiumModalOpen, setPremiumModalOpen] = useState(false);
   const [premiumFeatureName, setPremiumFeatureName] = useState('Daily AI Briefing');
   const [isRecalculating, setIsRecalculating] = useState(false);
+  const [healthMetrics, setHealthMetrics] = useState(() => HealthCache.getMetrics() || {});
+
+  useEffect(() => {
+    // 1. Initial background HealthKit / CoreMotion hardware sync immediately on dashboard load
+    HealthSyncEngine.triggerSync().catch(() => {});
+
+    // 2. Subscribe to real-time sync updates
+    const unsub = HealthSyncEngine.subscribe((data) => {
+      if (data?.metrics) {
+        setHealthMetrics(data.metrics);
+      }
+    });
+
+    // 3. Listen to cache update events and app resume/tab focus events
+    const handleCacheUpdate = (e) => {
+      if (e?.detail) setHealthMetrics(e.detail);
+    };
+    const handleAppSync = () => {
+      const latest = HealthCache.getMetrics();
+      if (latest) setHealthMetrics(latest);
+    };
+
+    window.addEventListener('calyxo_health_metrics_updated', handleCacheUpdate);
+    window.addEventListener('calyxo_data_sync', handleAppSync);
+
+    return () => {
+      unsub();
+      window.removeEventListener('calyxo_health_metrics_updated', handleCacheUpdate);
+      window.removeEventListener('calyxo_data_sync', handleAppSync);
+    };
+  }, []);
 
   const metrics = useMemo(() => {
     const computed = calculateMacroTargets({
@@ -316,17 +348,37 @@ export default function Dashboard({ onNotification }) {
   const todaysFoodLogs = useMemo(() => foodLogs.filter(x => isToday(x.timestamp)), [foodLogs]);
   const todaysWorkoutLogs = useMemo(() => workoutLogs.filter(x => isToday(x.timestamp)), [workoutLogs]);
 
+  const briefingData = useMemo(() => {
+    try {
+      const res = AIBriefingEngine.generateGroundedBriefing({
+        userProfile: userProfile || {},
+        foodLogs: todaysFoodLogs,
+        workoutLogs: todaysWorkoutLogs,
+        waterIntake: Number(waterIntake) || 0,
+        healthLogs: {
+          sleep: Number(healthMetrics?.sleepHours || ecoStore?.healthLogs?.sleep || 0),
+          restingHeartRate: Number(healthMetrics?.restingHeartRateBpm || ecoStore?.healthLogs?.restingHeartRate || 0),
+          soreness: Number(ecoStore?.healthLogs?.soreness || 1),
+          fatigue: Number(ecoStore?.healthLogs?.fatigue || 1)
+        }
+      });
+      return res?.briefingData || null;
+    } catch (e) {
+      console.warn('[Dashboard] Daily briefing calculation fallback:', e);
+      return null;
+    }
+  }, [userProfile, todaysFoodLogs, todaysWorkoutLogs, waterIntake, healthMetrics, ecoStore]);
+
   const totalCal = useMemo(() => todaysFoodLogs.reduce((s, x) => s + x.calories, 0), [todaysFoodLogs]);
   const totalProt = useMemo(() => todaysFoodLogs.reduce((s, x) => s + (x.protein || 0), 0), [todaysFoodLogs]);
   const totalCarb = useMemo(() => todaysFoodLogs.reduce((s, x) => s + (x.carbs || 0), 0), [todaysFoodLogs]);
   const totalFat = useMemo(() => todaysFoodLogs.reduce((s, x) => s + (x.fat || 0), 0), [todaysFoodLogs]);
 
-  const cachedHealthMetrics = HealthCache.getMetrics() || {};
-  const healthActiveBurn = Number(cachedHealthMetrics.activeCalories) || 0;
+  const healthActiveBurn = Number(healthMetrics.activeCalories) || 0;
   const workoutBurn = useMemo(() => todaysWorkoutLogs.reduce((s, x) => s + (Number(x.caloriesBurned) || calculateWorkoutCaloriesBurned(x)), 0), [todaysWorkoutLogs]);
   const totalBurned = Math.max(workoutBurn, healthActiveBurn);
   const pwaSteps = (typeof PWAPedometerService !== 'undefined' && typeof PWAPedometerService.getTodaySteps === 'function') ? (PWAPedometerService.getTodaySteps() || 0) : 0;
-  const totalSteps = Math.max(Number(cachedHealthMetrics.steps) || 0, pwaSteps);
+  const totalSteps = Math.max(Number(healthMetrics.steps) || 0, pwaSteps);
 
   const recentMeals = useMemo(() => [...todaysFoodLogs].reverse().slice(0, 4), [todaysFoodLogs]);
   const recentWorkouts = useMemo(() => [...todaysWorkoutLogs].reverse().slice(0, 3), [todaysWorkoutLogs]);
@@ -577,40 +629,6 @@ export default function Dashboard({ onNotification }) {
         </div>
       </div>
 
-      {/* ── AI Coach Banner ── */}
-      <div 
-        onClick={() => navigate('/user/ai')}
-        className="p-4 rounded-2xl bg-surface border border-emerald-500/20 hover:border-emerald-500/40 flex items-center justify-between gap-3 shadow-sm cursor-pointer transition-all active:scale-[0.99] group"
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/25 text-emerald-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-            <Lightbulb className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-[11px] font-bold text-emerald-500 uppercase tracking-wider">
-              AI Coach
-            </div>
-            <p className="text-xs text-foreground font-medium truncate sm:whitespace-normal mt-0.5">
-              {totalCal === 0 && waterIntake === 0
-                ? "Ready to conquer today? Start by logging your breakfast or a glass of water!"
-                : totalProt < targetProteinG * 0.5
-                ? `Logged ${Math.round(totalProt)}g protein so far. Aim for your ${Math.round(targetProteinG)}g target!`
-                : "Great momentum! You're on track with your nutritional split and daily movement."}
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate('/user/ai');
-          }}
-          className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm shrink-0 cursor-pointer border-none"
-        >
-          Chat with AI
-        </button>
-      </div>
-
       {/* ── Quick Actions ── */}
       <div className="space-y-2">
         <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
@@ -634,7 +652,7 @@ export default function Dashboard({ onNotification }) {
             <div className="w-9 h-9 rounded-xl bg-cyan-50 dark:bg-cyan-500/15 text-cyan-400 flex items-center justify-center group-hover:scale-105 transition-transform">
               <Dumbbell className="w-4 h-4" />
             </div>
-            <span className="text-[10.5px] font-bold text-foreground truncate max-w-full">Log Workout</span>
+            <span className="text-[10.5px] font-bold text-foreground truncate max-w-full">Workout</span>
           </button>
 
           <button
@@ -648,7 +666,7 @@ export default function Dashboard({ onNotification }) {
           </button>
 
           <button
-            onClick={() => navigate('/user/challenges')}
+            onClick={() => useQuickActionsStore.getState().openSheet()}
             className="p-3 rounded-2xl bg-surface hover:bg-surface-elevated border border-card-border flex flex-col items-center justify-center gap-1.5 cursor-pointer border-none shadow-sm active:scale-95 transition-all group"
           >
             <div className="w-9 h-9 rounded-xl bg-surface-elevated text-muted-foreground flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -784,93 +802,106 @@ export default function Dashboard({ onNotification }) {
         </div>
       </div>
 
-      {/* Recent Activity: Meals & Workouts Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        {/* Recent Meals */}
-        <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-surface border border-card-border shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
-              Recent Meals
-            </h3>
-            <button
-              onClick={() => navigate('/user/nutrition')}
-              className="text-[11px] font-bold text-accent hover:underline bg-transparent border-none cursor-pointer"
-            >
-              See all
-            </button>
+      {/* ─── Summarized Daily Athletic Briefing ─── */}
+      <div className="p-4 sm:p-6 rounded-3xl bg-surface border border-card-border shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-accent/15 text-accent flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black tracking-widest text-accent uppercase font-mono">
+                  DAILY BRIEFING
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-[9px] font-mono font-bold text-accent">
+                  Readiness {briefingData?.recoveryScore || 82}%
+                </span>
+              </div>
+              <h3 className="text-sm sm:text-base font-extrabold text-foreground mt-0.5">
+                {getGreeting()}, {userProfile?.nickname || userProfile?.firstName || user?.displayName?.split(' ')[0] || 'Athlete'}
+              </h3>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/user/ai')}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-elevated hover:bg-surface border border-card-border text-xs font-bold text-foreground transition-all cursor-pointer"
+          >
+            <span>Ask Coach</span>
+            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+          </button>
+        </div>
+
+        {/* Metric Highlights Pill Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          <div className="p-3 rounded-2xl bg-surface-elevated/70 border border-card-border/60">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Recovery</span>
+              <Activity className="w-3.5 h-3.5 text-accent" />
+            </div>
+            <div className="text-base font-black text-foreground font-mono mt-1">
+              {briefingData?.recoveryScore || 82}%
+            </div>
+            <span className="text-[10px] text-muted-foreground truncate block mt-0.5">
+              {(briefingData?.recoveryScore || 82) >= 75 ? 'Optimal for Strain' : 'Active Recovery'}
+            </span>
           </div>
 
-          <div className="space-y-2">
-            {recentMeals.length === 0 ? (
-              <div className="py-5 text-center text-muted-foreground space-y-1">
-                <Utensils className="w-5 h-5 mx-auto opacity-40" />
-                <p className="text-[11px] font-medium">No meals logged today yet.</p>
-              </div>
-            ) : (
-              recentMeals.slice(0, 3).map((meal, i) => (
-                <div key={i} className="p-2.5 rounded-xl bg-surface-elevated border border-card-border/50 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div className="w-7 h-7 rounded-lg bg-orange-500/15 text-orange-400 flex items-center justify-center shrink-0">
-                      <Utensils className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold text-foreground truncate">{meal.name}</div>
-                      <span className="text-[9px] text-muted-foreground font-mono truncate block">
-                        {(Number(meal.protein) || 0).toFixed(0)}g P · {(Number(meal.carbs) || 0).toFixed(0)}g C
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-xs font-mono font-bold text-foreground ml-2 shrink-0">
-                    {meal.calories} kcal
-                  </span>
-                </div>
-              ))
-            )}
+          <div className="p-3 rounded-2xl bg-surface-elevated/70 border border-card-border/60">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Sleep</span>
+              <Moon className="w-3.5 h-3.5 text-cyan-400" />
+            </div>
+            <div className="text-base font-black text-foreground font-mono mt-1">
+              {briefingData?.sleepDisplay || '7h 30m'}
+            </div>
+            <span className="text-[10px] text-muted-foreground truncate block mt-0.5">
+              Restorative Cycle
+            </span>
+          </div>
+
+          <div className="col-span-2 sm:col-span-1 p-3 rounded-2xl bg-surface-elevated/70 border border-card-border/60">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Focus Today</span>
+              <Dumbbell className="w-3.5 h-3.5 text-orange-400" />
+            </div>
+            <div className="text-xs font-black text-foreground truncate mt-1">
+              {todaysWorkoutLogs.length > 0 ? 'Session Logged' : 'Hypertrophy / Conditioning'}
+            </div>
+            <span className="text-[10px] text-muted-foreground truncate block mt-0.5">
+              {todaysWorkoutLogs.length > 0 ? `${todaysWorkoutLogs.length} session completed` : 'Target split scheduled'}
+            </span>
           </div>
         </div>
 
-        {/* Recent Workouts */}
-        <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-surface border border-card-border shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
-              Recent Workouts
-            </h3>
-            <button
-              onClick={() => navigate('/user/workout')}
-              className="text-[11px] font-bold text-accent hover:underline bg-transparent border-none cursor-pointer"
-            >
-              See all
-            </button>
-          </div>
-
-          <div className="space-y-2">
-            {recentWorkouts.length === 0 ? (
-              <div className="py-5 text-center text-muted-foreground space-y-1">
-                <Dumbbell className="w-5 h-5 mx-auto opacity-40" />
-                <p className="text-[11px] font-medium">No workouts logged today yet.</p>
+        {/* Action Directives */}
+        <div className="p-3 rounded-2xl bg-surface-elevated/50 border border-card-border/50 space-y-2">
+          <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block">
+            Directives for Today
+          </span>
+          <div className="space-y-1.5">
+            {(briefingData?.focalDirectives?.slice(0, 2) || [
+              'Hydrate early and maintain regular water intake',
+              `Target ${Math.round(targetProteinG)}g protein across meals`
+            ]).map((directive, idx) => (
+              <div key={idx} className="flex items-start gap-2 text-xs text-foreground/90 leading-snug">
+                <div className="w-1.5 h-1.5 rounded-full bg-accent shrink-0 mt-1.5" />
+                <span>{directive}</span>
               </div>
-            ) : (
-              recentWorkouts.slice(0, 3).map((w, i) => (
-                <div key={i} className="p-2.5 rounded-xl bg-surface-elevated border border-card-border/50 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div className="w-7 h-7 rounded-lg bg-accent/15 text-accent flex items-center justify-center shrink-0">
-                      <Dumbbell className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold text-foreground truncate">{w.name || 'Workout'}</div>
-                      <span className="text-[9px] text-muted-foreground truncate block">
-                        {w.category === 'Cardio' ? `${w.duration} mins` : `${w.sets || 3} sets`}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-xs font-mono font-bold text-accent ml-2 shrink-0">
-                    {w.caloriesBurned ? `${w.caloriesBurned} kcal` : 'Done'}
-                  </span>
-                </div>
-              ))
-            )}
+            ))}
           </div>
         </div>
+
+        {/* Mobile Ask Coach button */}
+        <button
+          type="button"
+          onClick={() => navigate('/user/ai')}
+          className="sm:hidden w-full py-2.5 rounded-xl bg-surface-elevated border border-card-border text-xs font-bold text-foreground flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 transition-transform"
+        >
+          <span>Ask AI Coach</span>
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+        </button>
       </div>
 
       {/* Compact Daily Energy & Metabolic Profile */}
@@ -922,24 +953,6 @@ export default function Dashboard({ onNotification }) {
           </div>
         </div>
       </div>
-
-      {/* Daily Morning AI Briefing Card (Positioned at bottom) */}
-      <DailyAIBriefingCard
-        userProfile={userProfile}
-        foodLogs={todaysFoodLogs}
-        workoutLogs={todaysWorkoutLogs}
-        waterIntake={waterIntake}
-        healthLogs={{
-          sleep: Number(cachedHealthMetrics.sleepHours || ecoStore?.healthLogs?.sleep || 0),
-          restingHeartRate: Number(cachedHealthMetrics.restingHeartRateBpm || ecoStore?.healthLogs?.restingHeartRate || 0),
-          soreness: Number(ecoStore?.healthLogs?.soreness || 1),
-          fatigue: Number(ecoStore?.healthLogs?.fatigue || 1)
-        }}
-        onOpenUpgradeModal={(feature) => {
-          setPremiumFeatureName(feature);
-          setPremiumModalOpen(true);
-        }}
-      />
 
       <PremiumFeatureModal
         isOpen={premiumModalOpen}

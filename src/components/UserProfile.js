@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PermissionsConnectionsSection from './PermissionsConnectionsSection';
 import ProfileIdentityHero from '../design-system/components/ProfileIdentityHero';
+import SubscriptionLiveTimerCard from './SubscriptionLiveTimerCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
@@ -22,11 +23,12 @@ import {
   cancelUserSubscription
 } from '../lib/dbService';
 import useQuickActionsStore from '../store/useQuickActionsStore';
+import { SubscriptionManager } from '../services/subscription/SubscriptionManager';
 import { 
   User, Users, Mail, Lock, ShieldAlert, ShieldCheck, Award, RefreshCw, LogOut, CheckCircle, 
   Settings, Heart, Sparkles, Bell, Database, Trash2, Download, Eye, EyeOff,
   Shield, FileText, Info, HelpCircle, Key, Cpu, Activity, CreditCard,
-  MoreVertical, X, Target, Zap, ChevronRight, TrendingUp, Star, Clock
+  MoreVertical, X, Target, Zap, ChevronRight, TrendingUp, Star, Clock, AlertTriangle
 } from 'lucide-react';
 
 const HEALTH_INTERESTS_OPTIONS = [
@@ -62,10 +64,8 @@ export default function UserProfile({ onNotification }) {
   const userId = user?.uid || user?.id || '';
   const ecoStore = useEcosystemStore();
 
-  const [activePanel, setActivePanel] = useState('account');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [openAccordion, setOpenAccordion] = useState(null);
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'targets' | 'routine' | 'settings'
+  const [activeSettingsCategory, setActiveSettingsCategory] = useState('subscription');
   const [editSection, setEditSection] = useState(null); // 'profile' | 'health' | null
   const mobileSheetRef = useRef(null);
 
@@ -300,9 +300,8 @@ export default function UserProfile({ onNotification }) {
           setEditSection('profile');
           fieldTitle = 'Diet Preferences';
         } else if (section === 'subscription') {
-          setActivePanel('account');
-          setOpenAccordion('subscription');
-          setAdvancedOpen(true);
+          setActiveTab('settings');
+          setActiveSettingsCategory('subscription');
           fieldTitle = 'Subscription Plans';
         }
 
@@ -752,6 +751,46 @@ export default function UserProfile({ onNotification }) {
     });
   };
 
+  const handleSyncRazorpayLive = async () => {
+    setSaving(true);
+    if (onNotification) onNotification("Connecting to Razorpay & Supabase for live status...");
+    try {
+      const liveSub = await SubscriptionManager.syncLiveSubscriptionStatus(userId, userEmail);
+      if (liveSub && liveSub.isActive) {
+        const updatedProfile = {
+          ...userProfile,
+          subscriptionPlan: liveSub.plan,
+          isSubscribed: true,
+          subscriptionDate: liveSub.purchaseDate,
+          subscriptionExpiresAt: liveSub.expiryDate,
+          subscriptionExpiry: liveSub.expiryDate,
+          lastPaymentId: liveSub.paymentId || userProfile?.lastPaymentId,
+          isExpired: false,
+          updatedAt: new Date().toISOString()
+        };
+        updateUserProfile(updatedProfile);
+        if (userId) {
+          await saveUserProfile(userId, updatedProfile);
+        }
+        if (onNotification) {
+          onNotification(`✅ Razorpay Verified: ${liveSub.plan} Active (${liveSub.durationDays}-day cycle)`);
+        }
+      } else {
+        await restoreSubscription({
+          user,
+          userProfile,
+          updateUserProfile,
+          onNotification
+        });
+      }
+    } catch (err) {
+      console.warn('Live sync error:', err);
+      if (onNotification) onNotification('Could not sync with Razorpay gateway.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleRestoreSubscription = async () => {
     setSaving(true);
     if (onNotification) onNotification("Restoring active subscription from server...");
@@ -984,22 +1023,6 @@ export default function UserProfile({ onNotification }) {
   const inputClass = "w-full bg-[var(--input)] text-foreground border border-card-border px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-acid-green text-xs shadow-inner";
   const labelClass = "text-[9px] text-muted font-bold uppercase tracking-wider block mb-1";
 
-  // Close mobile sheet on outside click
-  useEffect(() => {
-    if (!mobileMenuOpen) return;
-    const handleOutside = (e) => {
-      if (mobileSheetRef.current && !mobileSheetRef.current.contains(e.target)) {
-        setMobileMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleOutside);
-    document.addEventListener('touchstart', handleOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleOutside);
-      document.removeEventListener('touchstart', handleOutside);
-    };
-  }, [mobileMenuOpen]);
-
   // Compute quick stats for hero card
   const fitnessScore = ecoStore.fitnessScore?.dailyScore || 70;
   const xp = ecoStore.xp || 0;
@@ -1014,10 +1037,6 @@ export default function UserProfile({ onNotification }) {
       ? 'Weight Loss'
       : (Array.isArray(healthInterests) && healthInterests.length > 0 ? healthInterests[0] : (goal === 'maintain' ? 'Maintenance' : 'Weight Loss'));
   const mobileBmi = bmi;
-
-  const toggleAccordion = (id) => {
-    setOpenAccordion(prev => prev === id ? null : id);
-  };
 
   const renderRoutineForm = () => (
     <form onSubmit={handleSaveAllDetails} className="space-y-4">
@@ -1689,7 +1708,11 @@ export default function UserProfile({ onNotification }) {
   );
 
   const renderSubscriptionForm = () => {
-    const currentPlan = userProfile?.subscriptionPlan || 'FREE';
+    const subStatus = SubscriptionManager.getSubscriptionStatus(userProfile, user);
+    const subTimeline = SubscriptionManager.getSubscriptionTimeline(userProfile, user);
+    const currentPlan = subStatus.isSubscribed ? (userProfile?.subscriptionPlan || 'HIGH') : 'FREE';
+    const isExpired = subStatus.isExpired;
+
     const sysSettings = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('calyxo_system_settings') || '{}') : {};
     const rawMonthly = sysSettings.high_price_monthly_inr || sysSettings.high_price_monthly;
     const monthlyPriceINR = (rawMonthly === '20' || !rawMonthly) ? '2' : rawMonthly;
@@ -1755,41 +1778,15 @@ export default function UserProfile({ onNotification }) {
 
     return (
       <div id="setup-field-subscription" className="space-y-6">
-        {/* Current Active Status Badge */}
-        <div className="p-4 rounded-xl bg-surface border border-card-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-acid-green" />
-              <span className="text-xs font-black uppercase tracking-wider text-foreground">Current Active Status</span>
-            </div>
-            <p className="text-[11px] text-muted mt-1">
-              Active Tier: <strong className="text-acid-green font-bold uppercase">{currentPlan} PLAN</strong>
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleRestoreSubscription}
-              disabled={saving}
-              className="px-3 py-1 rounded-full bg-surface text-foreground hover:border-acid-green border border-card-border text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer"
-            >
-              Restore
-            </button>
-            <span className="px-3 py-1 rounded-full bg-acid-green/20 text-acid-green text-[10px] font-black uppercase tracking-wider border border-acid-green/30">
-              {currentPlan === 'FREE' ? 'Free Tier' : 'Active Subscription'}
-            </span>
-            {currentPlan !== 'FREE' && (
-              <button
-                type="button"
-                onClick={handleCancelSubscription}
-                disabled={saving}
-                className="px-3 py-1 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30 text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer"
-              >
-                Cancel Subscription
-              </button>
-            )}
-          </div>
-        </div>
+        {/* Current Active Status & Live Countdown Timer */}
+        <SubscriptionLiveTimerCard
+          userProfile={userProfile}
+          user={user}
+          onSyncLive={handleSyncRazorpayLive}
+          onRestore={handleRestoreSubscription}
+          onCancel={handleCancelSubscription}
+          saving={saving}
+        />
 
         {/* Subscription Plan Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1863,7 +1860,7 @@ export default function UserProfile({ onNotification }) {
                     className="w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer border-none mt-2 bg-acid-green text-black hover:brightness-110 shadow-md shadow-acid-green/10 flex items-center justify-center gap-1.5"
                   >
                     <CreditCard className="w-3.5 h-3.5" />
-                    Subscribe via Razorpay
+                    {isExpired ? `Renew ${plan.name} via Razorpay` : 'Subscribe via Razorpay'}
                   </button>
                 )}
               </div>
@@ -2092,37 +2089,47 @@ export default function UserProfile({ onNotification }) {
         {/* Navigation Sidebar (Desktop Only) */}
         <div className="hidden md:flex flex-col gap-1 glass rounded-xl border border-card-border p-2">
           {[
-            { id: 'permissions', label: 'Permissions & Connections', icon: ShieldCheck },
-            { id: 'coaching', label: 'My Coaching', icon: Users },
-            { id: 'appearance', label: 'Appearance & Themes', icon: Eye },
-            { id: 'ai', label: 'AI Coach Settings', icon: Sparkles },
-            { id: 'notifications', label: 'Notification Settings', icon: Bell },
-            { id: 'privacy', label: 'Privacy & Telemetry', icon: Shield },
-            { id: 'security', label: 'Security & 2FA', icon: Key },
-            { id: 'subscription', label: 'Subscription Plans', icon: CreditCard },
-            { id: 'data', label: 'Data & Storage', icon: Database },
-            { id: 'about', label: 'About & Legal Policies', icon: Info },
-          ].map(item => (
-            <button
-              key={item.id}
-              onClick={() => { setOpenAccordion(item.id); setAdvancedOpen(true); }}
-              className={`w-full flex items-center justify-between p-3 text-xs font-bold transition-all cursor-pointer rounded-lg border-none ${
-                openAccordion === item.id && advancedOpen 
-                  ? 'bg-acid-green/10 text-acid-green' 
-                  : 'text-muted hover:bg-surface/50 hover:text-foreground'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <item.icon className="w-4 h-4" />
-                <span>{item.label}</span>
-              </div>
-              <ChevronRight className="w-3.5 h-3.5 opacity-50" />
-            </button>
-          ))}
+            { id: 'overview', label: 'Overview & Bio', icon: User, tab: 'overview' },
+            { id: 'targets', label: 'Health & Targets', icon: Target, tab: 'targets' },
+            { id: 'routine', label: 'Daily Routine', icon: Clock, tab: 'routine' },
+            { id: 'subscription', label: 'Subscription Plans', icon: CreditCard, tab: 'settings', category: 'subscription' },
+            { id: 'permissions', label: 'Permissions & Wearables', icon: ShieldCheck, tab: 'settings', category: 'permissions' },
+            { id: 'appearance', label: 'Appearance & Themes', icon: Eye, tab: 'settings', category: 'appearance' },
+            { id: 'ai', label: 'AI Coach Settings', icon: Sparkles, tab: 'settings', category: 'ai' },
+            { id: 'notifications', label: 'Notification Settings', icon: Bell, tab: 'settings', category: 'notifications' },
+            { id: 'security', label: 'Security & 2FA', icon: Key, tab: 'settings', category: 'security' },
+            { id: 'privacy', label: 'Privacy & Telemetry', icon: Shield, tab: 'settings', category: 'privacy' },
+            { id: 'data', label: 'Data & Storage', icon: Database, tab: 'settings', category: 'data' },
+            { id: 'about', label: 'About & Legal Policies', icon: Info, tab: 'settings', category: 'about' },
+          ].map(item => {
+            const isSelected = activeTab === item.tab && (item.tab !== 'settings' || activeSettingsCategory === item.category);
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  setActiveTab(item.tab);
+                  if (item.category) setActiveSettingsCategory(item.category);
+                }}
+                className={`w-full flex items-center justify-between p-3 text-xs font-bold transition-all cursor-pointer rounded-lg border-none ${
+                  isSelected 
+                    ? 'bg-acid-green/15 text-acid-green font-black' 
+                    : 'text-muted-foreground hover:bg-surface/50 hover:text-foreground'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <item.icon className="w-4 h-4" />
+                  <span>{item.label}</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 opacity-50" />
+              </button>
+            );
+          })}
         </div>
 
         {/* Sign Out Button (Sidebar) */}
         <button
+          type="button"
           onClick={handleLogout}
           className="hidden md:flex w-full items-center justify-center gap-2 py-3 border border-destructive/20 hover:border-destructive active:border-destructive bg-destructive/5 hover:bg-destructive/10 text-destructive text-[10px] uppercase font-bold tracking-wider rounded-xl transition-all cursor-pointer mt-4"
         >
@@ -2133,576 +2140,506 @@ export default function UserProfile({ onNotification }) {
       </div>
 
       {/* ─── MAIN CONTENT ─── */}
-      <div className="flex-1 space-y-4">
+      <div className="flex-1 space-y-4 min-w-0">
         
-        {/* Profile Info & Health Stats Grid */}
-        <div className="grid grid-cols-1 gap-4">
-          {/* Profile Information */}
-        <div className="glass p-4 rounded-xl border border-card-border space-y-3">
-          <div className="flex justify-between items-center border-b border-card-border/60 pb-2">
-            <h3 className="text-[10px] font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-acid-green" /> Profile Information
-            </h3>
+        {/* ─── Segmented UX Flow Tab Bar (Mobile & Desktop) ─── */}
+        <div className="flex items-center p-1 bg-surface-elevated/80 border border-card-border rounded-2xl w-full shadow-sm">
+          {[
+            { id: 'overview', label: 'Overview', icon: User },
+            { id: 'targets', label: 'Targets', icon: Target },
+            { id: 'routine', label: 'Routine', icon: Clock },
+            { id: 'settings', label: 'Settings', icon: Settings },
+          ].map(tab => (
             <button
-              onClick={() => setEditSection(editSection === 'profile' ? null : 'profile')}
-              className="text-[9px] font-extrabold text-acid-green bg-acid-green/10 px-2.5 py-1 rounded uppercase tracking-wider cursor-pointer border-none"
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 py-2 sm:py-2.5 px-1.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer border-none ${
+                activeTab === tab.id
+                  ? 'bg-acid-green text-black font-black shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-surface/50'
+              }`}
             >
-              {editSection === 'profile' ? 'Cancel' : 'Edit'}
+              <tab.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>{tab.label}</span>
             </button>
-          </div>
+          ))}
+        </div>
 
-          {editSection === 'profile' ? (
-            <form onSubmit={(e) => { handleSaveAllDetails(e); setEditSection(null); }} className="space-y-2.5">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className={labelClass}>First Name</label>
-                  <input id="setup-field-display_name" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-                <div>
-                  <label className={labelClass}>Last Name</label>
-                  <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className={labelClass}>Username</label>
-                  <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-                <div>
-                  <label className={labelClass}>Nickname</label>
-                  <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className={labelClass}>Age</label>
-                  <input type="number" value={ageInput} onChange={(e) => setAgeInput(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-                <div>
-                  <label className={labelClass}>Gender</label>
-                  <select value={gender} onChange={(e) => setGender(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label className={labelClass}>Units</label>
-                  <select value={units} onChange={(e) => setUnits(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
-                    <option value="metric">Metric</option>
-                    <option value="imperial">Imperial</option>
-                  </select>
-                </div>
+        {/* ─── TAB 1: OVERVIEW & BIO ─── */}
+        {activeTab === 'overview' && (
+          <div className="space-y-4">
+            {/* Profile Information */}
+            <div className="glass p-4 sm:p-5 rounded-2xl border border-card-border space-y-3">
+              <div className="flex justify-between items-center border-b border-card-border/60 pb-2.5">
+                <h3 className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-acid-green" /> Profile & Identity
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setEditSection(editSection === 'profile' ? null : 'profile')}
+                  className="text-[10px] font-extrabold text-acid-green bg-acid-green/10 px-3 py-1 rounded-lg uppercase tracking-wider cursor-pointer border border-acid-green/20"
+                >
+                  {editSection === 'profile' ? 'Cancel' : 'Edit Details'}
+                </button>
               </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className={labelClass}>Fitness Level</label>
-                    <select value={fitnessLevel} onChange={(e) => setFitnessLevel(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
-                      <option value="beginner">Beginner</option>
-                      <option value="intermediate">Intermediate</option>
-                      <option value="advanced">Advanced</option>
-                      <option value="elite">Elite Athlete</option>
-                    </select>
+              {editSection === 'profile' ? (
+                <form onSubmit={(e) => { handleSaveAllDetails(e); setEditSection(null); }} className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className={labelClass}>First Name</label>
+                      <input id="setup-field-display_name" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2.5 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Last Name</label>
+                      <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2.5 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelClass}>Fitness Goal</label>
-                    <select value={goal} onChange={(e) => setGoal(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
-                      <option value="lose">Weight Loss</option>
-                      <option value="gain">Muscle Gain</option>
-                      <option value="maintain">Maintain Weight</option>
-                    </select>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className={labelClass}>Username</label>
+                      <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2.5 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Nickname</label>
+                      <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2.5 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                    </div>
                   </div>
-                </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className={labelClass}>Age</label>
+                      <input type="number" value={ageInput} onChange={(e) => setAgeInput(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Gender</label>
+                      <select value={gender} onChange={(e) => setGender(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Units</label>
+                      <select value={units} onChange={(e) => setUnits(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
+                        <option value="metric">Metric</option>
+                        <option value="imperial">Imperial</option>
+                      </select>
+                    </div>
+                  </div>
 
-                <div>
-                  <label className={labelClass}>Bio (Short Description)</label>
-                  <textarea maxLength={160} rows={2} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell the community about yourself..." className="w-full bg-[var(--input)] text-foreground border border-card-border px-2.5 py-2 rounded-xl focus:outline-none focus:border-acid-green text-xs shadow-inner resize-none" />
-                </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className={labelClass}>Fitness Level</label>
+                      <select value={fitnessLevel} onChange={(e) => setFitnessLevel(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2.5 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                        <option value="elite">Elite Athlete</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Fitness Goal</label>
+                      <select value={goal} onChange={(e) => setGoal(e.target.value)} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2.5 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner">
+                        <option value="lose">Weight Loss</option>
+                        <option value="gain">Muscle Gain</option>
+                        <option value="maintain">Maintain Weight</option>
+                      </select>
+                    </div>
+                  </div>
 
-                <div>
-                  <label className={labelClass}>Profile Cover Image</label>
-                  <input type="file" accept="image/*" onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                      const img = new Image();
-                      img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = 600;
-                        canvas.height = 200;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, 600, 200);
-                        setCoverImage(canvas.toDataURL('image/jpeg', 0.7));
+                  <div>
+                    <label className={labelClass}>Bio (Short Description)</label>
+                    <textarea maxLength={160} rows={2} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell the community about yourself..." className="w-full bg-[var(--input)] text-foreground border border-card-border px-2.5 py-2 rounded-xl focus:outline-none focus:border-acid-green text-xs shadow-inner resize-none" />
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Profile Cover Image</label>
+                    <input type="file" accept="image/*" onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        const img = new Image();
+                        img.onload = () => {
+                          const canvas = document.createElement('canvas');
+                          canvas.width = 600;
+                          canvas.height = 200;
+                          const ctx = canvas.getContext('2d');
+                          ctx.drawImage(img, 0, 0, 600, 200);
+                          setCoverImage(canvas.toDataURL('image/jpeg', 0.7));
+                        };
+                        img.src = event.target.result;
                       };
-                      img.src = event.target.result;
-                    };
-                    reader.readAsDataURL(file);
-                  }} className="w-full text-xs text-muted" />
-                  {coverImage && (
-                    <div className="mt-1.5 relative w-full h-14 rounded-lg overflow-hidden border border-card-border">
-                      <img src={coverImage} alt="Cover Preview" className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => setCoverImage('')} className="absolute right-1 top-1 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center text-[8px] text-white border-none cursor-pointer">✕</button>
+                      reader.readAsDataURL(file);
+                    }} className="w-full text-xs text-muted-foreground" />
+                    {coverImage && (
+                      <div className="mt-1.5 relative w-full h-14 rounded-lg overflow-hidden border border-card-border">
+                        <img src={coverImage} alt="Cover Preview" className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => setCoverImage('')} className="absolute right-1 top-1 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center text-[8px] text-white border-none cursor-pointer">✕</button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div id="setup-field-diet_preferences" className="space-y-1">
+                    <label className={labelClass}>Diet Preferences</label>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {DIET_PREFERENCES_OPTIONS.map(opt => {
+                        const selected = dietPreferences.includes(opt);
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => {
+                              setDietPreferences(prev => 
+                                prev.includes(opt) ? prev.filter(x => x !== opt) : [...prev, opt]
+                              );
+                            }}
+                            className={`px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase border cursor-pointer transition-colors ${
+                              selected 
+                                ? 'bg-acid-green/10 border-acid-green text-acid-green' 
+                                : 'bg-surface border-card-border text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Health Interests</label>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {HEALTH_INTERESTS_OPTIONS.map(opt => {
+                        const selected = healthInterests.includes(opt);
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => {
+                              setHealthInterests(prev => {
+                                const isAdding = !prev.includes(opt);
+                                const next = isAdding ? [...prev, opt] : prev.filter(x => x !== opt);
+                                if (isAdding) {
+                                  if (opt === "Muscle Gain" || opt === "Strength Training") setGoal("gain");
+                                  else if (opt === "Weight Loss") setGoal("lose");
+                                  else if (opt === "General Wellness") setGoal("maintain");
+                                }
+                                return next;
+                              });
+                            }}
+                            className={`px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase border cursor-pointer transition-colors ${
+                              selected 
+                                ? 'bg-acid-green/10 border-acid-green text-acid-green' 
+                                : 'bg-surface border-card-border text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <button type="submit" disabled={saving} className="w-full btn-primary py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider border-none flex items-center justify-center gap-1.5 cursor-pointer mt-3">
+                    {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                    Save Profile
+                  </button>
+                </form>
+              ) : (
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[8.5px] text-muted-foreground font-bold uppercase tracking-wider block">Full Name</span>
+                    <span className="text-xs font-black text-foreground mt-0.5 block">{firstName || lastName ? `${firstName} ${lastName}`.trim() : 'Not Set'}</span>
+                  </div>
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[8.5px] text-muted-foreground font-bold uppercase tracking-wider block">Age & Gender</span>
+                    <span className="text-xs font-black text-foreground mt-0.5 block">{ageInput} yrs • {gender}</span>
+                  </div>
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[8.5px] text-muted-foreground font-bold uppercase tracking-wider block">Username</span>
+                    <span className="text-xs font-black text-foreground mt-0.5 block">@{username || nickname || 'athlete'}</span>
+                  </div>
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[8.5px] text-muted-foreground font-bold uppercase tracking-wider block">Fitness Level</span>
+                    <span className="text-xs font-black text-foreground mt-0.5 block capitalize">{fitnessLevel || 'beginner'}</span>
+                  </div>
+                  {healthInterests.length > 0 && (
+                    <div className="bg-surface/50 border border-card-border rounded-xl p-3 col-span-2">
+                      <span className="text-[8.5px] text-muted-foreground font-bold uppercase tracking-wider block">Health Interests</span>
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {healthInterests.map(tag => (
+                          <span key={tag} className="px-2.5 py-0.5 rounded-full bg-surface border border-card-border text-[9px] font-bold text-foreground">{tag}</span>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
+              )}
+            </div>
 
-                <div id="setup-field-diet_preferences" className="space-y-1">
-                  <label className={labelClass}>Diet Preferences</label>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {DIET_PREFERENCES_OPTIONS.map(opt => {
-                      const selected = dietPreferences.includes(opt);
-                      return (
-                        <button
-                          key={opt}
-                          type="button"
-                          onClick={() => {
-                            setDietPreferences(prev => 
-                              prev.includes(opt) ? prev.filter(x => x !== opt) : [...prev, opt]
-                            );
-                          }}
-                          className={`px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase border cursor-pointer transition-colors ${
-                            selected 
-                              ? 'bg-acid-green/10 border-acid-green text-acid-green' 
-                              : 'bg-surface border-card-border text-muted hover:text-foreground'
-                          }`}
-                        >
-                          {opt}
-                        </button>
-                      );
-                    })}
-                  </div>
+            {/* Unlocked Achievements Row */}
+            {ecoStore.achievements && ecoStore.achievements.some(a => a.unlocked) && (
+              <div className="glass rounded-2xl border border-card-border p-4 sm:p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <Award className="w-4 h-4 text-yellow-400" /> Unlocked Achievements
+                  </h3>
+                  <span className="text-[10px] text-acid-green font-bold">{unlockedAchievements} Unlocked</span>
                 </div>
-
-                <div>
-                  <label className={labelClass}>Health Interests</label>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {HEALTH_INTERESTS_OPTIONS.map(opt => {
-                      const selected = healthInterests.includes(opt);
-                      return (
-                        <button
-                          key={opt}
-                          type="button"
-                          onClick={() => {
-                            setHealthInterests(prev => {
-                              const isAdding = !prev.includes(opt);
-                              const next = isAdding ? [...prev, opt] : prev.filter(x => x !== opt);
-                              if (isAdding) {
-                                if (opt === "Muscle Gain" || opt === "Strength Training") setGoal("gain");
-                                else if (opt === "Weight Loss") setGoal("lose");
-                                else if (opt === "General Wellness") setGoal("maintain");
-                              }
-                              return next;
-                            });
-                          }}
-                          className={`px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase border cursor-pointer transition-colors ${
-                            selected 
-                              ? 'bg-acid-green/10 border-acid-green text-acid-green' 
-                              : 'bg-surface border-card-border text-muted hover:text-foreground'
-                          }`}
-                        >
-                          {opt}
-                        </button>
-                      );
-                    })}
-                  </div>
+                <div className="flex flex-wrap gap-2">
+                  {ecoStore.achievements.filter(a => a.unlocked).map(a => (
+                    <div key={a.id} className="flex items-center gap-1.5 bg-surface border border-card-border rounded-xl px-2.5 py-1.5 shrink-0">
+                      <span className="text-sm">{a.icon}</span>
+                      <span className="text-[10px] text-foreground font-bold">{a.name}</span>
+                    </div>
+                  ))}
                 </div>
+              </div>
+            )}
+          </div>
+        )}
 
-              <button type="submit" disabled={saving} className="w-full btn-primary py-2 rounded-lg font-bold text-[10px] uppercase tracking-wider border-none flex items-center justify-center gap-1 cursor-pointer mt-3">
-                {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                Save Profile
-              </button>
-            </form>
-          ) : (
-            <div className="grid grid-cols-2 gap-2.5 pt-1">
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Full Name</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{firstName || lastName ? `${firstName} ${lastName}`.trim() : 'Not Set'}</span>
+        {/* ─── TAB 2: HEALTH & TARGETS ─── */}
+        {activeTab === 'targets' && (
+          <div className="space-y-4">
+            {/* Health Targets & Stats */}
+            <div className="glass p-4 sm:p-5 rounded-2xl border border-card-border space-y-3">
+              <div className="flex justify-between items-center border-b border-card-border/60 pb-2.5">
+                <h3 className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <Heart className="w-3.5 h-3.5 text-acid-green" /> Body Metrics & Macro Targets
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setEditSection(editSection === 'health' ? null : 'health')}
+                  className="text-[10px] font-extrabold text-acid-green bg-acid-green/10 px-3 py-1 rounded-lg uppercase tracking-wider cursor-pointer border border-acid-green/20"
+                >
+                  {editSection === 'health' ? 'Cancel' : 'Edit Targets'}
+                </button>
               </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Age & Gender</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{ageInput} yrs • {gender}</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Username</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">@{username || nickname || 'athlete'}</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Fitness Level</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block capitalize">{fitnessLevel || 'beginner'}</span>
-              </div>
-              {healthInterests.length > 0 && (
-                <div className="bg-surface/50 border border-card-border rounded-lg p-2.5 col-span-2">
-                  <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Health Interests</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {healthInterests.map(tag => (
-                      <span key={tag} className="px-2 py-0.5 rounded bg-surface border border-card-border text-[8.5px] font-bold text-foreground">{tag}</span>
-                    ))}
+
+              {editSection === 'health' ? (
+                <form onSubmit={(e) => { handleSaveAllDetails(e); setEditSection(null); }} className="space-y-3">
+                  <div className="flex items-center justify-between bg-acid-green/10 border border-acid-green/20 p-3 rounded-xl gap-2">
+                    <div>
+                      <span className="text-xs font-black text-foreground block">Auto-Calculate Targets</span>
+                      <span className="text-[9.5px] text-muted-foreground block">Derive scientific calories & macros from your biometrics</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const computed = calculateMacroTargets({ weight, height, age: ageInput, gender, activity, goal, units });
+                        setDailyCalories(computed.calorieGoal);
+                        setProteinTarget(computed.protein);
+                        setCarbsTarget(computed.carbs);
+                        setFatTarget(computed.fat);
+                        const updatedProfile = {
+                          ...userProfile,
+                          dailyCalories: computed.calorieGoal,
+                          calorieGoal: computed.calorieGoal,
+                          proteinTarget: computed.protein,
+                          protein: computed.protein,
+                          carbs: computed.carbs,
+                          fat: computed.fat,
+                          targetMacros: { protein: computed.protein, carbs: computed.carbs, fat: computed.fat },
+                          bmr: computed.bmr,
+                          tdee: computed.tdee,
+                          weight: Number(weight),
+                          height: Number(height),
+                          age: Number(ageInput),
+                          gender,
+                          activity: Number(activity),
+                          goal,
+                          units
+                        };
+                        updateUserProfile(updatedProfile);
+                        try {
+                          await saveUserProfile(userId, updatedProfile);
+                          if (onNotification) onNotification(`Targets computed & persisted: ${computed.calorieGoal} kcal · ${computed.protein}g protein`);
+                        } catch (err) {
+                          if (onNotification) onNotification("Targets computed! Click Save to confirm.");
+                        }
+                      }}
+                      className="bg-acid-green text-black px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider border-none cursor-pointer hover:opacity-90 active:scale-95 transition-all flex items-center gap-1.5 shrink-0 shadow-sm"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" /> Auto-Calculate
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2" id="setup-field-height_weight">
+                    <div>
+                      <label className={labelClass}>Weight ({units === 'metric' ? 'kg' : 'lbs'})</label>
+                      <input type="number" step="0.1" value={weight} onFocus={(e) => e.target.select()} onChange={(e) => setWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Height ({units === 'metric' ? 'cm' : 'in'})</label>
+                      <input type="number" value={height} onFocus={(e) => e.target.select()} onChange={(e) => setHeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Goal Weight</label>
+                      <input id="setup-field-target_weight" type="number" step="0.1" value={goalWeight} onFocus={(e) => e.target.select()} onChange={(e) => setGoalWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className={labelClass}>Daily Calories (kcal)</label>
+                      <input id="setup-field-calorie_target" type="number" value={dailyCalories} onFocus={(e) => e.target.select()} onChange={(e) => setDailyCalories(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2.5 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Water Target (ml)</label>
+                      <input type="number" value={waterTarget} onFocus={(e) => e.target.select()} onChange={(e) => setWaterTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2.5 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className={labelClass}>Protein (g)</label>
+                      <input type="number" value={proteinTarget} onFocus={(e) => e.target.select()} onChange={(e) => setProteinTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Carbs (g)</label>
+                      <input type="number" value={carbsTarget} onFocus={(e) => e.target.select()} onChange={(e) => setCarbsTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Fat (g)</label>
+                      <input type="number" value={fatTarget} onFocus={(e) => e.target.select()} onChange={(e) => setFatTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
+                    </div>
+                  </div>
+
+                  <button type="submit" disabled={saving} className="w-full btn-primary py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider border-none flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
+                    {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                    Save Targets
+                  </button>
+                </form>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[8.5px] text-muted-foreground font-bold uppercase tracking-wider block">Height & Weight</span>
+                    <span className="text-xs font-black text-foreground mt-0.5 block">{height}{units === 'metric' ? 'cm' : 'in'} • {weight}{units === 'metric' ? 'kg' : 'lbs'}</span>
+                  </div>
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[8.5px] text-muted-foreground font-bold uppercase tracking-wider block">Goal Weight</span>
+                    <span className="text-xs font-black text-foreground mt-0.5 block">{goalWeight}{units === 'metric' ? 'kg' : 'lbs'}</span>
+                  </div>
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[8.5px] text-muted-foreground font-bold uppercase tracking-wider block">Calorie Target</span>
+                    <span className="text-xs font-black text-foreground mt-0.5 block">{dailyCalories} kcal</span>
+                  </div>
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[8.5px] text-muted-foreground font-bold uppercase tracking-wider block">Protein Target</span>
+                    <span className="text-xs font-black text-foreground mt-0.5 block">{proteinTarget} g</span>
+                  </div>
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[8.5px] text-muted-foreground font-bold uppercase tracking-wider block">Carbs Target</span>
+                    <span className="text-xs font-black text-foreground mt-0.5 block">{carbsTarget} g</span>
+                  </div>
+                  <div className="bg-surface/50 border border-card-border rounded-xl p-3">
+                    <span className="text-[8.5px] text-muted-foreground font-bold uppercase tracking-wider block">Fat Target</span>
+                    <span className="text-xs font-black text-foreground mt-0.5 block">{fatTarget} g</span>
                   </div>
                 </div>
               )}
             </div>
-          )}
-        </div>
-
-        {/* Health Stats */}
-        <div className="glass p-4 rounded-xl border border-card-border space-y-3">
-          <div className="flex justify-between items-center border-b border-card-border/60 pb-2">
-            <h3 className="text-[10px] font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Heart className="w-3.5 h-3.5 text-acid-green" /> Health Targets & Stats
-            </h3>
-            <button
-              onClick={() => setEditSection(editSection === 'health' ? null : 'health')}
-              className="text-[9px] font-extrabold text-acid-green bg-acid-green/10 px-2.5 py-1 rounded uppercase tracking-wider cursor-pointer border-none"
-            >
-              {editSection === 'health' ? 'Cancel' : 'Edit'}
-            </button>
           </div>
+        )}
 
-          {editSection === 'health' ? (
-            <form onSubmit={(e) => { handleSaveAllDetails(e); setEditSection(null); }} className="space-y-2.5">
-              <div className="flex justify-between items-center bg-acid-green/10 border border-acid-green/20 p-2.5 rounded-lg">
-                <div>
-                  <span className="text-xs font-bold text-foreground block">Auto-Calculate Targets</span>
-                  <span className="text-[9px] text-muted block">Compute optimal calories & macros from your biometrics & BMI</span>
-                </div>
+        {/* ─── TAB 3: DAILY ROUTINE ─── */}
+        {activeTab === 'routine' && (
+          <div className="glass p-4 sm:p-5 rounded-2xl border border-card-border">
+            {renderRoutineForm()}
+          </div>
+        )}
+
+        {/* ─── TAB 4: SETTINGS & SUBSCRIPTION ─── */}
+        {activeTab === 'settings' && (
+          <div className="space-y-4">
+            {/* Horizontal Settings Category Bar */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+              {[
+                { id: 'subscription', label: 'Subscription', icon: CreditCard },
+                { id: 'permissions', label: 'Wearables & Health', icon: ShieldCheck },
+                { id: 'appearance', label: 'Appearance', icon: Eye },
+                { id: 'ai', label: 'AI Coach', icon: Sparkles },
+                { id: 'notifications', label: 'Notifications', icon: Bell },
+                { id: 'security', label: 'Security & 2FA', icon: Key },
+                { id: 'privacy', label: 'Privacy', icon: Shield },
+                { id: 'data', label: 'Data & Storage', icon: Database },
+                { id: 'about', label: 'About & Legal', icon: Info },
+              ].map(cat => (
                 <button
+                  key={cat.id}
                   type="button"
-                  onClick={async () => {
-                    const computed = calculateMacroTargets({ weight, height, age: ageInput, gender, activity, goal, units });
-                    setDailyCalories(computed.calorieGoal);
-                    setProteinTarget(computed.protein);
-                    setCarbsTarget(computed.carbs);
-                    setFatTarget(computed.fat);
-                    // Save immediately with the new computed values
-                    const updatedProfile = {
-                      ...userProfile,
-                      dailyCalories: computed.calorieGoal,
-                      calorieGoal: computed.calorieGoal,
-                      proteinTarget: computed.protein,
-                      protein: computed.protein,
-                      carbs: computed.carbs,
-                      fat: computed.fat,
-                      targetMacros: { protein: computed.protein, carbs: computed.carbs, fat: computed.fat },
-                      bmr: computed.bmr,
-                      tdee: computed.tdee,
-                      weight: Number(weight),
-                      height: Number(height),
-                      age: Number(ageInput),
-                      gender,
-                      activity: Number(activity),
-                      goal,
-                      units
-                    };
-                    updateUserProfile(updatedProfile);
-                    try {
-                      await saveUserProfile(userId, updatedProfile);
-                      if (onNotification) onNotification(`Macro targets calculated & saved! ${computed.calorieGoal} kcal | ${computed.protein}g protein`);
-                    } catch (err) {
-                      if (onNotification) onNotification("Macro targets calculated! Click Save to persist.");
-                    }
-                  }}
-                  className="bg-acid-green text-black px-3 py-1.5 rounded-lg text-[9.5px] font-black uppercase tracking-wider border-none cursor-pointer hover:opacity-90 flex items-center gap-1 shrink-0"
+                  onClick={() => setActiveSettingsCategory(cat.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 transition-all cursor-pointer border ${
+                    activeSettingsCategory === cat.id
+                      ? 'bg-acid-green/15 text-acid-green border-acid-green/40 font-black'
+                      : 'bg-surface text-muted-foreground border-card-border hover:text-foreground'
+                  }`}
                 >
-                  <Sparkles className="w-3 h-3" /> Auto-Calculate
+                  <cat.icon className="w-3.5 h-3.5" />
+                  <span>{cat.label}</span>
                 </button>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2" id="setup-field-height_weight">
-                <div>
-                  <label className={labelClass}>Weight ({units === 'metric' ? 'kg' : 'lbs'})</label>
-                  <input type="number" step="0.1" value={weight} onFocus={(e) => e.target.select()} onChange={(e) => setWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-                <div>
-                  <label className={labelClass}>Height ({units === 'metric' ? 'cm' : 'in'})</label>
-                  <input type="number" value={height} onFocus={(e) => e.target.select()} onChange={(e) => setHeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-                <div>
-                  <label className={labelClass}>Goal Weight</label>
-                  <input id="setup-field-target_weight" type="number" step="0.1" value={goalWeight} onFocus={(e) => e.target.select()} onChange={(e) => setGoalWeight(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className={labelClass}>Daily Calories (kcal)</label>
-                  <input id="setup-field-calorie_target" type="number" value={dailyCalories} onFocus={(e) => e.target.select()} onChange={(e) => setDailyCalories(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-                <div>
-                  <label className={labelClass}>Water Target (ml)</label>
-                  <input type="number" value={waterTarget} onFocus={(e) => e.target.select()} onChange={(e) => setWaterTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className={labelClass}>Protein (g)</label>
-                  <input type="number" value={proteinTarget} onFocus={(e) => e.target.select()} onChange={(e) => setProteinTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-                <div>
-                  <label className={labelClass}>Carbs (g)</label>
-                  <input type="number" value={carbsTarget} onFocus={(e) => e.target.select()} onChange={(e) => setCarbsTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-                <div>
-                  <label className={labelClass}>Fat (g)</label>
-                  <input type="number" value={fatTarget} onFocus={(e) => e.target.select()} onChange={(e) => setFatTarget(e.target.value.replace(/^0+(?=\d)/, ''))} className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1.5 rounded-lg focus:outline-none focus:border-acid-green text-xs shadow-inner" />
-                </div>
-              </div>
-
-              <button type="submit" disabled={saving} className="w-full btn-primary py-2 rounded-lg font-bold text-[10px] uppercase tracking-wider border-none flex items-center justify-center gap-1 cursor-pointer">
-                {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                Save Targets
-              </button>
-            </form>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Height & Weight</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{height}{units === 'metric' ? 'cm' : 'in'} • {weight}{units === 'metric' ? 'kg' : 'lbs'}</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Goal Weight</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{goalWeight}{units === 'metric' ? 'kg' : 'lbs'}</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Calorie Target</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{dailyCalories} kcal</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Protein Target</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{proteinTarget} g</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Carbs Target</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{carbsTarget} g</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Fat Target</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{fatTarget} g</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-        {/* ─── Daily Routine & Scheduled Timings Card ─── */}
-        <div className="glass rounded-xl border border-card-border p-4">
-          <div className="flex items-center justify-between mb-3 border-b border-card-border pb-2">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-acid-green" />
-              <h3 className="text-xs font-black text-foreground uppercase tracking-wider">Daily Routine & Reminder Timings</h3>
-            </div>
-            <button
-              type="button"
-              onClick={() => setEditSection(editSection === 'routine' ? null : 'routine')}
-              className="text-[10px] font-bold text-acid-green hover:underline cursor-pointer bg-transparent border-none"
-            >
-              {editSection === 'routine' ? 'Cancel' : 'Edit Timings'}
-            </button>
-          </div>
-
-          {editSection === 'routine' ? (
-            <form onSubmit={(e) => { handleSaveAllDetails(e); setEditSection(null); }} className="space-y-3">
-              <p className="text-[10px] text-muted">Set when you eat, train, and sleep so Calyxo sends smart notifications at your exact hours.</p>
-              
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-foreground block">Breakfast</label>
-                  <input
-                    type="time"
-                    value={schedule?.breakfastTime || '08:30'}
-                    onChange={(e) => setSchedule({ ...schedule, breakfastTime: e.target.value })}
-                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
-                  />
-                </div>
-
-                <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-foreground block">Lunch</label>
-                  <input
-                    type="time"
-                    value={schedule?.lunchTime || '13:00'}
-                    onChange={(e) => setSchedule({ ...schedule, lunchTime: e.target.value })}
-                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
-                  />
-                </div>
-
-                <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-foreground block">Evening Snack</label>
-                  <input
-                    type="time"
-                    value={schedule?.snackTime || '17:00'}
-                    onChange={(e) => setSchedule({ ...schedule, snackTime: e.target.value })}
-                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
-                  />
-                </div>
-
-                <div className="bg-surface border border-acid-green/40 rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-acid-green block">Workout / Gym</label>
-                  <input
-                    type="time"
-                    value={schedule?.workoutTime || '18:30'}
-                    onChange={(e) => setSchedule({ ...schedule, workoutTime: e.target.value })}
-                    className="w-full bg-[var(--input)] text-acid-green border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
-                  />
-                </div>
-
-                <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-foreground block">Dinner</label>
-                  <input
-                    type="time"
-                    value={schedule?.dinnerTime || '20:30'}
-                    onChange={(e) => setSchedule({ ...schedule, dinnerTime: e.target.value })}
-                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
-                  />
-                </div>
-
-                <div className="bg-surface border border-card-border rounded-lg p-2.5 space-y-1">
-                  <label className="text-[10px] font-bold text-foreground block">Bedtime</label>
-                  <input
-                    type="time"
-                    value={schedule?.sleepTime || '23:00'}
-                    onChange={(e) => setSchedule({ ...schedule, sleepTime: e.target.value })}
-                    className="w-full bg-[var(--input)] text-foreground border border-card-border px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-acid-green"
-                  />
-                </div>
-              </div>
-
-              <button type="submit" disabled={saving} className="w-full btn-primary py-2 rounded-lg font-bold text-[10px] uppercase tracking-wider border-none flex items-center justify-center gap-1 cursor-pointer">
-                {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                Save Timings
-              </button>
-            </form>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Breakfast</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.breakfastTime || '08:30'}</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Lunch</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.lunchTime || '13:00'}</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Snack</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.snackTime || '17:00'}</span>
-              </div>
-              <div className="bg-surface/50 border border-acid-green/30 rounded-lg p-2.5">
-                <span className="text-[8px] text-acid-green font-bold uppercase tracking-wider block">Workout</span>
-                <span className="text-xs font-black text-acid-green mt-0.5 block">{schedule?.workoutTime || '18:30'}</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Dinner</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.dinnerTime || '20:30'}</span>
-              </div>
-              <div className="bg-surface/50 border border-card-border rounded-lg p-2.5">
-                <span className="text-[8px] text-muted font-bold uppercase tracking-wider block">Bedtime</span>
-                <span className="text-xs font-black text-foreground mt-0.5 block">{schedule?.sleepTime || '23:00'}</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ─── Achievements Row (Horizontal list) ─── */}
-        {ecoStore.achievements && ecoStore.achievements.some(a => a.unlocked) && (
-          <div className="glass rounded-xl border border-card-border p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[10px] font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <Award className="w-3.5 h-3.5 text-yellow-400" /> Unlocked Achievements
-              </h3>
-              <span className="text-[9px] text-acid-green font-bold">{unlockedAchievements} Unlocked</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {ecoStore.achievements.filter(a => a.unlocked).map(a => (
-                <div key={a.id} className="flex items-center gap-1 bg-surface border border-card-border rounded-lg px-2 py-1 shrink-0">
-                  <span className="text-xs">{a.icon}</span>
-                  <span className="text-[9px] text-foreground font-bold">{a.name}</span>
-                </div>
               ))}
             </div>
-          </div>
-        )}
 
-        {/* ─── Advanced Settings Collapsible Trigger (Mobile Only) ─── */}
-        <button
-          onClick={() => setAdvancedOpen(!advancedOpen)}
-          className="md:hidden w-full flex items-center justify-between px-4 py-3 glass border border-card-border rounded-xl hover:border-acid-green/40 transition-all cursor-pointer text-left font-bold"
-        >
-          <div className="flex items-center gap-2">
-            <Settings className="w-4 h-4 text-acid-green" />
-            <span className="text-xs font-bold text-foreground">Advanced Settings</span>
-          </div>
-          <span className="text-xs text-muted font-bold">{advancedOpen ? '▲' : '▼'}</span>
-        </button>
-
-        {/* ─── Advanced Settings Content ─── */}
-        {advancedOpen && (
-          <div className="space-y-2 border border-card-border/60 p-2.5 rounded-xl bg-surface/20">
-            {/* On desktop, show the active panel without accordion wrapper if possible, but keeping accordion is safer to avoid breaking state */}
-            {[
-              { id: 'routine', label: 'Daily Routine & Timings', icon: Clock },
-              { id: 'permissions', label: 'Permissions & Connections', icon: ShieldCheck },
-              { id: 'coaching', label: 'My Coaching', icon: Users },
-              { id: 'appearance', label: 'Appearance & Themes', icon: Eye },
-              { id: 'ai', label: 'AI Coach Settings', icon: Sparkles },
-              { id: 'notifications', label: 'Notification Settings', icon: Bell },
-              { id: 'privacy', label: 'Privacy & Telemetry', icon: Shield },
-              { id: 'security', label: 'Security & 2FA', icon: Key },
-              { id: 'subscription', label: 'Subscription Plans', icon: CreditCard },
-              { id: 'data', label: 'Data & Storage', icon: Database },
-              { id: 'about', label: 'About & Legal Policies', icon: Info },
-            ].map(acc => {
-              const isOpen = openAccordion === acc.id || (!openAccordion && acc.id === 'routine'); // default open routine on desktop
-              
-              // Only render if it's the open one on desktop, or render all as accordion on mobile
-              return (
-                <div key={acc.id} className={`border border-card-border rounded-lg overflow-hidden glass bg-surface/30 ${!isOpen && 'md:hidden'}`}>
-                  <button
-                    onClick={() => toggleAccordion(acc.id)}
-                    className="w-full flex md:hidden items-center justify-between p-3 text-xs font-bold text-foreground hover:bg-surface/50 transition-colors cursor-pointer border-none"
-                  >
-                    <div className="flex items-center gap-2">
-                      <acc.icon className="w-3.5 h-3.5 text-muted" />
-                      <span>{acc.label}</span>
-                    </div>
-                    <span className="text-muted">{isOpen ? '▲' : '▼'}</span>
-                  </button>
-                  
-                  {/* Desktop header */}
-                  <div className="hidden md:flex items-center gap-2 p-4 border-b border-card-border bg-surface/50">
-                    <acc.icon className="w-4 h-4 text-acid-green" />
-                    <h3 className="text-sm font-black text-foreground uppercase tracking-wider">{acc.label}</h3>
-                  </div>
-
-                  {isOpen && (
-                    <div className="p-4 bg-[var(--card-bg)] space-y-4">
-                      {acc.id === 'routine' && renderRoutineForm()}
-                      {acc.id === 'permissions' && <PermissionsConnectionsSection onNotification={onNotification} />}
-                      {acc.id === 'coaching' && renderCoachingForm()}
-                      {acc.id === 'appearance' && renderAppearanceForm()}
-                      {acc.id === 'ai' && renderAIForm()}
-                      {acc.id === 'notifications' && renderNotificationsForm()}
-                      {acc.id === 'privacy' && renderPrivacyForm()}
-                      {acc.id === 'security' && renderSecurityForm()}
-                      {acc.id === 'subscription' && renderSubscriptionForm()}
-                      {acc.id === 'data' && renderDataForm()}
-                      {acc.id === 'about' && renderAboutForm()}
-                    </div>
-                  )}
+            {/* Selected Category Content */}
+            <div className="space-y-4">
+              {activeSettingsCategory === 'subscription' && renderSubscriptionForm()}
+              {activeSettingsCategory === 'permissions' && (
+                <div className="glass p-4 sm:p-5 rounded-2xl border border-card-border">
+                  <PermissionsConnectionsSection onNotification={onNotification} />
                 </div>
-              );
-            })}
+              )}
+              {activeSettingsCategory === 'appearance' && (
+                <div className="glass p-4 sm:p-5 rounded-2xl border border-card-border">
+                  {renderAppearanceForm()}
+                </div>
+              )}
+              {activeSettingsCategory === 'ai' && (
+                <div className="glass p-4 sm:p-5 rounded-2xl border border-card-border">
+                  {renderAIForm()}
+                </div>
+              )}
+              {activeSettingsCategory === 'notifications' && (
+                <div className="glass p-4 sm:p-5 rounded-2xl border border-card-border">
+                  {renderNotificationsForm()}
+                </div>
+              )}
+              {activeSettingsCategory === 'security' && (
+                <div className="glass p-4 sm:p-5 rounded-2xl border border-card-border">
+                  {renderSecurityForm()}
+                </div>
+              )}
+              {activeSettingsCategory === 'privacy' && (
+                <div className="glass p-4 sm:p-5 rounded-2xl border border-card-border">
+                  {renderPrivacyForm()}
+                </div>
+              )}
+              {activeSettingsCategory === 'data' && (
+                <div className="glass p-4 sm:p-5 rounded-2xl border border-card-border">
+                  {renderDataForm()}
+                </div>
+              )}
+              {activeSettingsCategory === 'about' && (
+                <div className="glass p-4 sm:p-5 rounded-2xl border border-card-border">
+                  {renderAboutForm()}
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Sign Out Button */}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2 py-3 border border-destructive/20 hover:border-destructive active:border-destructive bg-destructive/5 hover:bg-destructive/10 text-destructive text-xs uppercase font-bold tracking-wider rounded-xl transition-all cursor-pointer mt-4"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
           </div>
         )}
-
-        {/* ─── Sign Out (Mobile) ─── */}
-        <button
-          onClick={handleLogout}
-          className="md:hidden w-full flex items-center justify-center gap-2 py-3 border border-destructive/20 hover:border-destructive active:border-destructive bg-destructive/5 hover:bg-destructive/10 text-destructive text-[10px] uppercase font-bold tracking-wider rounded-xl transition-all cursor-pointer"
-        >
-          <LogOut className="w-4 h-4" />
-          Sign Out
-        </button>
 
       </div>
     </div>

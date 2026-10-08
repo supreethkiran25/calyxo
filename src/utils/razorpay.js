@@ -276,6 +276,8 @@ export const startRazorpayCheckout = async (options = {}) => {
             lastPaymentId: response.razorpay_payment_id || `pay_${Date.now()}`,
             subscriptionDate: new Date().toISOString(),
             subscriptionExpiresAt: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString(),
+            subscriptionExpiry: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString(),
+            isExpired: false,
             updatedAt: new Date().toISOString()
           };
 
@@ -360,15 +362,39 @@ export const restoreSubscription = async ({ user, userProfile, updateUserProfile
 
     if (data && data.length > 0) {
       const sub = data[0];
-      const expiry = new Date(sub.expiry_date || sub.current_period_end || Date.now() + 30 * 24 * 60 * 60 * 1000);
-      const isStillValid = expiry > new Date();
+      const plan = (sub.plan || 'HIGH').toUpperCase();
+      const isAnnual = plan === 'HIGH_ANNUAL' || plan === 'ANNUAL';
+      const durationDays = isAnnual ? 365 : 30;
+      const durationMs = durationDays * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+
+      let purchaseDate = sub.purchase_date || sub.current_period_start || sub.created_at || new Date().toISOString();
+      let baseTime = new Date(purchaseDate).getTime();
+      if (isNaN(baseTime)) baseTime = now;
+
+      let expiryTime = sub.expiry_date || sub.current_period_end ? new Date(sub.expiry_date || sub.current_period_end).getTime() : (baseTime + durationMs);
+      if (isNaN(expiryTime)) expiryTime = baseTime + durationMs;
+
+      // Reconcile if monthly plan has multi-month hallucination
+      if (!isAnnual && (expiryTime - now > 31 * 24 * 60 * 60 * 1000)) {
+        const elapsed = Math.max(0, now - baseTime);
+        const cycles = Math.floor(elapsed / durationMs);
+        const currentCycleEnd = baseTime + (cycles + 1) * durationMs;
+        expiryTime = currentCycleEnd > now ? currentCycleEnd : (now + durationMs);
+      }
+
+      const expiryIso = new Date(expiryTime).toISOString();
+      const isStillValid = expiryTime > now;
 
       if (isStillValid) {
         const updated = {
           ...userProfile,
-          subscriptionPlan: sub.plan || 'HIGH',
+          subscriptionPlan: plan,
           isSubscribed: true,
-          subscriptionExpiresAt: expiry.toISOString(),
+          subscriptionExpiresAt: expiryIso,
+          subscriptionExpiry: expiryIso,
+          subscriptionDate: new Date(baseTime).toISOString(),
+          isExpired: false,
           lastPaymentId: sub.payment_id || sub.razorpay_payment_id || 'restored_payment',
           updatedAt: new Date().toISOString()
         };
@@ -376,8 +402,8 @@ export const restoreSubscription = async ({ user, userProfile, updateUserProfile
         if (updateUserProfile) updateUserProfile(updated);
         if (targetId) await saveUserProfile(targetId, updated);
 
-        if (onNotification) onNotification(`✅ Restored active ${sub.plan || 'HIGH'} subscription!`);
-        return { success: true, plan: sub.plan, expiresAt: expiry.toISOString() };
+        if (onNotification) onNotification(`✅ Restored active ${plan} subscription!`);
+        return { success: true, plan, expiresAt: expiryIso };
       }
     }
 

@@ -46,10 +46,6 @@ export default function MealLoggerModal() {
       }
       if (workflowData?.initialFood) {
         selectSuggestion(workflowData.initialFood);
-      } else {
-        setTimeout(() => {
-          inputRef.current?.focus();
-        }, 100);
       }
     } else {
       // Reset state when closed
@@ -234,17 +230,17 @@ export default function MealLoggerModal() {
   return (
     <AnimatePresence>
       <div 
-        className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4"
+        className="fixed inset-x-0 top-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-none"
         style={{
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          transition: 'padding-bottom 0.2s ease-out'
+          bottom: 'var(--keyboard-height, 0px)',
+          transition: 'bottom 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
       >
         <motion.div 
           initial={{ opacity: 0 }} 
           animate={{ opacity: 1 }} 
           exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-background/80 backdrop-blur-md"
+          className="fixed inset-0 bg-background/80 backdrop-blur-md pointer-events-auto"
           onClick={closeWorkflow}
         />
         
@@ -252,9 +248,9 @@ export default function MealLoggerModal() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          className="relative w-full max-w-lg bg-surface border border-card-border rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col overflow-hidden"
+          className="relative w-full max-w-lg bg-surface border border-card-border rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col overflow-hidden pointer-events-auto"
           style={{
-            maxHeight: 'min(92dvh, calc(100dvh - var(--keyboard-height, 0px) - 20px))'
+            maxHeight: 'min(90dvh, calc(100dvh - var(--keyboard-height, 0px) - 16px))'
           }}
         >
           {/* Header */}
@@ -274,7 +270,7 @@ export default function MealLoggerModal() {
             data-keyboard-scroll="true"
             className="space-y-4 overflow-y-auto flex-1 pr-1 custom-scrollbar modal-scroll-body"
             style={{
-              paddingBottom: 'calc(var(--keyboard-height, 0px) + 24px)'
+              paddingBottom: '24px'
             }}
           >
             {/* Search Food Name Input */}

@@ -11,34 +11,47 @@ import { loadUserData, migratePreAuthLocalState, saveWaterIntake } from '../lib/
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import useQuickActionsStore from '../store/useQuickActionsStore';
 import { requestNotificationPermission } from '../services/notificationService';
+import { HealthSyncEngine } from '../services/health/HealthSyncEngine';
 import { toast } from 'sonner';
 
 export default function NativeMobileBridge() {
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) {
-      return;
-    }
+    const isNative = Capacitor.isNativePlatform();
 
     // Initialize Native Push / Local Notification Authorization
     requestNotificationPermission().catch(() => {});
 
-    // Configure Status Bar with Dynamic Theme Support
+    // Configure Status Bar with Dynamic Theme Support & Edge-to-Edge Full Screen Coverage
     const updateStatusBar = async () => {
       try {
-        const isLight = document.documentElement.getAttribute('data-theme') === 'light' || 
-                        (!document.documentElement.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: light)').matches);
-        await StatusBar.setStyle({ style: isLight ? Style.Light : Style.Dark });
-        await StatusBar.setBackgroundColor({ color: isLight ? '#F8FAFC' : '#09090B' });
+        const theme = document.documentElement.getAttribute('data-theme') || '';
+        const isLight = theme === 'light' || theme === 'paper' || 
+                        (!theme && window.matchMedia('(prefers-color-scheme: light)').matches);
+        await StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
+        await StatusBar.setStyle({ style: isLight ? Style.Light : Style.Dark }).catch(() => {});
+        
+        // Dynamically update theme-color meta tag for PWA / Safari status bar tint
+        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+        if (metaThemeColor) {
+          const bgVal = getComputedStyle(document.documentElement).getPropertyValue('--background').trim();
+          metaThemeColor.setAttribute('content', bgVal || (isLight ? '#f8fafc' : '#0a0a0c'));
+        }
       } catch (e) {
         console.warn('[NativeMobileBridge] StatusBar init error:', e);
       }
     };
 
+    // Run status bar setup immediately
+    updateStatusBar();
+
     // Listen for theme attribute mutations
-    const themeObserver = new MutationObserver(() => {
+    const MutationObs = window.MutationObserver || window.WebKitMutationObserver;
+    const themeObserver = MutationObs ? new MutationObs(() => {
       updateStatusBar();
-    });
-    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    }) : null;
+    if (themeObserver) {
+      themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    }
 
     // Hide Splash Screen after React mount
     const hideSplash = async () => {
@@ -144,7 +157,7 @@ export default function NativeMobileBridge() {
               // Trigger smooth in-app navigation to dashboard
               if (window.location.pathname !== '/user/dashboard') {
                 window.history.pushState(null, '', '/user/dashboard');
-                window.dispatchEvent(new Event('popstate'));
+                window.dispatchEvent(new window.Event('popstate'));
               }
               window.dispatchEvent(new CustomEvent('calyxo_data_sync'));
             } catch (err) {
@@ -200,7 +213,7 @@ export default function NativeMobileBridge() {
                 useStore.getState().setActiveTab('workout');
                 if (window.location.pathname !== '/user/dashboard') {
                   window.history.pushState(null, '', '/user/dashboard');
-                  window.dispatchEvent(new Event('popstate'));
+                  window.dispatchEvent(new window.Event('popstate'));
                 }
                 window.dispatchEvent(new CustomEvent('calyxo_workout_focus', { detail: deepLink }));
               }
@@ -220,6 +233,7 @@ export default function NativeMobileBridge() {
           if (isActive) {
             console.log('[NativeMobileBridge] Mobile app resumed — triggering instant cross-device auto-sync');
             window.dispatchEvent(new CustomEvent('calyxo_data_sync'));
+            HealthSyncEngine.triggerSync().catch(() => {});
             checkNotificationDeepLink();
           }
         });
@@ -238,16 +252,27 @@ export default function NativeMobileBridge() {
       if (!el || typeof el.getBoundingClientRect !== 'function') return;
       try {
         const rect = el.getBoundingClientRect();
+        
+        // If element is inside an active modal sheet, scroll within the modal boundary only if obscured
+        const insideModal = el.closest('.modal-scroll-body, [data-keyboard-scroll="true"]');
+        if (insideModal) {
+          const modalRect = insideModal.getBoundingClientRect();
+          if (rect.bottom > modalRect.bottom - 10 || rect.top < modalRect.top + 10) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+          return;
+        }
+
         const vvHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
         const currentKbHeight = parseFloat(document.documentElement.style.getPropertyValue('--keyboard-height') || '0');
         const effectiveVisibleHeight = vvHeight > 0 ? vvHeight : Math.max(200, window.innerHeight - currentKbHeight);
 
-        // If element is covered by keyboard or below the bottom 50% of the visible area
-        if (rect.bottom > effectiveVisibleHeight - 20 || rect.top < 60) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // If element is covered by keyboard or above the top margin
+        if (rect.bottom > effectiveVisibleHeight - 16 || rect.top < 50) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
       } catch (err) {
-        try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+        try { el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
       }
     };
 
@@ -336,13 +361,15 @@ export default function NativeMobileBridge() {
     };
     window.addEventListener('focusin', handleFocusIn);
 
-    updateStatusBar();
-    hideSplash();
-    initBackButton();
-    initDeepLinks();
-    initAppStateChange();
-    initKeyboardHandling();
-    checkNotificationDeepLink();
+    if (isNative) {
+      updateStatusBar();
+      hideSplash();
+      initBackButton();
+      initDeepLinks();
+      initAppStateChange();
+      initKeyboardHandling();
+      checkNotificationDeepLink();
+    }
 
     return () => {
       isMounted = false;

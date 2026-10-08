@@ -45,39 +45,44 @@ public class CalyxoHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 "authorized": false,
                 "available": false,
                 "status": "NOT_AVAILABLE",
-                "statusString": "NOT_AVAILABLE"
+                "statusString": "NOT_AVAILABLE",
+                "hasPedometer": false
             ])
             return
         }
+
+        let hasPedometer = CMPedometer.isStepCountingAvailable()
+        var isAuthorized = false
+        var statusString = "NOT_DETERMINED"
+
         if let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
             let status = healthStore.authorizationStatus(for: energyType)
-            let isAuth = (status == .sharingAuthorized)
-            let statusString: String
-            switch status {
-            case .notDetermined:
-                statusString = "NOT_DETERMINED"
-            case .sharingDenied:
-                statusString = "DENIED"
-            case .sharingAuthorized:
+            if status == .sharingAuthorized {
+                isAuthorized = true
                 statusString = "AUTHORIZED"
-            @unknown default:
-                statusString = "NOT_DETERMINED"
+            } else if status == .sharingDenied {
+                statusString = "DENIED"
             }
-            call.resolve([
-                "authorized": isAuth,
-                "status": statusString,
-                "statusString": statusString,
-                "rawStatus": status.rawValue,
-                "available": true
-            ])
-        } else {
-            call.resolve([
-                "authorized": false,
-                "available": false,
-                "status": "NOT_AVAILABLE",
-                "statusString": "NOT_AVAILABLE"
-            ])
         }
+
+        // On iOS, if pedometer hardware is present or steps exist in App Group
+        let suiteName = "group.com.supreethkiran.calyxo"
+        let defaults = UserDefaults(suiteName: suiteName)
+        let widgetSteps = defaults?.integer(forKey: "widget_steps") ?? 0
+        if widgetSteps > 0 || hasPedometer {
+            isAuthorized = true
+            if statusString != "DENIED" {
+                statusString = "AUTHORIZED"
+            }
+        }
+
+        call.resolve([
+            "authorized": isAuthorized,
+            "status": statusString,
+            "statusString": statusString,
+            "available": true,
+            "hasPedometer": hasPedometer
+        ])
     }
 
     @objc func requestAuthorization(_ call: CAPPluginCall) {
@@ -295,6 +300,22 @@ public class CalyxoHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 group.leave()
             }
             healthStore.execute(stepQuery)
+        }
+
+        // 2b. App Group Shared Steps (Recorded by AppDelegate HKObserverQuery in the background)
+        let suiteName = "group.com.supreethkiran.calyxo"
+        if let defaults = UserDefaults(suiteName: suiteName) {
+            let bgSteps = defaults.integer(forKey: "widget_steps")
+            if bgSteps > 0 {
+                let currentSteps = result["steps"] as? Int ?? 0
+                result["steps"] = max(bgSteps, currentSteps)
+                print("[CALYXO-HEALTH] AppGroup background steps read: \(bgSteps) (Max: \(result["steps"] ?? 0))")
+            }
+            let bgCals = defaults.integer(forKey: "widget_active_calories")
+            if bgCals > 0 {
+                let currentCals = result["activeCalories"] as? Int ?? 0
+                result["activeCalories"] = max(bgCals, currentCals)
+            }
         }
 
         // 3. Active Energy Burned (Calories)

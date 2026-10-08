@@ -65,24 +65,28 @@ export default async function handler(req, res) {
 
         if (profile?.id) {
           const now = new Date();
-          const expiryDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+          const amountVal = payload.amount ? payload.amount / 100 : 2;
+          const isAnnual = amountVal >= 100 || payload.notes?.plan === 'HIGH_ANNUAL';
+          const planKey = isAnnual ? 'HIGH_ANNUAL' : 'HIGH';
+          const durationDays = isAnnual ? 365 : 30;
+          const expiryDate = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
 
           await supabase.from('user_profiles').upsert({
             id: profile.id,
-            subscription_plan: 'HIGH',
+            subscription_plan: planKey,
             updated_at: now.toISOString()
           }, { onConflict: 'id' });
 
           await supabase.from('subscriptions').upsert({
             user_id: profile.id,
-            plan: 'HIGH',
+            plan: planKey,
             status: 'Active',
             purchase_date: now.toISOString(),
             expiry_date: expiryDate.toISOString(),
             granted_by: 'Razorpay Webhook',
             payment_source: 'Razorpay',
             payment_id: paymentId || `pay_wh_${Date.now()}`,
-            amount: (payload.amount ? payload.amount / 100 : 2),
+            amount: amountVal,
             currency: payload.currency || 'INR',
             updated_at: now.toISOString()
           }, { onConflict: 'user_id' });

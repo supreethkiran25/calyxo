@@ -14,6 +14,7 @@ import useQuickActionsStore from '../store/useQuickActionsStore';
 
 import PermissionsConnectionsSection from './PermissionsConnectionsSection';
 import WidgetStudioSection from './widgets/WidgetStudioSection';
+import SubscriptionLiveTimerCard from './SubscriptionLiveTimerCard';
 
 const SETTINGS_CATEGORIES = [
   { id: 'routine', label: 'Daily Routine & Timings', icon: Clock, desc: 'Meal, workout, hydration & sleep schedule' },
@@ -1055,53 +1056,15 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
 
         return (
           <div className="space-y-4 text-xs">
-            {/* Status Header Card */}
-            <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--card-border)] space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-[var(--color-acid-green)]" />
-                  <span className="text-xs font-black uppercase text-[var(--foreground)]">Current Active Status</span>
-                </div>
-                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${
-                  isUserSubscribed 
-                    ? 'bg-[var(--color-acid-green)]/20 text-[var(--color-acid-green)] border-[var(--color-acid-green)]/30' 
-                    : 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20'
-                }`}>
-                  {subTimeline.isCancelled ? 'Cancelled (Active)' : isUserSubscribed ? 'Active Subscription' : 'Free Tier'}
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                <div>
-                  <p className="text-[11px] text-[var(--muted-foreground)]">
-                    Active Tier: <strong className="text-[var(--color-acid-green)] font-bold uppercase">{subTimeline.planName}</strong>
-                  </p>
-                  {subTimeline.timelineLabel && subTimeline.timelineDate && (
-                    <p className="text-[10px] font-medium text-[var(--foreground)] mt-0.5">
-                      {subTimeline.timelineLabel}: <span className="font-bold text-[var(--color-acid-green)]">{new Date(subTimeline.timelineDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleRestoreSubscription}
-                    disabled={saving}
-                    className="px-2.5 py-1 rounded-xl bg-[var(--surface)] text-[var(--foreground)] hover:border-[var(--color-acid-green)] border border-[var(--card-border)] text-[10px] font-bold uppercase cursor-pointer"
-                  >
-                    Restore
-                  </button>
-                  {isUserSubscribed && !subTimeline.isCancelled && (
-                    <button
-                      type="button"
-                      onClick={handleCancelSubscription}
-                      className="px-2.5 py-1 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/30 text-[10px] font-bold uppercase cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+            {/* Current Active Status & Live Countdown Timer */}
+            <SubscriptionLiveTimerCard
+              userProfile={userProfile}
+              user={user}
+              onSyncLive={handleRestoreSubscription}
+              onRestore={handleRestoreSubscription}
+              onCancel={handleCancelSubscription}
+              saving={saving}
+            />
 
             {/* 3 Subscription Plan Cards */}
             <div className="space-y-3">
@@ -1156,7 +1119,7 @@ export default function SettingsDrawerPanel({ isOpen, onClose, onNavigate }) {
                         className="w-full py-2.5 rounded-xl font-black text-xs uppercase bg-[var(--color-acid-green)] text-black border-none cursor-pointer flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
                       >
                         <CreditCard className="w-4 h-4" />
-                        {saving ? ctaText : 'Subscribe via Razorpay'}
+                        {saving ? ctaText : (subTimeline.isExpired ? `Renew ${plan.name} via Razorpay` : 'Subscribe via Razorpay')}
                       </button>
                     )}
                   </div>

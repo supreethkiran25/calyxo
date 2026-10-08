@@ -365,6 +365,14 @@ export default function WorkoutMuscleAnalyticsView({
         onClose={() => setIsModalOpen(false)}
         muscle={selectedMuscle}
         date={selectedDateStr}
+        onTrainMuscle={(muscleName) => {
+          setIsModalOpen(false);
+          useQuickActionsStore.getState().setActiveWorkflow('log_workout', {
+            muscle: muscleName,
+            date: selectedDateStr
+          });
+          if (onLogWorkoutClick) onLogWorkoutClick(muscleName);
+        }}
       />
     </div>
   );

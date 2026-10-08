@@ -30,6 +30,7 @@ import WorkoutLoggerModal from '../components/modals/WorkoutLoggerModal';
 import MealLoggerModal from '../components/modals/MealLoggerModal';
 import ProgressUploadModal from '../components/modals/ProgressUploadModal';
 import AIChatModal from '../components/modals/AIChatModal';
+import AnatomyTargetModal from '../components/modals/AnatomyTargetModal';
 import GlobalSearch from '../components/GlobalSearch';
 import AIWorkspace from '../components/AIWorkspace';
 import MobileDrawerMenu from '../components/MobileDrawerMenu';
@@ -262,6 +263,7 @@ export default function UserPortal() {
       <MealLoggerModal />
       <ProgressUploadModal />
       <AIChatModal />
+      <AnatomyTargetModal />
       <MobileDrawerMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
 

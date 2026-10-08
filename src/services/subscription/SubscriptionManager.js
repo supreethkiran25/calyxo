@@ -5,6 +5,8 @@
  * feature gating, and AI access rate limits across Web, iOS, and Android.
  */
 
+import { supabase } from '../../lib/supabaseClient';
+
 export const SUBSCRIPTION_STATES = {
   NOT_SUBSCRIBED: 'NOT_SUBSCRIBED',
   PAYMENT_PENDING: 'PAYMENT_PENDING',
@@ -88,6 +90,15 @@ const TIER_ENTITLEMENTS = {
 
 export const FREE_MONTHLY_AI_LIMIT = 10;
 
+export const PLAN_DURATIONS_MS = {
+  HIGH: 30 * 24 * 60 * 60 * 1000,         // 1 Month (30 days)
+  MEDIUM: 30 * 24 * 60 * 60 * 1000,       // 1 Month (30 days)
+  PRO: 30 * 24 * 60 * 60 * 1000,          // 1 Month (30 days)
+  ULTRA: 30 * 24 * 60 * 60 * 1000,        // 1 Month (30 days)
+  HIGH_ANNUAL: 365 * 24 * 60 * 60 * 1000, // 1 Year (365 days)
+  ANNUAL: 365 * 24 * 60 * 60 * 1000
+};
+
 export class SubscriptionManager {
   /**
    * Determine Canonical Subscription State from User Profile & Subscription Record
@@ -104,8 +115,12 @@ export class SubscriptionManager {
         tier: SUBSCRIPTION_TIERS.ADMIN,
         isActive: true,
         isSubscribed: true,
+        isExpired: false,
         expiresAt: null,
-        planName: 'Calyxo Admin OS'
+        daysRemaining: 9999,
+        planName: 'Calyxo Admin OS',
+        planDurationLabel: 'Lifetime Admin Access',
+        expiryCountdown: 'Permanent Access'
       };
     }
 
@@ -115,38 +130,122 @@ export class SubscriptionManager {
         tier: SUBSCRIPTION_TIERS.TRAINER,
         isActive: true,
         isSubscribed: true,
+        isExpired: false,
         expiresAt: null,
-        planName: 'Calyxo Trainer Suite'
+        daysRemaining: 9999,
+        planName: 'Calyxo Trainer Suite',
+        planDurationLabel: 'Trainer License',
+        expiryCountdown: 'Active License'
       };
     }
 
     const plan = (userProfile?.subscriptionPlan || userProfile?.subscription_plan || userProfile?.activePass || 'FREE').toUpperCase();
-    const isSubscribed = Boolean(userProfile?.isSubscribed || userProfile?.is_subscribed);
-    const expiryStr = userProfile?.subscriptionExpiresAt || userProfile?.subscription_expiry || userProfile?.expiryDate || userProfile?.subscriptionPeriodEnd || userProfile?.subscription_period_end;
+    const isPaidPlan = plan !== 'FREE' && plan !== 'DEFAULT';
+    const isAnnual = plan === 'HIGH_ANNUAL' || plan === 'ANNUAL';
+    const durationDays = isAnnual ? 365 : 30;
+    const durationMs = durationDays * 24 * 60 * 60 * 1000;
+    const now = Date.now();
 
-    if (expiryStr) {
-      const expiryDate = new Date(expiryStr);
-      if (expiryDate < new Date()) {
-        return {
-          state: SUBSCRIPTION_STATES.EXPIRED,
-          tier: SUBSCRIPTION_TIERS.FREE,
-          isActive: false,
-          isSubscribed: false,
-          expiresAt: expiryStr,
-          planName: 'Expired'
-        };
+    let expiryStr = userProfile?.subscriptionExpiresAt || userProfile?.subscription_expiry || userProfile?.subscriptionExpiry || userProfile?.expiryDate || userProfile?.subscriptionPeriodEnd || userProfile?.subscription_period_end || null;
+    const baseDate = userProfile?.subscriptionDate || userProfile?.subscription_created_at || userProfile?.purchase_date || userProfile?.created_at || null;
+    let baseTime = baseDate ? new Date(baseDate).getTime() : NaN;
+    if (isNaN(baseTime)) baseTime = now;
+
+    // If user has a paid plan but no expiry was saved, calculate from enrollment
+    if (isPaidPlan && !expiryStr) {
+      expiryStr = new Date(baseTime + durationMs).toISOString();
+    }
+
+    // MODEL RECONCILIATION: For a monthly plan, expiry date can never exceed 31 days in the future
+    if (isPaidPlan && !isAnnual && expiryStr) {
+      let expiryTime = new Date(expiryStr).getTime();
+      if (!isNaN(expiryTime) && (expiryTime - now > 31 * 24 * 60 * 60 * 1000)) {
+        const elapsed = Math.max(0, now - baseTime);
+        const cycles = Math.floor(elapsed / durationMs);
+        const currentCycleEnd = baseTime + (cycles + 1) * durationMs;
+        expiryTime = currentCycleEnd > now ? currentCycleEnd : (now + durationMs);
+        expiryStr = new Date(expiryTime).toISOString();
       }
     }
 
-    if (isSubscribed || plan === 'HIGH' || plan === 'MEDIUM' || plan === 'PRO' || plan === 'ULTRA' || plan === 'HIGH_ANNUAL') {
-      const normalizedTier = (plan === 'HIGH' || plan === 'ULTRA' || plan === 'HIGH_ANNUAL') ? SUBSCRIPTION_TIERS.HIGH : SUBSCRIPTION_TIERS.MEDIUM;
+    let isExpired = false;
+    let msRemaining = 0;
+    let daysRemaining = null;
+    let hoursRemaining = null;
+    let minutesRemaining = null;
+    let secondsRemaining = null;
+
+    if (expiryStr) {
+      const expiryTime = new Date(expiryStr).getTime();
+      if (!isNaN(expiryTime)) {
+        msRemaining = expiryTime - now;
+        if (msRemaining <= 0) {
+          isExpired = true;
+          daysRemaining = 0;
+          hoursRemaining = 0;
+          minutesRemaining = 0;
+          secondsRemaining = 0;
+        } else {
+          daysRemaining = Math.floor(msRemaining / (1000 * 60 * 60 * 24));
+          hoursRemaining = Math.floor((msRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
+          secondsRemaining = Math.floor((msRemaining % (1000 * 60)) / 1000);
+        }
+      }
+    }
+
+    const planDurationLabel = isAnnual ? '1 Year (365 Days)' : '1 Month (30 Days)';
+
+    if (isExpired) {
       return {
-        state: SUBSCRIPTION_STATES.ACTIVE,
+        state: SUBSCRIPTION_STATES.EXPIRED,
+        tier: SUBSCRIPTION_TIERS.FREE,
+        isActive: false,
+        isSubscribed: false,
+        isExpired: true,
+        expiresAt: expiryStr,
+        msRemaining: 0,
+        daysRemaining: 0,
+        hoursRemaining: 0,
+        minutesRemaining: 0,
+        secondsRemaining: 0,
+        isAnnual,
+        durationDays,
+        planName: 'Expired',
+        originalPlan: plan,
+        planDurationLabel,
+        expiryFormatted: expiryStr ? new Date(expiryStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : null,
+        expiryCountdown: 'Expired'
+      };
+    }
+
+    if (isPaidPlan || Boolean(userProfile?.isSubscribed || userProfile?.is_subscribed)) {
+      const normalizedTier = (plan === 'HIGH' || plan === 'ULTRA' || plan === 'HIGH_ANNUAL') ? SUBSCRIPTION_TIERS.HIGH : SUBSCRIPTION_TIERS.MEDIUM;
+      const isExpiringSoon = daysRemaining !== null && daysRemaining <= 3;
+      const expiryCountdown = daysRemaining !== null 
+        ? (daysRemaining > 0 
+            ? `${daysRemaining} days left` 
+            : (hoursRemaining > 0 ? `${hoursRemaining} hours left` : `${minutesRemaining}m ${secondsRemaining}s left`)) 
+        : null;
+
+      return {
+        state: isExpiringSoon ? SUBSCRIPTION_STATES.EXPIRING : SUBSCRIPTION_STATES.ACTIVE,
         tier: normalizedTier,
         isActive: true,
         isSubscribed: true,
+        isExpired: false,
         expiresAt: expiryStr || null,
-        planName: normalizedTier === SUBSCRIPTION_TIERS.HIGH ? 'Calyxo Ultra' : 'Calyxo Pro'
+        msRemaining,
+        daysRemaining,
+        hoursRemaining,
+        minutesRemaining,
+        secondsRemaining,
+        isAnnual,
+        durationDays,
+        planName: normalizedTier === SUBSCRIPTION_TIERS.HIGH ? 'Calyxo Ultra' : 'Calyxo Pro',
+        planDurationLabel,
+        expiryFormatted: expiryStr ? new Date(expiryStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : null,
+        expiryCountdown
       };
     }
 
@@ -155,8 +254,18 @@ export class SubscriptionManager {
       tier: SUBSCRIPTION_TIERS.FREE,
       isActive: false,
       isSubscribed: false,
+      isExpired: false,
       expiresAt: null,
-      planName: 'Free Tier'
+      msRemaining: 0,
+      daysRemaining: null,
+      hoursRemaining: null,
+      minutesRemaining: null,
+      secondsRemaining: null,
+      isAnnual: false,
+      durationDays: 0,
+      planName: 'Free Athlete',
+      planDurationLabel: 'Forever Free',
+      expiryCountdown: null
     };
   }
 
@@ -184,8 +293,8 @@ export class SubscriptionManager {
     const status = this.getSubscriptionStatus(userProfile, user);
     const isCancelled = Boolean(userProfile?.is_cancelled || userProfile?.isCancelled);
     const isAutoRenew = userProfile?.auto_renew !== false && userProfile?.autoRenew !== false && !isCancelled;
-    const startedAt = userProfile?.subscription_created_at || userProfile?.subscriptionCreatedAt || userProfile?.created_at || null;
-    const expiresAt = userProfile?.subscriptionExpiresAt || userProfile?.subscription_expiry || userProfile?.expiryDate || userProfile?.subscriptionPeriodEnd || userProfile?.subscription_period_end || status.expiresAt || null;
+    const startedAt = userProfile?.subscription_created_at || userProfile?.subscriptionCreatedAt || userProfile?.subscriptionDate || userProfile?.created_at || null;
+    const expiresAt = status.expiresAt;
     const nextBillingDate = userProfile?.next_billing_date || userProfile?.nextBillingDate || (isAutoRenew ? expiresAt : null);
 
     let timelineLabel = null;
@@ -205,19 +314,105 @@ export class SubscriptionManager {
       timelineDate = expiresAt;
     }
 
+    const displayTimelineLabel = status.state === SUBSCRIPTION_STATES.EXPIRED
+      ? 'Expired on'
+      : (status.state === SUBSCRIPTION_STATES.EXPIRING
+        ? 'Expires in'
+        : (isCancelled
+          ? 'Active until'
+          : (isAutoRenew && nextBillingDate ? 'Renews on' : 'Plan expires on')));
+
     return {
       planName: status.planName,
       status: status.state,
       tier: status.tier,
       isActive: status.isActive,
       isSubscribed: status.isSubscribed,
+      isExpired: status.isExpired,
       isCancelled,
       startedAt,
       nextBillingDate: isCancelled ? null : nextBillingDate,
-      expiresAt,
+      expiresAt: status.expiresAt,
+      msRemaining: status.msRemaining,
+      daysRemaining: status.daysRemaining,
+      hoursRemaining: status.hoursRemaining,
+      minutesRemaining: status.minutesRemaining,
+      secondsRemaining: status.secondsRemaining,
+      isAnnual: status.isAnnual,
+      durationDays: status.durationDays,
+      expiryCountdown: status.expiryCountdown,
+      expiryFormatted: status.expiryFormatted,
+      planDurationLabel: status.planDurationLabel,
+      displayTimelineLabel,
       timelineLabel,
       timelineDate
     };
+  }
+
+  /**
+   * Authoritative Live Sync with Supabase / Razorpay subscriptions table
+   */
+  static async syncLiveSubscriptionStatus(userId, userEmail) {
+    if (!userId && !userEmail) return null;
+    try {
+      let query = supabase.from('subscriptions').select('*');
+      if (userId) {
+        query = query.eq('user_id', userId);
+      } else {
+        query = query.eq('customer_email', userEmail.toLowerCase().trim());
+      }
+      const { data, error } = await query.order('created_at', { ascending: false }).limit(1);
+      if (error) {
+        console.warn('[SubscriptionManager] syncLiveSubscriptionStatus query error:', error);
+        return null;
+      }
+      if (data && data.length > 0) {
+        const sub = data[0];
+        const statusUpper = (sub.status || '').toUpperCase();
+        const isActive = statusUpper === 'ACTIVE' || statusUpper === 'CAPTURED';
+        const rawPlan = (sub.plan || 'HIGH').toUpperCase();
+        const isAnnual = rawPlan === 'HIGH_ANNUAL' || rawPlan === 'ANNUAL';
+        const durationDays = isAnnual ? 365 : 30;
+        const durationMs = durationDays * 24 * 60 * 60 * 1000;
+        const nowMs = Date.now();
+
+        let purchaseDateStr = sub.purchase_date || sub.current_period_start || sub.created_at || new Date().toISOString();
+        let baseTime = new Date(purchaseDateStr).getTime();
+        if (isNaN(baseTime)) baseTime = nowMs;
+
+        let expiryDateStr = sub.expiry_date || sub.current_period_end;
+        if (!expiryDateStr) {
+          expiryDateStr = new Date(baseTime + durationMs).toISOString();
+        } else {
+          let parsedExpiry = new Date(expiryDateStr).getTime();
+          if (!isAnnual && !isNaN(parsedExpiry) && (parsedExpiry - nowMs > 31 * 24 * 60 * 60 * 1000)) {
+            const elapsed = Math.max(0, nowMs - baseTime);
+            const cycles = Math.floor(elapsed / durationMs);
+            const currentCycleEnd = baseTime + (cycles + 1) * durationMs;
+            expiryDateStr = new Date(currentCycleEnd > nowMs ? currentCycleEnd : (nowMs + durationMs)).toISOString();
+          }
+        }
+
+        return {
+          plan: rawPlan,
+          status: sub.status,
+          isActive,
+          isAnnual,
+          durationDays,
+          purchaseDate: purchaseDateStr,
+          expiryDate: expiryDateStr,
+          paymentId: sub.payment_id,
+          amount: sub.amount,
+          currency: sub.currency,
+          paymentSource: sub.payment_source || sub.granted_by || 'Razorpay Gateway',
+          grantedBy: sub.granted_by
+        };
+      }
+      return null;
+    } catch (err) {
+      console.warn('[SubscriptionManager] Live sync exception:', err);
+      return null;
+    }
   }
 }
 
