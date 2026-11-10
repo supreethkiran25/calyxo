@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Zap, Activity, TrendingUp, Award, CheckCircle, Target, RefreshCw } from 'lucide-react';
+import { Zap, Activity, TrendingUp, Award, CheckCircle, Target, RefreshCw, Camera } from 'lucide-react';
 
 export default function ProfileIdentityHero({
   name = "Athlete",
@@ -42,14 +42,47 @@ export default function ProfileIdentityHero({
                   {getInitials(name)}
                 </span>
               )}
-              
-              {/* Photo Edit Trigger */}
-              <label className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
-                <span className="text-[10px] text-white font-bold uppercase tracking-wider">Change</span>
-                <input type="file" accept="image/*" onChange={onPhotoUpload} className="hidden" />
+
+              {/* Full-hit photo picker (works on mobile without hover) */}
+              <label
+                className="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/0 hover:bg-black/45 active:bg-black/50 transition-colors"
+                aria-label="Change profile photo"
+              >
+                <span className="opacity-0 hover:opacity-100 group-hover:opacity-100 text-[10px] text-white font-bold uppercase tracking-wider pointer-events-none sm:inline">
+                  Change
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  onChange={onPhotoUpload}
+                  disabled={photoLoading}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
               </label>
             </div>
           </div>
+
+          {/* Always-visible camera affordance for touch devices */}
+          <label
+            className="absolute top-0 right-0 w-8 h-8 rounded-full bg-accent text-accent-foreground border-2 border-surface flex items-center justify-center cursor-pointer shadow-md active:scale-95 transition-transform z-20"
+            aria-label="Upload profile photo"
+            title="Change photo"
+          >
+            {photoLoading ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Camera className="w-3.5 h-3.5" />
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              capture="user"
+              onChange={onPhotoUpload}
+              disabled={photoLoading}
+              className="hidden"
+            />
+          </label>
 
           {/* Level Badge Pill */}
           <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-accent text-accent-foreground font-black text-[10px] uppercase font-mono shadow-md">

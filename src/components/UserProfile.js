@@ -551,34 +551,68 @@ export default function UserProfile({ onNotification }) {
   };
 
   const handlePhotoUpload = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      if (onNotification) onNotification('Please choose an image file.');
+      return;
+    }
+
+    const uid = userId || user?.uid || user?.id;
+    if (!uid) {
+      if (onNotification) onNotification('Sign in required to save a profile photo.');
+      return;
+    }
+
+    const prevPhoto = useStore.getState().userProfile?.photoURL || '';
     setPhotoLoading(true);
+
+    // Allow re-selecting the same file later
+    e.target.value = '';
+
     const reader = new FileReader();
+    reader.onerror = () => {
+      setPhotoLoading(false);
+      if (onNotification) onNotification('Could not read that image. Try another photo.');
+    };
     reader.onload = (event) => {
       const img = new Image();
+      img.onerror = () => {
+        setPhotoLoading(false);
+        if (onNotification) onNotification('Could not process that image. Try another photo.');
+      };
       img.onload = async () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 150;
-        canvas.height = 150;
-        const ctx = canvas.getContext('2d');
-        const size = Math.min(img.width, img.height);
-        const sx = (img.width - size) / 2;
-        const sy = (img.height - size) / 2;
-        ctx.drawImage(img, sx, sy, size, size, 0, 0, 150, 150);
-        
-        const base64 = canvas.toDataURL('image/jpeg', 0.75);
-        
-        // Save
-        updateUserProfile({ photoURL: base64 });
         try {
-          await updateUserAuthProfile(nickname || user?.displayName || 'Calyxo Athlete', base64);
-          await saveUserProfile(userId, { ...userProfile, photoURL: base64 });
-          if (onNotification) onNotification("Profile photo updated!");
+          const canvas = document.createElement('canvas');
+          // Keep avatar small so Supabase TEXT/JSON payload stays reliable
+          const OUT = 128;
+          canvas.width = OUT;
+          canvas.height = OUT;
+          const ctx = canvas.getContext('2d');
+          const size = Math.min(img.width, img.height);
+          const sx = (img.width - size) / 2;
+          const sy = (img.height - size) / 2;
+          ctx.drawImage(img, sx, sy, size, size, 0, 0, OUT, OUT);
+
+          const base64 = canvas.toDataURL('image/jpeg', 0.65);
+          const latestProfile = useStore.getState().userProfile || {};
+
+          updateUserProfile({ photoURL: base64 });
+
+          // Auth metadata cannot store data-URL avatars — update display name only
+          await updateUserAuthProfile(
+            nickname || latestProfile.nickname || user?.displayName || 'Calyxo Athlete',
+            null
+          );
+          await saveUserProfile(uid, { ...latestProfile, photoURL: base64 });
+
+          // Re-affirm store after save/sync so a stale reload cannot wipe it
+          updateUserProfile({ photoURL: base64 });
+          if (onNotification) onNotification('Profile photo updated!');
         } catch (err) {
-          console.error("Upload photo database write failed", err);
-          updateUserProfile({ photoURL: userProfile?.photoURL || '' }); // Revert
-          if (onNotification) onNotification("Failed to upload profile photo. Please try again.");
+          console.error('Upload photo database write failed', err);
+          updateUserProfile({ photoURL: prevPhoto });
+          if (onNotification) onNotification('Failed to upload profile photo. Please try again.');
         } finally {
           setPhotoLoading(false);
         }
@@ -590,16 +624,20 @@ export default function UserProfile({ onNotification }) {
 
   const handleRemovePhoto = async () => {
     setPhotoLoading(true);
-    const prevPhoto = userProfile?.photoURL || '';
+    const prevPhoto = useStore.getState().userProfile?.photoURL || '';
+    const uid = userId || user?.uid || user?.id;
     updateUserProfile({ photoURL: '' });
     try {
-      await updateUserAuthProfile(nickname || user?.displayName || 'Calyxo Athlete', '');
-      await saveUserProfile(userId, { ...userProfile, photoURL: '' });
-      if (onNotification) onNotification("Profile photo removed.");
+      if (uid) {
+        const latestProfile = useStore.getState().userProfile || {};
+        await updateUserAuthProfile(nickname || user?.displayName || 'Calyxo Athlete', null);
+        await saveUserProfile(uid, { ...latestProfile, photoURL: '' });
+      }
+      if (onNotification) onNotification('Profile photo removed.');
     } catch (err) {
-      console.error("Remove photo failed", err);
+      console.error('Remove photo failed', err);
       updateUserProfile({ photoURL: prevPhoto });
-      if (onNotification) onNotification("Failed to remove profile photo. Please try again.");
+      if (onNotification) onNotification('Failed to remove profile photo. Please try again.');
     } finally {
       setPhotoLoading(false);
     }

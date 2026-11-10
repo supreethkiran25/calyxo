@@ -24,6 +24,16 @@ const activeSupabaseUrl = getEnvVal('SUPABASE_URL') || '';
 // Helper to determine if Supabase is fully configured or running mock
 export const isMockMode = !activeSupabaseUrl || activeSupabaseUrl === "https://mock.supabase.co";
 
+/** Reject truncated / empty photo strings so sync cannot wipe a good avatar. */
+export const isUsablePhotoURL = (url) => {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (!trimmed || trimmed === '...' || trimmed.endsWith('...')) return false;
+  if (trimmed.startsWith('data:image/')) return trimmed.length > 500;
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('blob:')) return true;
+  return false;
+};
+
 const ENCRYPTION_SALT = "calyxo_secure_salt_2026";
 
 export const getCurrentUserId = async () => {
@@ -1159,7 +1169,15 @@ export const getUserProfile = async (userId) => {
       const activePlan = isPlanExpired ? 'FREE' : rawSubPlan;
       const isSub = isKnownPremiumEmail || (!isPlanExpired && (isUserSubscribed || isPaid));
 
-      const resolvedPhotoURL = data.photoURL || extra.photoURL || upData?.photo_url || authUserMetadata?.photoURL || authUserMetadata?.avatar_url || localState.userProfile?.photoURL || '';
+      const photoCandidates = [
+        data.photoURL,
+        extra.photoURL,
+        upData?.photo_url,
+        localState.userProfile?.photoURL,
+        authUserMetadata?.photoURL,
+        authUserMetadata?.avatar_url
+      ];
+      const resolvedPhotoURL = photoCandidates.find((p) => isUsablePhotoURL(p)) || '';
       const resolvedDisplayName = data.displayName || extra.displayName || extra.nickname || upData?.display_name || authUserMetadata?.displayName || extra.firstName || '';
 
       const combinedProfile = {
@@ -1336,19 +1354,26 @@ export const saveUserProfile = async (userId, profile) => {
       bio: typeof mergedProfile.bio === 'string' ? mergedProfile.bio : (existingBio.bio || "")
     };
 
+    // Keep a usable photoURL in bio for recovery, but avoid duplicating huge payloads twice
+    // when the top-level column already stores it.
+    const photoForSave = isUsablePhotoURL(mergedProfile.photoURL)
+      ? mergedProfile.photoURL
+      : (isUsablePhotoURL(existingBio.photoURL) ? existingBio.photoURL : null);
+    const bioPayload = { ...extraFields, photoURL: photoForSave || '' };
+
     const payload = {
       id: `${userId}_profile`,
       userId: toValidUuid(userId),
       displayName: mergedProfile.displayName || mergedProfile.nickname ||
         (mergedProfile.firstName ? `${mergedProfile.firstName} ${mergedProfile.lastName || ''}`.trim() : '') || existingBio.displayName,
-      photoURL: mergedProfile.photoURL ?? existingBio.photoURL ?? null,
+      photoURL: photoForSave,
       gender: mergedProfile.gender ?? existingBio.gender ?? null,
       age: mergedProfile.age ? Number(mergedProfile.age) : (existingBio.age ? Number(existingBio.age) : null),
       weight: mergedProfile.weight ? Number(mergedProfile.weight) : (existingBio.weight ? Number(existingBio.weight) : null),
       height: mergedProfile.height ? Number(mergedProfile.height) : (existingBio.height ? Number(existingBio.height) : null),
       activity: mergedProfile.activity ? Number(mergedProfile.activity) : (existingBio.activity ? Number(existingBio.activity) : null),
       goal: mergedProfile.goal || existingBio.goal || null,
-      bio: JSON.stringify(extraFields),
+      bio: JSON.stringify(bioPayload),
       updatedAt: new Date().toISOString()
     };
 
@@ -1358,19 +1383,21 @@ export const saveUserProfile = async (userId, profile) => {
     // Dual-sync to user_profiles table for instant cross-device multi-login session recovery
     if (userId) {
       const validUid = toValidUuid(userId);
-      const photoVal = mergedProfile.photoURL || extraFields.photoURL || existingBio.photoURL || null;
       const nameVal = mergedProfile.displayName || extraFields.displayName || existingBio.displayName || null;
       // Mass assignment protection: only update safe profile fields, never role or subscription_plan
+      // Skip data-URL avatars here — user_profiles.photo_url is often too small for base64.
+      const profilePhotoVal = (photoForSave && !String(photoForSave).startsWith('data:')) ? photoForSave : null;
       await supabase.from("user_profiles").upsert({
         id: validUid,
         display_name: nameVal,
-        photo_url: photoVal,
+        ...(profilePhotoVal ? { photo_url: profilePhotoVal } : {}),
         updated_at: new Date().toISOString()
       }, { onConflict: 'id' }).catch(() => { });
     }
     setTimeout(() => notifyDataMutation(userId), 150);
   } catch (err) {
     console.error("Supabase saveUserProfile error", err);
+    throw err;
   }
 };
 
@@ -1789,14 +1816,23 @@ export const updateUserAuthProfile = async (displayName, photoURL) => {
     if (mockUserRaw) {
       const mockUser = JSON.parse(mockUserRaw);
       mockUser.displayName = displayName;
-      mockUser.photoURL = photoURL;
+      // Never store huge data-URL avatars in mock auth either
+      if (isUsablePhotoURL(photoURL) && !String(photoURL).startsWith('data:')) {
+        mockUser.photoURL = photoURL;
+      }
       localStorage.setItem("calyxo_mock_user", JSON.stringify(mockUser));
     }
     return;
   }
   try {
-    const safePhoto = (photoURL && photoURL.length > 2000) ? photoURL.substring(0, 100) + '...' : photoURL;
-    await supabase.auth.updateUser({ data: { displayName, photoURL: safePhoto, avatar_url: safePhoto } });
+    // Auth user_metadata cannot hold full base64 avatars — truncated values used to
+    // overwrite a good profile photo on the next getUserProfile() resolve.
+    const meta = { displayName };
+    if (isUsablePhotoURL(photoURL) && !String(photoURL).startsWith('data:')) {
+      meta.photoURL = photoURL;
+      meta.avatar_url = photoURL;
+    }
+    await supabase.auth.updateUser({ data: meta });
   } catch (e) {
     console.warn('[dbService] Supabase Auth metadata update warning (non-fatal):', e);
   }

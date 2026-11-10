@@ -10,7 +10,7 @@ import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
 import useQuickActionsStore from '../store/useQuickActionsStore';
-import { signOutUser, subscribeToAuth, loadUserData, invalidateUserDataCache, subscribeToUserDataChanges } from '../lib/dbService';
+import { signOutUser, subscribeToAuth, loadUserData, invalidateUserDataCache, subscribeToUserDataChanges, isUsablePhotoURL } from '../lib/dbService';
 import { subscribeToInAppNotifications, markNotificationAsRead, deleteNotification, registerServiceWorker, subscribeToPushNotifications } from '../services/notificationService';
 import { supabase } from '../lib/supabaseClient';
 
@@ -411,11 +411,24 @@ export default function UserLayout() {
     // 2. Full cross-device realtime subscription (Food, Workout, Weight, Profile, Ecosystem/Streak)
     // Non-regression guard: only overwrite store arrays if the incoming data is non-empty,
     // OR the store is already empty (prevents a failed/empty refetch from clearing real data).
+    const mergeProfileKeepPhoto = (profile) => {
+      if (!profile) return;
+      const store = useStore.getState();
+      const currentPhoto = store.userProfile?.photoURL;
+      const incomingPhoto = profile.photoURL;
+      store.setUserProfile({
+        ...profile,
+        photoURL: isUsablePhotoURL(incomingPhoto)
+          ? incomingPhoto
+          : (isUsablePhotoURL(currentPhoto) ? currentPhoto : (incomingPhoto || ''))
+      });
+    };
+
     const unsubCrossDevice = subscribeToUserDataChanges(uid, async () => {
       invalidateUserDataCache(uid);
       const { profile, foods, workouts, weights, water, waterLogs, ecosystem } = await loadUserData(uid);
       const store = useStore.getState();
-      if (profile) store.setUserProfile(profile);
+      mergeProfileKeepPhoto(profile);
       if (foods && (foods.length > 0 || store.foodLogs.length === 0)) store.setFoodLogs(foods);
       if (workouts && (workouts.length > 0 || store.workoutLogs.length === 0)) store.setWorkoutLogs(workouts);
       if (weights && (weights.length > 0 || store.weightLogs.length === 0)) store.setWeightLogs(weights);
@@ -438,7 +451,7 @@ export default function UserLayout() {
       // Discard result if a newer sync started while this one was in-flight
       if (seq !== focusSyncSeq) return;
       const store = useStore.getState();
-      if (profile) store.setUserProfile(profile);
+      mergeProfileKeepPhoto(profile);
       if (foods && (foods.length > 0 || store.foodLogs.length === 0)) store.setFoodLogs(foods);
       if (workouts && (workouts.length > 0 || store.workoutLogs.length === 0)) store.setWorkoutLogs(workouts);
       if (weights && (weights.length > 0 || store.weightLogs.length === 0)) store.setWeightLogs(weights);
