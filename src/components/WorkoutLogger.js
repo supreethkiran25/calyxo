@@ -31,6 +31,7 @@ import {
 const globalImageCache = new Map();
 const activeFetches = new Set();
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { scheduleExactNotification, cancelNotification, triggerOSNotification } from '../services/notificationService';
 import LiveActivityManager from '../services/LiveActivityManager';
 import { saveActiveRest, loadActiveRest, clearActiveRest } from '../services/restTimerPersistence';
@@ -203,6 +204,7 @@ const FallbackIcon = ({ category, muscleGroup, className }) => {
 
 
 export default function WorkoutLogger({ onNotification }) {
+  const navigate = useNavigate();
   const user = useStore(state => state.user);
   const userProfile = useStore(state => state.userProfile);
   const workoutLogs = useStore(state => state.workoutLogs);
@@ -1236,8 +1238,9 @@ export default function WorkoutLogger({ onNotification }) {
   return (
     <div className="space-y-6 pb-24">
 
-      {/* Flagship Live Activity / Live Workout Experience Card */}
+      {/* Active session banner only — idle Start Live lives in WorkoutHeroIntent */}
       <LiveWorkoutDashboard
+        hideWhenIdle
         onStartWorkout={() => {
           setLiveSessionRoutine(splits[activeDay]);
           setShowLiveSessionModal(true);
@@ -1250,37 +1253,20 @@ export default function WorkoutLogger({ onNotification }) {
         activeDay={activeDay}
       />
 
-      {/* Sub tabs nav */}
+      {/* Sub tabs nav — Challenges lives at /user/challenges, not duplicated here */}
       <div className="flex flex-col gap-3 border-b border-card-border pb-3">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <h1 className="text-sm sm:text-lg font-black text-foreground uppercase tracking-wider leading-tight truncate">Workouts Log</h1>
-            <p className="text-[10px] sm:text-xs text-muted font-medium mt-0.5 hidden sm:block">Register weight sets, reps, and track active fitness targets</p>
+            <h1 className="text-sm sm:text-lg font-black text-foreground uppercase tracking-wider leading-tight truncate">Workout</h1>
+            <p className="text-[10px] sm:text-xs text-muted font-medium mt-0.5 hidden sm:block">Start a live session or log sets for today</p>
           </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              onClick={() => {
-                setLiveSessionRoutine(splits[activeDay]);
-                setShowLiveSessionModal(true);
-              }}
-              className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-accent text-accent-foreground font-black text-[11px] sm:text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-accent/20"
-              title="Start interactive guided live workout session"
-            >
-              <Zap className="w-3.5 h-3.5 fill-current" />
-              <span>Live Session</span>
-            </button>
-
-            <button
-              onClick={handleLogFullDaySplit}
-              disabled={loading || !splits[activeDay]?.workout?.exercises?.length}
-              className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-surface border border-card-border text-foreground hover:border-accent text-[11px] sm:text-xs font-black uppercase tracking-wider active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-              title="Quick Log all exercises for today's routine split"
-            >
-              <Play className="w-3.5 h-3.5 text-accent fill-current" />
-              <span>Quick Log</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/user/challenges')}
+            className="px-2.5 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider text-muted hover:text-accent bg-transparent border border-card-border cursor-pointer shrink-0"
+          >
+            Challenges
+          </button>
         </div>
 
         <div className="bg-surface border border-card-border p-1 rounded-xl flex gap-0.5 w-full overflow-x-auto scrollbar-none">
@@ -1289,7 +1275,6 @@ export default function WorkoutLogger({ onNotification }) {
             { id: 'ai_coach', label: 'AI Coach' },
             { id: 'library', label: 'Library' },
             { id: 'analytics', label: 'Analytics' },
-            { id: 'challenges', label: 'Challenges' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -1382,29 +1367,15 @@ export default function WorkoutLogger({ onNotification }) {
                   </div>
                 </div>
 
-                {/* Primary Action Button */}
-                <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => useQuickActionsStore.getState().openWorkflow('log_workout', { date: selectedDate })}
-                    className="flex-1 py-3 px-4 rounded-xl bg-accent text-accent-foreground font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:brightness-110 active:scale-98 transition-all cursor-pointer shadow-md shadow-accent/20 border-none"
-                  >
-                    <Plus className="w-4 h-4 stroke-[3]" />
-                    <span>Log Exercise Sets</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLiveSessionRoutine(splits[activeDay]);
-                      setShowLiveSessionModal(true);
-                    }}
-                    className="py-3 px-4 rounded-xl bg-surface border border-card-border hover:border-accent text-foreground font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
-                  >
-                    <Zap className="w-4 h-4 text-accent fill-current" />
-                    <span>Live Routine</span>
-                  </button>
-                </div>
+                {/* Secondary log path — primary Start Live lives in the hero above */}
+                <button
+                  type="button"
+                  onClick={() => useQuickActionsStore.getState().openWorkflow('log_workout', { date: selectedDate })}
+                  className="w-full py-2.5 px-4 rounded-xl bg-surface border border-card-border hover:border-accent text-foreground font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 text-accent stroke-[3]" />
+                  <span>Log Exercise for this day</span>
+                </button>
               </div>
 
               {/* TODAY'S EXERCISES CARDS FEED */}
@@ -2199,11 +2170,6 @@ export default function WorkoutLogger({ onNotification }) {
                 </div>
               </div>
             </div>
-          )}
-
-          {/* CHALLENGES TAB VIEW */}
-          {activeSubTab === 'challenges' && (
-            <ChallengeModule onNotification={onNotification} />
           )}
 
         </motion.div>

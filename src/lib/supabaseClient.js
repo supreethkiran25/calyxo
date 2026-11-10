@@ -18,13 +18,11 @@ const getEnvVal = (key) => {
   return undefined;
 };
 
-const supabaseUrl = getEnvVal('SUPABASE_URL') || 'https://nwcatvlfoayzrwatvyrf.supabase.co';
-const supabaseAnonKey = getEnvVal('SUPABASE_ANON_KEY') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im53Y2F0dmxmb2F5enJ3YXR2eXJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMjIwNDQsImV4cCI6MjA5OTU5ODA0NH0.Y0S17EapVx86R1PlEBZZDxrm12VTwYq-fm-G6BsRRLc';
+const supabaseUrl = getEnvVal('SUPABASE_URL');
+const supabaseAnonKey = getEnvVal('SUPABASE_ANON_KEY');
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn("Supabase credentials not found. Falling back to Mock Mode.");
-} else {
-  console.log("Supabase URL initialized:", supabaseUrl);
+  console.warn('Supabase credentials missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

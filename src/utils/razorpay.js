@@ -217,7 +217,10 @@ export const startRazorpayCheckout = async (options = {}) => {
       console.warn('[CALYXO-PAY] Backend create-order endpoint unreachable:', apiErr);
     }
 
-    const razorpayKey = sysSettings.razorpay_key_id || import.meta.env?.VITE_RAZORPAY_KEY_ID || 'rzp_live_THntfStnhzEiO8';
+    const razorpayKey = sysSettings.razorpay_key_id || import.meta.env?.VITE_RAZORPAY_KEY_ID || '';
+    if (!razorpayKey) {
+      throw new Error('Razorpay key missing. Set VITE_RAZORPAY_KEY_ID in .env or admin settings.');
+    }
 
     setStatus(PAYMENT_STATUS.CHECKOUT_ACTIVE);
 

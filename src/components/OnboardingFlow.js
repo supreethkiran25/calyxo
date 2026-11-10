@@ -52,7 +52,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
   // Initialize from saved local draft or default profile
   const [currentScreenIdx, setCurrentScreenIdx] = useState(0);
   const [profile, setProfile] = useState(() => {
-    const draft = UserIntelligenceProfile.getLocalDraft();
+    const draft = UserIntelligenceProfile.getLocalDraft(userId);
     let initial = draft && draft.profile
       ? UserIntelligenceProfile.sanitize(draft.profile)
       : UserIntelligenceProfile.sanitize(userProfile || DEFAULT_USER_INTELLIGENCE_PROFILE);
@@ -73,54 +73,70 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
   const [wearablePairingModalOpen, setWearablePairingModalOpen] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [connectingDevice, setConnectingDevice] = useState(null);
+  const [validationError, setValidationError] = useState('');
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [liveStorySignals, setLiveStorySignals] = useState({ extractedContext: {}, confidence: 0, signalsFound: [] });
+  const finalizeLockRef = useRef(false);
+
+  const REQUIRED_BY_SCREEN = {
+    welcome: (p) => Boolean(p.identity?.fullName?.trim()),
+    goals: (p) => Boolean(p.goals?.primaryGoal),
+    body_profile: (p) =>
+      Boolean(p.identity?.sex) &&
+      Number(p.identity?.weight) > 0 &&
+      Number(p.identity?.height) > 0 &&
+      Number(p.identity?.age) > 0,
+    fitness_experience: (p) =>
+      Boolean(p.training?.experience && p.training?.frequency && p.training?.duration),
+    nutrition: (p) => Boolean(p.nutrition?.diet),
+  };
+
+  const validateScreen = (idx = currentScreenIdx) => {
+    const id = SCREENS[idx]?.id;
+    const fn = REQUIRED_BY_SCREEN[id];
+    if (fn && !fn(profile)) {
+      setValidationError('Please complete the required fields before continuing.');
+      return false;
+    }
+    setValidationError('');
+    return true;
+  };
 
   // Load saved step index if resuming
   useEffect(() => {
-    const draft = UserIntelligenceProfile.getLocalDraft();
+    const draft = UserIntelligenceProfile.getLocalDraft(userId);
     if (draft && typeof draft.screenIdx === 'number' && draft.screenIdx > 0 && draft.screenIdx < SCREENS.length) {
       setCurrentScreenIdx(draft.screenIdx);
     }
-  }, []);
+  }, [userId]);
 
-  // Sync active health connections with native HealthKit state on mount and on focus
+  // Sync health connections only while on the devices step (avoid overwriting mid-flow)
   useEffect(() => {
+    if (SCREENS[currentScreenIdx]?.id !== 'devices') return undefined;
+
     const syncStatus = async () => {
-      if (typeof window !== 'undefined') {
-        const authState = await HealthPermissionManager.getAuthorizationState();
-        const platform = HealthPermissionManager.getPlatform();
-        if (authState.status === 'AUTHORIZED') {
-          if (platform === 'ios_apple_health') {
-            updateSection('devices', { appleHealth: true, appleWatch: true });
-          } else if (platform === 'android_health_connect') {
-            updateSection('devices', { healthConnect: true });
-          }
-        } else {
-          if (platform === 'ios_apple_health') {
-            updateSection('devices', { appleHealth: false, appleWatch: false });
-          } else if (platform === 'android_health_connect') {
-            updateSection('devices', { healthConnect: false });
-          }
+      const authState = await HealthPermissionManager.getAuthorizationState();
+      const platform = HealthPermissionManager.getPlatform();
+      if (authState.status === 'AUTHORIZED') {
+        if (platform === 'ios_apple_health') {
+          updateSection('devices', { appleHealth: true, appleWatch: true });
+        } else if (platform === 'android_health_connect') {
+          updateSection('devices', { healthConnect: true });
         }
       }
+      // Do not force-false when unavailable — leave the user's choice intact
     };
     syncStatus();
-
-    window.addEventListener('focus', syncStatus);
-    document.addEventListener('visibilitychange', syncStatus);
-    return () => {
-      window.removeEventListener('focus', syncStatus);
-      document.removeEventListener('visibilitychange', syncStatus);
-    };
-  }, []);
+    return undefined;
+  }, [currentScreenIdx]);
 
   // Save progressive draft on step or profile change
   useEffect(() => {
     UserIntelligenceProfile.saveLocalDraft({
       screenIdx: currentScreenIdx,
       profile
-    });
-  }, [currentScreenIdx, profile]);
+    }, userId);
+  }, [currentScreenIdx, profile, userId]);
 
   // Live Story Extractor hook
   useEffect(() => {
@@ -142,6 +158,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
   };
 
   const handleNext = () => {
+    if (!validateScreen()) return;
     if (currentScreenIdx < SCREENS.length - 1) {
       setCurrentScreenIdx(prev => prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -151,6 +168,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
   };
 
   const handleBack = () => {
+    setValidationError('');
     if (currentScreenIdx > 0) {
       setCurrentScreenIdx(prev => prev - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -158,6 +176,17 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
   };
 
   const handleSkipToSummary = () => {
+    // Require core screens before skipping optional steps
+    for (const id of ['welcome', 'goals', 'body_profile']) {
+      const idx = SCREENS.findIndex((s) => s.id === id);
+      if (idx >= 0 && REQUIRED_BY_SCREEN[id] && !REQUIRED_BY_SCREEN[id](profile)) {
+        setCurrentScreenIdx(idx);
+        setValidationError('Name, goal, and body baseline are required before skipping.');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+    }
+    setValidationError('');
     setCurrentScreenIdx(SCREENS.length - 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -261,9 +290,28 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
     }
   };
 
-  // Finalize onboarding and navigate immediately to dashboard
+  // Finalize onboarding — persist first, then mark complete (fail closed)
   const finalizeOnboarding = async () => {
+    if (finalizeLockRef.current || isFinalizing) return;
+
+    for (const id of ['welcome', 'goals', 'body_profile']) {
+      if (REQUIRED_BY_SCREEN[id] && !REQUIRED_BY_SCREEN[id](profile)) {
+        const idx = SCREENS.findIndex((s) => s.id === id);
+        setCurrentScreenIdx(idx);
+        setValidationError('Required profile fields are missing.');
+        return;
+      }
+    }
+
+    if (!acceptedLegal) {
+      setValidationError('Please accept the Terms and Privacy Policy to continue.');
+      return;
+    }
+
+    finalizeLockRef.current = true;
     setIsFinalizing(true);
+    setValidationError('');
+
     try {
       const finalStory = {
         rawText: profile.story?.rawText || '',
@@ -275,84 +323,57 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
       const rawFirstName = profile.identity?.firstName || (rawFullName ? rawFullName.trim().split(' ')[0] : '') || user?.displayName?.split(' ')[0] || 'Athlete';
       const rawNickname = profile.identity?.nickname || rawFirstName || 'Athlete';
 
-      const finalProfile = UserIntelligenceProfile.sanitize({
-        ...profile,
-        story: finalStory,
-        onboardingCompleted: true,
-        onboarded: true,
-        role: 'user',
-        // Top-level canonical compatibility fields
-        name: rawFullName,
-        fullName: rawFullName,
-        firstName: rawFirstName,
-        nickname: rawNickname,
-        goal: profile.goals.primaryGoal,
-        goalWeight: profile.goals.targetWeight,
-        experience: profile.training.experience,
-        weight: profile.identity.weight,
-        height: profile.identity.height,
-        age: profile.identity.age,
-        dob: profile.identity.dob,
-        gender: profile.identity.sex,
-        coachPersonality: profile.coaching.personality,
-        responseLength: profile.coaching.verbosity,
-        dietPreference: profile.nutrition.diet,
-        diet: profile.nutrition.diet,
-        dietPreferences: [profile.nutrition.diet],
-        cuisines: profile.nutrition.cuisines || [],
-        allergies: profile.nutrition.allergies || ['none'],
-        nutritionPriority: profile.nutrition.nutritionPriority || 'high_protein'
-      });
+      const finalProfile = UserIntelligenceProfile.toCompatibleProfile(
+        {
+          ...profile,
+          identity: {
+            ...profile.identity,
+            fullName: rawFullName,
+            firstName: rawFirstName,
+            nickname: rawNickname
+          },
+          story: finalStory
+        },
+        { units, role: 'user' }
+      );
 
-      // 1. Mark persistent localStorage keys to guarantee this specific athlete is not re-prompted
-      if (typeof window !== 'undefined' && userId) {
-        localStorage.setItem(`calyxo_onboarded_${userId}`, 'true');
-      }
-
-      // 2. Update Zustand store synchronously so UserLayout immediately renders the dashboard
-      useStore.getState().setUserProfile(finalProfile);
-      if (updateUserProfile) {
-        updateUserProfile(finalProfile);
-      }
-
-      // 3. Persist to Supabase Database
+      // Persist to backend first — do not mark onboarded until save succeeds
       if (userId) {
         await saveUserProfile(userId, finalProfile);
         await saveEcosystemState(userId, {
           onboardingCompleted: true,
           hasCompletedOnboarding: true,
-          initialGoal: finalProfile.goals.primaryGoal,
-          coachingStyle: finalProfile.coaching.personality
+          initialGoal: finalProfile.goals?.primaryGoal,
+          coachingStyle: finalProfile.coaching?.personality
         });
       }
 
-      // 4. Clear local onboarding draft
-      UserIntelligenceProfile.clearLocalDraft();
+      if (typeof window !== 'undefined' && userId) {
+        localStorage.setItem(`calyxo_onboarded_${userId}`, 'true');
+      }
 
-      // 5. Request native notifications if on native platform
+      useStore.getState().setUserProfile(finalProfile);
+      if (updateUserProfile) {
+        updateUserProfile(finalProfile);
+      }
+
+      UserIntelligenceProfile.clearLocalDraft(userId);
+
       if (Capacitor.isNativePlatform()) {
         await requestNotificationPermission().catch(() => {});
       }
 
-      // 6. Invoke onComplete callback
       if (onComplete) {
         onComplete(finalProfile);
       }
 
-      // 7. Direct navigation to dashboard
       navigate('/user/dashboard', { replace: true });
-
-      // Fallback reload if router is pending
-      setTimeout(() => {
-        if (window.location.pathname.includes('/user/dashboard') === false) {
-          window.location.href = '/user/dashboard';
-        }
-      }, 250);
     } catch (err) {
       console.error('[Onboarding] Finalization error:', err);
-      window.location.href = '/user/dashboard';
-    } finally {
+      finalizeLockRef.current = false;
       setIsFinalizing(false);
+      setValidationError('Could not save your profile. Check your connection and try again.');
+      if (onNotification) onNotification('Could not save your profile. Please try again.');
     }
   };
 
@@ -1654,12 +1675,23 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 justify-center text-[11px] text-muted">
-                  <span>By starting, you agree to Calyxo's</span>
-                  <button type="button" onClick={() => setLegalModalType('terms')} className="text-accent underline cursor-pointer">Terms</button>
-                  <span>&</span>
-                  <button type="button" onClick={() => setLegalModalType('privacy')} className="text-accent underline cursor-pointer">Privacy</button>
-                </div>
+                <label className="flex items-start gap-2.5 justify-center text-[11px] text-muted cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={acceptedLegal}
+                    onChange={(e) => {
+                      setAcceptedLegal(e.target.checked);
+                      if (e.target.checked) setValidationError('');
+                    }}
+                    className="mt-0.5 accent-[var(--accent)]"
+                  />
+                  <span>
+                    I agree to Calyxo&apos;s{' '}
+                    <button type="button" onClick={(e) => { e.preventDefault(); setLegalModalType('terms'); }} className="text-accent underline cursor-pointer bg-transparent border-none p-0">Terms</button>
+                    {' '}&amp;{' '}
+                    <button type="button" onClick={(e) => { e.preventDefault(); setLegalModalType('privacy'); }} className="text-accent underline cursor-pointer bg-transparent border-none p-0">Privacy Policy</button>
+                  </span>
+                </label>
               </div>
             )}
           </motion.div>
@@ -1668,6 +1700,12 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
 
       {/* Bottom Sticky Action Footer */}
       <footer className="relative z-10 w-full max-w-xl mx-auto px-5 py-3 border-t border-card-border bg-background/80 backdrop-blur-md">
+        {validationError && (
+          <div className="mb-2.5 px-3 py-2 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-[11px] font-bold flex items-center gap-2">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+            <span>{validationError}</span>
+          </div>
+        )}
         <div className="flex items-center justify-between gap-3">
           {currentScreenIdx > 0 && currentScreenIdx < SCREENS.length - 1 ? (
             <button
@@ -1686,7 +1724,7 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
             <div className="flex items-center gap-2.5 w-full justify-end">
               <button
                 type="button"
-                onClick={() => setCurrentScreenIdx(1)}
+                onClick={() => setCurrentScreenIdx(0)}
                 className="px-4 py-3 rounded-full bg-surface hover:bg-surface-interactive text-foreground font-bold text-xs transition-colors border border-card-border flex items-center gap-1.5 cursor-pointer shadow-sm"
               >
                 <Edit3 className="w-3.5 h-3.5" />
@@ -1694,9 +1732,9 @@ export default function OnboardingFlow({ onComplete, onNotification }) {
               </button>
               <button
                 type="button"
-                disabled={isFinalizing}
+                disabled={isFinalizing || !acceptedLegal}
                 onClick={finalizeOnboarding}
-                className="flex-1 sm:flex-initial px-8 py-3 rounded-full bg-accent hover:brightness-110 text-accent-foreground font-bold text-sm shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="flex-1 sm:flex-initial px-8 py-3 rounded-full bg-accent hover:brightness-110 text-accent-foreground font-bold text-sm shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
               >
                 {isFinalizing ? (
                   <span className="flex items-center gap-2 text-accent-foreground">

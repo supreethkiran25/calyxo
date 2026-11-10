@@ -6,6 +6,10 @@ import { X, Shield, Scale, Heart, Activity, Sparkles, FileText, Lock, Mail, Aler
 export default function LegalModal({ isOpen, onClose, type = 'terms' }) {
   const [selectedTab, setSelectedTab] = useState(null);
 
+  useEffect(() => {
+    if (isOpen) setSelectedTab(type || 'terms');
+  }, [isOpen, type]);
+
   if (!isOpen) return null;
 
   // Direct synchronous derivation of active tab:

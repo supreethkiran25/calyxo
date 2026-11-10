@@ -5,7 +5,7 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { Capacitor } from '@capacitor/core';
 import React, { useState, useEffect, useRef, Suspense, lazy, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home as HomeIcon, Utensils, Dumbbell, User, Users, LogOut, Bot, X, TrendingUp, Heart, Search, Menu, Plus, Crown, Lock, Bell, CheckCheck, Trash, Flame } from 'lucide-react';
+import { Home as HomeIcon, Utensils, Dumbbell, User, LogOut, Bot, X, TrendingUp, Heart, Search, Menu, Plus, Crown, Lock, Bell, CheckCheck, Trash, Flame } from 'lucide-react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
@@ -41,24 +41,44 @@ const LegalModal = lazy(() => import('../components/modals/LegalModal'));
 
 const DESKTOP_NAV = [
   {
-    group: 'EXPERIENCES',
+    group: 'DAILY',
     items: [
       { id: 'dashboard', href: '/user/dashboard', label: 'Home', icon: HomeIcon },
       { id: 'nutrition', href: '/user/nutrition', label: 'Nutrition', icon: Utensils },
       { id: 'workout', href: '/user/workout', label: 'Workout', icon: Dumbbell },
-      { id: 'health', href: '/user/health', label: 'Health Hub', icon: Heart },
+    ]
+  },
+  {
+    group: 'TOOLS',
+    items: [
+      { id: 'progress', href: '/user/progress', label: 'Progress', icon: TrendingUp },
+      { id: 'health', href: '/user/health', label: 'Health', icon: Heart },
       { id: 'challenges', href: '/user/challenges', label: 'Challenges', icon: Flame },
-      { id: 'progress', href: '/user/progress', label: 'Progress Hub', icon: TrendingUp },
-      { id: 'ai', href: '/user/ai', label: 'AI', icon: Bot, isPremium: true },
+      { id: 'ai', href: '/user/ai', label: 'AI Coach', icon: Bot, isPremium: true },
     ]
   },
   {
     group: 'ACCOUNT',
     items: [
-      { id: 'profile', href: '/user/profile', label: 'Profile', icon: User },
+      { id: 'profile', href: '/user/profile', label: 'Profile & Settings', icon: User },
     ]
   }
 ];
+
+const clearShellOverlays = (setters) => {
+  const {
+    setIsQuickActionsOpen,
+    setIsMobileDrawerOpen,
+    setIsNotifDrawerOpen,
+    setIsSearchOpen,
+    closeSheet,
+  } = setters;
+  setIsQuickActionsOpen?.(false);
+  setIsMobileDrawerOpen?.(false);
+  setIsNotifDrawerOpen?.(false);
+  setIsSearchOpen?.(false);
+  closeSheet?.();
+};
 
 export default function UserLayout() {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
@@ -549,13 +569,21 @@ export default function UserLayout() {
           ))}
         </div>
 
-        <div className="p-4 border-t border-card-border">
+        <div className="p-4 border-t border-card-border space-y-2">
           <button 
             onClick={() => setIsQuickActionsOpen(true)}
             className="w-full py-3 flex items-center justify-center gap-2 rounded-2xl bg-acid-green text-black text-xs font-black uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all cursor-pointer border-none shadow-md shadow-acid-green/10"
           >
             <Plus className="w-4 h-4" />
-            Create
+            Log
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsSearchOpen(true)}
+            className="w-full py-2.5 flex items-center justify-center gap-2 rounded-2xl bg-surface border border-card-border text-muted hover:text-foreground text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+          >
+            <Search className="w-3.5 h-3.5" />
+            Search
           </button>
         </div>
 
@@ -650,10 +678,7 @@ export default function UserLayout() {
               aria-label="Home Dashboard"
               onClick={() => {
                 triggerNavHaptic();
-                setIsQuickActionsOpen(false);
-                setIsMobileDrawerOpen(false);
-                setIsNotifDrawerOpen(false);
-                setIsSearchOpen(false);
+                clearShellOverlays({ setIsQuickActionsOpen, setIsMobileDrawerOpen, setIsNotifDrawerOpen, setIsSearchOpen, closeSheet });
                 if (mainRef.current) mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
               }}
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
@@ -666,7 +691,10 @@ export default function UserLayout() {
             <Link
               to="/user/nutrition"
               aria-label="Nutrition Page"
-              onClick={triggerNavHaptic}
+              onClick={() => {
+                triggerNavHaptic();
+                clearShellOverlays({ setIsQuickActionsOpen, setIsMobileDrawerOpen, setIsNotifDrawerOpen, setIsSearchOpen, closeSheet });
+              }}
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
                 pathname === '/user/nutrition' ? 'text-accent font-black drop-shadow-[0_0_10px_rgba(204,255,0,0.3)]' : 'text-[var(--text-secondary)] hover:text-foreground'
               }`}
@@ -675,24 +703,28 @@ export default function UserLayout() {
               <span className="text-[9.5px] tracking-wide pointer-events-none">Nutrition</span>
             </Link>
             
-            {/* Quick Create Action Button */}
+            {/* Primary Log FAB — labeled so users know what it does */}
             <button
               onClick={() => {
                 triggerNavHaptic();
                 setIsQuickActionsOpen(true);
               }}
-              aria-label="Quick Action Menu"
+              aria-label="Log meal, workout, or water"
               className="flex flex-col items-center justify-center -mt-5 border-none bg-transparent outline-none cursor-pointer group touch-manipulation transform-gpu"
             >
               <div className="w-12 h-12 rounded-full bg-accent text-accent-foreground flex items-center justify-center shadow-lg shadow-accent/40 active:scale-90 group-hover:scale-105 transition-all">
                 <Plus className="w-6 h-6 stroke-[3] text-black pointer-events-none" />
               </div>
+              <span className="text-[9px] font-black uppercase tracking-wider text-accent mt-0.5 pointer-events-none">Log</span>
             </button>
 
             <Link
               to="/user/workout"
               aria-label="Workout Page"
-              onClick={triggerNavHaptic}
+              onClick={() => {
+                triggerNavHaptic();
+                clearShellOverlays({ setIsQuickActionsOpen, setIsMobileDrawerOpen, setIsNotifDrawerOpen, setIsSearchOpen, closeSheet });
+              }}
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
                 pathname === '/user/workout' ? 'text-accent font-black drop-shadow-[0_0_10px_rgba(204,255,0,0.3)]' : 'text-[var(--text-secondary)] hover:text-foreground'
               }`}
@@ -703,7 +735,10 @@ export default function UserLayout() {
             <Link
               to="/user/profile"
               aria-label="Profile Settings Page"
-              onClick={triggerNavHaptic}
+              onClick={() => {
+                triggerNavHaptic();
+                clearShellOverlays({ setIsQuickActionsOpen, setIsMobileDrawerOpen, setIsNotifDrawerOpen, setIsSearchOpen, closeSheet });
+              }}
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors border-none bg-transparent outline-none touch-manipulation active:scale-95 transform-gpu ${
                 pathname === '/user/profile' ? 'text-accent font-black drop-shadow-[0_0_10px_rgba(204,255,0,0.3)]' : 'text-[var(--text-secondary)] hover:text-foreground'
               }`}

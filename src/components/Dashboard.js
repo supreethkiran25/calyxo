@@ -498,6 +498,26 @@ export default function Dashboard({ onNotification }) {
         </div>
       )}
 
+      {/* Primary daily actions — clearest path to log */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <button
+          type="button"
+          onClick={() => useQuickActionsStore.getState().setActiveWorkflow('log_meal')}
+          className="py-3.5 px-4 rounded-2xl bg-accent text-accent-foreground font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all border-none cursor-pointer shadow-md shadow-accent/20"
+        >
+          <Utensils className="w-4 h-4" />
+          <span>Log Meal</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => useQuickActionsStore.getState().setActiveWorkflow('log_workout')}
+          className="py-3.5 px-4 rounded-2xl bg-surface border border-card-border text-foreground font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:border-accent active:scale-[0.98] transition-all cursor-pointer"
+        >
+          <Dumbbell className="w-4 h-4 text-accent" />
+          <span>Log Workout</span>
+        </button>
+      </div>
+
       {/* ── Today's Progress Card (4 Color-Synced Circular Progress Rings In One Row) ── */}
       <div className="p-4 sm:p-5 rounded-3xl bg-surface border border-card-border shadow-sm relative overflow-hidden">
         <div className="flex items-center justify-between mb-3">
@@ -509,10 +529,15 @@ export default function Dashboard({ onNotification }) {
           </span>
         </div>
 
-        {/* All 4 rings placed in ONE single line */}
+        {/* All 4 rings placed in ONE single line — tap to log or open related view */}
         <div className="grid grid-cols-4 gap-1.5 sm:gap-3 py-1 text-center items-start">
           {/* Ring 1: Calories (Rose Coral) */}
-          <div className="flex flex-col items-center min-w-0">
+          <button
+            type="button"
+            onClick={() => useQuickActionsStore.getState().setActiveWorkflow('log_meal')}
+            className="flex flex-col items-center min-w-0 bg-transparent border-none cursor-pointer p-0 active:scale-95 transition-transform"
+            title="Log a meal"
+          >
             <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" className="text-surface-elevated" strokeWidth="9" />
@@ -538,10 +563,15 @@ export default function Dashboard({ onNotification }) {
             <span className="text-[9px] sm:text-[10px] text-muted-foreground font-mono block leading-tight mt-0.5 truncate max-w-full">
               {totalCal.toLocaleString()} kcal
             </span>
-          </div>
+          </button>
 
           {/* Ring 2: Steps (Emerald / Mint) */}
-          <div className="flex flex-col items-center min-w-0">
+          <button
+            type="button"
+            onClick={() => navigate('/user/health')}
+            className="flex flex-col items-center min-w-0 bg-transparent border-none cursor-pointer p-0 active:scale-95 transition-transform"
+            title="Open Health Hub"
+          >
             <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" className="text-surface-elevated" strokeWidth="9" />
@@ -567,10 +597,15 @@ export default function Dashboard({ onNotification }) {
             <span className="text-[9px] sm:text-[10px] text-muted-foreground font-mono block leading-tight mt-0.5 truncate max-w-full">
               {totalSteps.toLocaleString()} / {Math.round(targetStepGoal / 1000)}k
             </span>
-          </div>
+          </button>
 
           {/* Ring 3: Hydration (Cyan) */}
-          <div className="flex flex-col items-center min-w-0">
+          <button
+            type="button"
+            onClick={() => useQuickActionsStore.getState().setActiveWorkflow('log_water')}
+            className="flex flex-col items-center min-w-0 bg-transparent border-none cursor-pointer p-0 active:scale-95 transition-transform"
+            title="Log water"
+          >
             <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" className="text-surface-elevated" strokeWidth="9" />
@@ -596,10 +631,15 @@ export default function Dashboard({ onNotification }) {
             <span className="text-[9px] sm:text-[10px] text-muted-foreground font-mono block leading-tight mt-0.5 truncate max-w-full">
               {(waterIntake / 1000).toFixed(1)} / {(targetWaterMl / 1000).toFixed(1)} L
             </span>
-          </div>
+          </button>
 
           {/* Ring 4: Protein (Amber) */}
-          <div className="flex flex-col items-center min-w-0">
+          <button
+            type="button"
+            onClick={() => useQuickActionsStore.getState().setActiveWorkflow('log_meal')}
+            className="flex flex-col items-center min-w-0 bg-transparent border-none cursor-pointer p-0 active:scale-95 transition-transform"
+            title="Log protein / meal"
+          >
             <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" className="text-surface-elevated" strokeWidth="9" />
@@ -625,7 +665,7 @@ export default function Dashboard({ onNotification }) {
             <span className="text-[9px] sm:text-[10px] text-muted-foreground font-mono block leading-tight mt-0.5 truncate max-w-full">
               {Math.round(totalProt)} / {Math.round(targetProteinG)} g
             </span>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -649,11 +689,11 @@ export default function Dashboard({ onNotification }) {
             </div>
 
             <button
-              onClick={() => navigate('/user/nutrition')}
+              onClick={() => useQuickActionsStore.getState().setActiveWorkflow('log_meal')}
               className="text-xs font-bold text-accent hover:underline flex items-center gap-1 border-none bg-transparent cursor-pointer uppercase tracking-wider"
             >
-              <span>Food Log</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
+              <span>Log Meal</span>
+              <Plus className="w-3.5 h-3.5" />
             </button>
           </div>
 
@@ -778,10 +818,10 @@ export default function Dashboard({ onNotification }) {
           <button
             type="button"
             onClick={() => navigate('/user/ai')}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-elevated hover:bg-surface border border-card-border text-xs font-bold text-foreground transition-all cursor-pointer"
+            className="hidden sm:flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-accent transition-colors cursor-pointer bg-transparent border-none"
           >
-            <span>Ask Coach</span>
-            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+            <span>Ask coach</span>
+            <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
@@ -845,14 +885,14 @@ export default function Dashboard({ onNotification }) {
           </div>
         </div>
 
-        {/* Mobile Ask Coach button */}
+        {/* Mobile Ask Coach — secondary text link, not a competing primary CTA */}
         <button
           type="button"
           onClick={() => navigate('/user/ai')}
-          className="sm:hidden w-full py-2.5 rounded-xl bg-surface-elevated border border-card-border text-xs font-bold text-foreground flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 transition-transform"
+          className="sm:hidden w-full py-2 text-[11px] font-medium text-muted-foreground hover:text-accent flex items-center justify-center gap-1 cursor-pointer bg-transparent border-none"
         >
-          <span>Ask AI Coach</span>
-          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+          <span>Ask AI coach</span>
+          <ChevronRight className="w-3.5 h-3.5" />
         </button>
       </div>
 

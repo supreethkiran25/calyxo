@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import PermissionsConnectionsSection from './PermissionsConnectionsSection';
 import ProfileIdentityHero from '../design-system/components/ProfileIdentityHero';
 import SubscriptionLiveTimerCard from './SubscriptionLiveTimerCard';
@@ -57,6 +58,7 @@ const DIET_PREFERENCES_OPTIONS = [
 ];
 
 export default function UserProfile({ onNotification }) {
+  const location = useLocation();
   const user = useStore(state => state.user);
   const userProfile = useStore(state => state.userProfile);
   const updateUserProfile = useStore(state => state.updateUserProfile);
@@ -276,7 +278,11 @@ export default function UserProfile({ onNotification }) {
   // Handle URL section redirect when finishing setup from dashboard
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
+      const params = new URLSearchParams(location.search);
+      const tab = params.get('tab');
+      if (tab === 'overview' || tab === 'targets' || tab === 'routine' || tab === 'settings') {
+        setActiveTab(tab);
+      }
       const section = params.get('section');
       if (section) {
         let fieldTitle = 'Profile Details';
@@ -310,7 +316,7 @@ export default function UserProfile({ onNotification }) {
         }
       }
     }
-  }, [onNotification]);
+  }, [onNotification, location.search]);
 
 
 

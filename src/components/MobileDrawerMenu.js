@@ -1,13 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import StaggeredMenu from './StaggeredMenu';
-import SettingsDrawerPanel from './SettingsDrawerPanel';
 import { signOutUser } from '../lib/dbService';
 import useQuickActionsStore from '../store/useQuickActionsStore';
 
 export default function MobileDrawerMenu({ isOpen, onClose }) {
   const navigate = useNavigate();
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleShareApp = async () => {
     const isLocalOrCapacitor = typeof window !== 'undefined' && (
@@ -40,7 +38,8 @@ export default function MobileDrawerMenu({ isOpen, onClose }) {
     { label: 'Health Hub', ariaLabel: 'Health Hub & Wearables', link: '/user/health' },
     { label: 'Challenges', ariaLabel: 'Fitness Challenges', link: '/user/challenges' },
     { label: 'Progress Hub', ariaLabel: 'Transformation & Body Analytics', link: '/user/progress' },
-    { label: 'AI', ariaLabel: 'Calyxo AI Intelligence', link: '/user/ai' }
+    { label: 'AI', ariaLabel: 'Calyxo AI Intelligence', link: '/user/ai' },
+    { label: 'Profile & Settings', ariaLabel: 'Profile and Settings', link: '/user/profile?tab=settings' },
   ];
 
   const socialItems = [
@@ -60,46 +59,36 @@ export default function MobileDrawerMenu({ isOpen, onClose }) {
     }
   ];
 
-  if (!isOpen && !isSettingsOpen) return null;
+  if (!isOpen) return null;
 
   return (
     <div className="lg:hidden">
-      {isOpen && (
-        <StaggeredMenu
-          position="left"
-          items={menuItems}
-          socialItems={socialItems}
-          displaySocials={true}
-          displayItemNumbering={false}
-          menuButtonColor="var(--foreground, #ffffff)"
-          openMenuButtonColor="var(--foreground, #ffffff)"
-          changeMenuColorOnOpen={true}
-          colors={['#4c7a00', '#181824', '#0A0A0F']}
-          logoUrl="/icon-192x192.png"
-          accentColor="#b5f23d"
-          isFixed={true}
-          isOpenExternal={isOpen}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-          onToggleExternal={(openState) => {
-            if (!openState) onClose();
-          }}
-          onNavigate={(link) => {
-            navigate(link);
-            onClose();
-          }}
-          onMenuClose={onClose}
-        />
-      )}
-
-      {/* Interactive In-Menu Settings Panel */}
-      <SettingsDrawerPanel
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        onNavigate={(link) => {
-          navigate(link);
-          setIsSettingsOpen(false);
+      <StaggeredMenu
+        position="left"
+        items={menuItems}
+        socialItems={socialItems}
+        displaySocials={true}
+        displayItemNumbering={false}
+        menuButtonColor="var(--foreground, #ffffff)"
+        openMenuButtonColor="var(--foreground, #ffffff)"
+        changeMenuColorOnOpen={true}
+        colors={['#4c7a00', '#181824', '#0A0A0F']}
+        logoUrl="/icon-192x192.png"
+        accentColor="#b5f23d"
+        isFixed={true}
+        isOpenExternal={isOpen}
+        onOpenSettings={() => {
+          navigate('/user/profile?tab=settings');
           onClose();
         }}
+        onToggleExternal={(openState) => {
+          if (!openState) onClose();
+        }}
+        onNavigate={(link) => {
+          navigate(link);
+          onClose();
+        }}
+        onMenuClose={onClose}
       />
     </div>
   );

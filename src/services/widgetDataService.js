@@ -179,8 +179,8 @@ export const syncWidgetData = async (customData = {}) => {
           authToken = getAuthTokenSync();
         } catch (e) {}
 
-        const supabaseUrl = supabase?.supabaseUrl || 'https://nwcatvlfoayzrwatvyrf.supabase.co';
-        const supabaseAnonKey = supabase?.supabaseKey || '';
+        const supabaseUrl = supabase?.supabaseUrl || import.meta.env?.VITE_SUPABASE_URL || '';
+        const supabaseAnonKey = supabase?.supabaseKey || import.meta.env?.VITE_SUPABASE_ANON_KEY || '';
 
         await CalyxoWidget.syncWidgetData({
           calories: payload.calories,

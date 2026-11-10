@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import ErrorBoundary from './components/ErrorBoundary';
 import PageErrorBoundary from './components/PageErrorBoundary';
@@ -99,6 +99,7 @@ function App() {
 
               {/* User Routes — PageErrorBoundary per-route so one page crash stays isolated */}
               <Route path="/user" element={<UserGuard><UserLayout /></UserGuard>}>
+                <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<PageErrorBoundary><UserDashboardPage /></PageErrorBoundary>} />
                 <Route path="nutrition" element={<PageErrorBoundary><UserNutritionPage /></PageErrorBoundary>} />
                 <Route path="workout" element={<PageErrorBoundary><UserWorkoutPage /></PageErrorBoundary>} />

@@ -8,7 +8,7 @@ import { liveWorkoutEngine, WORKOUT_STATES } from '../../services/liveWorkout/Li
 import { useStore } from '../../store/useStore.js';
 import { useEcosystemStore } from '../../store/useEcosystemStore.js';
 
-export default function LiveWorkoutDashboard({ onStartWorkout, onOpenActiveModal, splits = [], activeDay = 0 }) {
+export default function LiveWorkoutDashboard({ onStartWorkout, onOpenActiveModal, splits = [], activeDay = 0, hideWhenIdle = false }) {
   const [engineState, setEngineState] = useState(() => liveWorkoutEngine.getStateSnapshot());
   const workoutLogs = useStore(state => state.workoutLogs || []);
   const ecoStore = useEcosystemStore();
@@ -225,7 +225,10 @@ export default function LiveWorkoutDashboard({ onStartWorkout, onOpenActiveModal
 
   // ─────────────────────────────────────────────────────────────────────────────
   // 2. IDLE STATE: Sleek Compact Live Launcher Bar
+  // Hidden when parent already shows a primary Start Live CTA (e.g. WorkoutHeroIntent)
   // ─────────────────────────────────────────────────────────────────────────────
+  if (hideWhenIdle) return null;
+
   const todayRoutine = splits[activeDay] || null;
 
   return (

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Camera, Barcode, Search, PlusCircle, X } from 'lucide-react';
+import { Sparkles, Search, PlusCircle, Utensils, X } from 'lucide-react';
 import { MotionVariants } from '../motion/motionPresets';
 
 export default function ContextualNutritionSheet({
@@ -12,38 +12,30 @@ export default function ContextualNutritionSheet({
 }) {
   if (!isOpen) return null;
 
+  // Only ship actions that are wired in FoodTracker
   const actions = [
     {
-      id: 'ai_snap',
-      title: 'AI Food Photo Scan',
-      desc: 'Instant meal recognition & macro breakdown via Gemini',
-      icon: Camera,
+      id: 'log_meal',
+      title: 'Log a Meal',
+      desc: 'Open the meal logger with macros & portions',
+      icon: Utensils,
       color: 'text-accent',
       bg: 'bg-accent/10',
       border: 'border-accent/20'
     },
     {
-      id: 'barcode',
-      title: 'Scan Barcode',
-      desc: 'Lookup exact nutrition from packaged items',
-      icon: Barcode,
-      color: 'text-cyan-500',
-      bg: 'bg-cyan-500/10',
-      border: 'border-cyan-500/20'
-    },
-    {
-      id: 'search',
-      title: 'Search Food Database',
-      desc: 'Browse 100k+ verified Indian & global foods',
+      id: 'search_catalog',
+      title: 'Search Food Catalog',
+      desc: 'Browse verified Indian & global foods',
       icon: Search,
       color: 'text-emerald-500',
       bg: 'bg-emerald-500/10',
       border: 'border-emerald-500/20'
     },
     {
-      id: 'custom',
-      title: 'Quick Add Custom Macro',
-      desc: 'Directly enter calories, protein, carbs & fat',
+      id: 'macro_calc',
+      title: 'Ask AI for Ideas',
+      desc: 'Get meal suggestions based on remaining macros',
       icon: PlusCircle,
       color: 'text-amber-500',
       bg: 'bg-amber-500/10',
@@ -53,7 +45,7 @@ export default function ContextualNutritionSheet({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-end justify-center">
+      <div className="fixed inset-0 z-[110] flex items-end justify-center">
         {/* Backdrop */}
         <motion.div
           variants={MotionVariants.backdrop}
@@ -87,9 +79,9 @@ export default function ContextualNutritionSheet({
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[10px] font-mono uppercase font-bold tracking-widest text-accent">
-                Nutrition Actions
+                Add Food
               </span>
-              <h3 className="text-base font-black text-foreground">What would you like to add?</h3>
+              <h3 className="text-base font-black text-foreground">How do you want to log?</h3>
             </div>
             <button
               onClick={onClose}

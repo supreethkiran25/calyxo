@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Dumbbell, Utensils, Droplets, Scale, Activity, TrendingUp } from 'lucide-react';
+import { X, Dumbbell, Utensils, Droplets, Scale, Activity, TrendingUp, Zap, Bot } from 'lucide-react';
 import useQuickActionsStore from '../store/useQuickActionsStore';
 
 export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
@@ -12,7 +12,7 @@ export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
     { 
       id: 'log_meal', 
       label: 'Log Meal', 
-      desc: 'Track calories & macros',
+      desc: 'Calories & macros',
       icon: Utensils, 
       color: 'text-emerald-500', 
       bg: 'bg-emerald-500/10 border-emerald-500/20' 
@@ -20,34 +20,42 @@ export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
     { 
       id: 'log_workout', 
       label: 'Log Workout', 
-      desc: 'Sets, reps & weights',
+      desc: 'Sets, reps & weight',
       icon: Dumbbell, 
       color: 'text-cyan-400', 
       bg: 'bg-cyan-500/10 border-cyan-500/20' 
     },
     { 
+      id: 'start_live_session', 
+      label: 'Live Session', 
+      desc: 'Guided workout timer',
+      icon: Zap, 
+      color: 'text-accent', 
+      bg: 'bg-accent/10 border-accent/20' 
+    },
+    { 
       id: 'log_water', 
       label: 'Log Water', 
-      desc: 'Quick hydration intake',
+      desc: 'Hydration intake',
       icon: Droplets, 
       color: 'text-blue-500', 
       bg: 'bg-blue-500/10 border-blue-500/20' 
-    },
-    { 
-      id: 'update_weight', 
-      label: 'Log Weight', 
-      desc: 'Update body composition',
-      icon: Scale, 
-      color: 'text-amber-500', 
-      bg: 'bg-amber-500/10 border-amber-500/20' 
     },
   ];
 
   const secondaryActions = [
     { 
+      id: 'update_weight', 
+      label: 'Log Weight', 
+      desc: 'Body check-in',
+      icon: Scale, 
+      color: 'text-amber-500', 
+      bg: 'bg-amber-500/10 border-amber-500/20' 
+    },
+    { 
       id: 'anatomy_target', 
       label: 'Target Muscle', 
-      desc: 'Interactive anatomy map',
+      desc: 'Anatomy map',
       icon: Activity, 
       color: 'text-accent', 
       bg: 'bg-accent/10 border-accent/20' 
@@ -55,10 +63,18 @@ export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
     { 
       id: 'progress_photo', 
       label: 'Progress Photos', 
-      desc: 'Visual timeline check-in',
+      desc: 'Visual timeline',
       icon: TrendingUp, 
       color: 'text-purple-400', 
       bg: 'bg-purple-500/10 border-purple-500/20' 
+    },
+    { 
+      id: 'start_chat', 
+      label: 'Ask AI', 
+      desc: 'Coach chat',
+      icon: Bot, 
+      color: 'text-foreground', 
+      bg: 'bg-surface-elevated border-card-border' 
     },
   ];
 
@@ -95,9 +111,9 @@ export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-card-border/60">
             <div>
               <h2 className="text-base sm:text-lg font-black uppercase tracking-wider text-foreground font-mono">
-                QUICK ACTIONS
+                Log
               </h2>
-              <p className="text-[11px] text-muted font-medium mt-0.5">1-tap daily athletic logging</p>
+              <p className="text-[11px] text-muted font-medium mt-0.5">Meal, workout, water & more</p>
             </div>
             <button 
               onClick={onClose}
@@ -129,7 +145,7 @@ export default function QuickActionsSheet({ isOpen, onClose, onAction }) {
             ))}
           </div>
 
-          {/* Secondary 2-row */}
+          {/* Secondary row */}
           <div className="grid grid-cols-2 gap-2.5 mt-2.5 pt-2.5 border-t border-card-border/60">
             {secondaryActions.map(action => (
               <button 

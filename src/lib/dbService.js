@@ -19,7 +19,7 @@ const getEnvVal = (key) => {
   return undefined;
 };
 
-const activeSupabaseUrl = getEnvVal('SUPABASE_URL') || 'https://nwcatvlfoayzrwatvyrf.supabase.co';
+const activeSupabaseUrl = getEnvVal('SUPABASE_URL') || '';
 
 // Helper to determine if Supabase is fully configured or running mock
 export const isMockMode = !activeSupabaseUrl || activeSupabaseUrl === "https://mock.supabase.co";
@@ -57,7 +57,7 @@ export const getCurrentUserIdSync = () => {
   // Fallback for sync contexts
   try {
     const url = activeSupabaseUrl;
-    const projectRef = url.includes('//') ? url.split('//')[1].split('.')[0] : 'nwcatvlfoayzrwatvyrf';
+    const projectRef = url.includes('//') ? url.split('//')[1].split('.')[0] : 'unknown';
     const sessionStr = localStorage.getItem(`sb-${projectRef}-auth-token`);
     if (sessionStr) {
       return JSON.parse(sessionStr)?.user?.id || "";
@@ -70,7 +70,7 @@ export const getAuthTokenSync = () => {
   if (typeof window === 'undefined') return "";
   try {
     const url = activeSupabaseUrl;
-    const projectRef = url.includes('//') ? url.split('//')[1].split('.')[0] : 'nwcatvlfoayzrwatvyrf';
+    const projectRef = url.includes('//') ? url.split('//')[1].split('.')[0] : 'unknown';
     const sessionStr = localStorage.getItem(`sb-${projectRef}-auth-token`);
     if (sessionStr) {
       return JSON.parse(sessionStr)?.access_token || "";
@@ -1023,7 +1023,7 @@ export const getUserProfile = async (userId) => {
     if (!userEmail) {
       try {
         const url = activeSupabaseUrl;
-        const projectRef = url.includes('//') ? url.split('//')[1].split('.')[0] : 'nwcatvlfoayzrwatvyrf';
+        const projectRef = url.includes('//') ? url.split('//')[1].split('.')[0] : 'unknown';
         const sessionStr = localStorage.getItem(`sb-${projectRef}-auth-token`) || localStorage.getItem('supabase.auth.token');
         if (sessionStr) {
           userEmail = JSON.parse(sessionStr)?.user?.email || "";
@@ -1294,7 +1294,10 @@ export const saveUserProfile = async (userId, profile) => {
     const extraFields = {
       ...existingBio,
       ...mergedProfile,
-      onboarded: mergedProfile.onboarded ?? existingBio.onboarded,
+      onboarded: mergedProfile.onboarded === true
+        || mergedProfile.onboardingCompleted === true
+        || existingBio.onboarded === true
+        || existingBio.onboardingCompleted === true,
       subscriptionPlan: (isExpired && profile.subscriptionPlan === undefined) ? 'FREE' : finalSubPlan,
       isSubscribed: isExpired ? false : finalIsSubscribed,
       isExpired: isExpired,

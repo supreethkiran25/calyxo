@@ -1,12 +1,56 @@
 /**
  * Calyxo Canonical User Intelligence Profile Engine
- * 
+ *
  * Defines the canonical single-source-of-truth structure for user personalization.
  * Bridges onboarding, AI Health Twin, AI Workout Coach, AI Meal Planner, Recovery,
  * Wearable telemetry, and Smart Reminders.
  */
 
 export const ONBOARDING_DRAFT_STORAGE_KEY = 'calyxo_onboarding_draft';
+
+const ACTIVITY_MAP = {
+  mostly_sitting: 1.2,
+  somewhat_active: 1.375,
+  active: 1.55,
+  very_active: 1.725
+};
+
+const GOAL_MAP = {
+  lose_body_fat: 'lose',
+  build_muscle: 'gains',
+  get_stronger: 'gains',
+  maintain_physique: 'maintain',
+  improve_fitness: 'maintain',
+  improve_endurance: 'maintain',
+  improve_overall_health: 'maintain',
+  improve_sleep_recovery: 'maintain',
+  prepare_sport_event: 'gains',
+  not_sure_yet: 'maintain',
+  // already-flat values
+  lose: 'lose',
+  gains: 'gains',
+  maintain: 'maintain'
+};
+
+const COACH_MAP = {
+  supportive: 'motivational',
+  friendly: 'motivational',
+  minimal: 'motivational',
+  direct: 'motivational',
+  data_driven: 'scientific',
+  tough_love: 'strict',
+  // already-flat values
+  motivational: 'motivational',
+  gym_bro: 'gym_bro',
+  scientific: 'scientific',
+  strict: 'strict'
+};
+
+const normalizeDuration = (duration) => {
+  if (!duration) return '45_60';
+  if (duration === '45_60_min') return '45_60';
+  return duration;
+};
 
 export const DEFAULT_USER_INTELLIGENCE_PROFILE = {
   identity: {
@@ -31,16 +75,16 @@ export const DEFAULT_USER_INTELLIGENCE_PROFILE = {
   training: {
     experience: 'intermediate',
     frequency: '3_4_days', // 'never' | '1_2_days' | '3_4_days' | '5_plus_days'
-    duration: '45_60_min', // 'under_20' | '20_30' | '30_45' | '45_60' | '60_plus'
-    environment: 'commercial_gym', // 'commercial_gym' | 'home_gym' | 'home_bodyweight' | 'outdoor' | 'running' | 'sports' | 'mixed'
+    duration: '45_60', // 'under_20' | '20_30' | '30_45' | '45_60' | '60_plus'
+    environment: 'commercial_gym',
     equipment: ['dumbbells', 'barbells', 'machines', 'cable_machines'],
     preferredStyles: ['strength', 'hypertrophy']
   },
   nutrition: {
-    diet: 'non_vegetarian', // 'vegetarian' | 'vegan' | 'eggetarian' | 'non_vegetarian' | 'pescatarian' | 'jain' | 'keto' | 'other'
-    cuisines: ['Indian', 'Western'],
-    mealBehavior: 'mix_of_both', // 'mostly_home' | 'mostly_outside' | 'mix_of_both'
-    nutritionPriority: 'high_protein', // 'fat_loss' | 'muscle_gain' | 'high_protein' | 'better_energy' | 'better_food_quality' | 'better_digestion' | 'balanced'
+    diet: 'non_vegetarian',
+    cuisines: [],
+    mealBehavior: 'mix_of_both',
+    nutritionPriority: 'high_protein',
     allergies: ['none'],
     cookingStyle: 'mostly_home',
     budget: 'moderate',
@@ -52,11 +96,11 @@ export const DEFAULT_USER_INTELLIGENCE_PROFILE = {
     }
   },
   lifestyle: {
-    activityLevel: 'somewhat_active', // 'mostly_sitting' | 'somewhat_active' | 'active' | 'very_active'
-    workStyle: 'desk_based', // 'desk_based' | 'standing' | 'physical' | 'mixed'
-    sleepDuration: '7_8h', // 'under_5h' | '5_6h' | '6_7h' | '7_8h' | '8h_plus'
-    sleepConsistency: 'mostly_consistent', // 'very_consistent' | 'mostly_consistent' | 'changes_often' | 'highly_irregular'
-    stressLevel: 'moderate' // 'low' | 'moderate' | 'high' | 'very_high'
+    activityLevel: 'somewhat_active',
+    workStyle: 'desk_based',
+    sleepDuration: '7_8h',
+    sleepConsistency: 'mostly_consistent',
+    stressLevel: 'moderate'
   },
   schedule: {
     wakeTime: '06:30',
@@ -69,7 +113,7 @@ export const DEFAULT_USER_INTELLIGENCE_PROFILE = {
   },
   limitations: {
     restrictions: ['none'],
-    protectedAreas: [] // 'shoulder' | 'back' | 'knee' | 'hip' | 'ankle' | 'wrist' | 'other'
+    protectedAreas: []
   },
   devices: {
     appleHealth: false,
@@ -79,13 +123,15 @@ export const DEFAULT_USER_INTELLIGENCE_PROFILE = {
     fitbit: false,
     healthConnect: false,
     bleHeartRate: false,
-    bleBloodPressure: false
+    bleBloodPressure: false,
+    bluetoothWatch: false,
+    deviceName: null
   },
   coaching: {
-    personality: 'direct', // 'supportive' | 'direct' | 'tough_love' | 'data_driven' | 'friendly' | 'minimal'
-    verbosity: 'quick_explanation', // 'just_tell_me' | 'quick_explanation' | 'explain_numbers' | 'full_analysis'
-    accountability: 'moderate', // 'none' | 'light' | 'moderate' | 'high'
-    reminderStyle: 'motivational' // 'gentle' | 'direct' | 'motivational' | 'only_important'
+    personality: 'direct',
+    verbosity: 'quick_explanation',
+    accountability: 'moderate',
+    reminderStyle: 'motivational'
   },
   story: {
     rawText: '',
@@ -98,13 +144,18 @@ export const DEFAULT_USER_INTELLIGENCE_PROFILE = {
     notifications: 'notDetermined'
   },
   onboardingCompleted: false,
+  onboarded: false,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString()
 };
 
+const draftKeyFor = (userId) => (
+  userId ? `${ONBOARDING_DRAFT_STORAGE_KEY}_${userId}` : ONBOARDING_DRAFT_STORAGE_KEY
+);
+
 export class UserIntelligenceProfile {
   /**
-   * Deep sanitize and validate a profile payload
+   * Deep sanitize and validate a profile payload (nested canonical shape)
    */
   static sanitize(raw = {}) {
     if (!raw || typeof raw !== 'object') {
@@ -114,6 +165,7 @@ export class UserIntelligenceProfile {
     const rawFullName = raw.identity?.fullName || raw.fullName || raw.name || '';
     const rawFirstName = raw.identity?.firstName || raw.firstName || (rawFullName ? rawFullName.trim().split(' ')[0] : '') || '';
     const rawNickname = raw.identity?.nickname || raw.nickname || rawFirstName || '';
+    const completed = Boolean(raw.onboardingCompleted || raw.onboarded);
 
     return {
       identity: {
@@ -138,17 +190,17 @@ export class UserIntelligenceProfile {
       training: {
         experience: raw.training?.experience || raw.experience || 'intermediate',
         frequency: raw.training?.frequency || '3_4_days',
-        duration: raw.training?.duration || '45_60_min',
+        duration: normalizeDuration(raw.training?.duration || '45_60'),
         environment: raw.training?.environment || 'commercial_gym',
         equipment: Array.isArray(raw.training?.equipment) ? raw.training.equipment : ['dumbbells', 'barbells', 'machines'],
         preferredStyles: Array.isArray(raw.training?.preferredStyles) ? raw.training.preferredStyles : ['strength', 'hypertrophy']
       },
       nutrition: {
         diet: raw.nutrition?.diet || (Array.isArray(raw.dietPreferences) ? raw.dietPreferences[0] : (raw.dietPreference || raw.diet)) || 'non_vegetarian',
-        cuisines: Array.isArray(raw.nutrition?.cuisines) ? raw.nutrition.cuisines : (Array.isArray(raw.cuisines) ? raw.cuisines : ['Indian', 'Western']),
+        cuisines: Array.isArray(raw.nutrition?.cuisines) ? raw.nutrition.cuisines : (Array.isArray(raw.cuisines) ? raw.cuisines : []),
         mealBehavior: raw.nutrition?.mealBehavior || 'mix_of_both',
         nutritionPriority: raw.nutrition?.nutritionPriority || 'high_protein',
-        allergies: Array.isArray(raw.nutrition?.allergies) ? raw.nutrition.allergies : (Array.isArray(raw.allergies) ? raw.allergies : ['none']),
+        allergies: Array.isArray(raw.nutrition?.allergies) ? raw.nutrition.allergies : (typeof raw.allergies === 'string' && raw.allergies ? raw.allergies.split(',').map(s => s.trim()).filter(Boolean) : (Array.isArray(raw.allergies) ? raw.allergies : ['none'])),
         cookingStyle: raw.nutrition?.cookingStyle || 'mostly_home',
         budget: raw.nutrition?.budget || 'moderate',
         mealSchedule: raw.nutrition?.mealSchedule || { breakfast: true, lunch: true, dinner: true, snacks: false }
@@ -181,7 +233,9 @@ export class UserIntelligenceProfile {
         fitbit: Boolean(raw.devices?.fitbit),
         healthConnect: Boolean(raw.devices?.healthConnect),
         bleHeartRate: Boolean(raw.devices?.bleHeartRate),
-        bleBloodPressure: Boolean(raw.devices?.bleBloodPressure)
+        bleBloodPressure: Boolean(raw.devices?.bleBloodPressure),
+        bluetoothWatch: Boolean(raw.devices?.bluetoothWatch),
+        deviceName: raw.devices?.deviceName || null
       },
       coaching: {
         personality: raw.coaching?.personality || raw.coachPersonality || 'direct',
@@ -199,19 +253,68 @@ export class UserIntelligenceProfile {
         bluetooth: raw.permissions?.bluetooth || 'notDetermined',
         notifications: raw.permissions?.notifications || 'notDetermined'
       },
-      onboardingCompleted: Boolean(raw.onboardingCompleted || raw.onboarded),
+      onboardingCompleted: completed,
+      onboarded: completed,
       createdAt: raw.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
   }
 
   /**
-   * Save progressive onboarding draft to localStorage
+   * Nested sanitize + flat Dashboard/Profile/dbService compatibility fields
    */
-  static saveLocalDraft(draft) {
+  static toCompatibleProfile(raw = {}, extras = {}) {
+    const nested = this.sanitize({ ...raw, ...extras });
+    const primaryGoal = nested.goals.primaryGoal;
+    const flatGoal = GOAL_MAP[primaryGoal] || 'maintain';
+    const coachPersonality = COACH_MAP[nested.coaching.personality] || 'motivational';
+    const allergies = Array.isArray(nested.nutrition.allergies)
+      ? nested.nutrition.allergies.join(', ')
+      : (nested.nutrition.allergies || '');
+
+    return {
+      ...nested,
+      ...extras,
+      onboarded: true,
+      onboardingCompleted: true,
+      role: extras.role || 'user',
+      name: nested.identity.fullName,
+      fullName: nested.identity.fullName,
+      displayName: nested.identity.fullName,
+      firstName: nested.identity.firstName,
+      nickname: nested.identity.nickname,
+      weight: nested.identity.weight,
+      height: nested.identity.height,
+      age: nested.identity.age,
+      dob: nested.identity.dob,
+      gender: nested.identity.sex,
+      goal: flatGoal,
+      goalWeight: nested.goals.targetWeight ?? nested.identity.targetWeight ?? nested.identity.weight,
+      experience: nested.training.experience,
+      fitnessLevel: nested.training.experience,
+      activity: ACTIVITY_MAP[nested.lifestyle.activityLevel] ?? 1.55,
+      units: extras.units || raw.units || 'metric',
+      coachPersonality,
+      responseLength: nested.coaching.verbosity,
+      coachingStyle: nested.coaching.personality,
+      dietPreference: nested.nutrition.diet,
+      diet: nested.nutrition.diet,
+      dietPreferences: [nested.nutrition.diet],
+      cuisines: nested.nutrition.cuisines || [],
+      allergies,
+      nutritionPriority: nested.nutrition.nutritionPriority,
+      schedule: nested.schedule
+    };
+  }
+
+  static draftStorageKey(userId) {
+    return draftKeyFor(userId);
+  }
+
+  static saveLocalDraft(draft, userId = null) {
     if (typeof window === 'undefined' || !window.localStorage) return;
     try {
-      localStorage.setItem(ONBOARDING_DRAFT_STORAGE_KEY, JSON.stringify({
+      localStorage.setItem(draftKeyFor(userId), JSON.stringify({
         ...draft,
         savedAt: Date.now()
       }));
@@ -220,18 +323,23 @@ export class UserIntelligenceProfile {
     }
   }
 
-  /**
-   * Read progressive onboarding draft from localStorage
-   */
-  static getLocalDraft() {
+  static getLocalDraft(userId = null) {
     if (typeof window === 'undefined' || !window.localStorage) return null;
     try {
-      const data = localStorage.getItem(ONBOARDING_DRAFT_STORAGE_KEY);
+      const key = draftKeyFor(userId);
+      let data = localStorage.getItem(key);
+      // Migrate legacy unscoped draft once
+      if (!data && userId) {
+        data = localStorage.getItem(ONBOARDING_DRAFT_STORAGE_KEY);
+        if (data) {
+          localStorage.setItem(key, data);
+          localStorage.removeItem(ONBOARDING_DRAFT_STORAGE_KEY);
+        }
+      }
       if (!data) return null;
       const parsed = JSON.parse(data);
-      // Discard drafts older than 14 days
       if (parsed.savedAt && Date.now() - parsed.savedAt > 14 * 24 * 60 * 60 * 1000) {
-        localStorage.removeItem(ONBOARDING_DRAFT_STORAGE_KEY);
+        localStorage.removeItem(key);
         return null;
       }
       return parsed;
@@ -240,19 +348,14 @@ export class UserIntelligenceProfile {
     }
   }
 
-  /**
-   * Clear local draft upon successful onboarding completion
-   */
-  static clearLocalDraft() {
+  static clearLocalDraft(userId = null) {
     if (typeof window === 'undefined' || !window.localStorage) return;
     try {
+      localStorage.removeItem(draftKeyFor(userId));
       localStorage.removeItem(ONBOARDING_DRAFT_STORAGE_KEY);
     } catch (e) {}
   }
 
-  /**
-   * Build structured AI Context string for Calyxo AI Orchestrator & Gemini
-   */
   static formatForAIContext(profile = {}) {
     const p = this.sanitize(profile);
     return `### ATHLETE INTELLIGENCE PROFILE
@@ -262,15 +365,12 @@ export class UserIntelligenceProfile {
 - **Training Environment:** ${p.training.environment.replace(/_/g, ' ')}
 - **Equipment Access:** ${p.training.equipment.join(', ') || 'Bodyweight'}
 - **Protected Areas / Limitations:** ${p.limitations.protectedAreas.length > 0 ? p.limitations.protectedAreas.join(', ') : 'None'}
-- **Nutrition:** Diet: ${p.nutrition.diet} | Cuisines: ${p.nutrition.cuisines.join(', ')} | Focus: ${p.nutrition.nutritionPriority.replace(/_/g, ' ')}
+- **Nutrition:** Diet: ${p.nutrition.diet} | Cuisines: ${(p.nutrition.cuisines || []).join(', ') || 'Any'} | Focus: ${p.nutrition.nutritionPriority.replace(/_/g, ' ')}
 - **Lifestyle & Sleep:** Activity: ${p.lifestyle.activityLevel} | Sleep: ${p.lifestyle.sleepDuration} (${p.lifestyle.sleepConsistency}) | Stress: ${p.lifestyle.stressLevel}
 - **Coaching Preference:** Style: ${p.coaching.personality} | Detail: ${p.coaching.verbosity} | Tone: ${p.coaching.reminderStyle}
 ${p.story.rawText ? `- **Athlete's Personal Story:** "${p.story.rawText}"` : ''}`;
   }
 
-  /**
-   * Format constraints for Workout Generator
-   */
   static formatForWorkoutEngine(profile = {}) {
     const p = this.sanitize(profile);
     const durationMap = {
@@ -278,6 +378,7 @@ ${p.story.rawText ? `- **Athlete's Personal Story:** "${p.story.rawText}"` : ''}
       '20_30': 25,
       '30_45': 35,
       '45_60': 45,
+      '45_60_min': 45,
       '60_plus': 60
     };
 
@@ -292,9 +393,6 @@ ${p.story.rawText ? `- **Athlete's Personal Story:** "${p.story.rawText}"` : ''}
     };
   }
 
-  /**
-   * Format dietary parameters for Macro & Nutrition Planner
-   */
   static formatForNutritionEngine(profile = {}) {
     const p = this.sanitize(profile);
     return {

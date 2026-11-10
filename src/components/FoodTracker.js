@@ -34,7 +34,6 @@ import LivingMealTimeline from '../design-system/components/LivingMealTimeline';
 import ContextualNutritionSheet from '../design-system/components/ContextualNutritionSheet';
 import PrecisionPortionDrawer from './nutrition/PrecisionPortionDrawer';
 import AIMealPlannerCard from './nutrition/AIMealPlannerCard';
-import AIChatModal from './modals/AIChatModal';
 import PremiumFeatureModal from './modals/PremiumFeatureModal.jsx';
 
 const CATEGORY_FILTERS = [
@@ -68,11 +67,11 @@ export default function FoodTracker({ onNotification }) {
   const [recentSearches, setRecentSearches] = useState([]);
   const [selectedFoodForPortion, setSelectedFoodForPortion] = useState(null);
   const [editingFoodLog, setEditingFoodLog] = useState(null);
+  const catalogRef = useRef(null);
 
   // Modals & Contextual Sheet State
   const [isContextSheetOpen, setIsContextSheetOpen] = useState(false);
   const [targetSlotForAdd, setTargetSlotForAdd] = useState('Lunch');
-  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState('timeline'); // 'timeline' | 'ai_planner'
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [premiumFeatureName, setPremiumFeatureName] = useState('AI Meal Planner');
@@ -356,12 +355,30 @@ export default function FoodTracker({ onNotification }) {
           </div>
         </div>
 
-        {/* Primary Action Row: + Add Food & AI Advice */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-card-border pt-4">
+        {/* Primary Action Row: Log Meal first, then secondary options */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 border-t border-card-border pt-4">
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={() => openWorkflow('log_meal', { date: selectedDate, slot: targetSlotForAdd })}
+            className="flex-1 px-5 py-3 rounded-2xl bg-accent text-accent-foreground font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:brightness-110 shadow-md shadow-accent/20 transition-all cursor-pointer border-none"
+          >
+            <Plus className="w-4 h-4 stroke-[3]" />
+            <span>Log Meal</span>
+          </motion.button>
+
           <div className="flex items-center gap-2">
             <button
+              type="button"
+              onClick={() => setIsContextSheetOpen(true)}
+              className="px-3.5 py-3 rounded-2xl bg-surface-subtle border border-card-border text-secondary hover:text-foreground text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+              title="More ways to add food"
+            >
+              More
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveSubTab(activeSubTab === 'timeline' ? 'ai_planner' : 'timeline')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition-all cursor-pointer border ${
+              className={`px-3.5 py-3 rounded-2xl text-xs font-bold font-mono uppercase tracking-wider transition-all cursor-pointer border ${
                 activeSubTab === 'ai_planner'
                   ? 'bg-accent text-accent-foreground border-accent shadow-xs'
                   : 'bg-surface-subtle border-card-border text-secondary hover:text-foreground'
@@ -369,19 +386,10 @@ export default function FoodTracker({ onNotification }) {
             >
               <span className="flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" />
-                {activeSubTab === 'ai_planner' ? 'View Daily Stream' : 'AI Meal Planner'}
+                {activeSubTab === 'ai_planner' ? 'Timeline' : 'AI Plan'}
               </span>
             </button>
           </div>
-
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={() => setIsContextSheetOpen(true)}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-2xl bg-accent text-accent-foreground font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:brightness-110 shadow-md shadow-accent/20 transition-all cursor-pointer border-none"
-          >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>+ Add Food to Day</span>
-          </motion.button>
         </div>
       </div>
 
@@ -397,7 +405,7 @@ export default function FoodTracker({ onNotification }) {
           />
 
           {/* ─── FAST STAPLES CATALOG & OMNI SEARCH ─── */}
-          <section className="rounded-3xl bg-surface border border-card-border p-5 space-y-4 shadow-card">
+          <section ref={catalogRef} id="food-catalog" className="rounded-3xl bg-surface border border-card-border p-5 space-y-4 shadow-card scroll-mt-24">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-mono uppercase font-bold tracking-widest text-accent block">
@@ -507,16 +515,17 @@ export default function FoodTracker({ onNotification }) {
         isOpen={isContextSheetOpen}
         onClose={() => setIsContextSheetOpen(false)}
         remainingProtein={remainingProtein}
-        onOpenAISuggestions={() => setIsAIChatOpen(true)}
+        onOpenAISuggestions={() => openWorkflow('start_chat')}
         onSelectAction={(actionId) => {
-          if (actionId === 'log_meal') {
+          if (actionId === 'log_meal' || actionId === 'custom' || actionId === 'ai_snap' || actionId === 'barcode') {
             openWorkflow('log_meal', { date: selectedDate, slot: targetSlotForAdd });
-          } else if (actionId === 'search_catalog') {
-            window.scrollTo({ top: 600, behavior: 'smooth' });
-          } else if (actionId === 'scan_food') {
-            if (onNotification) onNotification("AI Food Scanner is launching camera lens...");
+          } else if (actionId === 'search_catalog' || actionId === 'search') {
+            setActiveSubTab('timeline');
+            requestAnimationFrame(() => {
+              catalogRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
           } else if (actionId === 'macro_calc') {
-            setIsAIChatOpen(true);
+            openWorkflow('start_chat');
           }
         }}
       />
@@ -529,15 +538,6 @@ export default function FoodTracker({ onNotification }) {
           onClose={() => setSelectedFoodForPortion(null)}
           onLogPortion={handleSaveCustomPortion}
           initialSlot={targetSlotForAdd}
-        />
-      )}
-
-      {/* ─── AI CHAT MODAL ─── */}
-      {isAIChatOpen && (
-        <AIChatModal
-          isOpen={isAIChatOpen}
-          onClose={() => setIsAIChatOpen(false)}
-          initialPrompt={remainingProtein > 0 ? `I have ${remainingProtein}g of protein remaining today. Can you suggest 3 quick high-protein dinner options?` : "Analyze today's nutrition"}
         />
       )}
 

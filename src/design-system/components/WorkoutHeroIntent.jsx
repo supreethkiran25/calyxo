@@ -45,7 +45,7 @@ export default function WorkoutHeroIntent({
           </p>
         </div>
 
-        {/* Primary & Secondary Action Ribbon */}
+        {/* One primary + one secondary — avoids competing CTAs */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-2">
           <motion.button
             whileTap={{ scale: 0.97 }}
@@ -59,22 +59,22 @@ export default function WorkoutHeroIntent({
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={onOpenCustomLog}
-            className="py-3.5 px-4 rounded-2xl bg-surface-subtle hover:bg-surface-interactive text-foreground font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer border border-card-border shadow-xs"
+            className="flex-1 sm:flex-none py-3.5 px-4 rounded-2xl bg-surface-subtle hover:bg-surface-interactive text-foreground font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer border border-card-border shadow-xs"
           >
             <Dumbbell className="w-4 h-4 text-accent" />
-            <span>+ Custom Exercise</span>
-          </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={onQuickLogDay}
-            className="py-3.5 px-3 rounded-2xl bg-surface-subtle hover:bg-surface-interactive text-secondary hover:text-foreground font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-card-border shadow-xs"
-            title="Quick-log all exercises for today"
-          >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            <span className="hidden sm:inline">Quick Log</span>
+            <span>Log Exercise</span>
           </motion.button>
         </div>
+
+        <button
+          type="button"
+          onClick={onQuickLogDay}
+          className="text-[11px] font-medium text-muted hover:text-accent bg-transparent border-none cursor-pointer flex items-center gap-1.5 pt-1"
+          title="Quick-log all exercises for today's split"
+        >
+          <Play className="w-3 h-3 fill-current" />
+          <span>Quick-log full split instead</span>
+        </button>
       </div>
     </div>
   );
