@@ -297,8 +297,17 @@ export default function ChallengeModule({ onNotification }) {
 
   // Complete Today's Workout Session
   const handleFinishTodaySession = async () => {
-    LiveActivityManager.endLiveActivity();
     const targetProgram = currentChallenge || CURATED_CHALLENGES[0];
+    const plan = targetProgram.dailyPlan || [];
+    const checkedCount = Object.values(checkedExercises).filter(Boolean).length;
+    if (plan.length > 0 && checkedCount < plan.length) {
+      const ok = window.confirm(
+        `Only ${checkedCount} of ${plan.length} exercises are checked. Finish and log this session anyway?`
+      );
+      if (!ok) return;
+    }
+
+    LiveActivityManager.endLiveActivity();
     const nextDay = (targetProgram.progressDays || 0) + 1;
     const isFinished = nextDay >= targetProgram.targetDays;
     const burnedKcal = targetProgram.estBurnPerSession || 220;

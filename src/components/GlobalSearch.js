@@ -91,7 +91,11 @@ export default function GlobalSearch({ isOpen, onClose }) {
         gif_url: ex.gif_url || ex.image,
         icon: Dumbbell,
         action: () => {
-          setActiveWorkflow('log_workout', { initialExercise: ex });
+          setActiveWorkflow('log_workout', {
+            exerciseName: ex.name,
+            category: ex.category || 'Strength',
+            initialExercise: ex
+          });
         }
       });
     });

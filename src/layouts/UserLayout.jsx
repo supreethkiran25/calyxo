@@ -788,6 +788,7 @@ export default function UserLayout() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            onClick={() => setIsNotifDrawerOpen(false)}
             className="fixed inset-0 z-50 flex justify-end bg-black/80 backdrop-blur-sm p-0 sm:p-4"
           >
             <motion.div
@@ -795,6 +796,7 @@ export default function UserLayout() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              onClick={(e) => e.stopPropagation()}
               className="w-full sm:max-w-md h-full bg-surface border-l sm:border border-card-border sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden p-5 sm:p-6 space-y-4 pt-[max(env(safe-area-inset-top,0px),1.25rem)] pb-[max(env(safe-area-inset-bottom,0px),1.25rem)]"
             >
               <div className="flex items-center justify-between border-b border-card-border pb-4">

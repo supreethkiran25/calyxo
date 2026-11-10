@@ -1683,12 +1683,11 @@ export default function UserProfile({ onNotification }) {
           <h4 className="text-[10px] font-bold text-foreground uppercase tracking-wider">Active Device Sessions</h4>
           <button
             type="button"
-            onClick={() => {
-              if (onNotification) onNotification("Signed out of all other remote device sessions.");
-            }}
-            className="text-[9px] font-bold text-acid-green hover:underline cursor-pointer bg-none border-none p-0"
+            disabled
+            title="Remote session revoke is not available yet"
+            className="text-[9px] font-bold text-muted cursor-not-allowed bg-none border-none p-0 opacity-60"
           >
-            Sign Out Others
+            Sign Out Others (soon)
           </button>
         </div>
         <div className="border border-card-border rounded-lg overflow-hidden divide-y divide-card-border">

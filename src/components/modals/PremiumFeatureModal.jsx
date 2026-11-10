@@ -90,7 +90,7 @@ export default function PremiumFeatureModal({
           <button
             onClick={() => {
               if (onClose) onClose();
-              navigate('/user/profile');
+              navigate('/user/profile?tab=settings&section=subscription');
             }}
             className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-500/25 active:scale-[0.98] border-none"
           >

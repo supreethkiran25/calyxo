@@ -466,10 +466,20 @@ export default function WorkoutLogger({ onNotification }) {
   const [showLiveSessionModal, setShowLiveSessionModal] = useState(false);
   const [liveSessionRoutine, setLiveSessionRoutine] = useState(null);
 
+  const openLiveSession = (routine = splits[activeDay]) => {
+    const exercises = routine?.workout?.exercises || [];
+    if (!routine || !exercises.length) {
+      if (onNotification) onNotification('Add exercises to today’s split first, or log a custom workout.');
+      useQuickActionsStore.getState().openWorkflow('log_workout', { date: selectedDate });
+      return;
+    }
+    setLiveSessionRoutine(routine);
+    setShowLiveSessionModal(true);
+  };
+
   useEffect(() => {
     if (activeWorkflow === 'start_live_session') {
-      setLiveSessionRoutine(splits[activeDay]);
-      setShowLiveSessionModal(true);
+      openLiveSession(splits[activeDay]);
       closeWorkflow();
     }
   }, [activeWorkflow, splits, activeDay, closeWorkflow]);
@@ -1241,14 +1251,8 @@ export default function WorkoutLogger({ onNotification }) {
       {/* Active session banner only — idle Start Live lives in WorkoutHeroIntent */}
       <LiveWorkoutDashboard
         hideWhenIdle
-        onStartWorkout={() => {
-          setLiveSessionRoutine(splits[activeDay]);
-          setShowLiveSessionModal(true);
-        }}
-        onOpenActiveModal={() => {
-          setLiveSessionRoutine(splits[activeDay]);
-          setShowLiveSessionModal(true);
-        }}
+        onStartWorkout={() => openLiveSession(splits[activeDay])}
+        onOpenActiveModal={() => openLiveSession(splits[activeDay] || liveSessionRoutine)}
         splits={splits}
         activeDay={activeDay}
       />
@@ -1306,10 +1310,7 @@ export default function WorkoutLogger({ onNotification }) {
                 userProfile={userProfile}
                 historicalWorkoutLogs={workoutLogs}
                 recoveryScore={82}
-                onStartSession={(routine) => {
-                  setLiveSessionRoutine(routine);
-                  setShowLiveSessionModal(true);
-                }}
+                onStartSession={(routine) => openLiveSession(routine)}
                 onOpenUpgradeModal={(feature) => {
                   setPremiumFeatureName(feature);
                   setPremiumModalOpen(true);
@@ -1330,10 +1331,7 @@ export default function WorkoutLogger({ onNotification }) {
                 exerciseCount={splits[activeDay]?.workout?.exercises?.length || 6}
                 completedCountToday={selectedDateWorkoutLogs.length}
                 totalVolumeToday={selectedDateStats.volume}
-                onStartLiveWorkout={() => {
-                  setLiveSessionRoutine(splits[activeDay]);
-                  setShowLiveSessionModal(true);
-                }}
+                onStartLiveWorkout={() => openLiveSession(splits[activeDay])}
                 onQuickLogDay={handleLogFullDaySplit}
                 onOpenCustomLog={() => useQuickActionsStore.getState().openWorkflow('log_workout', { date: selectedDate })}
               />
@@ -1893,10 +1891,7 @@ export default function WorkoutLogger({ onNotification }) {
                               </div>
                               <div className="flex items-center gap-2">
                                 <button
-                                  onClick={() => {
-                                    setLiveSessionRoutine(splits[activeDay]);
-                                    setShowLiveSessionModal(true);
-                                  }}
+                                  onClick={() => openLiveSession(splits[activeDay])}
                                   disabled={!splits[activeDay]?.workout?.exercises?.length}
                                   className="px-3.5 py-1.5 rounded-xl bg-acid-green text-black font-black text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all border-none cursor-pointer flex items-center gap-1.5 shadow-md shadow-acid-green/20 disabled:opacity-50"
                                   title={`Start interactive guided live workout session for ${splits[activeDay]?.dayName}`}
@@ -2315,12 +2310,20 @@ export default function WorkoutLogger({ onNotification }) {
               <div className="bg-surface/80 border-t border-card-border p-4 flex gap-3 justify-end items-center">
                 <button
                   onClick={() => {
-                    setExName(selectedExercise.name);
-                    setExCategory(selectedExercise.category || 'Strength');
-                    setExImage(selectedExercise.image || null);
+                    const exercise = selectedExercise;
                     setSelectedExercise(null);
-                    setActiveSubTab('logger');
-                    if (onNotification) onNotification(`${selectedExercise.name} loaded into Logger!`);
+                    useQuickActionsStore.getState().openWorkflow('log_workout', {
+                      exerciseName: exercise.name,
+                      category: exercise.category || 'Strength',
+                      date: selectedDate,
+                      initialExercise: {
+                        name: exercise.name,
+                        category: exercise.category || 'Strength',
+                        sets: 3,
+                        reps: 10,
+                        weight: 0
+                      }
+                    });
                   }}
                   className="px-5 py-2.5 rounded-xl bg-acid-green text-accent-foreground font-black text-xs uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all shadow-md hover:shadow-[0_0_12px_rgba(204,255,0,0.15)] border-none"
                 >

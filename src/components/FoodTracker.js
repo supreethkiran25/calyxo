@@ -517,9 +517,9 @@ export default function FoodTracker({ onNotification }) {
         remainingProtein={remainingProtein}
         onOpenAISuggestions={() => openWorkflow('start_chat')}
         onSelectAction={(actionId) => {
-          if (actionId === 'log_meal' || actionId === 'custom' || actionId === 'ai_snap' || actionId === 'barcode') {
+          if (actionId === 'log_meal') {
             openWorkflow('log_meal', { date: selectedDate, slot: targetSlotForAdd });
-          } else if (actionId === 'search_catalog' || actionId === 'search') {
+          } else if (actionId === 'search_catalog') {
             setActiveSubTab('timeline');
             requestAnimationFrame(() => {
               catalogRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });

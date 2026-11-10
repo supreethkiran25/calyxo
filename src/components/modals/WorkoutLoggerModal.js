@@ -87,14 +87,21 @@ export default function WorkoutLoggerModal() {
 
   useEffect(() => {
     if (activeWorkflow === 'log_workout') {
-      if (workflowData?.exerciseName) {
+      const initialEx = workflowData?.initialExercise;
+      const exerciseName = workflowData?.exerciseName || initialEx?.name || '';
+      const category = workflowData?.category || initialEx?.category || 'Strength';
+      const sets = Number(initialEx?.sets) || 3;
+      const reps = Number(initialEx?.reps) || 10;
+      const weight = Number(initialEx?.weight) || 0;
+
+      if (exerciseName) {
         setExercises([{
           id: Date.now(),
-          name: workflowData.exerciseName,
-          setsList: createInitialSets(3, 10, 0),
-          category: workflowData.category || 'Strength'
+          name: exerciseName,
+          setsList: createInitialSets(sets, reps, weight),
+          category
         }]);
-        setWorkoutName(workflowData.muscle ? `${workflowData.muscle} Routine` : workflowData.exerciseName);
+        setWorkoutName(workflowData?.muscle ? `${workflowData.muscle} Routine` : exerciseName);
       } else if (workflowData?.muscle) {
         setWorkoutName(`${workflowData.muscle} Workout`);
         setExercises([{

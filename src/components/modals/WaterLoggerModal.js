@@ -9,6 +9,7 @@ import RealisticWaterVessel from '../common/RealisticWaterVessel';
 export default function WaterLoggerModal() {
   const { activeWorkflow, closeWorkflow } = useQuickActionsStore();
   const user = useStore(state => state.user);
+  const userProfile = useStore(state => state.userProfile);
   const waterIntake = useStore(state => state.waterIntake);
   const addWaterIntakeStore = useStore(state => state.addWaterIntake);
   const setWaterIntake = useStore(state => state.setWaterIntake);
@@ -20,7 +21,7 @@ export default function WaterLoggerModal() {
 
   if (activeWorkflow !== 'log_water') return null;
 
-  const targetGoal = 3000; // 3,000 ml daily hydration goal
+  const targetGoal = Number(userProfile?.waterGoal || userProfile?.waterTarget || userProfile?.dailyWaterMl || 3000) || 3000;
   const fillPct = Math.min(100, Math.round((waterIntake / targetGoal) * 100));
 
   const playWaterChime = () => {

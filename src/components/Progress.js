@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useEcosystemStore } from '../store/useEcosystemStore';
-import { addWeightLog, saveEcosystemState } from '../lib/dbService';
+import { addWeightLog, saveEcosystemState, saveUserProfile } from '../lib/dbService';
 import { Trophy, Activity, Lock, Sparkles, Share2, Download, TrendingUp, RefreshCw, Scale, Minus, Plus, CheckCircle2, Flame } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -13,6 +13,7 @@ export default function Progress({ onNotification }) {
   const workoutLogs = useStore(state => state.workoutLogs || []);
   const storeAddWeightLog = useStore(state => state.addWeightLog);
   const userProfile = useStore(state => state.userProfile);
+  const updateUserProfile = useStore(state => state.updateUserProfile);
   const foodLogs = useStore(state => state.foodLogs || []);
   const waterIntake = useStore(state => state.waterIntake || 0);
   const ecoStore = useEcosystemStore();
@@ -557,9 +558,19 @@ export default function Progress({ onNotification }) {
                     <button
                       key={cat.level}
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         setBodyFatLevel(cat.level);
                         triggerHaptic();
+                        const updated = { ...(userProfile || {}), bodyFat: cat.level };
+                        updateUserProfile(updated);
+                        if (userId) {
+                          try {
+                            await saveUserProfile(userId, updated);
+                            if (onNotification) onNotification(`Body fat estimate saved (${cat.range})`);
+                          } catch (err) {
+                            console.warn('Failed saving body fat estimate', err);
+                          }
+                        }
                       }}
                       className={`p-4 rounded-2xl border text-left space-y-1.5 transition-all cursor-pointer ${
                         bodyFatLevel === cat.level

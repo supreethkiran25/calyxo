@@ -152,6 +152,17 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
     }
   };
 
+  const handleCreateNewSession = () => {
+    const created = chatSessionManager.createSession({
+      title: 'New Conversation',
+      role: userProfile?.role || 'USER',
+      userName: userProfile?.name || userProfile?.fullName || user?.displayName || 'Athlete'
+    });
+    setActiveSession(created);
+    refreshSessions();
+    if (onNotification) onNotification('New chat started');
+  };
+
   // Generate Grounded Intelligence Briefing
   const loadBriefing = () => {
     setIsBriefingLoading(true);
@@ -298,11 +309,7 @@ export default function AIIntelligenceHub({ onNotification, isModal = false, onC
             ) : (
               <button 
                 onClick={() => {
-                  const newSess = chatSessionManager.createSession({
-                    title: 'New Conversation',
-                    role: userProfile?.role || 'USER'
-                  });
-                  refreshSessions();
+                  handleCreateNewSession();
                   setSidebarOpen(false);
                 }}
                 className="p-1.5 rounded-xl bg-surface-subtle hover:bg-surface-interactive text-accent border border-accent/30 hover:border-accent transition-all cursor-pointer flex items-center gap-1 text-xs font-semibold px-2.5"
